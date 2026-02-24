@@ -1,0 +1,985 @@
+import { useState, useEffect, useRef } from 'react';
+import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Calendar, Settings2, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
+import { ExpensesSummaryBar } from './expenses/ExpensesSummaryBar';
+import { CategoryGroupedView } from './expenses/CategoryGroupedView';
+import { ManageCategoriesTab } from './expenses/ManageCategoriesTab';
+
+interface MasterCategory {
+  id: string;
+  name: string;
+  description: string;
+  type: 'expense' | 'purchase';
+  color: string;
+  icon: string;
+}
+
+interface SubItem {
+  id: string;
+  name: string;
+  master_category_id: string;
+  created_at: string;
+}
+
+interface OperationalExpense {
+  id: string;
+  master_category_id: string | null;
+  expense_item_id: string | null;
+  amount: number;
+  description: string;
+  expense_date: string;
+  payment_method: string;
+  master_categories?: { name: string; color: string };
+  expense_items?: { name: string };
+}
+
+interface Purchase {
+  id: string;
+  product_id: string;
+  supplier_id: string | null;
+  master_category_id: string | null;
+  expense_item_id: string | null;
+  quantity: number;
+  unit_cost: number;
+  total_cost: number;
+  purchase_date: string;
+  payment_status: 'pending' | 'partial' | 'paid';
+  notes: string;
+  products?: { name: string; unit: string };
+  suppliers?: { name: string };
+  master_categories?: { name: string; color: string };
+  expense_items?: { name: string };
+}
+
+interface Product {
+  id: string;
+  name: string;
+  unit: string;
+  master_category_id?: string | null;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
+}
+
+type ActiveTab = 'operational' | 'cogs' | 'categories';
+
+export function ExpensesScreen() {
+  const { t } = useLanguage();
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<ActiveTab>('operational');
+  const [loading, setLoading] = useState(true);
+
+  const [categories, setCategories] = useState<MasterCategory[]>([]);
+  const [subItems, setSubItems] = useState<SubItem[]>([]);
+  const [expenses, setExpenses] = useState<OperationalExpense[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [showPurchaseForm, setShowPurchaseForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<OperationalExpense | null>(null);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState(() => {
+    const now = new Date();
+    return {
+      start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0],
+      end: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0],
+    };
+  });
+
+  useEffect(() => {
+    loadAllData(true);
+  }, []);
+
+  const loadAllData = async (isInitial = false) => {
+    if (isInitial) setLoading(true);
+    const [catRes, itemsRes, expRes, purRes, prodRes, suppRes] = await Promise.all([
+      supabase.from('master_categories').select('*').in('type', ['purchase', 'expense']).order('name'),
+      supabase.from('expense_items').select('*').order('name'),
+      supabase.from('operational_expenses').select('*, master_categories(name, color), expense_items(name)').order('expense_date', { ascending: false }),
+      supabase.from('purchases').select('*, products(name, unit), suppliers(name), master_categories(name, color), expense_items(name)').order('purchase_date', { ascending: false }),
+      supabase.from('products').select('id, name, unit, master_category_id').order('name'),
+      supabase.from('suppliers').select('id, name').eq('is_active', true).order('name'),
+    ]);
+
+    if (catRes.data) setCategories(catRes.data as MasterCategory[]);
+    if (itemsRes.data) setSubItems(itemsRes.data);
+    if (expRes.data) setExpenses(expRes.data as OperationalExpense[]);
+    if (purRes.data) setPurchases(purRes.data as Purchase[]);
+    if (prodRes.data) setProducts(prodRes.data as Product[]);
+    if (suppRes.data) setSuppliers(suppRes.data);
+    if (isInitial) setLoading(false);
+  };
+
+  const expenseCategories = categories.filter(c => c.type === 'expense');
+  const cogsCategories = categories.filter(c => c.type === 'purchase');
+
+  const filteredExpenses = expenses.filter(e => {
+    const dateOk = e.expense_date >= dateFilter.start && e.expense_date <= dateFilter.end;
+    if (!dateOk) return false;
+    if (!searchTerm) return true;
+    const s = searchTerm.toLowerCase();
+    return (
+      (e.master_categories?.name || '').toLowerCase().includes(s) ||
+      (e.expense_items?.name || '').toLowerCase().includes(s) ||
+      (e.description || '').toLowerCase().includes(s)
+    );
+  });
+
+  const filteredPurchases = purchases.filter(p => {
+    const d = p.purchase_date.split('T')[0];
+    const dateOk = d >= dateFilter.start && d <= dateFilter.end;
+    if (!dateOk) return false;
+    if (!searchTerm) return true;
+    const s = searchTerm.toLowerCase();
+    return (
+      (p.master_categories?.name || '').toLowerCase().includes(s) ||
+      (p.products?.name || '').toLowerCase().includes(s) ||
+      (p.suppliers?.name || '').toLowerCase().includes(s) ||
+      (p.notes || '').toLowerCase().includes(s)
+    );
+  });
+
+  const opexTotal = filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const cogsTotal = filteredPurchases.reduce((sum, p) => sum + Number(p.total_cost), 0);
+
+  const opexCategorySummary = expenseCategories.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    color: cat.color,
+    total: filteredExpenses.filter(e => e.master_category_id === cat.id).reduce((s, e) => s + Number(e.amount), 0),
+  })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
+
+  const cogsCategorySummary = cogsCategories.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    color: cat.color,
+    total: filteredPurchases.filter(p => p.master_category_id === cat.id).reduce((s, p) => s + Number(p.total_cost), 0),
+  })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
+
+  const opexGroups = expenseCategories.map(cat => {
+    const catExpenses = filteredExpenses.filter(e => e.master_category_id === cat.id);
+    return {
+      categoryId: cat.id,
+      categoryName: cat.name,
+      categoryColor: cat.color,
+      total: catExpenses.reduce((s, e) => s + Number(e.amount), 0),
+      items: catExpenses.map(e => ({
+        id: e.id,
+        date: e.expense_date,
+        subItemName: e.expense_items?.name || '',
+        amount: Number(e.amount),
+        description: e.description,
+        paymentMethod: e.payment_method,
+      })),
+    };
+  }).filter(g => g.items.length > 0).sort((a, b) => b.total - a.total);
+
+  const uncategorizedExpenses = filteredExpenses.filter(e => !e.master_category_id);
+  if (uncategorizedExpenses.length > 0) {
+    opexGroups.push({
+      categoryId: 'uncategorized',
+      categoryName: 'Uncategorized',
+      categoryColor: '#9CA3AF',
+      total: uncategorizedExpenses.reduce((s, e) => s + Number(e.amount), 0),
+      items: uncategorizedExpenses.map(e => ({
+        id: e.id,
+        date: e.expense_date,
+        subItemName: e.expense_items?.name || '',
+        amount: Number(e.amount),
+        description: e.description,
+        paymentMethod: e.payment_method,
+      })),
+    });
+  }
+
+  const cogsGroups = cogsCategories.map(cat => {
+    const catPurchases = filteredPurchases.filter(p => p.master_category_id === cat.id);
+    return {
+      categoryId: cat.id,
+      categoryName: cat.name,
+      categoryColor: cat.color,
+      total: catPurchases.reduce((s, p) => s + Number(p.total_cost), 0),
+      items: catPurchases.map(p => ({
+        id: p.id,
+        date: p.purchase_date,
+        subItemName: p.expense_items?.name || p.products?.name || '',
+        amount: Number(p.total_cost),
+        description: p.notes,
+        productName: p.products?.name,
+        supplierName: p.suppliers?.name,
+        quantity: p.quantity,
+        unitCost: p.unit_cost,
+        paymentStatus: p.payment_status,
+      })),
+    };
+  }).filter(g => g.items.length > 0).sort((a, b) => b.total - a.total);
+
+  const uncategorizedPurchases = filteredPurchases.filter(p => !p.master_category_id);
+  if (uncategorizedPurchases.length > 0) {
+    cogsGroups.push({
+      categoryId: 'uncategorized',
+      categoryName: 'Uncategorized',
+      categoryColor: '#9CA3AF',
+      total: uncategorizedPurchases.reduce((s, p) => s + Number(p.total_cost), 0),
+      items: uncategorizedPurchases.map(p => ({
+        id: p.id,
+        date: p.purchase_date,
+        subItemName: p.expense_items?.name || p.products?.name || '',
+        amount: Number(p.total_cost),
+        description: p.notes,
+        productName: p.products?.name,
+        supplierName: p.suppliers?.name,
+        quantity: p.quantity,
+        unitCost: p.unit_cost,
+        paymentStatus: p.payment_status,
+      })),
+    });
+  }
+
+  const handleEditExpense = (id: string) => {
+    const exp = expenses.find(e => e.id === id);
+    if (exp) {
+      setEditingExpense(exp);
+      setExpenseFormData({
+        master_category_id: exp.master_category_id || '',
+        expense_item_id: exp.expense_item_id || '',
+        amount: exp.amount,
+        expense_date: exp.expense_date,
+        payment_method: exp.payment_method || '',
+        description: exp.description || '',
+      });
+      setShowExpenseForm(true);
+    }
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    await supabase.from('operational_expenses').delete().eq('id', id);
+    await loadAllData();
+  };
+
+  const handleEditPurchase = (id: string) => {
+    const pur = purchases.find(p => p.id === id);
+    if (pur) {
+      setEditingPurchase(pur);
+      setPurchaseFormData({
+        expense_item_id: pur.expense_item_id || '',
+        master_category_id: pur.master_category_id || '',
+        supplier_id: pur.supplier_id || '',
+        quantity: pur.quantity,
+        unit_cost: pur.unit_cost,
+        purchase_date: new Date(pur.purchase_date).toISOString().split('T')[0],
+        payment_status: pur.payment_status,
+        notes: pur.notes || '',
+      });
+      setShowPurchaseForm(true);
+    }
+  };
+
+  const handleDeletePurchase = async (id: string) => {
+    await supabase.from('purchases').delete().eq('id', id);
+    await loadAllData();
+  };
+
+  const [expenseFormData, setExpenseFormData] = useState({
+    master_category_id: '',
+    expense_item_id: '',
+    amount: 0,
+    expense_date: new Date().toISOString().split('T')[0],
+    payment_method: '',
+    description: '',
+  });
+
+  const [purchaseFormData, setPurchaseFormData] = useState({
+    expense_item_id: '',
+    master_category_id: '',
+    supplier_id: '',
+    quantity: 1,
+    unit_cost: 0,
+    purchase_date: new Date().toISOString().split('T')[0],
+    payment_status: 'pending' as 'pending' | 'partial' | 'paid',
+    notes: '',
+  });
+
+  const [isItemDropdownOpen, setIsItemDropdownOpen] = useState(false);
+  const [itemSearchText, setItemSearchText] = useState('');
+  const itemDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isCogsItemDropdownOpen, setIsCogsItemDropdownOpen] = useState(false);
+  const [cogsItemSearchText, setCogsItemSearchText] = useState('');
+  const cogsItemDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (itemDropdownRef.current && !itemDropdownRef.current.contains(event.target as Node)) {
+        setIsItemDropdownOpen(false);
+        setItemSearchText('');
+      }
+      if (cogsItemDropdownRef.current && !cogsItemDropdownRef.current.contains(event.target as Node)) {
+        setIsCogsItemDropdownOpen(false);
+        setCogsItemSearchText('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const expenseCatSubItems = subItems.filter(si => {
+    const cat = categories.find(c => c.id === si.master_category_id);
+    return cat?.type === 'expense';
+  });
+
+  const cogsCatSubItems = subItems.filter(si => {
+    const cat = categories.find(c => c.id === si.master_category_id);
+    return cat?.type === 'purchase';
+  });
+
+  const filteredDropdownItems = expenseCatSubItems.filter(item => {
+    if (!itemSearchText) return true;
+    const cat = categories.find(c => c.id === item.master_category_id);
+    return (
+      item.name.toLowerCase().includes(itemSearchText.toLowerCase()) ||
+      (cat?.name || '').toLowerCase().includes(itemSearchText.toLowerCase())
+    );
+  });
+
+  const filteredCogsDropdownItems = cogsCatSubItems.filter(item => {
+    if (!cogsItemSearchText) return true;
+    const cat = categories.find(c => c.id === item.master_category_id);
+    return (
+      item.name.toLowerCase().includes(cogsItemSearchText.toLowerCase()) ||
+      (cat?.name || '').toLowerCase().includes(cogsItemSearchText.toLowerCase())
+    );
+  });
+
+  const handleSelectExpenseItem = (itemId: string) => {
+    const item = subItems.find(i => i.id === itemId);
+    if (item) {
+      setExpenseFormData(prev => ({
+        ...prev,
+        expense_item_id: itemId,
+        master_category_id: item.master_category_id,
+      }));
+    }
+    setIsItemDropdownOpen(false);
+    setItemSearchText('');
+  };
+
+  const handleSelectCogsItem = (itemId: string) => {
+    const item = subItems.find(i => i.id === itemId);
+    if (item) {
+      setPurchaseFormData(prev => ({
+        ...prev,
+        expense_item_id: itemId,
+        master_category_id: item.master_category_id,
+      }));
+    }
+    setIsCogsItemDropdownOpen(false);
+    setCogsItemSearchText('');
+  };
+
+  const handleSubmitExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = {
+      master_category_id: expenseFormData.master_category_id || null,
+      expense_item_id: expenseFormData.expense_item_id || null,
+      amount: expenseFormData.amount,
+      expense_date: expenseFormData.expense_date,
+      payment_method: expenseFormData.payment_method,
+      description: expenseFormData.description,
+    };
+
+    if (editingExpense) {
+      await supabase.from('operational_expenses').update(payload).eq('id', editingExpense.id);
+    } else {
+      await supabase.from('operational_expenses').insert(payload);
+    }
+
+    resetExpenseForm();
+    await loadAllData();
+  };
+
+  const handleSubmitPurchase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const total_cost = purchaseFormData.quantity * purchaseFormData.unit_cost;
+    const payload = {
+      expense_item_id: purchaseFormData.expense_item_id || null,
+      master_category_id: purchaseFormData.master_category_id || null,
+      supplier_id: purchaseFormData.supplier_id || null,
+      quantity: purchaseFormData.quantity,
+      unit_cost: purchaseFormData.unit_cost,
+      total_cost,
+      purchase_date: purchaseFormData.purchase_date,
+      payment_status: purchaseFormData.payment_status,
+      notes: purchaseFormData.notes,
+    };
+
+    if (editingPurchase) {
+      await supabase.from('purchases').update(payload).eq('id', editingPurchase.id);
+    } else {
+      await supabase.from('purchases').insert(payload);
+    }
+
+    resetPurchaseForm();
+    await loadAllData();
+  };
+
+  const resetExpenseForm = () => {
+    setExpenseFormData({
+      master_category_id: '',
+      expense_item_id: '',
+      amount: 0,
+      expense_date: new Date().toISOString().split('T')[0],
+      payment_method: '',
+      description: '',
+    });
+    setEditingExpense(null);
+    setShowExpenseForm(false);
+  };
+
+  const resetPurchaseForm = () => {
+    setPurchaseFormData({
+      expense_item_id: '',
+      master_category_id: '',
+      supplier_id: '',
+      quantity: 1,
+      unit_cost: 0,
+      purchase_date: new Date().toISOString().split('T')[0],
+      payment_status: 'pending',
+      notes: '',
+    });
+    setEditingPurchase(null);
+    setShowPurchaseForm(false);
+  };
+
+  const tabs = [
+    { id: 'operational' as const, label: t.operationalExpenses, icon: DollarSign, color: 'orange' },
+    { id: 'cogs' as const, label: `${t.cogs} (${t.purchases})`, icon: ShoppingCart, color: 'blue' },
+    { id: 'categories' as const, label: t.categories, icon: Settings2, color: 'gray' },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate-fadeIn">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Expenses</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Manage operational costs and COGS in one place</p>
+        </div>
+        {activeTab === 'operational' && (
+          <button
+            onClick={() => { resetExpenseForm(); setShowExpenseForm(true); }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            {t.newExpense}
+          </button>
+        )}
+        {activeTab === 'cogs' && (
+          <button
+            onClick={() => { resetPurchaseForm(); setShowPurchaseForm(true); }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            {t.newPurchase}
+          </button>
+        )}
+      </div>
+
+      <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                isActive
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden text-xs">
+                {tab.id === 'operational' ? 'OpEx' : tab.id === 'cogs' ? 'COGS' : 'Categories'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {activeTab !== 'categories' && (
+        <div className="flex flex-col sm:flex-row gap-3 mb-5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <input
+              type="date"
+              value={dateFilter.start}
+              onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
+              className="px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+            />
+            <span className="text-gray-400 text-xs">to</span>
+            <input
+              type="date"
+              value={dateFilter.end}
+              onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
+              className="px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+            />
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'operational' && (
+        <>
+          <ExpensesSummaryBar
+            categories={opexCategorySummary}
+            totalAmount={opexTotal}
+            label="Total Operational Expenses"
+          />
+          {opexGroups.length === 0 ? (
+            <div className="text-center py-16">
+              <DollarSign className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-1">{t.noExpenses}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t.startTrackingExpenses}</p>
+              <button
+                onClick={() => setShowExpenseForm(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                {t.createFirstExpense}
+              </button>
+            </div>
+          ) : (
+            <CategoryGroupedView
+              groups={opexGroups}
+              type="operational"
+              onEdit={handleEditExpense}
+              onDelete={handleDeleteExpense}
+            />
+          )}
+        </>
+      )}
+
+      {activeTab === 'cogs' && (
+        <>
+          <ExpensesSummaryBar
+            categories={cogsCategorySummary}
+            totalAmount={cogsTotal}
+            label="Total COGS (Food Cost)"
+          />
+          {cogsGroups.length === 0 ? (
+            <div className="text-center py-16">
+              <ShoppingCart className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-1">{t.noPurchasesYet}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t.startTracking}</p>
+              <button
+                onClick={() => setShowPurchaseForm(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                {t.createFirstPurchase}
+              </button>
+            </div>
+          ) : (
+            <CategoryGroupedView
+              groups={cogsGroups}
+              type="cogs"
+              onEdit={handleEditPurchase}
+              onDelete={handleDeletePurchase}
+            />
+          )}
+        </>
+      )}
+
+      {activeTab === 'categories' && (
+        <ManageCategoriesTab
+          categories={categories}
+          subItems={subItems}
+          onDataChanged={loadAllData}
+        />
+      )}
+
+      {showExpenseForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+            <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {editingExpense ? t.editExpense : t.newExpense}
+              </h2>
+              <button onClick={resetExpenseForm} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitExpense} className="p-5 space-y-4 overflow-y-auto max-h-[calc(90vh-130px)]">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.expenseItem}</label>
+                <div className="relative" ref={itemDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsItemDropdownOpen(!isItemDropdownOpen)}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-left flex items-center justify-between"
+                  >
+                    {expenseFormData.expense_item_id ? (
+                      <span className="flex items-center gap-2 truncate">
+                        {subItems.find(i => i.id === expenseFormData.expense_item_id)?.name}
+                        {(() => {
+                          const cat = categories.find(c => c.id === expenseFormData.master_category_id);
+                          return cat ? (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: cat.color }}>
+                              {cat.name}
+                            </span>
+                          ) : null;
+                        })()}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">Search expense items...</span>
+                    )}
+                    <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${isItemDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isItemDropdownOpen && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-64 overflow-hidden">
+                      <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={itemSearchText}
+                            onChange={(e) => setItemSearchText(e.target.value)}
+                            placeholder="Search..."
+                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {filteredDropdownItems.length === 0 ? (
+                          <div className="px-3 py-4 text-sm text-center text-gray-500">No items found</div>
+                        ) : (
+                          filteredDropdownItems.map((item) => {
+                            const cat = categories.find(c => c.id === item.master_category_id);
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => handleSelectExpenseItem(item.id)}
+                                className={`w-full px-3 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between ${
+                                  item.id === expenseFormData.expense_item_id ? 'bg-gray-50 dark:bg-gray-700 font-medium' : ''
+                                }`}
+                              >
+                                <span className="truncate text-gray-900 dark:text-white">{item.name}</span>
+                                {cat && (
+                                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium text-white flex-shrink-0" style={{ backgroundColor: cat.color }}>
+                                    {cat.name}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {!expenseFormData.expense_item_id && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.masterCategory}</label>
+                  <select
+                    value={expenseFormData.master_category_id}
+                    onChange={(e) => setExpenseFormData(prev => ({ ...prev, master_category_id: e.target.value }))}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">{t.selectCategory}</option>
+                    {expenseCategories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.amountWithCurrency}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={expenseFormData.amount || ''}
+                  onChange={(e) => setExpenseFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                  required
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.dateRequired}</label>
+                  <input
+                    type="date"
+                    value={expenseFormData.expense_date}
+                    onChange={(e) => setExpenseFormData(prev => ({ ...prev, expense_date: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.paymentMethod}</label>
+                  <input
+                    type="text"
+                    value={expenseFormData.payment_method}
+                    onChange={(e) => setExpenseFormData(prev => ({ ...prev, payment_method: e.target.value }))}
+                    placeholder={t.paymentMethodExample}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.description}</label>
+                <textarea
+                  value={expenseFormData.description}
+                  onChange={(e) => setExpenseFormData(prev => ({ ...prev, description: e.target.value }))}
+                  rows={2}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white resize-none"
+                  placeholder={t.describeExpense}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  {editingExpense ? t.updateExpense : t.createExpense}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetExpenseForm}
+                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  {t.cancel}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showPurchaseForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+            <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {editingPurchase ? t.editPurchase : t.newPurchase}
+              </h2>
+              <button onClick={resetPurchaseForm} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitPurchase} className="p-5 space-y-4 overflow-y-auto max-h-[calc(90vh-130px)]">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.purchaseItem || 'Item'} *</label>
+                <div className="relative" ref={cogsItemDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsCogsItemDropdownOpen(!isCogsItemDropdownOpen)}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-left flex items-center justify-between"
+                  >
+                    {purchaseFormData.expense_item_id ? (
+                      <span className="flex items-center gap-2 truncate">
+                        {subItems.find(i => i.id === purchaseFormData.expense_item_id)?.name}
+                        {(() => {
+                          const cat = categories.find(c => c.id === purchaseFormData.master_category_id);
+                          return cat ? (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: cat.color }}>
+                              {cat.name}
+                            </span>
+                          ) : null;
+                        })()}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">{t.searchPurchaseItems || 'Search items...'}</span>
+                    )}
+                    <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${isCogsItemDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isCogsItemDropdownOpen && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-64 overflow-hidden">
+                      <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={cogsItemSearchText}
+                            onChange={(e) => setCogsItemSearchText(e.target.value)}
+                            placeholder="Search..."
+                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {filteredCogsDropdownItems.length === 0 ? (
+                          <div className="px-3 py-4 text-sm text-center text-gray-500">No items found</div>
+                        ) : (
+                          filteredCogsDropdownItems.map((item) => {
+                            const cat = categories.find(c => c.id === item.master_category_id);
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => handleSelectCogsItem(item.id)}
+                                className={`w-full px-3 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between ${
+                                  item.id === purchaseFormData.expense_item_id ? 'bg-gray-50 dark:bg-gray-700 font-medium' : ''
+                                }`}
+                              >
+                                <span className="truncate text-gray-900 dark:text-white">{item.name}</span>
+                                {cat && (
+                                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium text-white flex-shrink-0" style={{ backgroundColor: cat.color }}>
+                                    {cat.name}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.supplier}</label>
+                <select
+                  value={purchaseFormData.supplier_id}
+                  onChange={(e) => setPurchaseFormData(prev => ({ ...prev, supplier_id: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">{t.selectSupplier}</option>
+                  {suppliers.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.quantity} *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={purchaseFormData.quantity || ''}
+                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
+                    required
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.cost}</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={purchaseFormData.unit_cost || ''}
+                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, unit_cost: parseFloat(e.target.value) || 0 }))}
+                    required
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {purchaseFormData.quantity > 0 && purchaseFormData.unit_cost > 0 && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {t.totalCost}: <span className="font-bold text-lg">₼{(purchaseFormData.quantity * purchaseFormData.unit_cost).toFixed(2)}</span>
+                  </span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.purchaseDate} *</label>
+                  <input
+                    type="date"
+                    value={purchaseFormData.purchase_date}
+                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, purchase_date: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.paymentStatus}</label>
+                  <select
+                    value={purchaseFormData.payment_status}
+                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, payment_status: e.target.value as 'pending' | 'partial' | 'paid' }))}
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="pending">{t.pending}</option>
+                    <option value="partial">{t.partial}</option>
+                    <option value="paid">{t.paid}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.notes}</label>
+                <textarea
+                  value={purchaseFormData.notes}
+                  onChange={(e) => setPurchaseFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  rows={2}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white resize-none"
+                  placeholder={t.additionalNotes}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  {editingPurchase ? t.updatePurchase : t.createPurchase}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetPurchaseForm}
+                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  {t.cancel}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
