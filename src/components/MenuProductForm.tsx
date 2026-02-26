@@ -14,19 +14,20 @@ interface MenuProductFormProps {
 export function MenuProductForm({ product, categories, selectedCategoryId, onSave, onClose }: MenuProductFormProps) {
   const { t } = useLanguage();
   const [saving, setSaving] = useState(false);
+  const defaultCategoryId = product?.master_category_id || selectedCategoryId || (categories.length > 0 ? categories[0].id : '');
   const [form, setForm] = useState({
     name: product?.name || '',
     description: product?.description || '',
     selling_price: product?.selling_price?.toString() || '',
     cost_price: product?.cost_price?.toString() || '0',
     image_url: product?.image_url || '',
-    master_category_id: product?.master_category_id || selectedCategoryId || '',
+    master_category_id: defaultCategoryId,
     kiosk_visible: product?.kiosk_visible ?? true,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.selling_price) return;
+    if (!form.name.trim() || !form.selling_price || !form.master_category_id) return;
     setSaving(true);
 
     const data = {
@@ -147,14 +148,15 @@ export function MenuProductForm({ product, categories, selectedCategoryId, onSav
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              {t.category}
+              {t.category} *
             </label>
             <select
               value={form.master_category_id}
               onChange={e => setForm({ ...form, master_category_id: e.target.value })}
               className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:border-emerald-500 dark:bg-gray-700 dark:text-white"
+              required
             >
-              <option value="">{t.noCategory}</option>
+              {!form.master_category_id && <option value="">{t.noCategory}</option>}
               {categories.map(cat => (
                 <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
               ))}
@@ -178,7 +180,7 @@ export function MenuProductForm({ product, categories, selectedCategoryId, onSav
             </button>
             <button
               type="submit"
-              disabled={saving || !form.name.trim() || !form.selling_price}
+              disabled={saving || !form.name.trim() || !form.selling_price || !form.master_category_id}
               className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
