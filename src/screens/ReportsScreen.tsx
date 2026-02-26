@@ -58,21 +58,28 @@ export function ReportsScreen() {
   const [channelStats, setChannelStats] = useState<ChannelStats[]>([]);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'manual' | 'kiosk'>('all');
 
   useEffect(() => {
     loadReports();
-  }, [period, startDate, endDate]);
+  }, [period, startDate, endDate, sourceFilter]);
 
   const loadReports = async () => {
     setLoading(true);
 
+    let salesQuery = supabase
+      .from('sales')
+      .select('*, sales_channels(name, icon, color, logo_url)')
+      .gte('sale_date', startDate)
+      .lte('sale_date', endDate + 'T23:59:59')
+      .order('sale_date', { ascending: false });
+
+    if (sourceFilter !== 'all') {
+      salesQuery = salesQuery.eq('source', sourceFilter);
+    }
+
     const [salesRes, operationalExpensesRes, purchasesRes] = await Promise.all([
-      supabase
-        .from('sales')
-        .select('*, sales_channels(name, icon, color, logo_url)')
-        .gte('sale_date', startDate)
-        .lte('sale_date', endDate + 'T23:59:59')
-        .order('sale_date', { ascending: false }),
+      salesQuery,
       supabase
         .from('operational_expenses')
         .select('*, master_categories(name, color), expense_items(name)')
@@ -318,8 +325,25 @@ export function ReportsScreen() {
               </button>
             </div>
           </div>
-          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-            {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
+            </span>
+            <div className="flex gap-2">
+              {(['all', 'manual', 'kiosk'] as const).map((src) => (
+                <button
+                  key={src}
+                  onClick={() => setSourceFilter(src)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    sourceFilter === src
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {src === 'all' ? t.allStatuses : src === 'manual' ? t.manual : t.kiosk}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

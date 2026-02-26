@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, ShoppingCart, Wallet, BarChart3, Settings, Menu, X, Package, Truck, Users, LogOut, DollarSign } from 'lucide-react';
+import { Home, ShoppingCart, Wallet, BarChart3, Settings, Menu, X, Package, Truck, Users, LogOut, DollarSign, Monitor } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -13,8 +13,9 @@ import { SuppliersScreen } from './screens/SuppliersScreen';
 import { UsersScreen } from './screens/UsersScreen';
 import { ExpensesScreen } from './screens/ExpensesScreen';
 import { LoginScreen } from './screens/LoginScreen';
+import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 
-type Screen = 'home' | 'sales' | 'money' | 'reports' | 'products' | 'suppliers' | 'expenses' | 'users' | 'settings';
+type Screen = 'home' | 'sales' | 'kiosk-orders' | 'money' | 'reports' | 'products' | 'suppliers' | 'expenses' | 'users' | 'settings';
 
 function AppContent() {
   const { t } = useLanguage();
@@ -43,6 +44,8 @@ function AppContent() {
         return <HomeScreen />;
       case 'sales':
         return <SalesScreen />;
+      case 'kiosk-orders':
+        return <KioskOrdersScreen />;
       case 'money':
         return <MoneyScreen />;
       case 'reports':
@@ -70,6 +73,7 @@ function AppContent() {
   const navItems: { id: Screen; icon: React.ReactNode; label: string }[] = [
     { id: 'home', icon: <Home className="w-5 h-5" />, label: t.home },
     { id: 'sales', icon: <ShoppingCart className="w-5 h-5" />, label: t.sales },
+    { id: 'kiosk-orders', icon: <Monitor className="w-5 h-5" />, label: t.kioskOrders },
     { id: 'products', icon: <Package className="w-5 h-5" />, label: t.products },
     { id: 'suppliers', icon: <Truck className="w-5 h-5" />, label: t.suppliers },
     { id: 'expenses', icon: <DollarSign className="w-5 h-5" />, label: 'Expenses' },

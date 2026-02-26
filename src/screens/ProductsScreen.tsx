@@ -48,12 +48,15 @@ export function ProductsScreen() {
     name: '',
     description: '',
     cost_price: '',
+    selling_price: '',
     barcode: '',
     quantity: '',
     min_stock_level: '10',
     category_id: '',
     supplier_id: '',
     unit: 'pcs',
+    kiosk_visible: true,
+    image_url: '',
   });
 
   const [purchaseFormData, setPurchaseFormData] = useState({
@@ -146,7 +149,7 @@ export function ProductsScreen() {
     const productData = {
       name: formData.name,
       description: formData.description,
-      selling_price: 0,
+      selling_price: Number(formData.selling_price) || 0,
       cost_price: Number(formData.cost_price) || 0,
       barcode: formData.barcode || null,
       quantity: Number(formData.quantity) || 0,
@@ -154,6 +157,8 @@ export function ProductsScreen() {
       category_id: formData.category_id || null,
       supplier_id: formData.supplier_id || null,
       unit: formData.unit,
+      kiosk_visible: formData.kiosk_visible,
+      image_url: formData.image_url || null,
     };
 
     if (editingProduct) {
@@ -302,12 +307,15 @@ export function ProductsScreen() {
       name: '',
       description: '',
       cost_price: '',
+      selling_price: '',
       barcode: '',
       quantity: '',
       min_stock_level: '10',
       category_id: '',
       supplier_id: '',
       unit: 'pcs',
+      kiosk_visible: true,
+      image_url: '',
     });
     setEditingProduct(null);
     setShowForm(false);
@@ -334,12 +342,15 @@ export function ProductsScreen() {
       name: product.name,
       description: product.description || '',
       cost_price: product.cost_price?.toString() || '',
+      selling_price: product.selling_price?.toString() || '',
       barcode: product.barcode || '',
       quantity: product.quantity?.toString() || '',
       min_stock_level: product.min_stock_level?.toString() || '10',
       category_id: product.category_id || '',
       supplier_id: product.supplier_id || '',
       unit: (product as any).unit || 'pcs',
+      kiosk_visible: product.kiosk_visible !== false,
+      image_url: product.image_url || '',
     });
     setShowForm(true);
   };
@@ -481,6 +492,17 @@ export function ProductsScreen() {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">{t.sellingPriceLabel}</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.selling_price}
+                    onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Unit of Measurement *</label>
                   <select
                     value={formData.unit}
@@ -556,6 +578,28 @@ export function ProductsScreen() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">{t.productImage}</label>
+                <input
+                  type="url"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                  placeholder="https://..."
+                  className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.kiosk_visible}
+                    onChange={(e) => setFormData({ ...formData, kiosk_visible: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                </label>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.kioskVisible}</span>
               </div>
               <div className="flex gap-3 pt-4">
                 <button

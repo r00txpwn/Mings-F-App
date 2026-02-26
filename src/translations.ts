@@ -299,6 +299,60 @@ export interface Translations {
   noSalesRecorded: string;
   noPurchasesRecorded: string;
   payment: string;
+
+  // Kiosk
+  tapToOrder: string;
+  addToCart: string;
+  viewCart: string;
+  placeOrder: string;
+  confirmOrder: string;
+  orderConfirmed: string;
+  payAtCounter: string;
+  yourOrderNumber: string;
+  continueShopping: string;
+  emptyCart: string;
+  removeItem: string;
+  orderTotal: string;
+  backToMenu: string;
+  noThanks: string;
+  wouldYouLikeToAdd: string;
+  menu: string;
+
+  // KDS
+  kitchenDisplay: string;
+  startPreparing: string;
+  markReady: string;
+  markCompleted: string;
+  awaitingPayment: string;
+  newOrderAlert: string;
+  activeOrders: string;
+  prepTime: string;
+  connected: string;
+  reconnecting: string;
+
+  // Kiosk Admin
+  kioskOrders: string;
+  confirmPayment: string;
+  printAgain: string;
+  cancelOrder: string;
+  orderSource: string;
+  kiosk: string;
+  manual: string;
+  displayNumber: string;
+  orderDetails: string;
+  preparing: string;
+  ready: string;
+  completed: string;
+  cancelled: string;
+  unpaid: string;
+  allStatuses: string;
+  filterByStatus: string;
+  noKioskOrders: string;
+
+  // Product extensions
+  kioskVisible: string;
+  productImage: string;
+  sellingPriceLabel: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -583,6 +637,56 @@ export const translations: Record<Language, Translations> = {
     noSalesRecorded: 'No sales recorded yet',
     noPurchasesRecorded: 'No purchases recorded yet',
     payment: 'Payment',
+
+    tapToOrder: 'Tap to Order',
+    addToCart: 'Add to Cart',
+    viewCart: 'View Cart',
+    placeOrder: 'Place Order',
+    confirmOrder: 'Confirm Order',
+    orderConfirmed: 'Your order has been received!',
+    payAtCounter: 'Please pay at the counter',
+    yourOrderNumber: 'Your Order Number',
+    continueShopping: 'Continue Shopping',
+    emptyCart: 'Your cart is empty',
+    removeItem: 'Remove',
+    orderTotal: 'Order Total',
+    backToMenu: 'Back to Menu',
+    noThanks: 'No Thanks',
+    wouldYouLikeToAdd: 'Would you also like?',
+    menu: 'Menu',
+
+    kitchenDisplay: 'Kitchen Display',
+    startPreparing: 'Start Preparing',
+    markReady: 'Mark Ready',
+    markCompleted: 'Complete',
+    awaitingPayment: 'Awaiting Payment',
+    newOrderAlert: 'New Order!',
+    activeOrders: 'Active Orders',
+    prepTime: 'Prep Time',
+    connected: 'Connected',
+    reconnecting: 'Reconnecting',
+
+    kioskOrders: 'Kiosk Orders',
+    confirmPayment: 'Confirm Payment',
+    printAgain: 'Print Again',
+    cancelOrder: 'Cancel Order',
+    orderSource: 'Source',
+    kiosk: 'Kiosk',
+    manual: 'Manual',
+    displayNumber: 'Order #',
+    orderDetails: 'Order Details',
+    preparing: 'Preparing',
+    ready: 'Ready',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    unpaid: 'Unpaid',
+    allStatuses: 'All Statuses',
+    filterByStatus: 'Filter by Status',
+    noKioskOrders: 'No kiosk orders yet',
+
+    kioskVisible: 'Show on Kiosk',
+    productImage: 'Image URL',
+    sellingPriceLabel: 'Selling Price',
   },
 
   az: {
@@ -866,6 +970,56 @@ export const translations: Record<Language, Translations> = {
     noSalesRecorded: 'Hələ satış qeydə alınmayıb',
     noPurchasesRecorded: 'Hələ alış qeydə alınmayıb',
     payment: 'Ödəniş',
+
+    tapToOrder: 'Sifariş üçün toxunun',
+    addToCart: 'Səbətə əlavə et',
+    viewCart: 'Səbətə bax',
+    placeOrder: 'Sifariş ver',
+    confirmOrder: 'Sifarişi təsdiq et',
+    orderConfirmed: 'Sifarişiniz qəbul edildi!',
+    payAtCounter: 'Kassada ödəyin',
+    yourOrderNumber: 'Sifariş nömrəniz',
+    continueShopping: 'Alış-verişə davam et',
+    emptyCart: 'Səbətiniz boşdur',
+    removeItem: 'Sil',
+    orderTotal: 'Ümumi məbləğ',
+    backToMenu: 'Menyuya qayıt',
+    noThanks: 'Xeyr, təşəkkürlər',
+    wouldYouLikeToAdd: 'Bunu da əlavə etmək istərdiniz?',
+    menu: 'Menyu',
+
+    kitchenDisplay: 'Mətbəx Ekranı',
+    startPreparing: 'Hazırlamağa başla',
+    markReady: 'Hazır qeyd et',
+    markCompleted: 'Tamamla',
+    awaitingPayment: 'Ödəniş gözlənilir',
+    newOrderAlert: 'Yeni Sifariş!',
+    activeOrders: 'Aktiv Sifarişlər',
+    prepTime: 'Hazırlıq müddəti',
+    connected: 'Bağlı',
+    reconnecting: 'Yenidən bağlanılır',
+
+    kioskOrders: 'Kiosk Sifarişləri',
+    confirmPayment: 'Ödənişi təsdiq et',
+    printAgain: 'Yenidən çap et',
+    cancelOrder: 'Sifarişi ləğv et',
+    orderSource: 'Mənbə',
+    kiosk: 'Kiosk',
+    manual: 'Manual',
+    displayNumber: 'Sifariş #',
+    orderDetails: 'Sifariş Detalları',
+    preparing: 'Hazırlanır',
+    ready: 'Hazır',
+    completed: 'Tamamlandı',
+    cancelled: 'Ləğv edildi',
+    unpaid: 'Ödənilməyib',
+    allStatuses: 'Bütün Statuslar',
+    filterByStatus: 'Statusa görə filtr',
+    noKioskOrders: 'Hələ kiosk sifarişi yoxdur',
+
+    kioskVisible: 'Kioskda göstər',
+    productImage: 'Şəkil URL',
+    sellingPriceLabel: 'Satış Qiyməti',
   },
 
   ru: {
@@ -1149,5 +1303,55 @@ export const translations: Record<Language, Translations> = {
     noSalesRecorded: 'Продаж ещё не было',
     noPurchasesRecorded: 'Закупок ещё не было',
     payment: 'Оплата',
+
+    tapToOrder: 'Нажмите для заказа',
+    addToCart: 'В корзину',
+    viewCart: 'Корзина',
+    placeOrder: 'Оформить заказ',
+    confirmOrder: 'Подтвердить заказ',
+    orderConfirmed: 'Ваш заказ принят!',
+    payAtCounter: 'Оплатите на кассе',
+    yourOrderNumber: 'Номер вашего заказа',
+    continueShopping: 'Продолжить покупки',
+    emptyCart: 'Корзина пуста',
+    removeItem: 'Удалить',
+    orderTotal: 'Итого',
+    backToMenu: 'Назад в меню',
+    noThanks: 'Нет, спасибо',
+    wouldYouLikeToAdd: 'Хотите добавить?',
+    menu: 'Меню',
+
+    kitchenDisplay: 'Кухонный Дисплей',
+    startPreparing: 'Начать готовить',
+    markReady: 'Готово',
+    markCompleted: 'Завершить',
+    awaitingPayment: 'Ожидание оплаты',
+    newOrderAlert: 'Новый Заказ!',
+    activeOrders: 'Активные Заказы',
+    prepTime: 'Время готовки',
+    connected: 'Подключено',
+    reconnecting: 'Переподключение',
+
+    kioskOrders: 'Заказы с Киоска',
+    confirmPayment: 'Подтвердить оплату',
+    printAgain: 'Печать повторно',
+    cancelOrder: 'Отменить заказ',
+    orderSource: 'Источник',
+    kiosk: 'Киоск',
+    manual: 'Ручной',
+    displayNumber: 'Заказ #',
+    orderDetails: 'Детали Заказа',
+    preparing: 'Готовится',
+    ready: 'Готов',
+    completed: 'Завершён',
+    cancelled: 'Отменён',
+    unpaid: 'Не оплачен',
+    allStatuses: 'Все Статусы',
+    filterByStatus: 'Фильтр по статусу',
+    noKioskOrders: 'Заказов с киоска пока нет',
+
+    kioskVisible: 'Показать на киоске',
+    productImage: 'URL изображения',
+    sellingPriceLabel: 'Цена продажи',
   },
 };

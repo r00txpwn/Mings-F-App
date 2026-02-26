@@ -8,7 +8,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export interface Category {
   id: string;
   name: string;
-  type: 'expense' | 'sale' | 'purchase';
+  type: 'expense' | 'sale' | 'purchase' | 'menu';
   icon: string;
   color: string;
   created_at: string;
@@ -39,6 +39,18 @@ export interface Transaction {
   sales_channels?: SalesChannel;
 }
 
+export interface SaleItem {
+  id: string;
+  sale_id: string;
+  product_id: string | null;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  notes: string | null;
+  created_at: string;
+}
+
 export interface Sale {
   id: string;
   product_id: string | null;
@@ -50,7 +62,15 @@ export interface Sale {
   notes: string;
   created_by: string | null;
   created_at: string;
+  source?: string;
+  order_status?: string;
+  payment_status?: string;
+  daily_order_number?: number | null;
+  display_number?: string | null;
+  prep_started_at?: string | null;
+  ready_at?: string | null;
   sales_channels?: SalesChannel;
+  sale_items?: SaleItem[];
 }
 
 export interface UserPreference {
@@ -79,6 +99,7 @@ export interface Product {
   description: string;
   barcode: string | null;
   category_id: string | null;
+  master_category_id: string | null;
   quantity: number;
   cost_price: number;
   selling_price: number;
@@ -88,6 +109,14 @@ export interface Product {
   last_order_quantity: number;
   created_at: string;
   updated_at: string;
+  kiosk_visible?: boolean;
+  image_url?: string | null;
   suppliers?: Supplier;
   categories?: Category;
+}
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+  notes: string;
 }
