@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { SecretGate } from '../components/SecretGate';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
-import { supabase, Product, Category, CartItem } from '../lib/supabase';
+import { supabase, Product, Category, CartItem, SelectedModifiers } from '../lib/supabase';
 import { IdleScreen } from './IdleScreen';
 import { CategoryScreen } from './CategoryScreen';
 import { ProductScreen } from './ProductScreen';
@@ -11,8 +11,17 @@ import { CheckoutScreen } from './CheckoutScreen';
 import { ConfirmationScreen } from './ConfirmationScreen';
 import { UpsellModal } from './UpsellModal';
 import { KioskLayout } from './KioskLayout';
+import { ProductDetailModal } from './ProductDetailModal';
 
 type KioskFlow = 'idle' | 'categories' | 'products' | 'cart' | 'checkout' | 'confirmation';
+
+function generateCartItemKey(productId: string, modifiers: SelectedModifiers): string {
+  const modKey = Object.entries(modifiers)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([gId, opts]) => `${gId}:${opts.map(o => o.id).sort().join(',')}`)
+    .join('|');
+  return `${productId}__${modKey}`;
+}
 
 function KioskContent() {
   const { t } = useLanguage();
@@ -25,6 +34,7 @@ function KioskContent() {
   const [confirmedOrder, setConfirmedOrder] = useState<{ displayNumber: string } | null>(null);
   const [showUpsell, setShowUpsell] = useState(false);
   const [lastAddedCategoryId, setLastAddedCategoryId] = useState<string | null>(null);
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -44,6 +54,7 @@ function KioskContent() {
         setCart([]);
         setSelectedCategory(null);
         setShowUpsell(false);
+        setDetailProduct(null);
       }, 60000);
     }
   }, [flow]);
@@ -64,13 +75,16 @@ function KioskContent() {
     const [productsRes, categoriesRes, channelRes] = await Promise.all([
       supabase
         .from('products')
-        .select('*')
+        .select('*, modifier_groups(*, modifier_options(*))')
         .eq('kiosk_visible', true)
-        .gt('selling_price', 0),
+        .gt('selling_price', 0)
+        .order('display_order')
+        .order('name'),
       supabase
         .from('master_categories')
         .select('*')
         .eq('type', 'menu')
+        .order('display_order', { ascending: true })
         .order('name'),
       supabase
         .from('sales_channels')
@@ -79,32 +93,56 @@ function KioskContent() {
         .maybeSingle(),
     ]);
 
-    if (productsRes.data) setProducts(productsRes.data);
+    if (productsRes.data) setProducts(productsRes.data as Product[]);
     if (categoriesRes.data) setCategories(categoriesRes.data as Category[]);
     if (channelRes.data) setKioskChannelId(channelRes.data.id);
   };
 
-  const addToCart = (product: Product) => {
+  const handleProductTap = (product: Product) => {
+    const hasModifiers = product.modifier_groups && product.modifier_groups.length > 0;
+    if (hasModifiers) {
+      setDetailProduct(product);
+    } else {
+      addToCartSimple(product);
+    }
+  };
+
+  const addToCartSimple = (product: Product) => {
+    const key = generateCartItemKey(product.id, {});
     setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
+      const existing = prev.find(item => item.cartItemKey === key);
       if (existing) {
         return prev.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+          item.cartItemKey === key ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { product, quantity: 1, notes: '' }];
+      return [...prev, { product, quantity: 1, notes: '', selectedModifiers: {}, cartItemKey: key }];
     });
     setLastAddedCategoryId(product.master_category_id || null);
     setShowUpsell(true);
   };
 
-  const updateCartQuantity = (productId: string, delta: number) => {
+  const addToCartWithModifiers = (product: Product, selectedModifiers: SelectedModifiers) => {
+    const key = generateCartItemKey(product.id, selectedModifiers);
+    setCart(prev => {
+      const existing = prev.find(item => item.cartItemKey === key);
+      if (existing) {
+        return prev.map(item =>
+          item.cartItemKey === key ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...prev, { product, quantity: 1, notes: '', selectedModifiers, cartItemKey: key }];
+    });
+    setLastAddedCategoryId(product.master_category_id || null);
+    setDetailProduct(null);
+    setShowUpsell(true);
+  };
+
+  const updateCartQuantity = (cartItemKey: string, delta: number) => {
     setCart(prev => {
       return prev
         .map(item => {
-          if (item.product.id === productId) {
+          if (item.cartItemKey === cartItemKey) {
             const newQty = item.quantity + delta;
             return newQty > 0 ? { ...item, quantity: newQty } : null;
           }
@@ -114,11 +152,23 @@ function KioskContent() {
     });
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
+  const removeFromCart = (cartItemKey: string) => {
+    setCart(prev => prev.filter(item => item.cartItemKey !== cartItemKey));
   };
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.product.selling_price * item.quantity, 0);
+  const getCartQtyForProduct = (productId: string) => {
+    return cart
+      .filter(item => item.product.id === productId)
+      .reduce((sum, item) => sum + item.quantity, 0);
+  };
+
+  const cartTotal = cart.reduce((sum, item) => {
+    const modifierTotal = Object.values(item.selectedModifiers)
+      .flat()
+      .reduce((s, opt) => s + Number(opt.price_adjustment), 0);
+    return sum + (Number(item.product.selling_price) + modifierTotal) * item.quantity;
+  }, 0);
+
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleCategorySelect = (category: Category) => {
@@ -152,10 +202,20 @@ function KioskContent() {
             products={products.filter(p => p.master_category_id === selectedCategory?.id)}
             category={selectedCategory}
             cart={cart}
-            onAddToCart={addToCart}
-            onUpdateQuantity={updateCartQuantity}
+            onAddToCart={handleProductTap}
+            onUpdateQuantity={(productId, delta) => {
+              const items = cart.filter(item => item.product.id === productId);
+              if (items.length === 1) {
+                updateCartQuantity(items[0].cartItemKey, delta);
+              } else if (items.length > 1 && delta > 0) {
+                updateCartQuantity(items[0].cartItemKey, delta);
+              } else if (items.length > 1 && delta < 0) {
+                updateCartQuantity(items[items.length - 1].cartItemKey, delta);
+              }
+            }}
             onViewCart={() => setFlow('cart')}
             cartItemCount={cartItemCount}
+            getCartQtyForProduct={getCartQtyForProduct}
           />
         );
       case 'cart':
@@ -210,10 +270,17 @@ function KioskContent() {
         <UpsellModal
           products={upsellProducts}
           onAdd={(product) => {
-            addToCart(product);
+            handleProductTap(product);
             setShowUpsell(false);
           }}
           onDismiss={() => setShowUpsell(false)}
+        />
+      )}
+      {detailProduct && (
+        <ProductDetailModal
+          product={detailProduct}
+          onAddToCart={addToCartWithModifiers}
+          onClose={() => setDetailProduct(null)}
         />
       )}
     </KioskLayout>

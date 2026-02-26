@@ -1,6 +1,6 @@
 import { Clock } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Sale, SaleItem } from '../lib/supabase';
+import { Sale, SaleItem, SaleItemModifier } from '../lib/supabase';
 
 interface OrderCardProps {
   order: Sale & { sale_items: SaleItem[] };
@@ -100,12 +100,22 @@ export function OrderCard({ order, now, onUpdateStatus }: OrderCardProps) {
       </div>
 
       <div className="flex-1 space-y-1.5 mb-3">
-        {order.sale_items?.map((item) => (
-          <div key={item.id} className="flex items-start gap-2">
-            <span className="text-emerald-400 font-bold text-sm shrink-0">{item.quantity}x</span>
-            <span className="text-gray-200 text-sm">{item.product_name}</span>
-          </div>
-        ))}
+        {order.sale_items?.map((item) => {
+          const mods = (item as SaleItem & { sale_item_modifiers?: SaleItemModifier[] }).sale_item_modifiers;
+          return (
+            <div key={item.id}>
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-400 font-bold text-sm shrink-0">{item.quantity}x</span>
+                <span className="text-gray-200 text-sm">{item.product_name}</span>
+              </div>
+              {mods && mods.length > 0 && (
+                <p className="text-gray-500 text-xs ml-7">
+                  {mods.map(m => m.modifier_option_name).join(', ')}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {!isPaid && status === 'pending' && (

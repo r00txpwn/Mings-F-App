@@ -10,6 +10,7 @@ interface ProductScreenProps {
   onUpdateQuantity: (productId: string, delta: number) => void;
   onViewCart: () => void;
   cartItemCount: number;
+  getCartQtyForProduct?: (productId: string) => number;
 }
 
 export function ProductScreen({
@@ -20,10 +21,12 @@ export function ProductScreen({
   onUpdateQuantity,
   onViewCart,
   cartItemCount,
+  getCartQtyForProduct,
 }: ProductScreenProps) {
   const { t } = useLanguage();
 
   const getCartQty = (productId: string) => {
+    if (getCartQtyForProduct) return getCartQtyForProduct(productId);
     const item = cart.find(c => c.product.id === productId);
     return item ? item.quantity : 0;
   };
@@ -45,6 +48,7 @@ export function ProductScreen({
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map((product) => {
               const qty = getCartQty(product.id);
+              const hasModifiers = product.modifier_groups && product.modifier_groups.length > 0;
               return (
                 <div
                   key={product.id}
@@ -52,7 +56,10 @@ export function ProductScreen({
                     qty > 0 ? 'border-emerald-500' : 'border-gray-700'
                   }`}
                 >
-                  <div className="aspect-square bg-gray-700 relative">
+                  <div
+                    className="aspect-square bg-gray-700 relative cursor-pointer"
+                    onClick={() => onAddToCart(product)}
+                  >
                     {product.image_url ? (
                       <img
                         src={product.image_url}
@@ -69,13 +76,25 @@ export function ProductScreen({
                         {qty}
                       </div>
                     )}
+                    {hasModifiers && (
+                      <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-lg">
+                        <span className="text-xs text-gray-200">{t.customize}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-4">
                     <h3 className="text-white font-semibold text-sm mb-1 truncate">{product.name}</h3>
                     <p className="text-emerald-400 font-bold text-lg mb-3">
-                      ₼{product.selling_price.toFixed(2)}
+                      ₼{Number(product.selling_price).toFixed(2)}
                     </p>
-                    {qty === 0 ? (
+                    {hasModifiers ? (
+                      <button
+                        onClick={() => onAddToCart(product)}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition-colors active:scale-95 min-h-[48px]"
+                      >
+                        {t.customize}
+                      </button>
+                    ) : qty === 0 ? (
                       <button
                         onClick={() => onAddToCart(product)}
                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition-colors active:scale-95 min-h-[48px]"

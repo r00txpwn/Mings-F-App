@@ -39,7 +39,7 @@ function KdsContent() {
   const loadOrders = useCallback(async () => {
     const { data } = await supabase
       .from('sales')
-      .select('*, sale_items(*)')
+      .select('*, sale_items(*, sale_item_modifiers(*))')
       .eq('source', 'kiosk')
       .in('order_status', ['pending', 'preparing', 'ready'])
       .order('created_at', { ascending: true });

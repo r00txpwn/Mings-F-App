@@ -11,6 +11,27 @@ interface CheckoutScreenProps {
   onBack: () => void;
 }
 
+function getItemTotal(item: CartItem): number {
+  const modTotal = Object.values(item.selectedModifiers)
+    .flat()
+    .reduce((s, opt) => s + Number(opt.price_adjustment), 0);
+  return (Number(item.product.selling_price) + modTotal) * item.quantity;
+}
+
+function getItemUnitPrice(item: CartItem): number {
+  const modTotal = Object.values(item.selectedModifiers)
+    .flat()
+    .reduce((s, opt) => s + Number(opt.price_adjustment), 0);
+  return Number(item.product.selling_price) + modTotal;
+}
+
+function getModifierSummary(item: CartItem): string {
+  return Object.values(item.selectedModifiers)
+    .flat()
+    .map(opt => opt.name)
+    .join(', ');
+}
+
 export function CheckoutScreen({ cart, total, kioskChannelId, onConfirmed, onBack }: CheckoutScreenProps) {
   const { t } = useLanguage();
   const [submitting, setSubmitting] = useState(false);
@@ -49,17 +70,40 @@ export function CheckoutScreen({ cart, total, kioskChannelId, onConfirmed, onBac
         return;
       }
 
-      const saleItems = cart.map(item => ({
-        sale_id: saleData.id,
-        product_id: item.product.id,
-        product_name: item.product.name,
-        quantity: item.quantity,
-        unit_price: item.product.selling_price,
-        total_price: item.product.selling_price * item.quantity,
-        notes: item.notes || null,
-      }));
+      for (const item of cart) {
+        const unitPrice = getItemUnitPrice(item);
+        const modSummary = getModifierSummary(item);
+        const noteParts = [item.notes, modSummary].filter(Boolean).join(' | ');
 
-      await supabase.from('sale_items').insert(saleItems);
+        const { data: saleItemData } = await supabase
+          .from('sale_items')
+          .insert({
+            sale_id: saleData.id,
+            product_id: item.product.id,
+            product_name: item.product.name,
+            quantity: item.quantity,
+            unit_price: unitPrice,
+            total_price: unitPrice * item.quantity,
+            notes: noteParts || null,
+          })
+          .select('id')
+          .single();
+
+        if (saleItemData) {
+          const modifierRows = Object.entries(item.selectedModifiers).flatMap(
+            ([, opts]) =>
+              opts.map(opt => ({
+                sale_item_id: saleItemData.id,
+                modifier_group_name: getGroupNameForOption(item, opt.id),
+                modifier_option_name: opt.name,
+                price_adjustment: Number(opt.price_adjustment),
+              }))
+          );
+          if (modifierRows.length > 0) {
+            await supabase.from('sale_item_modifiers').insert(modifierRows);
+          }
+        }
+      }
 
       onConfirmed(displayNumber);
     } catch (err) {
@@ -76,24 +120,30 @@ export function CheckoutScreen({ cart, total, kioskChannelId, onConfirmed, onBac
         <div className="bg-gray-800 rounded-2xl p-5 border border-gray-700 mb-4">
           <h3 className="text-gray-400 text-sm font-medium mb-4">{t.orderDetails}</h3>
           <div className="space-y-3">
-            {cart.map((item) => (
-              <div key={item.product.id} className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {item.product.image_url ? (
-                    <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <Package className="w-5 h-5 text-gray-500" />
-                  )}
+            {cart.map((item) => {
+              const modSummary = getModifierSummary(item);
+              return (
+                <div key={item.cartItemKey} className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {item.product.image_url ? (
+                      <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Package className="w-5 h-5 text-gray-500" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{item.product.name}</p>
+                    {modSummary && (
+                      <p className="text-gray-500 text-xs truncate">{modSummary}</p>
+                    )}
+                    <p className="text-gray-500 text-xs">x{item.quantity}</p>
+                  </div>
+                  <p className="text-white font-semibold text-sm">
+                    ₼{getItemTotal(item).toFixed(2)}
+                  </p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{item.product.name}</p>
-                  <p className="text-gray-500 text-xs">x{item.quantity}</p>
-                </div>
-                <p className="text-white font-semibold text-sm">
-                  ₼{(item.product.selling_price * item.quantity).toFixed(2)}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="border-t border-gray-700 mt-4 pt-4 flex items-center justify-between">
             <span className="text-gray-400 font-medium">{t.orderTotal}</span>
@@ -120,4 +170,14 @@ export function CheckoutScreen({ cart, total, kioskChannelId, onConfirmed, onBac
       </div>
     </div>
   );
+}
+
+function getGroupNameForOption(item: CartItem, optionId: string): string {
+  for (const [groupId, opts] of Object.entries(item.selectedModifiers)) {
+    if (opts.some(o => o.id === optionId)) {
+      const group = item.product.modifier_groups?.find(g => g.id === groupId);
+      return group?.name || groupId;
+    }
+  }
+  return '';
 }

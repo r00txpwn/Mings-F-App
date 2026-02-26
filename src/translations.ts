@@ -353,6 +353,40 @@ export interface Translations {
   kioskVisible: string;
   productImage: string;
   sellingPriceLabel: string;
+
+  // Menu Builder
+  menuBuilder: string;
+  manageMenu: string;
+  modifiers: string;
+  modifierGroups: string;
+  addModifierGroup: string;
+  editModifierGroup: string;
+  groupName: string;
+  minSelections: string;
+  maxSelections: string;
+  required: string;
+  optional: string;
+  addOption: string;
+  editOption: string;
+  optionName: string;
+  priceAdjustment: string;
+  freeOption: string;
+  available: string;
+  unavailable: string;
+  defaultOption: string;
+  chooseOne: string;
+  chooseUpTo: string;
+  customize: string;
+  basePrice: string;
+  noModifiers: string;
+  noOptions: string;
+  duplicateProduct: string;
+  menuCategories: string;
+  displayOrder: string;
+  moveUp: string;
+  moveDown: string;
+  productDetails: string;
+  selectRequired: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -687,6 +721,39 @@ export const translations: Record<Language, Translations> = {
     kioskVisible: 'Show on Kiosk',
     productImage: 'Image URL',
     sellingPriceLabel: 'Selling Price',
+
+    menuBuilder: 'Menu Builder',
+    manageMenu: 'Design your kiosk menu, categories, and modifiers',
+    modifiers: 'Modifiers',
+    modifierGroups: 'Modifier Groups',
+    addModifierGroup: 'Add Modifier Group',
+    editModifierGroup: 'Edit Modifier Group',
+    groupName: 'Group Name',
+    minSelections: 'Min Selections',
+    maxSelections: 'Max Selections',
+    required: 'Required',
+    optional: 'Optional',
+    addOption: 'Add Option',
+    editOption: 'Edit Option',
+    optionName: 'Option Name',
+    priceAdjustment: 'Price Adjustment',
+    freeOption: 'Free',
+    available: 'Available',
+    unavailable: 'Unavailable',
+    defaultOption: 'Default',
+    chooseOne: 'Choose 1',
+    chooseUpTo: 'Choose up to',
+    customize: 'Customize',
+    basePrice: 'Base Price',
+    noModifiers: 'No modifier groups yet',
+    noOptions: 'No options yet',
+    duplicateProduct: 'Duplicate',
+    menuCategories: 'Menu Categories',
+    displayOrder: 'Display Order',
+    moveUp: 'Move Up',
+    moveDown: 'Move Down',
+    productDetails: 'Product Details',
+    selectRequired: 'Please make required selections',
   },
 
   az: {
@@ -1020,6 +1087,39 @@ export const translations: Record<Language, Translations> = {
     kioskVisible: 'Kioskda göstər',
     productImage: 'Şəkil URL',
     sellingPriceLabel: 'Satış Qiyməti',
+
+    menuBuilder: 'Menyu Qurucusu',
+    manageMenu: 'Kiosk menyu, kateqoriya və modifikatorları idarə edin',
+    modifiers: 'Modifikatorlar',
+    modifierGroups: 'Modifikator Qrupları',
+    addModifierGroup: 'Modifikator Qrupu Əlavə Et',
+    editModifierGroup: 'Modifikator Qrupunu Redaktə Et',
+    groupName: 'Qrup Adı',
+    minSelections: 'Min Seçim',
+    maxSelections: 'Maks Seçim',
+    required: 'Məcburi',
+    optional: 'İstəyə bağlı',
+    addOption: 'Seçim Əlavə Et',
+    editOption: 'Seçimi Redaktə Et',
+    optionName: 'Seçim Adı',
+    priceAdjustment: 'Qiymət Fərqi',
+    freeOption: 'Pulsuz',
+    available: 'Mövcud',
+    unavailable: 'Mövcud deyil',
+    defaultOption: 'Standart',
+    chooseOne: '1 seçin',
+    chooseUpTo: 'Maksimum seçin',
+    customize: 'Fərdiləşdir',
+    basePrice: 'Əsas Qiymət',
+    noModifiers: 'Hələ modifikator qrupu yoxdur',
+    noOptions: 'Hələ seçim yoxdur',
+    duplicateProduct: 'Dublikat',
+    menuCategories: 'Menyu Kateqoriyaları',
+    displayOrder: 'Göstərmə Sırası',
+    moveUp: 'Yuxarı',
+    moveDown: 'Aşağı',
+    productDetails: 'Məhsul Detalları',
+    selectRequired: 'Məcburi seçimləri edin',
   },
 
   ru: {
@@ -1353,5 +1453,38 @@ export const translations: Record<Language, Translations> = {
     kioskVisible: 'Показать на киоске',
     productImage: 'URL изображения',
     sellingPriceLabel: 'Цена продажи',
+
+    menuBuilder: 'Конструктор Меню',
+    manageMenu: 'Управляйте меню киоска, категориями и модификаторами',
+    modifiers: 'Модификаторы',
+    modifierGroups: 'Группы Модификаторов',
+    addModifierGroup: 'Добавить Группу Модификаторов',
+    editModifierGroup: 'Редактировать Группу Модификаторов',
+    groupName: 'Название Группы',
+    minSelections: 'Мин. Выборов',
+    maxSelections: 'Макс. Выборов',
+    required: 'Обязательно',
+    optional: 'Необязательно',
+    addOption: 'Добавить Вариант',
+    editOption: 'Редактировать Вариант',
+    optionName: 'Название Варианта',
+    priceAdjustment: 'Корректировка Цены',
+    freeOption: 'Бесплатно',
+    available: 'Доступно',
+    unavailable: 'Недоступно',
+    defaultOption: 'По умолчанию',
+    chooseOne: 'Выберите 1',
+    chooseUpTo: 'Выберите до',
+    customize: 'Настроить',
+    basePrice: 'Базовая Цена',
+    noModifiers: 'Групп модификаторов пока нет',
+    noOptions: 'Вариантов пока нет',
+    duplicateProduct: 'Дублировать',
+    menuCategories: 'Категории Меню',
+    displayOrder: 'Порядок Отображения',
+    moveUp: 'Вверх',
+    moveDown: 'Вниз',
+    productDetails: 'Детали Продукта',
+    selectRequired: 'Сделайте обязательные выборы',
   },
 };

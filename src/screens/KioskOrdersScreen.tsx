@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Monitor, ChevronDown, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { supabase, Sale, SaleItem } from '../lib/supabase';
+import { supabase, Sale, SaleItem, SaleItemModifier } from '../lib/supabase';
 
 interface KioskOrder extends Sale {
   sale_items: SaleItem[];
@@ -21,7 +21,7 @@ export function KioskOrdersScreen() {
     setLoading(true);
     let query = supabase
       .from('sales')
-      .select('*, sale_items(*)')
+      .select('*, sale_items(*, sale_item_modifiers(*))')
       .eq('source', 'kiosk')
       .gte('sale_date', dateFilter)
       .lte('sale_date', dateFilter + 'T23:59:59')
@@ -252,15 +252,25 @@ export function KioskOrdersScreen() {
                         <tr key={`${order.id}-items`} className="bg-gray-50/50 dark:bg-gray-700/30">
                           <td colSpan={6} className="px-4 py-3 pl-12">
                             <div className="space-y-1.5">
-                              {order.sale_items.map((item) => (
-                                <div key={item.id} className="flex items-center justify-between text-sm">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">{item.quantity}x</span>
-                                    <span className="text-gray-700 dark:text-gray-300">{item.product_name}</span>
+                              {order.sale_items.map((item) => {
+                                const mods = (item as SaleItem & { sale_item_modifiers?: SaleItemModifier[] }).sale_item_modifiers;
+                                return (
+                                  <div key={item.id}>
+                                    <div className="flex items-center justify-between text-sm">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">{item.quantity}x</span>
+                                        <span className="text-gray-700 dark:text-gray-300">{item.product_name}</span>
+                                      </div>
+                                      <span className="text-gray-600 dark:text-gray-400">₼{Number(item.total_price).toFixed(2)}</span>
+                                    </div>
+                                    {mods && mods.length > 0 && (
+                                      <p className="text-xs text-gray-500 dark:text-gray-500 ml-8">
+                                        {mods.map(m => m.modifier_option_name).join(', ')}
+                                      </p>
+                                    )}
                                   </div>
-                                  <span className="text-gray-600 dark:text-gray-400">₼{Number(item.total_price).toFixed(2)}</span>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </td>
                         </tr>

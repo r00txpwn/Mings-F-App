@@ -39,6 +39,39 @@ export interface Transaction {
   sales_channels?: SalesChannel;
 }
 
+export interface ModifierGroup {
+  id: string;
+  product_id: string;
+  name: string;
+  display_order: number;
+  min_select: number;
+  max_select: number;
+  is_required: boolean;
+  created_at: string;
+  modifier_options?: ModifierOption[];
+}
+
+export interface ModifierOption {
+  id: string;
+  modifier_group_id: string;
+  name: string;
+  price_adjustment: number;
+  image_url: string | null;
+  is_default: boolean;
+  is_available: boolean;
+  display_order: number;
+  created_at: string;
+}
+
+export interface SaleItemModifier {
+  id: string;
+  sale_item_id: string;
+  modifier_group_name: string;
+  modifier_option_name: string;
+  price_adjustment: number;
+  created_at: string;
+}
+
 export interface SaleItem {
   id: string;
   sale_id: string;
@@ -49,6 +82,7 @@ export interface SaleItem {
   total_price: number;
   notes: string | null;
   created_at: string;
+  sale_item_modifiers?: SaleItemModifier[];
 }
 
 export interface Sale {
@@ -111,12 +145,20 @@ export interface Product {
   updated_at: string;
   kiosk_visible?: boolean;
   image_url?: string | null;
+  display_order?: number;
   suppliers?: Supplier;
   categories?: Category;
+  modifier_groups?: ModifierGroup[];
+}
+
+export interface SelectedModifiers {
+  [groupId: string]: ModifierOption[];
 }
 
 export interface CartItem {
   product: Product;
   quantity: number;
   notes: string;
+  selectedModifiers: SelectedModifiers;
+  cartItemKey: string;
 }

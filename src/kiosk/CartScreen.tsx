@@ -5,10 +5,24 @@ import { CartItem } from '../lib/supabase';
 interface CartScreenProps {
   cart: CartItem[];
   total: number;
-  onUpdateQuantity: (productId: string, delta: number) => void;
-  onRemove: (productId: string) => void;
+  onUpdateQuantity: (cartItemKey: string, delta: number) => void;
+  onRemove: (cartItemKey: string) => void;
   onContinueShopping: () => void;
   onCheckout: () => void;
+}
+
+function getItemPrice(item: CartItem): number {
+  const modTotal = Object.values(item.selectedModifiers)
+    .flat()
+    .reduce((s, opt) => s + Number(opt.price_adjustment), 0);
+  return (Number(item.product.selling_price) + modTotal) * item.quantity;
+}
+
+function getModifierSummary(item: CartItem): string {
+  const names = Object.values(item.selectedModifiers)
+    .flat()
+    .map(opt => opt.name);
+  return names.join(', ');
 }
 
 export function CartScreen({
@@ -49,49 +63,55 @@ export function CartScreen({
 
       <div className="flex-1 overflow-y-auto px-6 pb-44">
         <div className="space-y-3">
-          {cart.map((item) => (
-            <div
-              key={item.product.id}
-              className="bg-gray-800 rounded-2xl p-4 flex items-center gap-4 border border-gray-700"
-            >
-              <div className="w-16 h-16 bg-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {item.product.image_url ? (
-                  <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
-                ) : (
-                  <Package className="w-7 h-7 text-gray-500" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-white font-semibold truncate">{item.product.name}</h3>
-                <p className="text-emerald-400 font-bold">
-                  ₼{(item.product.selling_price * item.quantity).toFixed(2)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center bg-gray-700 rounded-xl p-1">
+          {cart.map((item) => {
+            const modSummary = getModifierSummary(item);
+            return (
+              <div
+                key={item.cartItemKey}
+                className="bg-gray-800 rounded-2xl p-4 flex items-center gap-4 border border-gray-700"
+              >
+                <div className="w-16 h-16 bg-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {item.product.image_url ? (
+                    <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Package className="w-7 h-7 text-gray-500" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white font-semibold truncate">{item.product.name}</h3>
+                  {modSummary && (
+                    <p className="text-gray-400 text-xs truncate mt-0.5">{modSummary}</p>
+                  )}
+                  <p className="text-emerald-400 font-bold">
+                    ₼{getItemPrice(item).toFixed(2)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-gray-700 rounded-xl p-1">
+                    <button
+                      onClick={() => onUpdateQuantity(item.cartItemKey, -1)}
+                      className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-600 rounded-lg"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="text-white font-bold w-8 text-center">{item.quantity}</span>
+                    <button
+                      onClick={() => onUpdateQuantity(item.cartItemKey, 1)}
+                      className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-600 rounded-lg"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
                   <button
-                    onClick={() => onUpdateQuantity(item.product.id, -1)}
-                    className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-600 rounded-lg"
+                    onClick={() => onRemove(item.cartItemKey)}
+                    className="w-10 h-10 flex items-center justify-center text-red-400 hover:bg-red-900/30 rounded-lg"
                   >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="text-white font-bold w-8 text-center">{item.quantity}</span>
-                  <button
-                    onClick={() => onUpdateQuantity(item.product.id, 1)}
-                    className="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-600 rounded-lg"
-                  >
-                    <Plus className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-                <button
-                  onClick={() => onRemove(item.product.id)}
-                  className="w-10 h-10 flex items-center justify-center text-red-400 hover:bg-red-900/30 rounded-lg"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
