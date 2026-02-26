@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { UtensilsCrossed, Plus, Package, Eye, EyeOff, ChevronUp, ChevronDown, Pencil, Trash2, Loader2, GripVertical, Image } from 'lucide-react';
+import { UtensilsCrossed, Plus, Package, Eye, EyeOff, ChevronUp, ChevronDown, Pencil, Trash2, Loader2, GripVertical, Image, Sliders } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { supabase, Product, Category, ModifierGroup } from '../lib/supabase';
-import { ProductModifierEditor } from '../components/ProductModifierEditor';
+import { supabase, Product, Category } from '../lib/supabase';
+import { ModifierLibrary } from '../components/ProductModifierEditor';
+import { ProductModifierAssigner } from '../components/ProductModifierAssigner';
 import { MenuCategoryManager } from '../components/MenuCategoryManager';
 import { MenuProductForm } from '../components/MenuProductForm';
 
@@ -14,7 +15,8 @@ export function MenuScreen() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
-  const [modifierProduct, setModifierProduct] = useState<Product | null>(null);
+  const [assignProduct, setAssignProduct] = useState<Product | null>(null);
+  const [showModifierLibrary, setShowModifierLibrary] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -28,7 +30,7 @@ export function MenuScreen() {
         .order('name'),
       supabase
         .from('products')
-        .select('*, modifier_groups(*, modifier_options(*))')
+        .select('*, product_modifier_groups(id, modifier_group_id, display_order, modifier_groups(*, modifier_options(*)))')
         .order('display_order', { ascending: true })
         .order('name'),
     ]);
@@ -38,7 +40,20 @@ export function MenuScreen() {
         setSelectedCategoryId(catRes.data[0].id);
       }
     }
-    if (prodRes.data) setProducts(prodRes.data as Product[]);
+    if (prodRes.data) {
+      const mapped = prodRes.data.map((p: Record<string, unknown>) => {
+        const pmgs = (p.product_modifier_groups || []) as Array<{
+          modifier_groups: Record<string, unknown>;
+          display_order: number;
+        }>;
+        const modifierGroups = pmgs
+          .map(pmg => pmg.modifier_groups)
+          .filter(Boolean)
+          .sort((a, b) => ((a as { display_order?: number }).display_order || 0) - ((b as { display_order?: number }).display_order || 0));
+        return { ...p, modifier_groups: modifierGroups, product_modifier_groups: undefined };
+      });
+      setProducts(mapped as Product[]);
+    }
     setLoading(false);
   }, [selectedCategoryId]);
 
@@ -96,33 +111,13 @@ export function MenuScreen() {
       .maybeSingle();
 
     if (newProduct && product.modifier_groups) {
-      for (const group of product.modifier_groups) {
-        const { data: newGroup } = await supabase
-          .from('modifier_groups')
-          .insert({
-            product_id: newProduct.id,
-            name: group.name,
-            display_order: group.display_order,
-            min_select: group.min_select,
-            max_select: group.max_select,
-            is_required: group.is_required,
-          })
-          .select('id')
-          .maybeSingle();
-
-        if (newGroup && group.modifier_options) {
-          await supabase.from('modifier_options').insert(
-            group.modifier_options.map(opt => ({
-              modifier_group_id: newGroup.id,
-              name: opt.name,
-              price_adjustment: opt.price_adjustment,
-              image_url: opt.image_url,
-              is_default: opt.is_default,
-              is_available: opt.is_available,
-              display_order: opt.display_order,
-            }))
-          );
-        }
+      const assignments = product.modifier_groups.map((group, idx) => ({
+        product_id: newProduct.id,
+        modifier_group_id: group.id,
+        display_order: idx,
+      }));
+      if (assignments.length > 0) {
+        await supabase.from('product_modifier_groups').insert(assignments);
       }
     }
     loadData();
@@ -161,6 +156,13 @@ export function MenuScreen() {
               className="px-4 py-2.5 text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               {t.menuCategories}
+            </button>
+            <button
+              onClick={() => setShowModifierLibrary(true)}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <Sliders className="w-4 h-4" />
+              {t.modifiers}
             </button>
             <button
               onClick={() => { setEditingProduct(null); setShowProductForm(true); }}
@@ -293,7 +295,7 @@ export function MenuScreen() {
                         {product.kiosk_visible ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
                       </button>
                       <button
-                        onClick={() => setModifierProduct(product)}
+                        onClick={() => setAssignProduct(product)}
                         className="px-3 py-2 text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                       >
                         {t.modifiers}
@@ -335,10 +337,16 @@ export function MenuScreen() {
         />
       )}
 
-      {modifierProduct && (
-        <ProductModifierEditor
-          product={modifierProduct}
-          onClose={() => { setModifierProduct(null); loadData(); }}
+      {assignProduct && (
+        <ProductModifierAssigner
+          product={assignProduct}
+          onClose={() => { setAssignProduct(null); loadData(); }}
+        />
+      )}
+
+      {showModifierLibrary && (
+        <ModifierLibrary
+          onClose={() => { setShowModifierLibrary(false); loadData(); }}
         />
       )}
 

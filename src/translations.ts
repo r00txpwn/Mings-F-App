@@ -387,6 +387,14 @@ export interface Translations {
   moveDown: string;
   productDetails: string;
   selectRequired: string;
+  manageModifiers: string;
+  assignModifiers: string;
+  assignedProducts: string;
+  noAssignedProducts: string;
+  assignToProducts: string;
+  selectModifierGroups: string;
+  usedInProducts: string;
+  modifierLibrary: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -754,6 +762,14 @@ export const translations: Record<Language, Translations> = {
     moveDown: 'Move Down',
     productDetails: 'Product Details',
     selectRequired: 'Please make required selections',
+    manageModifiers: 'Manage Modifiers',
+    assignModifiers: 'Assign Modifiers',
+    assignedProducts: 'Assigned Products',
+    noAssignedProducts: 'Not assigned to any products',
+    assignToProducts: 'Assign to Products',
+    selectModifierGroups: 'Select modifier groups',
+    usedInProducts: 'Used in products',
+    modifierLibrary: 'Modifier Library',
   },
 
   az: {
@@ -1120,6 +1136,14 @@ export const translations: Record<Language, Translations> = {
     moveDown: 'Aşağı',
     productDetails: 'Məhsul Detalları',
     selectRequired: 'Məcburi seçimləri edin',
+    manageModifiers: 'Modifikatorları İdarə Et',
+    assignModifiers: 'Modifikatorları Təyin Et',
+    assignedProducts: 'Təyin Edilmiş Məhsullar',
+    noAssignedProducts: 'Heç bir məhsula təyin edilməyib',
+    assignToProducts: 'Məhsullara Təyin Et',
+    selectModifierGroups: 'Modifikator qruplarını seçin',
+    usedInProducts: 'Məhsullarda istifadə olunur',
+    modifierLibrary: 'Modifikator Kitabxanası',
   },
 
   ru: {
@@ -1486,5 +1510,13 @@ export const translations: Record<Language, Translations> = {
     moveDown: 'Вниз',
     productDetails: 'Детали Продукта',
     selectRequired: 'Сделайте обязательные выборы',
+    manageModifiers: 'Управление Модификаторами',
+    assignModifiers: 'Назначить Модификаторы',
+    assignedProducts: 'Назначенные Продукты',
+    noAssignedProducts: 'Не назначен ни одному продукту',
+    assignToProducts: 'Назначить Продуктам',
+    selectModifierGroups: 'Выберите группы модификаторов',
+    usedInProducts: 'Используется в продуктах',
+    modifierLibrary: 'Библиотека Модификаторов',
   },
 };

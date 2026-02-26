@@ -41,7 +41,7 @@ export interface Transaction {
 
 export interface ModifierGroup {
   id: string;
-  product_id: string;
+  product_id?: string | null;
   name: string;
   display_order: number;
   min_select: number;
@@ -49,6 +49,17 @@ export interface ModifierGroup {
   is_required: boolean;
   created_at: string;
   modifier_options?: ModifierOption[];
+  product_modifier_groups?: ProductModifierGroup[];
+}
+
+export interface ProductModifierGroup {
+  id: string;
+  product_id: string;
+  modifier_group_id: string;
+  display_order: number;
+  created_at: string;
+  modifier_groups?: ModifierGroup;
+  products?: Product;
 }
 
 export interface ModifierOption {

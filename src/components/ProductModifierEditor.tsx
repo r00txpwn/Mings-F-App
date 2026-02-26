@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Pencil, ChevronDown, ChevronUp, Loader2, GripVertical, Check } from 'lucide-react';
+import { X, Plus, Trash2, Pencil, ChevronDown, ChevronUp, Loader2, GripVertical, Check, Package } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { supabase, Product, ModifierGroup, ModifierOption } from '../lib/supabase';
+import { supabase, ModifierGroup, ModifierOption } from '../lib/supabase';
 
-interface ProductModifierEditorProps {
-  product: Product;
+interface ModifierLibraryProps {
   onClose: () => void;
 }
 
@@ -26,9 +25,9 @@ interface OptionForm {
 const emptyGroupForm: GroupForm = { name: '', min_select: 0, max_select: 1, is_required: false };
 const emptyOptionForm: OptionForm = { name: '', price_adjustment: '0', image_url: '', is_default: false, is_available: true };
 
-export function ProductModifierEditor({ product, onClose }: ProductModifierEditorProps) {
+export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
   const { t } = useLanguage();
-  const [groups, setGroups] = useState<ModifierGroup[]>([]);
+  const [groups, setGroups] = useState<(ModifierGroup & { product_count?: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
@@ -39,20 +38,23 @@ export function ProductModifierEditor({ product, onClose }: ProductModifierEdito
   const [showOptionFormFor, setShowOptionFormFor] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  useEffect(() => { loadGroups(); }, [product.id]);
+  useEffect(() => { loadGroups(); }, []);
 
   const loadGroups = async () => {
     setLoading(true);
     const { data } = await supabase
       .from('modifier_groups')
-      .select('*, modifier_options(*)')
-      .eq('product_id', product.id)
+      .select('*, modifier_options(*), product_modifier_groups(id, product_id)')
       .order('display_order')
       .order('created_at');
     if (data) {
-      setGroups(data as ModifierGroup[]);
-      if (data.length > 0 && expandedGroups.size === 0) {
-        setExpandedGroups(new Set(data.map(g => g.id)));
+      const enriched = data.map(g => ({
+        ...g,
+        product_count: g.product_modifier_groups?.length || 0,
+      }));
+      setGroups(enriched as (ModifierGroup & { product_count?: number })[]);
+      if (enriched.length > 0 && expandedGroups.size === 0) {
+        setExpandedGroups(new Set(enriched.map(g => g.id)));
       }
     }
     setLoading(false);
@@ -84,7 +86,6 @@ export function ProductModifierEditor({ product, onClose }: ProductModifierEdito
       const maxOrder = groups.reduce((max, g) => Math.max(max, g.display_order || 0), 0);
       await supabase.from('modifier_groups').insert({
         ...data,
-        product_id: product.id,
         display_order: maxOrder + 1,
       });
     }
@@ -186,8 +187,10 @@ export function ProductModifierEditor({ product, onClose }: ProductModifierEdito
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t.modifiers}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{product.name}</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t.modifierLibrary}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              {groups.length} {t.modifierGroups.toLowerCase()}
+            </p>
           </div>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg">
             <X className="w-5 h-5" />
@@ -237,12 +240,18 @@ export function ProductModifierEditor({ product, onClose }: ProductModifierEdito
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                            {group.min_select === 1 && group.max_select === 1
-                              ? t.chooseOne
-                              : `${t.chooseUpTo} ${group.max_select}`}
-                            {' '} / {options.length} {t.items}
-                          </p>
+                          <div className="flex items-center gap-3 mt-0.5">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {group.min_select === 1 && group.max_select === 1
+                                ? t.chooseOne
+                                : `${t.chooseUpTo} ${group.max_select}`}
+                              {' '} / {options.length} {t.items}
+                            </p>
+                            <span className="text-xs px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded flex items-center gap-1">
+                              <Package className="w-3 h-3" />
+                              {group.product_count || 0} {t.items}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                           <button

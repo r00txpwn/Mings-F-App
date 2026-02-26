@@ -75,7 +75,7 @@ function KioskContent() {
     const [productsRes, categoriesRes, channelRes] = await Promise.all([
       supabase
         .from('products')
-        .select('*, modifier_groups(*, modifier_options(*))')
+        .select('*, product_modifier_groups(id, modifier_group_id, display_order, modifier_groups(*, modifier_options(*)))')
         .eq('kiosk_visible', true)
         .gt('selling_price', 0)
         .order('display_order')
@@ -93,7 +93,20 @@ function KioskContent() {
         .maybeSingle(),
     ]);
 
-    if (productsRes.data) setProducts(productsRes.data as Product[]);
+    if (productsRes.data) {
+      const mapped = productsRes.data.map((p: Record<string, unknown>) => {
+        const pmgs = (p.product_modifier_groups || []) as Array<{
+          modifier_groups: Record<string, unknown>;
+          display_order: number;
+        }>;
+        const modifierGroups = pmgs
+          .map(pmg => pmg.modifier_groups)
+          .filter(Boolean)
+          .sort((a, b) => ((a as { display_order?: number }).display_order || 0) - ((b as { display_order?: number }).display_order || 0));
+        return { ...p, modifier_groups: modifierGroups, product_modifier_groups: undefined };
+      });
+      setProducts(mapped as Product[]);
+    }
     if (categoriesRes.data) setCategories(categoriesRes.data as Category[]);
     if (channelRes.data) setKioskChannelId(channelRes.data.id);
   };
