@@ -127,7 +127,7 @@ export function KioskOrdersScreen() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => window.open('/kiosk', '_blank')}
+              onClick={() => window.open(`/kiosk?key=${import.meta.env.VITE_KIOSK_SECRET || ''}`, '_blank')}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <ExternalLink className="w-4 h-4" />
