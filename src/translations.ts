@@ -348,6 +348,7 @@ export interface Translations {
   allStatuses: string;
   filterByStatus: string;
   noKioskOrders: string;
+  viewKiosk: string;
 
   // Product extensions
   kioskVisible: string;
@@ -725,6 +726,7 @@ export const translations: Record<Language, Translations> = {
     allStatuses: 'All Statuses',
     filterByStatus: 'Filter by Status',
     noKioskOrders: 'No kiosk orders yet',
+    viewKiosk: 'View Kiosk',
 
     kioskVisible: 'Show on Kiosk',
     productImage: 'Image URL',
@@ -1099,6 +1101,7 @@ export const translations: Record<Language, Translations> = {
     allStatuses: 'Bütün Statuslar',
     filterByStatus: 'Statusa görə filtr',
     noKioskOrders: 'Hələ kiosk sifarişi yoxdur',
+    viewKiosk: 'Kiosku Aç',
 
     kioskVisible: 'Kioskda göstər',
     productImage: 'Şəkil URL',
@@ -1473,6 +1476,7 @@ export const translations: Record<Language, Translations> = {
     allStatuses: 'Все Статусы',
     filterByStatus: 'Фильтр по статусу',
     noKioskOrders: 'Заказов с киоска пока нет',
+    viewKiosk: 'Открыть Киоск',
 
     kioskVisible: 'Показать на киоске',
     productImage: 'URL изображения',
