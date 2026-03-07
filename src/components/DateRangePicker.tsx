@@ -33,7 +33,7 @@ function isSame(a: string, b: string) {
 function formatDisplay(dateStr: string) {
   if (!dateStr) return '';
   const { year, month, day } = parseDate(dateStr);
-  return `${day} ${MONTH_NAMES[month]} ${year}`;
+  return `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`;
 }
 
 export function DateRangePicker({
@@ -127,21 +127,22 @@ export function DateRangePicker({
 
   return (
     <div ref={ref} className="relative">
-      <div
-        className="flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-700 transition-colors"
+      <button
+        type="button"
+        className="w-full flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-700 transition-colors text-left"
         onClick={() => setOpen(!open)}
       >
         <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-        <div className="flex items-center gap-1.5 text-sm min-w-0">
-          <span className={startDate ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}>
-            {startDate ? formatDisplay(startDate) : startLabel}
-          </span>
-          <span className="text-gray-300 dark:text-gray-600">-</span>
-          <span className={endDate ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}>
-            {endDate ? formatDisplay(endDate) : endLabel}
-          </span>
-        </div>
-      </div>
+        <span className="text-sm whitespace-nowrap truncate">
+          {startDate && endDate ? (
+            <span className="text-gray-900 dark:text-white">{formatDisplay(startDate)} — {formatDisplay(endDate)}</span>
+          ) : startDate ? (
+            <><span className="text-gray-900 dark:text-white">{formatDisplay(startDate)}</span><span className="text-gray-400 dark:text-gray-500"> — {endLabel}</span></>
+          ) : (
+            <span className="text-gray-400 dark:text-gray-500">{startLabel} — {endLabel}</span>
+          )}
+        </span>
+      </button>
 
       {open && (
         <div className="absolute z-50 mt-1.5 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-[296px] animate-fadeIn">
@@ -163,28 +164,30 @@ export function DateRangePicker({
             </button>
           </div>
 
-          <div className="flex items-center gap-1 mb-2 px-0.5">
-            <span
+          <div className="flex items-center gap-0.5 mb-2">
+            <button
+              type="button"
               onClick={() => setSelecting('start')}
-              className={`flex-1 text-center text-xs py-1 rounded cursor-pointer transition-colors ${
+              className={`flex-1 text-center text-xs py-1.5 rounded-md transition-colors ${
                 selecting === 'start'
-                  ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 font-semibold'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-teal-600 text-white font-medium'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               {startDate ? formatDisplay(startDate) : startLabel}
-            </span>
-            <span className="text-gray-300 dark:text-gray-600 text-xs px-1">→</span>
-            <span
+            </button>
+            <span className="text-gray-300 dark:text-gray-600 text-[10px] px-1">→</span>
+            <button
+              type="button"
               onClick={() => setSelecting('end')}
-              className={`flex-1 text-center text-xs py-1 rounded cursor-pointer transition-colors ${
+              className={`flex-1 text-center text-xs py-1.5 rounded-md transition-colors ${
                 selecting === 'end'
-                  ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 font-semibold'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-teal-600 text-white font-medium'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               {endDate ? formatDisplay(endDate) : endLabel}
-            </span>
+            </button>
           </div>
 
           <div className="grid grid-cols-7 mb-1">
