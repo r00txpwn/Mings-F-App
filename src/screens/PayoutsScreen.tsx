@@ -3,6 +3,7 @@ import { Banknote, Plus, Check, CreditCard as Edit2, Trash2, X, Loader2, Trendin
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, SalesChannel, PlatformPayout } from '../lib/supabase';
+import { DateRangePicker } from '../components/DateRangePicker';
 
 interface PayoutWithCalc extends PlatformPayout {
   grossSales: number;
@@ -292,27 +293,18 @@ export function PayoutsScreen() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">
-                  {t.periodStart} *
+                  {t.period} *
                 </label>
-                <input
-                  type="date"
-                  value={periodStart}
-                  onChange={(e) => setPeriodStart(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">
-                  {t.periodEnd} *
-                </label>
-                <input
-                  type="date"
-                  value={periodEnd}
-                  onChange={(e) => setPeriodEnd(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                <DateRangePicker
+                  startDate={periodStart}
+                  endDate={periodEnd}
+                  onStartChange={setPeriodStart}
+                  onEndChange={setPeriodEnd}
+                  startLabel={t.startDate}
+                  endLabel={t.endDate}
                 />
               </div>
               <div>
