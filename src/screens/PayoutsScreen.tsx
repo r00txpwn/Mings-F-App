@@ -250,8 +250,8 @@ export function PayoutsScreen() {
       )}
 
       {showForm && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-5 mb-6">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               {editingPayout ? t.editPayout : t.addPayout}
             </h2>
@@ -260,72 +260,67 @@ export function PayoutsScreen() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 {t.selectPlatform} *
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="flex gap-3">
                 {channels.map((ch) => (
                   <button
                     key={ch.id}
                     onClick={() => setChannelId(ch.id)}
-                    className={`relative p-3 rounded-lg border transition-all ${
+                    className={`relative flex items-center gap-2.5 px-4 py-2.5 rounded-lg border transition-all ${
                       channelId === ch.id
                         ? 'border-teal-500 dark:border-teal-400 bg-teal-50 dark:bg-teal-900/20 shadow-sm'
                         : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-500'
                     }`}
                   >
                     {channelId === ch.id && (
-                      <div className="absolute -top-2 -right-2 w-5 h-5 bg-teal-500 dark:bg-teal-400 rounded-full flex items-center justify-center shadow-md">
-                        <Check className="w-3 h-3 text-white" />
+                      <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-teal-500 dark:bg-teal-400 rounded-full flex items-center justify-center shadow-md">
+                        <Check className="w-2.5 h-2.5 text-white" />
                       </div>
                     )}
-                    <div className="flex items-center justify-center h-8 mb-1">
-                      {ch.logo_url ? (
-                        <img src={ch.logo_url} alt={ch.name} className="h-8 w-8 object-contain" />
-                      ) : (
-                        <span className="text-xl">{ch.icon}</span>
-                      )}
-                    </div>
-                    <div className="text-xs font-medium text-gray-900 dark:text-white text-center">{ch.name}</div>
+                    {ch.logo_url ? (
+                      <img src={ch.logo_url} alt={ch.name} className="h-6 w-6 object-contain" />
+                    ) : (
+                      <span className="text-lg">{ch.icon}</span>
+                    )}
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{ch.name}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                    {t.periodStart} *
-                  </label>
-                  <input
-                    type="date"
-                    value={periodStart}
-                    onChange={(e) => setPeriodStart(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                    {t.periodEnd} *
-                  </label>
-                  <input
-                    type="date"
-                    value={periodEnd}
-                    onChange={(e) => setPeriodEnd(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-              </div>
-
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">
+                  {t.periodStart} *
+                </label>
+                <input
+                  type="date"
+                  value={periodStart}
+                  onChange={(e) => setPeriodStart(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">
+                  {t.periodEnd} *
+                </label>
+                <input
+                  type="date"
+                  value={periodEnd}
+                  onChange={(e) => setPeriodEnd(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">
                   {t.payoutAmount} (₼) *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-lg">₼</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">₼</span>
                   <input
                     type="number"
                     step="0.01"
@@ -333,41 +328,40 @@ export function PayoutsScreen() {
                     placeholder="0.00"
                     value={payoutAmount}
                     onChange={(e) => setPayoutAmount(e.target.value)}
-                    className="w-full pl-8 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    className="w-full pl-7 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
                   />
                 </div>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">
                   {t.payoutDate} *
                 </label>
                 <input
                   type="date"
                   value={payoutDate}
                   onChange={(e) => setPayoutDate(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
                 />
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                  {t.notes}
-                </label>
-                <input
-                  type="text"
-                  placeholder={t.notes}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">
+                {t.notes}
+              </label>
+              <input
+                type="text"
+                placeholder={t.notes}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+              />
             </div>
           </div>
 
           {channelId && periodStart && periodEnd && (
-            <div className="mt-5 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t.payoutSummary}</h3>
+            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.payoutSummary}</h3>
               {loadingPreview ? (
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -411,7 +405,7 @@ export function PayoutsScreen() {
           <button
             onClick={handleSave}
             disabled={!channelId || !periodStart || !periodEnd || !payoutAmount || Number(payoutAmount) <= 0 || saving}
-            className="mt-5 w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-medium transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+            className="mt-4 w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white py-2.5 px-5 rounded-lg font-medium transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
             {saving ? t.pleaseWait : editingPayout ? t.update : t.save}
