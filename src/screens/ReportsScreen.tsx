@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, Calendar, TrendingUp, Zap, Loader2, DollarSign, ShoppingCart } from 'lucide-react';
+import { BarChart3, Calendar, TrendingUp, Zap, Loader2, DollarSign, ShoppingCart, Banknote } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 
@@ -53,6 +53,8 @@ export function ReportsScreen() {
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [totalPurchases, setTotalPurchases] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
+  const [totalCommissions, setTotalCommissions] = useState(0);
+  const [commissionsByChannel, setCommissionsByChannel] = useState<{ name: string; logo_url?: string | null; icon?: string; commission: number; gross: number; rate: number }[]>([]);
   const [opexCategoryStats, setOpexCategoryStats] = useState<CategoryStats[]>([]);
   const [cogsCategoryStats, setCogsCategoryStats] = useState<CategoryStats[]>([]);
   const [channelStats, setChannelStats] = useState<ChannelStats[]>([]);
@@ -78,7 +80,7 @@ export function ReportsScreen() {
       salesQuery = salesQuery.eq('source', sourceFilter);
     }
 
-    const [salesRes, operationalExpensesRes, purchasesRes] = await Promise.all([
+    const [salesRes, operationalExpensesRes, purchasesRes, payoutsRes] = await Promise.all([
       salesQuery,
       supabase
         .from('operational_expenses')
@@ -89,12 +91,17 @@ export function ReportsScreen() {
         .from('purchases')
         .select('*, products(name), suppliers(name), master_categories(name, color)')
         .gte('purchase_date', startDate)
-        .lte('purchase_date', endDate)
+        .lte('purchase_date', endDate),
+      supabase
+        .from('platform_payouts')
+        .select('*, sales_channels(id, name, icon, logo_url)')
+        .or(`and(period_start.gte.${startDate},period_start.lte.${endDate}),and(period_end.gte.${startDate},period_end.lte.${endDate}),and(period_start.lte.${startDate},period_end.gte.${endDate})`)
     ]);
 
     const salesData = salesRes.data;
     const operationalExpensesData = operationalExpensesRes.data;
     const purchasesData = purchasesRes.data;
+    const payoutsData = payoutsRes.data;
 
     if (salesData) {
       const salesTotal = salesData.reduce((sum, s: any) => sum + Number(s.total_price), 0);
@@ -189,6 +196,44 @@ export function ReportsScreen() {
       setCogsCategoryStats([]);
     }
 
+    if (payoutsData && payoutsData.length > 0 && salesData) {
+      const channelGross: { [channelId: string]: number } = {};
+      const channelMeta: { [channelId: string]: { name: string; logo_url?: string | null; icon?: string } } = {};
+
+      for (const payout of payoutsData) {
+        const chId = payout.sales_channel_id;
+        const chInfo = (payout as any).sales_channels;
+        if (!channelMeta[chId] && chInfo) {
+          channelMeta[chId] = { name: chInfo.name, logo_url: chInfo.logo_url, icon: chInfo.icon };
+        }
+
+        const periodSales = salesData.filter((s: any) => {
+          const saleDate = s.sale_date.split('T')[0];
+          return s.sales_channel_id === chId && saleDate >= payout.period_start && saleDate <= payout.period_end;
+        });
+        const gross = periodSales.reduce((sum: number, s: any) => sum + Number(s.total_price), 0);
+
+        if (!channelGross[chId]) channelGross[chId] = 0;
+        channelGross[chId] += (gross - Number(payout.payout_amount));
+      }
+
+      const commBreakdown = Object.entries(channelGross).map(([chId, commission]) => ({
+        name: channelMeta[chId]?.name || 'Unknown',
+        logo_url: channelMeta[chId]?.logo_url,
+        icon: channelMeta[chId]?.icon,
+        commission,
+        gross: 0,
+        rate: 0,
+      }));
+
+      const totalComm = commBreakdown.reduce((s, c) => s + Math.max(0, c.commission), 0);
+      setTotalCommissions(totalComm);
+      setCommissionsByChannel(commBreakdown.filter(c => c.commission > 0));
+    } else {
+      setTotalCommissions(0);
+      setCommissionsByChannel([]);
+    }
+
     const activity: ActivityItem[] = [];
     salesData?.forEach((s: any) => {
       activity.push({ id: s.id, date: s.sale_date, type: 'sale', description: s.sales_channels?.name || t.sales, amount: Number(s.total_price), channel: s.sales_channels?.name });
@@ -204,10 +249,11 @@ export function ReportsScreen() {
     setLoading(false);
   };
 
-  const netProfit = totalSales - totalPurchases - totalExpenses;
+  const netProfit = totalSales - totalPurchases - totalExpenses - totalCommissions;
   const aov = totalOrders > 0 ? totalSales / totalOrders : 0;
   const profitMargin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
   const foodCostPercentage = totalSales > 0 ? (totalPurchases / totalSales) * 100 : 0;
+  const commissionPercentage = totalSales > 0 ? (totalCommissions / totalSales) * 100 : 0;
 
   const handlePeriodChange = (newPeriod: 'daily' | 'weekly' | 'monthly' | 'custom') => {
     setPeriod(newPeriod);
@@ -354,27 +400,34 @@ export function ReportsScreen() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5 mb-6 sm:mb-8">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border-l-4 border-green-500 hover:shadow-xl transition-all hover:scale-105">
               <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.totalSales}</p>
-              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-600 break-all">₼{totalSales.toFixed(2)}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-green-600 break-all">₼{totalSales.toFixed(2)}</p>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border-l-4 border-emerald-500 hover:shadow-xl transition-all hover:scale-105">
               <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.orders}</p>
-              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-emerald-600">{totalOrders}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-emerald-600">{totalOrders}</p>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border-l-4 border-blue-500 hover:shadow-xl transition-all hover:scale-105">
               <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.cogs}</p>
-              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-600 break-all">₼{totalPurchases.toFixed(2)}</p>
-              <p className="text-xs text-gray-500 mt-1">{foodCostPercentage.toFixed(1)}% of sales</p>
+              <p className="text-2xl sm:text-3xl font-bold text-blue-600 break-all">₼{totalPurchases.toFixed(2)}</p>
+              <p className="text-xs text-gray-500 mt-1">{foodCostPercentage.toFixed(1)}% {t.ofSales}</p>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border-l-4 border-orange-500 hover:shadow-xl transition-all hover:scale-105">
               <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.operationalExpenses}</p>
-              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-orange-600 break-all">₼{totalExpenses.toFixed(2)}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-orange-600 break-all">₼{totalExpenses.toFixed(2)}</p>
             </div>
+            {totalCommissions > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border-l-4 border-red-500 hover:shadow-xl transition-all hover:scale-105">
+                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.platformCosts}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-red-600 break-all">₼{totalCommissions.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">{commissionPercentage.toFixed(1)}% {t.ofSales}</p>
+              </div>
+            )}
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 dark:from-gray-700 dark:to-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all hover:scale-105">
               <p className="text-gray-300 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.netProfit}</p>
-              <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold break-all ${netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className={`text-2xl sm:text-3xl font-bold break-all ${netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 ₼{netProfit.toFixed(2)}
               </p>
               <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">{profitMargin.toFixed(1)}%</p>
@@ -408,6 +461,34 @@ export function ReportsScreen() {
                   <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">-₼{totalExpenses.toFixed(2)}</span>
                 </div>
               </div>
+              {totalCommissions > 0 && (
+                <div className="bg-white dark:bg-gray-700 rounded-xl p-5 shadow-md border-l-4 border-red-500">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">{t.platformCosts}</span>
+                    <span className="text-2xl font-bold text-red-600 dark:text-red-400">-₼{totalCommissions.toFixed(2)}</span>
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {t.commissionRate}: <span className="font-bold text-red-600 dark:text-red-400">{commissionPercentage.toFixed(1)}%</span>
+                  </div>
+                  {commissionsByChannel.length > 0 && (
+                    <div className="mt-3 space-y-1.5">
+                      {commissionsByChannel.map((ch, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            {ch.logo_url ? (
+                              <img src={ch.logo_url} alt={ch.name} className="h-4 w-4 object-contain" />
+                            ) : (
+                              <span className="text-sm">{ch.icon}</span>
+                            )}
+                            <span className="text-gray-600 dark:text-gray-400">{ch.name}</span>
+                          </div>
+                          <span className="font-semibold text-red-600 dark:text-red-400">₼{ch.commission.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="h-px bg-gradient-to-r from-transparent via-gray-400 to-transparent"></div>
               <div className={`rounded-xl p-6 shadow-lg ${netProfit >= 0 ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-red-500 to-rose-600'}`}>
                 <div className="flex justify-between items-center">
@@ -428,7 +509,7 @@ export function ReportsScreen() {
             </div>
             <div className="mt-6 bg-blue-100 dark:bg-gray-700 rounded-xl p-4">
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                <span className="font-bold">{t.netProfit}</span> = {t.totalSales} - {t.cogs} - {t.operationalExpenses}
+                <span className="font-bold">{t.netProfit}</span> = {t.totalSales} - {t.cogs} - {t.operationalExpenses}{totalCommissions > 0 ? ` - ${t.platformCosts}` : ''}
               </p>
             </div>
           </div>

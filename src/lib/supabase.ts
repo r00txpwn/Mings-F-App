@@ -173,3 +173,17 @@ export interface CartItem {
   selectedModifiers: SelectedModifiers;
   cartItemKey: string;
 }
+
+export interface PlatformPayout {
+  id: string;
+  sales_channel_id: string;
+  period_start: string;
+  period_end: string;
+  payout_amount: number;
+  payout_date: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  sales_channels?: SalesChannel;
+}

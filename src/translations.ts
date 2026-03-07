@@ -396,6 +396,29 @@ export interface Translations {
   selectModifierGroups: string;
   usedInProducts: string;
   modifierLibrary: string;
+
+  // Payouts
+  payouts: string;
+  platformPayouts: string;
+  trackPlatformPayouts: string;
+  addPayout: string;
+  editPayout: string;
+  selectPlatform: string;
+  periodStart: string;
+  periodEnd: string;
+  payoutAmount: string;
+  payoutDate: string;
+  grossSales: string;
+  commission: string;
+  commissionRate: string;
+  noPayoutsYet: string;
+  createFirstPayout: string;
+  deletePayoutConfirm: string;
+  payoutSummary: string;
+  totalCommissions: string;
+  platformCosts: string;
+  noSalesInPeriod: string;
+  payoutReceived: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -772,6 +795,28 @@ export const translations: Record<Language, Translations> = {
     selectModifierGroups: 'Select modifier groups',
     usedInProducts: 'Used in products',
     modifierLibrary: 'Modifier Library',
+
+    payouts: 'Payouts',
+    platformPayouts: 'Platform Payouts',
+    trackPlatformPayouts: 'Track payouts from delivery platforms',
+    addPayout: 'Add Payout',
+    editPayout: 'Edit Payout',
+    selectPlatform: 'Select Platform',
+    periodStart: 'Period Start',
+    periodEnd: 'Period End',
+    payoutAmount: 'Payout Amount',
+    payoutDate: 'Payout Date',
+    grossSales: 'Gross Sales',
+    commission: 'Commission',
+    commissionRate: 'Commission Rate',
+    noPayoutsYet: 'No payouts recorded yet',
+    createFirstPayout: 'Record your first platform payout',
+    deletePayoutConfirm: 'Delete this payout?',
+    payoutSummary: 'Payout Summary',
+    totalCommissions: 'Total Commissions',
+    platformCosts: 'Platform Costs',
+    noSalesInPeriod: 'No sales found for this period',
+    payoutReceived: 'Payout Received',
   },
 
   az: {
@@ -1147,6 +1192,28 @@ export const translations: Record<Language, Translations> = {
     selectModifierGroups: 'Modifikator qruplarını seçin',
     usedInProducts: 'Məhsullarda istifadə olunur',
     modifierLibrary: 'Modifikator Kitabxanası',
+
+    payouts: 'Ödənişlər',
+    platformPayouts: 'Platforma Ödənişləri',
+    trackPlatformPayouts: 'Çatdırılma platformalarından ödənişləri izləyin',
+    addPayout: 'Ödəniş Əlavə Et',
+    editPayout: 'Ödənişi Redaktə Et',
+    selectPlatform: 'Platforma Seçin',
+    periodStart: 'Dövr Başlanğıcı',
+    periodEnd: 'Dövr Sonu',
+    payoutAmount: 'Ödəniş Məbləği',
+    payoutDate: 'Ödəniş Tarixi',
+    grossSales: 'Ümumi Satış',
+    commission: 'Komissiya',
+    commissionRate: 'Komissiya Dərəcəsi',
+    noPayoutsYet: 'Hələ ödəniş qeydə alınmayıb',
+    createFirstPayout: 'İlk platforma ödənişini qeyd edin',
+    deletePayoutConfirm: 'Bu ödənişi silirsiniz?',
+    payoutSummary: 'Ödəniş Xülasəsi',
+    totalCommissions: 'Ümumi Komissiyalar',
+    platformCosts: 'Platforma Xərcləri',
+    noSalesInPeriod: 'Bu dövr üçün satış tapılmadı',
+    payoutReceived: 'Alınan Ödəniş',
   },
 
   ru: {
@@ -1522,5 +1589,27 @@ export const translations: Record<Language, Translations> = {
     selectModifierGroups: 'Выберите группы модификаторов',
     usedInProducts: 'Используется в продуктах',
     modifierLibrary: 'Библиотека Модификаторов',
+
+    payouts: 'Выплаты',
+    platformPayouts: 'Выплаты Платформ',
+    trackPlatformPayouts: 'Отслеживайте выплаты от платформ доставки',
+    addPayout: 'Добавить Выплату',
+    editPayout: 'Редактировать Выплату',
+    selectPlatform: 'Выберите Платформу',
+    periodStart: 'Начало Периода',
+    periodEnd: 'Конец Периода',
+    payoutAmount: 'Сумма Выплаты',
+    payoutDate: 'Дата Выплаты',
+    grossSales: 'Валовые Продажи',
+    commission: 'Комиссия',
+    commissionRate: 'Ставка Комиссии',
+    noPayoutsYet: 'Выплат пока нет',
+    createFirstPayout: 'Запишите первую выплату от платформы',
+    deletePayoutConfirm: 'Удалить эту выплату?',
+    payoutSummary: 'Сводка Выплат',
+    totalCommissions: 'Всего Комиссий',
+    platformCosts: 'Расходы на Платформы',
+    noSalesInPeriod: 'Продаж за этот период не найдено',
+    payoutReceived: 'Получено от Платформы',
   },
 };

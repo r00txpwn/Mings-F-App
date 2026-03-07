@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, ShoppingCart, Wallet, BarChart3, Settings, Menu, X, Package, Truck, Users, LogOut, DollarSign, Monitor, UtensilsCrossed } from 'lucide-react';
+import { Home, ShoppingCart, Wallet, BarChart3, Settings, Menu, X, Package, Truck, Users, LogOut, DollarSign, Monitor, UtensilsCrossed, Banknote } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -15,8 +15,9 @@ import { ExpensesScreen } from './screens/ExpensesScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 import { MenuScreen } from './screens/MenuScreen';
+import { PayoutsScreen } from './screens/PayoutsScreen';
 
-type Screen = 'home' | 'sales' | 'kiosk-orders' | 'menu-builder' | 'money' | 'reports' | 'products' | 'suppliers' | 'expenses' | 'users' | 'settings';
+type Screen = 'home' | 'sales' | 'kiosk-orders' | 'menu-builder' | 'money' | 'reports' | 'products' | 'suppliers' | 'expenses' | 'payouts' | 'users' | 'settings';
 
 function AppContent() {
   const { t } = useLanguage();
@@ -59,6 +60,8 @@ function AppContent() {
         return <SuppliersScreen />;
       case 'expenses':
         return <ExpensesScreen />;
+      case 'payouts':
+        return <PayoutsScreen />;
       case 'users':
         return <UsersScreen />;
       case 'settings':
@@ -81,6 +84,7 @@ function AppContent() {
     { id: 'products', icon: <Package className="w-5 h-5" />, label: t.products },
     { id: 'suppliers', icon: <Truck className="w-5 h-5" />, label: t.suppliers },
     { id: 'expenses', icon: <DollarSign className="w-5 h-5" />, label: 'Expenses' },
+    { id: 'payouts', icon: <Banknote className="w-5 h-5" />, label: t.payouts },
     { id: 'money', icon: <Wallet className="w-5 h-5" />, label: t.money },
     { id: 'reports', icon: <BarChart3 className="w-5 h-5" />, label: t.reports },
     { id: 'users', icon: <Users className="w-5 h-5" />, label: t.users },
