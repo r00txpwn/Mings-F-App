@@ -47,11 +47,14 @@ export function PayoutsScreen() {
     }
   }, [channelId, periodStart, periodEnd]);
 
+  const PLATFORM_NAMES = ['Wolt', 'Bolt'];
+
   const loadChannels = async () => {
     const { data } = await supabase
       .from('sales_channels')
       .select('*')
       .eq('is_active', true)
+      .in('name', PLATFORM_NAMES)
       .order('name');
     if (data) setChannels(data);
   };
