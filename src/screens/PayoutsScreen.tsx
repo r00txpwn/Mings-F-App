@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Banknote, Plus, Check, Edit2, Trash2, X, Loader2, TrendingDown, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Banknote, Plus, Check, CreditCard as Edit2, Trash2, X, Loader2, TrendingDown, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, SalesChannel, PlatformPayout } from '../lib/supabase';
