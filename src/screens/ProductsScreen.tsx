@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Package, Plus, Edit2, Trash2, Search, AlertCircle, Truck, ShoppingCart, History, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, Product, Supplier } from '../lib/supabase';
+import { PageHeader } from '../components/cockpit';
+import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
+import { IconActionButton } from '../components/ui/IconActionButton';
 
 interface Category {
   id: string;
@@ -23,6 +26,17 @@ interface Purchase {
   categories?: {
     name: string;
   };
+}
+
+interface PurchaseFormData {
+  product_id: string;
+  category_id: string;
+  supplier_id: string;
+  quantity: string;
+  unit_cost: string;
+  purchase_date: string;
+  payment_status: 'pending' | 'partial' | 'paid';
+  notes: string;
 }
 
 export function ProductsScreen() {
@@ -56,16 +70,18 @@ export function ProductsScreen() {
     supplier_id: '',
     unit: 'pcs',
     kiosk_visible: true,
+    online_visible: true,
     image_url: '',
   });
 
-  const [purchaseFormData, setPurchaseFormData] = useState({
+  const [purchaseFormData, setPurchaseFormData] = useState<PurchaseFormData>({
     product_id: '',
+    category_id: '',
     supplier_id: '',
     quantity: '',
     unit_cost: '',
     purchase_date: new Date().toISOString().split('T')[0],
-    payment_status: 'pending' as const,
+    payment_status: 'pending',
     notes: ''
   });
 
@@ -75,12 +91,6 @@ export function ProductsScreen() {
     cost_price: '',
     unit: 'pcs',
     supplier_id: ''
-  });
-
-  const [inlineCategoryData, setInlineCategoryData] = useState({
-    name: '',
-    description: '',
-    color: '#3B82F6'
   });
 
   const [inlineSupplierData, setInlineSupplierData] = useState({
@@ -139,8 +149,25 @@ export function ProductsScreen() {
       .order('purchase_date', { ascending: false });
 
     if (data) {
-      setPurchases(data as any);
+      setPurchases(data as Purchase[]);
     }
+  };
+
+  const reconcileProductStock = async (productId: string | null | undefined, deltaQuantity: number) => {
+    if (!productId || !deltaQuantity) return;
+
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('quantity')
+      .eq('id', productId)
+      .single();
+
+    if (error || !product) return;
+
+    await supabase
+      .from('products')
+      .update({ quantity: Number(product.quantity || 0) + deltaQuantity })
+      .eq('id', productId);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -158,6 +185,7 @@ export function ProductsScreen() {
       supplier_id: formData.supplier_id || null,
       unit: formData.unit,
       kiosk_visible: formData.kiosk_visible,
+      online_visible: formData.online_visible,
       image_url: formData.image_url || null,
     };
 
@@ -194,24 +222,27 @@ export function ProductsScreen() {
     };
 
     if (editingPurchase) {
+      const oldProductId = editingPurchase.product_id || null;
+      const oldQuantity = Number(editingPurchase.quantity) || 0;
+      const newProductId = purchaseData.product_id || null;
+      const newQuantity = quantity;
+
       await supabase
         .from('purchases')
         .update(purchaseData)
         .eq('id', editingPurchase.id);
+
+      if (oldProductId && newProductId && oldProductId === newProductId) {
+        await reconcileProductStock(newProductId, newQuantity - oldQuantity);
+      } else {
+        await reconcileProductStock(oldProductId, -oldQuantity);
+        await reconcileProductStock(newProductId, newQuantity);
+      }
     } else {
       await supabase
         .from('purchases')
         .insert(purchaseData);
-
-      if (purchaseData.product_id) {
-        const product = products.find(p => p.id === purchaseData.product_id);
-        if (product) {
-          await supabase
-            .from('products')
-            .update({ quantity: (product.quantity || 0) + quantity })
-            .eq('id', purchaseData.product_id);
-        }
-      }
+      await reconcileProductStock(purchaseData.product_id, quantity);
     }
 
     if (viewingProduct) {
@@ -256,29 +287,6 @@ export function ProductsScreen() {
     }
   };
 
-  const handleCreateInlineCategory = async () => {
-    if (!inlineCategoryData.name) return;
-
-    const { data } = await supabase
-      .from('categories')
-      .insert({
-        name: inlineCategoryData.name,
-        description: inlineCategoryData.description,
-        type: 'purchase',
-        color: inlineCategoryData.color,
-        icon: 'circle'
-      })
-      .select()
-      .single();
-
-    if (data) {
-      await loadCategories();
-      setPurchaseFormData({ ...purchaseFormData, category_id: data.id });
-      setInlineCategoryData({ name: '', description: '', color: '#3B82F6' });
-      setShowInlineCategoryForm(false);
-    }
-  };
-
   const handleCreateInlineSupplier = async () => {
     if (!inlineSupplierData.name) return;
 
@@ -315,6 +323,7 @@ export function ProductsScreen() {
       supplier_id: '',
       unit: 'pcs',
       kiosk_visible: true,
+      online_visible: true,
       image_url: '',
     });
     setEditingProduct(null);
@@ -324,6 +333,7 @@ export function ProductsScreen() {
   const resetPurchaseForm = () => {
     setPurchaseFormData({
       product_id: '',
+      category_id: '',
       supplier_id: '',
       quantity: '',
       unit_cost: '',
@@ -348,8 +358,9 @@ export function ProductsScreen() {
       min_stock_level: product.min_stock_level?.toString() || '10',
       category_id: product.category_id || '',
       supplier_id: product.supplier_id || '',
-      unit: (product as any).unit || 'pcs',
+      unit: (product as Product & { unit?: string }).unit || 'pcs',
       kiosk_visible: product.kiosk_visible !== false,
+      online_visible: product.online_visible !== false,
       image_url: product.image_url || '',
     });
     setShowForm(true);
@@ -383,10 +394,13 @@ export function ProductsScreen() {
   };
 
   const handleDeletePurchase = async (id: string) => {
+    const purchase = purchases.find(p => p.id === id);
     await supabase.from('purchases').delete().eq('id', id);
+    await reconcileProductStock(purchase?.product_id, -(Number(purchase?.quantity) || 0));
     if (viewingProduct) {
       loadPurchases(viewingProduct.id);
     }
+    loadProducts();
   };
 
   const filteredProducts = products.filter(p =>
@@ -398,41 +412,32 @@ export function ProductsScreen() {
 
   return (
     <div className="animate-fadeIn">
-      <div className="mb-6 sm:mb-8">
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="bg-teal-100 dark:bg-teal-900 p-2 sm:p-3 rounded-xl">
-              <Package className="w-6 h-6 sm:w-8 sm:h-8 text-teal-700 dark:text-teal-300" />
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white">{t.products}</h1>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowQuickPurchase(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl flex items-center gap-2 transition-all active:scale-95"
-            >
-              <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+      <PageHeader
+        title={t.products}
+        description={t.manageInventory}
+        eyebrow="Inventory"
+        icon={Package}
+        actions={
+          <>
+            <button onClick={() => setShowQuickPurchase(true)} className="neon-btn-secondary px-4 sm:px-5">
+              <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">Add Purchase</span>
             </button>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl flex items-center gap-2 transition-all active:scale-95"
-            >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+            <button onClick={() => setShowForm(true)} className="neon-btn-primary px-4 sm:px-5">
+              <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">{t.addProduct}</span>
             </button>
-          </div>
-        </div>
-        <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-lg">{t.manageInventory}</p>
-      </div>
+          </>
+        }
+      />
 
       {lowStockProducts.length > 0 && (
-        <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-4 mb-6">
+        <div className="mb-6 rounded-2xl border border-amber-300/70 bg-amber-50 p-4 dark:border-amber-400/30 dark:bg-amber-500/10">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-300" />
             <div>
-              <h3 className="font-bold text-orange-900 mb-1">{t.lowStockAlert}</h3>
-              <p className="text-sm text-orange-800">
+              <h3 className="mb-1 font-semibold text-amber-800 dark:text-amber-200">{t.lowStockAlert}</h3>
+              <p className="text-sm text-amber-700 dark:text-amber-100/90">
                 {lowStockProducts.length} product(s) are running low on stock
               </p>
             </div>
@@ -440,15 +445,15 @@ export function ProductsScreen() {
         </div>
       )}
 
-      <div className="mb-6">
+      <div className="cockpit-panel-solid mb-6 p-3">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
+          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder={t.searchProducts}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:bg-gray-700 dark:text-white"
+            className="cockpit-input w-full pl-12 pr-4 py-3"
           />
         </div>
       </div>
@@ -507,7 +512,7 @@ export function ProductsScreen() {
                   <select
                     value={formData.unit}
                     onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="cockpit-select"
                   >
                     <option value="pcs">{t.pieces}</option>
                     <option value="kg">{t.kilogram}</option>
@@ -544,7 +549,7 @@ export function ProductsScreen() {
                   <select
                     value={formData.category_id}
                     onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="cockpit-select"
                   >
                     <option value="">{t.selectCategory}</option>
                     {categories.map((category) => (
@@ -559,7 +564,7 @@ export function ProductsScreen() {
                   <select
                     value={formData.supplier_id}
                     onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="cockpit-select"
                   >
                     <option value="">{t.noSupplier}</option>
                     {suppliers.map((supplier) => (
@@ -600,6 +605,18 @@ export function ProductsScreen() {
                   <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
                 </label>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.kioskVisible}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.online_visible}
+                    onChange={(e) => setFormData({ ...formData, online_visible: e.target.checked })}
+                    className="peer sr-only"
+                  />
+                  <div className="h-6 w-11 rounded-full bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-indigo-600"></div>
+                </label>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.onlineVisible}</span>
               </div>
               <div className="flex gap-3 pt-4">
                 <button
@@ -673,7 +690,7 @@ export function ProductsScreen() {
                         <select
                           value={inlineProductData.unit}
                           onChange={(e) => setInlineProductData({ ...inlineProductData, unit: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          className="cockpit-select"
                         >
                           <option value="pcs">{t.pieces}</option>
                           <option value="kg">{t.kilogram}</option>
@@ -705,7 +722,7 @@ export function ProductsScreen() {
                         }}
                         disabled={!!viewingProduct}
                         required
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50"
+                        className="cockpit-select flex-1 disabled:opacity-50"
                       >
                         <option value="">Select Product</option>
                         <option value="_new_" className="font-medium text-blue-600">+ Create New Product</option>
@@ -775,7 +792,7 @@ export function ProductsScreen() {
                           setPurchaseFormData({ ...purchaseFormData, supplier_id: e.target.value });
                         }
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="cockpit-select"
                     >
                       <option value="">No Supplier</option>
                       <option value="_new_" className="font-medium text-blue-600">+ Create New Supplier</option>
@@ -835,8 +852,8 @@ export function ProductsScreen() {
                   </label>
                   <select
                     value={purchaseFormData.payment_status}
-                    onChange={(e) => setPurchaseFormData({ ...purchaseFormData, payment_status: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    onChange={(e) => setPurchaseFormData({ ...purchaseFormData, payment_status: e.target.value as 'pending' | 'partial' | 'paid' })}
+                    className="cockpit-select"
                   >
                     <option value="pending">Pending</option>
                     <option value="partial">Partial</option>
@@ -972,18 +989,20 @@ export function ProductsScreen() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
-                            <button
+                            <IconActionButton
                               onClick={() => handleEditPurchase(purchase)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
+                              icon={<Edit2 className="h-4 w-4" />}
+                              tone="edit"
+                              label="Edit purchase"
+                              className="h-8 w-8"
+                            />
+                            <IconActionButton
                               onClick={() => handleDeletePurchase(purchase.id)}
-                              className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                              icon={<Trash2 className="h-4 w-4" />}
+                              tone="danger"
+                              label="Delete purchase"
+                              className="h-8 w-8"
+                            />
                           </div>
                         </td>
                       </tr>
@@ -1001,26 +1020,14 @@ export function ProductsScreen() {
           const isDeleting = deleteConfirm === product.id;
 
           return (
-          <div key={product.id} className={`bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-lg hover:shadow-xl transition-all ${isDeleting ? 'ring-2 ring-red-500' : ''}`}>
+          <div key={product.id} className={`cockpit-panel-solid p-5 transition-all ${isDeleting ? 'ring-2 ring-red-500' : ''}`}>
             {isDeleting ? (
               <div className="space-y-4">
-                <p className="text-sm text-red-900 dark:text-red-100 font-medium">
-                  Are you sure you want to delete "{product.name}"?
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleDelete(product.id)}
-                    className="flex-1 px-3 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
-                  >
-                    Delete
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirm(null)}
-                    className="flex-1 px-3 py-2 text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium"
-                  >
-                    Cancel
-                  </button>
-                </div>
+                <DangerConfirmRow
+                  message={`Are you sure you want to delete "${product.name}"?`}
+                  onConfirm={() => handleDelete(product.id)}
+                  onCancel={() => setDeleteConfirm(null)}
+                />
               </div>
             ) : (
               <>
@@ -1032,18 +1039,18 @@ export function ProductsScreen() {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <button
+                    <IconActionButton
                       onClick={() => handleEdit(product)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
+                      icon={<Edit2 className="h-4 w-4" />}
+                      tone="edit"
+                      label={t.edit}
+                    />
+                    <IconActionButton
                       onClick={() => setDeleteConfirm(product.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      icon={<Trash2 className="h-4 w-4" />}
+                      tone="danger"
+                      label={t.delete}
+                    />
                   </div>
                 </div>
 
@@ -1052,14 +1059,14 @@ export function ProductsScreen() {
             )}
 
             <div className="grid grid-cols-2 gap-3 mb-3">
-              <div className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-xl">
-                <p className="text-xs text-orange-700 dark:text-orange-400 mb-1">{t.costPrice}</p>
-                <p className="text-lg font-bold text-orange-600">₼{(product.cost_price || 0).toFixed(2)}</p>
+              <div className="rounded-xl bg-slate-100 p-3 dark:bg-slate-800/60">
+                <p className="mb-1 text-xs text-slate-500">{t.costPrice}</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-slate-100">₼{(product.cost_price || 0).toFixed(2)}</p>
               </div>
-              <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl">
-                <p className="text-xs text-blue-700 dark:text-blue-400 mb-1">{t.stock}</p>
-                <p className={`text-lg font-bold ${(product.quantity || 0) <= (product.min_stock_level || 0) ? 'text-red-600' : 'text-blue-600'}`}>
-                  {product.quantity || 0} {(product as any).unit || 'pcs'}
+              <div className="rounded-xl bg-slate-100 p-3 dark:bg-slate-800/60">
+                <p className="mb-1 text-xs text-slate-500">{t.stock}</p>
+                <p className={`text-lg font-bold ${(product.quantity || 0) <= (product.min_stock_level || 0) ? 'text-red-500' : 'text-slate-900 dark:text-slate-100'}`}>
+                  {product.quantity || 0} {(product as Product & { unit?: string }).unit || 'pcs'}
                 </p>
               </div>
             </div>
@@ -1082,7 +1089,7 @@ export function ProductsScreen() {
               )}
               <button
                 onClick={() => handleViewPurchases(product)}
-                className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium transition-colors"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <ShoppingCart className="w-4 h-4" />
                 View Purchases

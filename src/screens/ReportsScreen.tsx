@@ -1,26 +1,22 @@
-import { useState, useEffect } from 'react';
-import { BarChart3, Calendar, TrendingUp, Zap, Loader2, DollarSign, ShoppingCart, Banknote } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BarChart3, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
-
-interface CategoryStats {
-  category_name: string;
-  category_color: string;
-  total: number;
-  count: number;
-  percentage: number;
-}
-
-interface ChannelStats {
-  channel_name: string;
-  channel_icon: string;
-  channel_color: string;
-  channel_logo_url?: string | null;
-  total: number;
-  orders: number;
-  aov: number;
-  percentage: number;
-}
+import {
+  ChartCard,
+  FilterBar,
+  InsightPanel,
+  KpiCard,
+  type DatePreset,
+} from '../components/analytics';
+import {
+  fetchChannelPerformance,
+  fetchExpenseBreakdown,
+  fetchPayoutReconciliation,
+  fetchRevenueCostTrend,
+  type AnalyticsSourceFilter,
+} from '../services/analytics';
+import { PageHeader } from '../components/cockpit';
 
 interface ActivityItem {
   id: string;
@@ -28,601 +24,493 @@ interface ActivityItem {
   type: 'sale' | 'expense' | 'purchase';
   description: string;
   amount: number;
-  channel?: string;
+}
+
+const toISO = (date: Date): string => date.toISOString().split('T')[0];
+const toCurrency = (value: number): string => `₼${value.toFixed(2)}`;
+const safeNumber = (value: number | string | null | undefined): number => {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+function getPresetRange(preset: DatePreset): { startDate: string; endDate: string } {
+  const now = new Date();
+  const endDate = toISO(now);
+
+  if (preset === 'today') {
+    return { startDate: endDate, endDate };
+  }
+  if (preset === '7d') {
+    const start = new Date(now);
+    start.setDate(now.getDate() - 6);
+    return { startDate: toISO(start), endDate };
+  }
+  if (preset === '30d') {
+    const start = new Date(now);
+    start.setDate(now.getDate() - 29);
+    return { startDate: toISO(start), endDate };
+  }
+  if (preset === 'qtd') {
+    const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+    return { startDate: toISO(new Date(now.getFullYear(), quarterStartMonth, 1)), endDate };
+  }
+
+  return { startDate: toISO(new Date(now.getFullYear(), now.getMonth(), 1)), endDate };
 }
 
 export function ReportsScreen() {
   const { t } = useLanguage();
-  const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'custom'>('monthly');
-
-  const getDefaultDates = () => {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    return {
-      start: firstDay.toISOString().split('T')[0],
-      end: lastDay.toISOString().split('T')[0]
-    };
-  };
-
-  const defaultDates = getDefaultDates();
-  const [startDate, setStartDate] = useState(defaultDates.start);
-  const [endDate, setEndDate] = useState(defaultDates.end);
-
-  const [totalSales, setTotalSales] = useState(0);
-  const [totalExpenses, setTotalExpenses] = useState(0);
-  const [totalPurchases, setTotalPurchases] = useState(0);
-  const [totalOrders, setTotalOrders] = useState(0);
-  const [totalCommissions, setTotalCommissions] = useState(0);
-  const [commissionsByChannel, setCommissionsByChannel] = useState<{ name: string; logo_url?: string | null; icon?: string; commission: number; gross: number; rate: number }[]>([]);
-  const [opexCategoryStats, setOpexCategoryStats] = useState<CategoryStats[]>([]);
-  const [cogsCategoryStats, setCogsCategoryStats] = useState<CategoryStats[]>([]);
-  const [channelStats, setChannelStats] = useState<ChannelStats[]>([]);
-  const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
+  const [{ startDate, endDate }, setDateRange] = useState(() => getPresetRange('mtd'));
+  const [preset, setPreset] = useState<DatePreset>('mtd');
+  const [sourceFilter, setSourceFilter] = useState<AnalyticsSourceFilter>('all');
   const [loading, setLoading] = useState(true);
-  const [sourceFilter, setSourceFilter] = useState<'all' | 'manual' | 'kiosk'>('all');
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadReports();
-  }, [period, startDate, endDate, sourceFilter]);
+  const [totals, setTotals] = useState({
+    totalSales: 0,
+    totalOrders: 0,
+    totalPurchases: 0,
+    totalExpenses: 0,
+    totalCommissions: 0,
+  });
+  const [channelStats, setChannelStats] = useState<Array<{ name: string; sales: number; orders: number; aov: number; share: number }>>([]);
+  const [opexCategoryStats, setOpexCategoryStats] = useState<Array<{ name: string; total: number; count: number; percentage: number; color: string }>>([]);
+  const [cogsCategoryStats, setCogsCategoryStats] = useState<Array<{ name: string; total: number; count: number; percentage: number; color: string }>>([]);
+  const [commissionByChannel, setCommissionByChannel] = useState<Array<{ name: string; commission: number }>>([]);
+  const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setLoading(true);
+    setError(null);
+
+    const trendPromise = fetchRevenueCostTrend({
+      startDate,
+      endDate,
+      source: sourceFilter,
+      granularity: 'day',
+    });
+    const channelPromise = fetchChannelPerformance({
+      startDate,
+      endDate,
+      source: sourceFilter,
+      includeInactiveChannels: false,
+    });
+    const expensesPromise = fetchExpenseBreakdown({
+      startDate,
+      endDate,
+      scope: 'all',
+    });
+    const payoutsPromise = fetchPayoutReconciliation({
+      startDate,
+      endDate,
+    });
 
     let salesQuery = supabase
       .from('sales')
-      .select('*, sales_channels(name, icon, color, logo_url)')
+      .select('id, sale_date, total_price, sales_channels(name)')
       .gte('sale_date', startDate)
-      .lte('sale_date', endDate + 'T23:59:59')
-      .order('sale_date', { ascending: false });
-
+      .lte('sale_date', `${endDate}T23:59:59`)
+      .order('sale_date', { ascending: false })
+      .limit(50);
     if (sourceFilter !== 'all') {
       salesQuery = salesQuery.eq('source', sourceFilter);
     }
 
-    const [salesRes, operationalExpensesRes, purchasesRes, payoutsRes] = await Promise.all([
+    const activityPromise = Promise.all([
       salesQuery,
       supabase
         .from('operational_expenses')
-        .select('*, master_categories(name, color), expense_items(name)')
+        .select('id, expense_date, amount, description, expense_items(name), master_categories(name)')
         .gte('expense_date', startDate)
-        .lte('expense_date', endDate),
+        .lte('expense_date', endDate)
+        .order('expense_date', { ascending: false })
+        .limit(50),
       supabase
         .from('purchases')
-        .select('*, products(name), suppliers(name), master_categories(name, color)')
+        .select('id, purchase_date, total_cost, products(name), master_categories(name)')
         .gte('purchase_date', startDate)
-        .lte('purchase_date', endDate),
-      supabase
-        .from('platform_payouts')
-        .select('*, sales_channels(id, name, icon, logo_url)')
-        .or(`and(period_start.gte.${startDate},period_start.lte.${endDate}),and(period_end.gte.${startDate},period_end.lte.${endDate}),and(period_start.lte.${startDate},period_end.gte.${endDate})`)
+        .lte('purchase_date', endDate)
+        .order('purchase_date', { ascending: false })
+        .limit(50),
     ]);
 
-    const salesData = salesRes.data;
-    const operationalExpensesData = operationalExpensesRes.data;
-    const purchasesData = purchasesRes.data;
-    const payoutsData = payoutsRes.data;
+    const [trendRes, channelRes, expensesRes, payoutsRes, activityRes] = await Promise.all([
+      trendPromise,
+      channelPromise,
+      expensesPromise,
+      payoutsPromise,
+      activityPromise,
+    ]);
 
-    if (salesData) {
-      const salesTotal = salesData.reduce((sum, s: any) => sum + Number(s.total_price), 0);
-      const ordersTotal = salesData.reduce((sum, s: any) => sum + Number(s.quantity || 0), 0);
+    const firstError =
+      trendRes.error ||
+      channelRes.error ||
+      expensesRes.error ||
+      payoutsRes.error ||
+      activityRes[0].error?.message ||
+      activityRes[1].error?.message ||
+      activityRes[2].error?.message ||
+      null;
 
-      setTotalSales(salesTotal);
-      setTotalOrders(ordersTotal);
-
-      const channelBreakdown: { [key: string]: { total: number; orders: number; icon: string; color: string; logo_url?: string | null } } = {};
-      salesData.forEach((s: any) => {
-        const channelName = s.sales_channels?.name || 'Unknown';
-        const channelIcon = s.sales_channels?.icon || '';
-        const channelColor = s.sales_channels?.color || '#6b7280';
-        const channelLogoUrl = s.sales_channels?.logo_url;
-        if (!channelBreakdown[channelName]) {
-          channelBreakdown[channelName] = { total: 0, orders: 0, icon: channelIcon, color: channelColor, logo_url: channelLogoUrl };
-        }
-        channelBreakdown[channelName].total += Number(s.total_price);
-        channelBreakdown[channelName].orders += Number(s.quantity || 0);
+    if (firstError) {
+      setError(firstError);
+      setTotals({
+        totalSales: 0,
+        totalOrders: 0,
+        totalPurchases: 0,
+        totalExpenses: 0,
+        totalCommissions: 0,
       });
-
-      setChannelStats(
-        Object.entries(channelBreakdown).map(([name, data]) => ({
-          channel_name: name,
-          channel_icon: data.icon,
-          channel_color: data.color,
-          channel_logo_url: data.logo_url,
-          total: data.total,
-          orders: data.orders,
-          aov: data.orders > 0 ? data.total / data.orders : 0,
-          percentage: salesTotal > 0 ? (data.total / salesTotal) * 100 : 0,
-        })).sort((a, b) => b.total - a.total)
-      );
-    }
-
-    let totalOpExpenses = 0;
-    if (operationalExpensesData) {
-      totalOpExpenses = operationalExpensesData.reduce((sum, exp: any) => sum + Number(exp.amount), 0);
-      setTotalExpenses(totalOpExpenses);
-
-      const categoryBreakdown: { [key: string]: { total: number; count: number; color: string } } = {};
-      operationalExpensesData.forEach((exp: any) => {
-        const catName = exp.master_categories?.name || t.noCategory;
-        const catColor = exp.master_categories?.color || '#9CA3AF';
-        if (!categoryBreakdown[catName]) {
-          categoryBreakdown[catName] = { total: 0, count: 0, color: catColor };
-        }
-        categoryBreakdown[catName].total += Number(exp.amount);
-        categoryBreakdown[catName].count += 1;
-      });
-
-      setOpexCategoryStats(
-        Object.entries(categoryBreakdown).map(([name, data]) => ({
-          category_name: name,
-          category_color: data.color,
-          total: data.total,
-          count: data.count,
-          percentage: totalOpExpenses > 0 ? (data.total / totalOpExpenses) * 100 : 0,
-        })).sort((a, b) => b.total - a.total)
-      );
-    } else {
-      setTotalExpenses(0);
+      setChannelStats([]);
       setOpexCategoryStats([]);
-    }
-
-    if (purchasesData) {
-      const purchasesTotal = purchasesData.reduce((sum, p: any) => sum + Number(p.total_cost), 0);
-      setTotalPurchases(purchasesTotal);
-
-      const cogsByCat: { [key: string]: { total: number; count: number; color: string } } = {};
-      purchasesData.forEach((p: any) => {
-        const catName = p.master_categories?.name || t.noCategory;
-        const catColor = p.master_categories?.color || '#9CA3AF';
-        if (!cogsByCat[catName]) {
-          cogsByCat[catName] = { total: 0, count: 0, color: catColor };
-        }
-        cogsByCat[catName].total += Number(p.total_cost);
-        cogsByCat[catName].count += 1;
-      });
-
-      setCogsCategoryStats(
-        Object.entries(cogsByCat).map(([name, data]) => ({
-          category_name: name,
-          category_color: data.color,
-          total: data.total,
-          count: data.count,
-          percentage: purchasesTotal > 0 ? (data.total / purchasesTotal) * 100 : 0,
-        })).sort((a, b) => b.total - a.total)
-      );
-    } else {
-      setTotalPurchases(0);
       setCogsCategoryStats([]);
+      setCommissionByChannel([]);
+      setActivityItems([]);
+      setLoading(false);
+      return;
     }
 
-    if (payoutsData && payoutsData.length > 0 && salesData) {
-      const channelGross: { [channelId: string]: number } = {};
-      const channelMeta: { [channelId: string]: { name: string; logo_url?: string | null; icon?: string } } = {};
+    const trendData = trendRes.data ?? [];
+    const revenue = trendData.reduce((sum, point) => sum + point.revenue, 0);
+    const orders = trendData.reduce((sum, point) => sum + point.orders, 0);
 
-      for (const payout of payoutsData) {
-        const chId = payout.sales_channel_id;
-        const chInfo = (payout as any).sales_channels;
-        if (!channelMeta[chId] && chInfo) {
-          channelMeta[chId] = { name: chInfo.name, logo_url: chInfo.logo_url, icon: chInfo.icon };
-        }
+    const expenseData = expensesRes.data;
+    const purchasesTotal = expenseData?.totals.purchases ?? 0;
+    const operationalTotal = expenseData?.totals.operational ?? 0;
 
-        const periodSales = salesData.filter((s: any) => {
-          const saleDate = s.sale_date.split('T')[0];
-          return s.sales_channel_id === chId && saleDate >= payout.period_start && saleDate <= payout.period_end;
-        });
-        const gross = periodSales.reduce((sum: number, s: any) => sum + Number(s.total_price), 0);
-
-        if (!channelGross[chId]) channelGross[chId] = 0;
-        channelGross[chId] += (gross - Number(payout.payout_amount));
-      }
-
-      const commBreakdown = Object.entries(channelGross).map(([chId, commission]) => ({
-        name: channelMeta[chId]?.name || 'Unknown',
-        logo_url: channelMeta[chId]?.logo_url,
-        icon: channelMeta[chId]?.icon,
-        commission,
-        gross: 0,
-        rate: 0,
-      }));
-
-      const totalComm = commBreakdown.reduce((s, c) => s + Math.max(0, c.commission), 0);
-      setTotalCommissions(totalComm);
-      setCommissionsByChannel(commBreakdown.filter(c => c.commission > 0));
-    } else {
-      setTotalCommissions(0);
-      setCommissionsByChannel([]);
+    const reconciliationItems = payoutsRes.data?.items ?? [];
+    const commissionMap = new Map<string, number>();
+    for (const item of reconciliationItems) {
+      const commission = Math.max(0, item.expectedAmount - item.actualAmount);
+      if (commission <= 0) continue;
+      commissionMap.set(item.provider, (commissionMap.get(item.provider) ?? 0) + commission);
     }
+    const commissions = [...commissionMap.entries()]
+      .map(([name, commission]) => ({ name, commission }))
+      .sort((a, b) => b.commission - a.commission);
+    const totalCommissions = commissions.reduce((sum, item) => sum + item.commission, 0);
 
+    setTotals({
+      totalSales: revenue,
+      totalOrders: orders,
+      totalPurchases: purchasesTotal,
+      totalExpenses: operationalTotal,
+      totalCommissions,
+    });
+
+    const channelData = channelRes.data ?? [];
+    setChannelStats(
+      channelData
+        .filter((item) => item.grossSales > 0)
+        .map((item) => ({
+          name: item.channelName,
+          sales: item.grossSales,
+          orders: item.orderCount,
+          aov: item.avgOrderValue,
+          share: item.grossMarginPct ?? 0,
+        }))
+    );
+
+    const allExpenseItems = expenseData?.items ?? [];
+    const opexItems = allExpenseItems.filter((item) => item.scope === 'operational');
+    const cogsItems = allExpenseItems.filter((item) => item.scope === 'purchases');
+    setOpexCategoryStats(
+      opexItems.map((item) => ({
+        name: item.categoryName || t.noCategory,
+        total: item.total,
+        count: item.count,
+        color: item.categoryColor || '#9CA3AF',
+        percentage: operationalTotal > 0 ? (item.total / operationalTotal) * 100 : 0,
+      }))
+    );
+    setCogsCategoryStats(
+      cogsItems.map((item) => ({
+        name: item.categoryName || t.noCategory,
+        total: item.total,
+        count: item.count,
+        color: item.categoryColor || '#9CA3AF',
+        percentage: purchasesTotal > 0 ? (item.total / purchasesTotal) * 100 : 0,
+      }))
+    );
+    setCommissionByChannel(commissions);
+
+    const [salesActivityRes, expenseActivityRes, purchaseActivityRes] = activityRes;
     const activity: ActivityItem[] = [];
-    salesData?.forEach((s: any) => {
-      activity.push({ id: s.id, date: s.sale_date, type: 'sale', description: s.sales_channels?.name || t.sales, amount: Number(s.total_price), channel: s.sales_channels?.name });
-    });
-    operationalExpensesData?.forEach((e: any) => {
-      activity.push({ id: e.id, date: e.expense_date, type: 'expense', description: e.expense_items?.name || e.master_categories?.name || e.description || t.operationalExpenses, amount: Number(e.amount) });
-    });
-    purchasesData?.forEach((p: any) => {
-      activity.push({ id: p.id, date: p.purchase_date, type: 'purchase', description: p.products?.name || p.master_categories?.name || t.purchases, amount: Number(p.total_cost) });
-    });
+    for (const row of salesActivityRes.data ?? []) {
+      const channel = Array.isArray(row.sales_channels) ? row.sales_channels[0] : row.sales_channels;
+      activity.push({
+        id: row.id,
+        date: row.sale_date,
+        type: 'sale',
+        description: channel?.name || t.sales,
+        amount: safeNumber(row.total_price),
+      });
+    }
+    for (const row of expenseActivityRes.data ?? []) {
+      const expenseItem = Array.isArray(row.expense_items) ? row.expense_items[0] : row.expense_items;
+      const category = Array.isArray(row.master_categories) ? row.master_categories[0] : row.master_categories;
+      activity.push({
+        id: row.id,
+        date: row.expense_date,
+        type: 'expense',
+        description: expenseItem?.name || category?.name || row.description || t.operationalExpenses,
+        amount: safeNumber(row.amount),
+      });
+    }
+    for (const row of purchaseActivityRes.data ?? []) {
+      const product = Array.isArray(row.products) ? row.products[0] : row.products;
+      const category = Array.isArray(row.master_categories) ? row.master_categories[0] : row.master_categories;
+      activity.push({
+        id: row.id,
+        date: row.purchase_date,
+        type: 'purchase',
+        description: product?.name || category?.name || t.purchases,
+        amount: safeNumber(row.total_cost),
+      });
+    }
     activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setActivityItems(activity.slice(0, 50));
     setLoading(false);
-  };
+  }, [endDate, sourceFilter, startDate, t.noCategory, t.operationalExpenses, t.purchases, t.sales]);
 
-  const netProfit = totalSales - totalPurchases - totalExpenses - totalCommissions;
-  const aov = totalOrders > 0 ? totalSales / totalOrders : 0;
-  const profitMargin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
-  const foodCostPercentage = totalSales > 0 ? (totalPurchases / totalSales) * 100 : 0;
-  const commissionPercentage = totalSales > 0 ? (totalCommissions / totalSales) * 100 : 0;
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
 
-  const handlePeriodChange = (newPeriod: 'daily' | 'weekly' | 'monthly' | 'custom') => {
-    setPeriod(newPeriod);
-    const now = new Date();
-    if (newPeriod === 'daily') {
-      const today = now.toISOString().split('T')[0];
-      setStartDate(today);
-      setEndDate(today);
-    } else if (newPeriod === 'weekly') {
-      const weekAgo = new Date(now);
-      weekAgo.setDate(now.getDate() - 7);
-      setStartDate(weekAgo.toISOString().split('T')[0]);
-      setEndDate(now.toISOString().split('T')[0]);
-    } else if (newPeriod === 'monthly') {
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      setStartDate(firstDay.toISOString().split('T')[0]);
-      setEndDate(lastDay.toISOString().split('T')[0]);
-    }
-  };
-
-  const CategoryBreakdownCard = ({ title, icon, stats, color, total }: { title: string; icon: React.ReactNode; stats: CategoryStats[]; color: string; total: number }) => (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
-      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-        {icon}
-        {title}
-      </h3>
-      {stats.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">No data for this period</p>
-      ) : (
-        <div className="space-y-3">
-          {stats.slice(0, 10).map((stat, idx) => (
-            <div key={idx} className="rounded-xl p-4" style={{ backgroundColor: `${stat.category_color}10`, borderLeft: `4px solid ${stat.category_color}` }}>
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-semibold text-gray-800 dark:text-white text-sm">{stat.category_name}</span>
-                <span className="font-bold text-sm" style={{ color: stat.category_color }}>₼{stat.total.toFixed(2)}</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                <div
-                  className="h-1.5 rounded-full transition-all duration-500"
-                  style={{ width: `${stat.percentage}%`, backgroundColor: stat.category_color }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                {stat.count} {t.transactions} -- {stat.percentage.toFixed(1)}%
-              </p>
-            </div>
-          ))}
-          <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
-            <div className="flex justify-between text-sm font-bold text-gray-800 dark:text-white">
-              <span>Total</span>
-              <span>₼{total.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+  const netProfit = totals.totalSales - totals.totalPurchases - totals.totalExpenses - totals.totalCommissions;
+  const aov = totals.totalOrders > 0 ? totals.totalSales / totals.totalOrders : 0;
+  const profitMargin = totals.totalSales > 0 ? (netProfit / totals.totalSales) * 100 : 0;
+  const foodCostPercentage = totals.totalSales > 0 ? (totals.totalPurchases / totals.totalSales) * 100 : 0;
+  const commissionPercentage = totals.totalSales > 0 ? (totals.totalCommissions / totals.totalSales) * 100 : 0;
+  const isEmpty = useMemo(
+    () =>
+      !loading &&
+      !error &&
+      totals.totalSales === 0 &&
+      totals.totalExpenses === 0 &&
+      totals.totalPurchases === 0 &&
+      activityItems.length === 0,
+    [activityItems.length, error, loading, totals.totalExpenses, totals.totalPurchases, totals.totalSales]
   );
 
   return (
-    <div className="animate-fadeIn">
-      <div className="mb-6 sm:mb-8">
-        <div className="flex items-center gap-2 sm:gap-3 mb-2">
-          <div className="bg-orange-100 dark:bg-orange-900 p-2 sm:p-3 rounded-xl">
-            <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-orange-700 dark:text-orange-300" />
-          </div>
-          <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white">{t.reports}</h1>
-        </div>
-        <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-lg">{t.financialInsights}</p>
-      </div>
+    <div className="animate-fadeIn space-y-6 sm:space-y-8">
+      <PageHeader eyebrow="Analytics" title={t.reports} description={t.financialInsights} icon={BarChart3} />
 
-      <div className="mb-6 sm:mb-8">
-        <div className="flex gap-2 sm:gap-3 lg:gap-4 mb-4 overflow-x-auto pb-2">
-          {(['daily', 'weekly', 'monthly', 'custom'] as const).map((p) => (
+      <div className="space-y-3">
+        <FilterBar
+          selectedPreset={preset}
+          onPresetChange={(nextPreset) => {
+            setPreset(nextPreset);
+            if (nextPreset !== 'custom') {
+              setDateRange(getPresetRange(nextPreset));
+            }
+          }}
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={(value) => {
+            setPreset('custom');
+            setDateRange((prev) => ({ ...prev, startDate: value }));
+          }}
+          onEndDateChange={(value) => {
+            setPreset('custom');
+            setDateRange((prev) => ({ ...prev, endDate: value }));
+          }}
+        />
+        <div className="cockpit-panel-solid flex flex-wrap items-center gap-2 p-3">
+          {(['all', 'manual', 'kiosk', 'online_delivery', 'online_takeaway'] as const).map((src) => (
             <button
-              key={p}
-              onClick={() => p === 'custom' ? setPeriod('custom') : handlePeriodChange(p)}
-              className={`px-5 sm:px-6 lg:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold transition-all shadow-lg whitespace-nowrap ${
-                period === p
-                  ? 'bg-orange-600 text-white scale-105'
-                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-95'
+              key={src}
+              type="button"
+              onClick={() => setSourceFilter(src)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                sourceFilter === src
+                  ? 'bg-slate-900 text-white dark:bg-slate-700'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
               }`}
             >
-              {p === 'daily' ? t.daily : p === 'weekly' ? t.weekly : p === 'monthly' ? t.monthly : t.custom}
+              {src === 'all'
+                ? t.allStatuses
+                : src === 'manual'
+                  ? t.manual
+                  : src === 'kiosk'
+                    ? t.kiosk
+                    : src === 'online_delivery'
+                      ? t.onlineDelivery
+                      : t.onlineTakeaway}
             </button>
           ))}
         </div>
+      </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg">
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
-            <div className="flex-1 w-full">
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.startDate}</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => { setStartDate(e.target.value); setPeriod('custom'); }}
-                className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
-              />
-            </div>
-            <div className="flex-1 w-full">
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.endDate}</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => { setEndDate(e.target.value); setPeriod('custom'); }}
-                className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
-              />
-            </div>
-            <div className="flex gap-2 sm:self-end w-full sm:w-auto">
-              <button
-                onClick={loadReports}
-                className="flex-1 sm:flex-none px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl active:scale-95"
-              >
-                {t.confirm}
-              </button>
-            </div>
-          </div>
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
-            </span>
-            <div className="flex gap-2">
-              {(['all', 'manual', 'kiosk'] as const).map((src) => (
-                <button
-                  key={src}
-                  onClick={() => setSourceFilter(src)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    sourceFilter === src
-                      ? 'bg-orange-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {src === 'all' ? t.allStatuses : src === 'manual' ? t.manual : t.kiosk}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+      <div className="font-mono text-xs text-slate-500 dark:text-slate-500">
+        {new Date(startDate).toLocaleDateString()} — {new Date(endDate).toLocaleDateString()}
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-cockpit-500" />
         </div>
-      ) : (
+      ) : null}
+
+      {error ? (
+        <InsightPanel title="Error" severity="critical">
+          <p>{error}</p>
+          <button
+            type="button"
+            onClick={loadReports}
+            className="mt-3 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+          >
+            {t.confirm}
+          </button>
+        </InsightPanel>
+      ) : null}
+
+      {!loading && !error ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5 mb-6 sm:mb-8">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border-l-4 border-green-500 hover:shadow-xl transition-all hover:scale-105">
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.totalSales}</p>
-              <p className="text-2xl sm:text-3xl font-bold text-green-600 break-all">₼{totalSales.toFixed(2)}</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border-l-4 border-emerald-500 hover:shadow-xl transition-all hover:scale-105">
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.orders}</p>
-              <p className="text-2xl sm:text-3xl font-bold text-emerald-600">{totalOrders}</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border-l-4 border-blue-500 hover:shadow-xl transition-all hover:scale-105">
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.cogs}</p>
-              <p className="text-2xl sm:text-3xl font-bold text-blue-600 break-all">₼{totalPurchases.toFixed(2)}</p>
-              <p className="text-xs text-gray-500 mt-1">{foodCostPercentage.toFixed(1)}% {t.ofSales}</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border-l-4 border-orange-500 hover:shadow-xl transition-all hover:scale-105">
-              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.operationalExpenses}</p>
-              <p className="text-2xl sm:text-3xl font-bold text-orange-600 break-all">₼{totalExpenses.toFixed(2)}</p>
-            </div>
-            {totalCommissions > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border-l-4 border-red-500 hover:shadow-xl transition-all hover:scale-105">
-                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.platformCosts}</p>
-                <p className="text-2xl sm:text-3xl font-bold text-red-600 break-all">₼{totalCommissions.toFixed(2)}</p>
-                <p className="text-xs text-gray-500 mt-1">{commissionPercentage.toFixed(1)}% {t.ofSales}</p>
-              </div>
-            )}
-            <div className="bg-gradient-to-br from-gray-800 to-gray-900 dark:from-gray-700 dark:to-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-              <p className="text-gray-300 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{t.netProfit}</p>
-              <p className={`text-2xl sm:text-3xl font-bold break-all ${netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                ₼{netProfit.toFixed(2)}
-              </p>
-              <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">{profitMargin.toFixed(1)}%</p>
-            </div>
+          {isEmpty ? (
+            <InsightPanel title="No data" severity="info">
+              <p>{t.financialInsights}</p>
+            </InsightPanel>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <KpiCard label={t.totalSales} value={toCurrency(totals.totalSales)} />
+            <KpiCard label={t.orders} value={totals.totalOrders} />
+            <KpiCard label={t.cogs} value={toCurrency(totals.totalPurchases)} subtitle={`${foodCostPercentage.toFixed(1)}% ${t.ofSales}`} />
+            <KpiCard label={t.operationalExpenses} value={toCurrency(totals.totalExpenses)} />
+            <KpiCard label={t.platformCosts} value={toCurrency(totals.totalCommissions)} subtitle={`${commissionPercentage.toFixed(1)}% ${t.ofSales}`} />
+            <KpiCard
+              label={t.netProfit}
+              value={toCurrency(netProfit)}
+              subtitle={`${profitMargin.toFixed(1)}% | ${t.aov}: ${toCurrency(aov)}`}
+              trend={netProfit > 0 ? 'up' : netProfit < 0 ? 'down' : 'neutral'}
+            />
           </div>
 
-          <div className="bg-gradient-to-br from-blue-50 to-green-50 dark:from-gray-800 dark:to-gray-800 rounded-2xl p-6 sm:p-8 shadow-xl mb-6 sm:mb-8 border-2 border-blue-200 dark:border-gray-700">
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
-              <TrendingUp className="w-8 h-8 text-blue-600" />
-              {t.netProfit}
-            </h3>
-            <div className="space-y-4">
-              <div className="bg-white dark:bg-gray-700 rounded-xl p-5 shadow-md">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">{t.totalSales}</span>
-                  <span className="text-2xl font-bold text-green-600 dark:text-green-400">₼{totalSales.toFixed(2)}</span>
-                </div>
-              </div>
-              <div className="bg-white dark:bg-gray-700 rounded-xl p-5 shadow-md border-l-4 border-blue-500">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">{t.cogs} ({t.purchases})</span>
-                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">-₼{totalPurchases.toFixed(2)}</span>
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {t.foodCost}: <span className="font-bold text-blue-600 dark:text-blue-400">{foodCostPercentage.toFixed(1)}%</span>
-                </div>
-              </div>
-              <div className="bg-white dark:bg-gray-700 rounded-xl p-5 shadow-md border-l-4 border-orange-500">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">{t.operationalExpenses}</span>
-                  <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">-₼{totalExpenses.toFixed(2)}</span>
-                </div>
-              </div>
-              {totalCommissions > 0 && (
-                <div className="bg-white dark:bg-gray-700 rounded-xl p-5 shadow-md border-l-4 border-red-500">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">{t.platformCosts}</span>
-                    <span className="text-2xl font-bold text-red-600 dark:text-red-400">-₼{totalCommissions.toFixed(2)}</span>
+          {commissionByChannel.length > 0 ? (
+            <InsightPanel title={t.platformCosts} severity="warning">
+              <div className="space-y-1.5">
+                {commissionByChannel.map((item) => (
+                  <div key={item.name} className="flex items-center justify-between">
+                    <span>{item.name}</span>
+                    <span className="font-semibold">{toCurrency(item.commission)}</span>
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {t.commissionRate}: <span className="font-bold text-red-600 dark:text-red-400">{commissionPercentage.toFixed(1)}%</span>
-                  </div>
-                  {commissionsByChannel.length > 0 && (
-                    <div className="mt-3 space-y-1.5">
-                      {commissionsByChannel.map((ch, i) => (
-                        <div key={i} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            {ch.logo_url ? (
-                              <img src={ch.logo_url} alt={ch.name} className="h-4 w-4 object-contain" />
-                            ) : (
-                              <span className="text-sm">{ch.icon}</span>
-                            )}
-                            <span className="text-gray-600 dark:text-gray-400">{ch.name}</span>
-                          </div>
-                          <span className="font-semibold text-red-600 dark:text-red-400">₼{ch.commission.toFixed(2)}</span>
-                        </div>
-                      ))}
+                ))}
+              </div>
+            </InsightPanel>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <ChartCard title={t.salesByChannel}>
+              {channelStats.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No data for this period</p>
+              ) : (
+                <div className="space-y-3">
+                  {channelStats.map((stat) => (
+                    <div key={stat.name} className="rounded-lg border border-gray-100 p-3 dark:border-gray-700">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="font-semibold text-gray-800 dark:text-gray-100">{stat.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{stat.share.toFixed(1)}% {t.ofSales}</p>
+                      </div>
+                      <div className="grid grid-cols-3 text-xs sm:text-sm">
+                        <span>{toCurrency(stat.sales)}</span>
+                        <span className="text-center">{stat.orders}</span>
+                        <span className="text-right">{toCurrency(stat.aov)}</span>
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
               )}
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-400 to-transparent"></div>
-              <div className={`rounded-xl p-6 shadow-lg ${netProfit >= 0 ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gradient-to-br from-red-500 to-rose-600'}`}>
-                <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold text-white">{t.netProfit}</span>
-                  <span className="text-3xl font-bold text-white">₼{netProfit.toFixed(2)}</span>
+            </ChartCard>
+
+            <ChartCard title={`${t.cogs} ${t.categoryBreakdown}`}>
+              {cogsCategoryStats.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No data for this period</p>
+              ) : (
+                <div className="space-y-3">
+                  {cogsCategoryStats.slice(0, 10).map((stat) => (
+                    <div key={`${stat.name}-${stat.total}`} className="rounded-lg bg-gray-50 p-3 dark:bg-gray-700/40">
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{stat.name}</span>
+                        <span className="text-sm font-semibold" style={{ color: stat.color }}>{toCurrency(stat.total)}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{stat.count} {t.transactions} - {stat.percentage.toFixed(1)}%</p>
+                    </div>
+                  ))}
                 </div>
-                <div className="mt-3 flex gap-6 text-white text-sm">
-                  <div>
-                    <span className="opacity-90">{t.profit}: </span>
-                    <span className="font-bold text-lg">{profitMargin.toFixed(1)}%</span>
+              )}
+            </ChartCard>
+          </div>
+
+          <ChartCard title={`${t.operationalExpenses} ${t.categoryBreakdown}`}>
+            {opexCategoryStats.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No data for this period</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {opexCategoryStats.slice(0, 12).map((stat) => (
+                  <div key={`${stat.name}-${stat.total}`} className="rounded-lg bg-gray-50 p-3 dark:bg-gray-700/40">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{stat.name}</span>
+                      <span className="text-sm font-semibold" style={{ color: stat.color }}>{toCurrency(stat.total)}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{stat.count} {t.transactions} - {stat.percentage.toFixed(1)}%</p>
                   </div>
-                  <div>
-                    <span className="opacity-90">{t.aov}: </span>
-                    <span className="font-bold text-lg">₼{aov.toFixed(2)}</span>
-                  </div>
-                </div>
+                ))}
               </div>
-            </div>
-            <div className="mt-6 bg-blue-100 dark:bg-gray-700 rounded-xl p-4">
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                <span className="font-bold">{t.netProfit}</span> = {t.totalSales} - {t.cogs} - {t.operationalExpenses}{totalCommissions > 0 ? ` - ${t.platformCosts}` : ''}
-              </p>
-            </div>
-          </div>
+            )}
+          </ChartCard>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg mb-6 sm:mb-8">
-            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-              <Zap className="w-6 h-6 text-blue-600" />
-              {t.salesByChannel}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {channelStats.map((stat, idx) => (
-                <div
-                  key={idx}
-                  className="border-2 dark:border-gray-600 rounded-xl p-5 hover:shadow-lg transition-shadow"
-                  style={{ borderColor: stat.channel_color }}
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    {stat.channel_logo_url ? (
-                      <img src={stat.channel_logo_url} alt={stat.channel_name} className="w-10 h-10 object-contain" />
-                    ) : (
-                      <div className="text-3xl">{stat.channel_icon}</div>
-                    )}
-                    <div>
-                      <div className="font-bold text-gray-800 dark:text-white">{stat.channel_name}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{stat.percentage.toFixed(1)}% {t.ofSales}</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t.sales}</div>
-                      <div className="font-bold text-lg" style={{ color: stat.channel_color }}>₼{stat.total.toFixed(0)}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t.orders}</div>
-                      <div className="font-bold text-lg text-gray-700 dark:text-gray-200">{stat.orders}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t.aov}</div>
-                      <div className="font-bold text-lg text-gray-700 dark:text-gray-200">₼{stat.aov.toFixed(2)}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <CategoryBreakdownCard
-              title={`${t.cogs} ${t.categoryBreakdown}`}
-              icon={<ShoppingCart className="w-6 h-6 text-blue-600" />}
-              stats={cogsCategoryStats}
-              color="blue"
-              total={totalPurchases}
-            />
-            <CategoryBreakdownCard
-              title={`${t.operationalExpenses} ${t.categoryBreakdown}`}
-              icon={<DollarSign className="w-6 h-6 text-orange-600" />}
-              stats={opexCategoryStats}
-              color="orange"
-              total={totalExpenses}
-            />
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-              {t.transactionHistory}
-            </h3>
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <div className="inline-block min-w-full align-middle">
+          <ChartCard title={t.transactionHistory}>
+            {activityItems.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No transactions in this period</p>
+            ) : (
+              <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
-                    <tr className="border-b-2 border-gray-200 dark:border-gray-700">
-                      <th className="text-left py-2 sm:py-3 px-2 sm:px-4 font-bold text-gray-700 dark:text-gray-200 text-xs sm:text-sm whitespace-nowrap">{t.date}</th>
-                      <th className="text-left py-2 sm:py-3 px-2 sm:px-4 font-bold text-gray-700 dark:text-gray-200 text-xs sm:text-sm whitespace-nowrap">{t.type}</th>
-                      <th className="text-left py-2 sm:py-3 px-2 sm:px-4 font-bold text-gray-700 dark:text-gray-200 text-xs sm:text-sm whitespace-nowrap">{t.description}</th>
-                      <th className="text-right py-2 sm:py-3 px-2 sm:px-4 font-bold text-gray-700 dark:text-gray-200 text-xs sm:text-sm whitespace-nowrap">{t.amount}</th>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300">{t.date}</th>
+                      <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300">{t.type}</th>
+                      <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300">{t.description}</th>
+                      <th className="px-2 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300">{t.amount}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {activityItems.map((item) => (
-                      <tr key={`${item.type}-${item.id}`} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                          {new Date(item.date).toLocaleDateString()}
+                      <tr key={`${item.type}-${item.id}`} className="border-b border-gray-100 dark:border-gray-700">
+                        <td className="px-2 py-2 text-sm text-gray-600 dark:text-gray-300">{new Date(item.date).toLocaleDateString()}</td>
+                        <td className="px-2 py-2 text-sm text-gray-600 dark:text-gray-300">
+                          {item.type === 'sale' ? t.sales : item.type === 'purchase' ? t.cogs : t.expense}
                         </td>
-                        <td className="py-2 sm:py-3 px-2 sm:px-4 whitespace-nowrap">
-                          <span className={`inline-block px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
+                        <td className="px-2 py-2 text-sm text-gray-600 dark:text-gray-300">{item.description}</td>
+                        <td
+                          className={`px-2 py-2 text-right text-sm font-semibold ${
                             item.type === 'sale'
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              ? 'text-green-600 dark:text-green-400'
                               : item.type === 'purchase'
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                              : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                          }`}>
-                            {item.type === 'sale' ? t.sales : item.type === 'purchase' ? t.cogs : t.expense}
-                          </span>
-                        </td>
-                        <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                          {item.description}
-                        </td>
-                        <td className={`py-2 sm:py-3 px-2 sm:px-4 text-right font-bold text-xs sm:text-sm whitespace-nowrap ${
-                          item.type === 'sale' ? 'text-green-600 dark:text-green-400' : item.type === 'purchase' ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'
-                        }`}>
-                          {item.type === 'sale' ? '+' : '-'}₼{item.amount.toFixed(2)}
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-orange-600 dark:text-orange-400'
+                          }`}
+                        >
+                          {item.type === 'sale' ? '+' : '-'}
+                          {toCurrency(item.amount)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          </div>
+            )}
+          </ChartCard>
+
+          <InsightPanel title={t.netProfit} severity={netProfit >= 0 ? 'success' : 'critical'}>
+            <p>
+              {t.netProfit} = {t.totalSales} - {t.cogs} - {t.operationalExpenses}
+              {totals.totalCommissions > 0 ? ` - ${t.platformCosts}` : ''}
+            </p>
+          </InsightPanel>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

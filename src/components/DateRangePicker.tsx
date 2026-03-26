@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 interface DateRangePickerProps {
   startDate: string;
@@ -8,6 +9,7 @@ interface DateRangePickerProps {
   onEndChange: (date: string) => void;
   startLabel: string;
   endLabel: string;
+  quickRanges?: boolean;
 }
 
 const MONTH_NAMES = [
@@ -36,6 +38,23 @@ function formatDisplay(dateStr: string) {
   return `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`;
 }
 
+const toISO = (date: Date) => date.toISOString().split('T')[0];
+
+function getQuickRanges() {
+  const now = new Date();
+  const today = toISO(now);
+  const yesterdayDate = new Date(now);
+  yesterdayDate.setDate(now.getDate() - 1);
+  const yesterday = toISO(yesterdayDate);
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  return {
+    today: { start: today, end: today },
+    yesterday: { start: yesterday, end: yesterday },
+    thisWeek: { start: toISO(weekStart), end: today },
+  };
+}
+
 export function DateRangePicker({
   startDate,
   endDate,
@@ -43,17 +62,24 @@ export function DateRangePicker({
   onEndChange,
   startLabel,
   endLabel,
+  quickRanges = true,
 }: DateRangePickerProps) {
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [open, setOpen] = useState(false);
   const [selecting, setSelecting] = useState<'start' | 'end'>('start');
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [desktopPosition, setDesktopPosition] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const clickedTrigger = ref.current?.contains(target);
+      const clickedPopover = popoverRef.current?.contains(target);
+      if (!clickedTrigger && !clickedPopover) {
         setOpen(false);
       }
     }
@@ -67,6 +93,36 @@ export function DateRangePicker({
       setViewYear(year);
       setViewMonth(month);
     }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const updatePosition = () => {
+      const trigger = ref.current?.getBoundingClientRect();
+      if (!trigger) return;
+
+      const mobile = window.innerWidth < 768;
+      setIsMobileViewport(mobile);
+      if (mobile) return;
+
+      const popoverWidth = 360;
+      const margin = 12;
+      const x = Math.min(
+        Math.max(trigger.left, margin),
+        Math.max(margin, window.innerWidth - popoverWidth - margin)
+      );
+      const y = Math.round(trigger.bottom + 8);
+      setDesktopPosition({ top: y, left: Math.round(x) });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
   }, [open]);
 
   const prevMonth = () => {
@@ -124,133 +180,200 @@ export function DateRangePicker({
 
   const isRangeStart = (dateStr: string) => startDate && isSame(dateStr, startDate);
   const isRangeEnd = (dateStr: string) => endDate && isSame(dateStr, endDate);
+  const quick = getQuickRanges();
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
-        className="w-full flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-700 transition-colors text-left"
+        className="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm shadow-sm transition-colors hover:border-slate-300 dark:border-violet-400/20 dark:bg-slate-950/65"
         onClick={() => setOpen(!open)}
       >
-        <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+        <Calendar className="h-4 w-4 flex-shrink-0 text-slate-500 dark:text-slate-400" />
         <span className="text-sm whitespace-nowrap truncate">
           {startDate && endDate ? (
-            <span className="text-gray-900 dark:text-white">{formatDisplay(startDate)} — {formatDisplay(endDate)}</span>
+            <span className="text-slate-900 dark:text-white">{formatDisplay(startDate)} — {formatDisplay(endDate)}</span>
           ) : startDate ? (
-            <><span className="text-gray-900 dark:text-white">{formatDisplay(startDate)}</span><span className="text-gray-400 dark:text-gray-500"> — {endLabel}</span></>
+            <><span className="text-slate-900 dark:text-white">{formatDisplay(startDate)}</span><span className="text-slate-400 dark:text-slate-500"> — {endLabel}</span></>
           ) : (
-            <span className="text-gray-400 dark:text-gray-500">{startLabel} — {endLabel}</span>
+            <span className="text-slate-500 dark:text-slate-400">{startLabel} — {endLabel}</span>
           )}
         </span>
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1.5 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-[296px] animate-fadeIn">
-          <div className="flex items-center justify-between mb-3">
-            <button
-              onClick={prevMonth}
-              className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">
-              {MONTH_NAMES[viewMonth]} {viewYear}
-            </span>
-            <button
-              onClick={nextMonth}
-              className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-0.5 mb-2">
-            <button
-              type="button"
-              onClick={() => setSelecting('start')}
-              className={`flex-1 text-center text-xs py-1.5 rounded-md transition-colors ${
-                selecting === 'start'
-                  ? 'bg-teal-600 text-white font-medium'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              {startDate ? formatDisplay(startDate) : startLabel}
-            </button>
-            <span className="text-gray-300 dark:text-gray-600 text-[10px] px-1">→</span>
-            <button
-              type="button"
-              onClick={() => setSelecting('end')}
-              className={`flex-1 text-center text-xs py-1.5 rounded-md transition-colors ${
-                selecting === 'end'
-                  ? 'bg-teal-600 text-white font-medium'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              {endDate ? formatDisplay(endDate) : endLabel}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-7 mb-1">
-            {DAY_LABELS.map((d) => (
-              <div key={d} className="text-center text-[10px] font-medium text-gray-400 dark:text-gray-500 py-1">
-                {d}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7">
-            {cells.map((day, i) => {
-              if (day === null) {
-                return <div key={`e-${i}`} className="h-9" />;
-              }
-
-              const dateStr = toDateStr(viewYear, viewMonth, day);
-              const isStart = isRangeStart(dateStr);
-              const isEnd = isRangeEnd(dateStr);
-              const inRange = isInRange(dateStr);
-              const isToday = dateStr === toDateStr(now.getFullYear(), now.getMonth(), now.getDate());
-
-              let cellBg = '';
-              let textClass = 'text-gray-700 dark:text-gray-200';
-              let roundedClass = '';
-
-              if (isStart && isEnd) {
-                cellBg = 'bg-teal-600 dark:bg-teal-500';
-                textClass = 'text-white';
-                roundedClass = 'rounded-lg';
-              } else if (isStart) {
-                cellBg = 'bg-teal-600 dark:bg-teal-500';
-                textClass = 'text-white';
-                roundedClass = endDate ? 'rounded-l-lg' : 'rounded-lg';
-              } else if (isEnd) {
-                cellBg = 'bg-teal-600 dark:bg-teal-500';
-                textClass = 'text-white';
-                roundedClass = 'rounded-r-lg';
-              } else if (inRange) {
-                cellBg = 'bg-teal-50 dark:bg-teal-900/20';
-                textClass = 'text-teal-800 dark:text-teal-200';
-              }
-
-              return (
-                <div
-                  key={dateStr}
-                  className={`h-9 flex items-center justify-center ${cellBg} ${roundedClass}`}
+        <>
+          {createPortal(
+            <>
+              <button
+                type="button"
+                aria-label="Close date picker"
+                className="fixed inset-0 z-[90] bg-black/35 backdrop-blur-[1px] md:hidden"
+                onClick={() => setOpen(false)}
+              />
+              <div
+                ref={popoverRef}
+                className={`fixed z-[100] animate-fadeIn rounded-3xl border border-slate-200 bg-slate-100 p-4 shadow-xl dark:border-white/10 dark:bg-slate-900 ${
+                  isMobileViewport
+                    ? 'inset-x-3 top-20 max-h-[80vh] overflow-y-auto'
+                    : 'w-[360px] max-h-[80vh] overflow-y-auto'
+                }`}
+                style={
+                  isMobileViewport
+                    ? undefined
+                    : { top: desktopPosition.top, left: desktopPosition.left }
+                }
+              >
+                <div className="mb-3 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={prevMonth}
+                  className="rounded-xl bg-slate-200 p-2 text-slate-700 transition-colors hover:bg-slate-300 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20"
                 >
-                  <button
-                    onClick={() => handleDayClick(dateStr)}
-                    className={`w-8 h-8 flex items-center justify-center text-sm transition-colors rounded-md
-                      ${textClass}
-                      ${!isStart && !isEnd && !inRange ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''}
-                      ${isToday && !isStart && !isEnd ? 'font-bold ring-1 ring-teal-400 dark:ring-teal-500' : ''}
-                    `}
-                  >
-                    {day}
-                  </button>
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <span className="text-xl font-bold text-slate-900 dark:text-white">
+                  {MONTH_NAMES[viewMonth]} {viewYear}
+                </span>
+                <button
+                  type="button"
+                  onClick={nextMonth}
+                  className="rounded-xl bg-slate-200 p-2 text-slate-700 transition-colors hover:bg-slate-300 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+
+                <div className="mb-2 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setSelecting('start')}
+                  className={`flex-1 rounded-lg py-1.5 text-center text-xs transition-colors ${
+                    selecting === 'start'
+                      ? 'bg-violet-600 font-medium text-white'
+                      : 'text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-white/10'
+                  }`}
+                >
+                  {startDate ? formatDisplay(startDate) : startLabel}
+                </button>
+                <span className="px-1 text-[10px] text-slate-300 dark:text-slate-600">→</span>
+                <button
+                  type="button"
+                  onClick={() => setSelecting('end')}
+                  className={`flex-1 rounded-lg py-1.5 text-center text-xs transition-colors ${
+                    selecting === 'end'
+                      ? 'bg-violet-600 font-medium text-white'
+                      : 'text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-white/10'
+                  }`}
+                >
+                  {endDate ? formatDisplay(endDate) : endLabel}
+                </button>
+                </div>
+
+                <div className="mb-1 grid grid-cols-7">
+                {DAY_LABELS.map((d) => (
+                  <div key={d} className="py-1 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    {d}
+                  </div>
+                ))}
+                </div>
+
+                <div className="grid grid-cols-7">
+                {cells.map((day, i) => {
+                  if (day === null) {
+                    return <div key={`e-${i}`} className="h-8" />;
+                  }
+
+                  const dateStr = toDateStr(viewYear, viewMonth, day);
+                  const isStart = isRangeStart(dateStr);
+                  const isEnd = isRangeEnd(dateStr);
+                  const inRange = isInRange(dateStr);
+                  const isToday = dateStr === toDateStr(now.getFullYear(), now.getMonth(), now.getDate());
+
+                  let cellBg = '';
+                  let textClass = 'text-slate-700 dark:text-slate-200';
+                  let roundedClass = '';
+
+                  if (isStart && isEnd) {
+                    cellBg = 'bg-blue-500 dark:bg-blue-500';
+                    textClass = 'text-white';
+                    roundedClass = 'rounded-lg';
+                  } else if (isStart) {
+                    cellBg = 'bg-blue-500 dark:bg-blue-500';
+                    textClass = 'text-white';
+                    roundedClass = endDate ? 'rounded-l-lg' : 'rounded-lg';
+                  } else if (isEnd) {
+                    cellBg = 'bg-blue-500 dark:bg-blue-500';
+                    textClass = 'text-white';
+                    roundedClass = 'rounded-r-lg';
+                  } else if (inRange) {
+                    cellBg = 'bg-blue-100 dark:bg-blue-900/30';
+                    textClass = 'text-slate-900 dark:text-blue-100';
+                  }
+
+                  return (
+                    <div
+                      key={dateStr}
+                      className={`h-8 flex items-center justify-center ${cellBg} ${roundedClass}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleDayClick(dateStr)}
+                        className={`flex h-7 w-7 items-center justify-center rounded-md text-sm transition-colors
+                          ${textClass}
+                          ${!isStart && !isEnd && !inRange ? 'hover:bg-slate-200 dark:hover:bg-white/10' : ''}
+                          ${isToday && !isStart && !isEnd ? 'font-bold ring-1 ring-violet-400 dark:ring-violet-500' : ''}
+                        `}
+                      >
+                        {day}
+                      </button>
+                    </div>
+                  );
+                })}
+                </div>
+
+                {quickRanges && (
+                  <div className="mt-4 grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onStartChange(quick.today.start);
+                      onEndChange(quick.today.end);
+                      setOpen(false);
+                    }}
+                    className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onStartChange(quick.yesterday.start);
+                      onEndChange(quick.yesterday.end);
+                      setOpen(false);
+                    }}
+                    className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
+                  >
+                    Yesterday
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onStartChange(quick.thisWeek.start);
+                      onEndChange(quick.thisWeek.end);
+                      setOpen(false);
+                    }}
+                    className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
+                  >
+                    This week
+                  </button>
+                  </div>
+                )}
+              </div>
+            </>,
+            document.body,
+          )}
+        </>
       )}
     </div>
   );

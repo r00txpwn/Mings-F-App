@@ -1,0 +1,11 @@
+# Supabase CLI config — https://supabase.com/docs/guides/cli/config
+# Browser calls to Edge Functions send a CORS preflight (OPTIONS) without a JWT.
+# If verify_jwt stays true (default), the gateway can reject OPTIONS → "CORS" / "Failed to fetch".
+# Public order/payment functions validate inputs in code and use the service role server-side.
+
+# Quoted keys avoid TOML parsing edge cases with hyphens.
+[functions."online-order-create"]
+verify_jwt = false
+
+[functions."epoint-create-payment"]
+verify_jwt = false

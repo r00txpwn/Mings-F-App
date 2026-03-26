@@ -40,7 +40,7 @@ function KdsContent() {
     const { data } = await supabase
       .from('sales')
       .select('*, sale_items(*, sale_item_modifiers(*))')
-      .eq('source', 'kiosk')
+      .in('source', ['kiosk', 'online_delivery', 'online_takeaway'])
       .in('order_status', ['pending', 'preparing', 'ready'])
       .order('created_at', { ascending: true });
 
@@ -53,26 +53,27 @@ function KdsContent() {
     document.documentElement.classList.add('dark');
     loadOrders();
 
-    const channel = supabase
-      .channel('kds-orders')
-      .on(
+    const channel = supabase.channel('kds-orders');
+    for (const src of ['kiosk', 'online_delivery', 'online_takeaway'] as const) {
+      channel.on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'sales', filter: 'source=eq.kiosk' },
+        { event: 'INSERT', schema: 'public', table: 'sales', filter: `source=eq.${src}` },
         () => {
           playBeep();
           loadOrders();
         }
-      )
-      .on(
+      );
+      channel.on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'sales', filter: 'source=eq.kiosk' },
+        { event: 'UPDATE', schema: 'public', table: 'sales', filter: `source=eq.${src}` },
         () => {
           loadOrders();
         }
-      )
-      .subscribe((status) => {
-        setRealtimeStatus(status === 'SUBSCRIBED' ? 'connected' : 'reconnecting');
-      });
+      );
+    }
+    channel.subscribe((status) => {
+      setRealtimeStatus(status === 'SUBSCRIBED' ? 'connected' : 'reconnecting');
+    });
 
     return () => {
       supabase.removeChannel(channel);
@@ -98,7 +99,7 @@ function KdsContent() {
   const readyCount = orders.filter(o => o.order_status === 'ready').length;
 
   return (
-    <div className="fixed inset-0 bg-gray-950 flex flex-col overflow-hidden">
+    <div className="neon-shell fixed inset-0 flex flex-col overflow-hidden">
       <KdsHeader
         pendingCount={pendingCount}
         preparingCount={preparingCount}
@@ -108,8 +109,8 @@ function KdsContent() {
       />
       <div className="flex-1 overflow-y-auto p-4">
         {orders.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-gray-600 text-xl">{t.noKioskOrders}</p>
+          <div className="flex h-full items-center justify-center">
+            <p className="text-xl text-slate-400">{t.noKioskOrders}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

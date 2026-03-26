@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { UtensilsCrossed, Plus, Package, Eye, EyeOff, ChevronUp, ChevronDown, Pencil, Trash2, Loader2, GripVertical, Image, Sliders } from 'lucide-react';
+import { UtensilsCrossed, Plus, Package, Eye, EyeOff, ChevronUp, ChevronDown, Pencil, Trash2, Loader2, GripVertical, Image, Sliders, Globe, Copy } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, Product, Category } from '../lib/supabase';
 import { ModifierLibrary } from '../components/ProductModifierEditor';
 import { ProductModifierAssigner } from '../components/ProductModifierAssigner';
 import { MenuCategoryManager } from '../components/MenuCategoryManager';
 import { MenuProductForm } from '../components/MenuProductForm';
+import { PageHeader } from '../components/cockpit';
+import { IconActionButton } from '../components/ui/IconActionButton';
 
 export function MenuScreen() {
   const { t } = useLanguage();
@@ -52,7 +54,7 @@ export function MenuScreen() {
           .sort((a, b) => ((a as { display_order?: number }).display_order || 0) - ((b as { display_order?: number }).display_order || 0));
         return { ...p, modifier_groups: modifierGroups, product_modifier_groups: undefined };
       });
-      setProducts(mapped as Product[]);
+      setProducts(mapped as unknown as Product[]);
     }
     setLoading(false);
   }, [selectedCategoryId]);
@@ -65,6 +67,14 @@ export function MenuScreen() {
     await supabase
       .from('products')
       .update({ kiosk_visible: !product.kiosk_visible })
+      .eq('id', product.id);
+    loadData();
+  };
+
+  const handleToggleOnlineVisibility = async (product: Product) => {
+    await supabase
+      .from('products')
+      .update({ online_visible: !product.online_visible })
       .eq('id', product.id);
     loadData();
   };
@@ -102,6 +112,7 @@ export function MenuScreen() {
         cost_price: product.cost_price,
         image_url: product.image_url,
         kiosk_visible: false,
+        online_visible: false,
         display_order: (product.display_order || 0) + 1,
         unit: product.unit,
         quantity: 0,
@@ -132,58 +143,60 @@ export function MenuScreen() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-cockpit-500" />
       </div>
     );
   }
 
   return (
     <div className="animate-fadeIn">
-      <div className="mb-6 sm:mb-8">
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="bg-orange-100 dark:bg-orange-900 p-2 sm:p-3 rounded-xl">
-              <UtensilsCrossed className="w-6 h-6 sm:w-8 sm:h-8 text-orange-700 dark:text-orange-300" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white">{t.menuBuilder}</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{t.manageMenu}</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
+      <PageHeader
+        eyebrow="Kiosk menu"
+        title={t.menuBuilder}
+        description={t.manageMenu}
+        icon={UtensilsCrossed}
+        actions={
+          <>
             <button
+              type="button"
               onClick={() => setShowCategoryManager(true)}
-              className="px-4 py-2.5 text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="cockpit-btn-ghost rounded-xl border border-slate-200 dark:border-white/10"
             >
               {t.menuCategories}
             </button>
             <button
+              type="button"
               onClick={() => setShowModifierLibrary(true)}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="cockpit-btn-ghost flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10"
             >
-              <Sliders className="w-4 h-4" />
+              <Sliders className="h-4 w-4" />
               {t.modifiers}
             </button>
             <button
-              onClick={() => { setEditingProduct(null); setShowProductForm(true); }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors"
+              type="button"
+              onClick={() => {
+                setEditingProduct(null);
+                setShowProductForm(true);
+              }}
+              className="cockpit-btn-primary"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="h-4 w-4" />
               {t.addProduct}
             </button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="flex gap-3 mb-6 overflow-x-auto pb-1">
+      <div className="mb-6 flex gap-3 overflow-x-auto pb-1">
         {categories.map(cat => (
           <button
             key={cat.id}
+            type="button"
             onClick={() => setSelectedCategoryId(cat.id)}
-            className={`px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
+            className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
               selectedCategoryId === cat.id
-                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-lg'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                ? 'bg-gradient-to-r from-cockpit-600 to-cockpit-700 text-white shadow-lg shadow-cockpit-500/20'
+                : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800'
             }`}
           >
             <span>{cat.icon || '🍽️'}</span>
@@ -194,19 +207,23 @@ export function MenuScreen() {
           </button>
         ))}
         {categories.length === 0 && (
-          <div className="text-gray-500 dark:text-gray-400 text-sm py-2">
+          <div className="py-2 text-sm text-slate-500 dark:text-slate-400">
             No menu categories yet. Create one to get started.
           </div>
         )}
       </div>
 
       {filteredProducts.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-12 text-center">
-          <Package className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">{t.noProductsFound}</p>
+        <div className="cockpit-panel rounded-2xl p-12 text-center">
+          <Package className="mx-auto mb-4 h-16 w-16 text-slate-400 dark:text-slate-600" />
+          <p className="mb-4 text-lg text-slate-600 dark:text-slate-400">{t.noProductsFound}</p>
           <button
-            onClick={() => { setEditingProduct(null); setShowProductForm(true); }}
-            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors"
+            type="button"
+            onClick={() => {
+              setEditingProduct(null);
+              setShowProductForm(true);
+            }}
+            className="cockpit-btn-primary"
           >
             {t.addProduct}
           </button>
@@ -223,102 +240,112 @@ export function MenuScreen() {
               return (
                 <div
                   key={product.id}
-                  className={`bg-white dark:bg-gray-800 rounded-2xl border transition-all ${
-                    product.kiosk_visible
-                      ? 'border-gray-200 dark:border-gray-700'
-                      : 'border-gray-200 dark:border-gray-700 opacity-60'
+                  className={`cockpit-panel rounded-2xl transition-all ${
+                    product.kiosk_visible ? '' : 'opacity-60'
                   }`}
                 >
                   <div className="flex items-center gap-4 p-4">
-                    <div className="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500">
+                    <div className="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500">
                       <button
+                        type="button"
                         onClick={() => handleMoveProduct(product, 'up')}
                         disabled={idx === 0}
-                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-30"
+                        className="rounded p-1 hover:bg-white/10 disabled:opacity-30"
                       >
-                        <ChevronUp className="w-4 h-4" />
+                        <ChevronUp className="h-4 w-4" />
                       </button>
-                      <GripVertical className="w-4 h-4" />
+                      <GripVertical className="h-4 w-4" />
                       <button
+                        type="button"
                         onClick={() => handleMoveProduct(product, 'down')}
                         disabled={idx === filteredProducts.length - 1}
-                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-30"
+                        className="rounded p-1 hover:bg-white/10 disabled:opacity-30"
                       >
-                        <ChevronDown className="w-4 h-4" />
+                        <ChevronDown className="h-4 w-4" />
                       </button>
                     </div>
 
-                    <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-xl flex-shrink-0 overflow-hidden">
+                    <div className="flex h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
                       {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                        <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Image className="w-8 h-8 text-gray-300 dark:text-gray-500" />
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Image className="h-8 w-8 text-slate-400 dark:text-slate-500" />
                         </div>
                       )}
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-white truncate">{product.name}</h3>
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center gap-2">
+                        <h3 className="truncate font-semibold text-slate-900 dark:text-white">{product.name}</h3>
                         {!product.kiosk_visible && (
-                          <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full">
+                          <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                             Hidden
+                          </span>
+                        )}
+                        {product.online_visible === false && (
+                          <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-xs text-indigo-700 dark:text-indigo-300">
+                            {t.onlineVisible} — off
                           </span>
                         )}
                       </div>
                       {product.description && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate mb-1">{product.description}</p>
+                        <p className="mb-1 truncate text-sm text-slate-500 dark:text-slate-400">{product.description}</p>
                       )}
                       <div className="flex items-center gap-3">
-                        <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                        <span className="font-mono text-lg font-bold tabular-nums text-cockpit-600 dark:text-cockpit-400">
                           ₼{Number(product.selling_price).toFixed(2)}
                         </span>
                         {modifierCount > 0 && (
-                          <span className="text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
+                          <span className="rounded-full bg-cockpit-500/10 px-2 py-0.5 text-xs text-cockpit-700 dark:text-cockpit-300">
                             {modifierCount} {t.modifierGroups.toLowerCase()} / {optionCount} {t.items}
                           </span>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <IconActionButton
                         onClick={() => handleToggleVisibility(product)}
-                        className={`p-2 rounded-lg transition-colors ${
-                          product.kiosk_visible
-                            ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
-                            : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        }`}
+                        icon={product.kiosk_visible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                        tone={product.kiosk_visible ? 'success' : 'neutral'}
                         title={product.kiosk_visible ? t.kioskVisible : 'Hidden from kiosk'}
-                      >
-                        {product.kiosk_visible ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                      </button>
+                      />
+                      <IconActionButton
+                        onClick={() => handleToggleOnlineVisibility(product)}
+                        icon={<Globe className="h-5 w-5" />}
+                        tone={product.online_visible !== false ? 'info' : 'neutral'}
+                        title={product.online_visible !== false ? t.onlineVisible : 'Hidden from web order'}
+                      />
                       <button
+                        type="button"
                         onClick={() => setAssignProduct(product)}
-                        className="px-3 py-2 text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                        className="rounded-lg bg-cockpit-500/10 px-3 py-2 text-xs font-semibold text-cockpit-700 transition-colors hover:bg-cockpit-500/20 dark:text-cockpit-300"
                       >
                         {t.modifiers}
                       </button>
-                      <button
-                        onClick={() => { setEditingProduct(product); setShowProductForm(true); }}
-                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
+                      <IconActionButton
+                        onClick={() => {
+                          setEditingProduct(product);
+                          setShowProductForm(true);
+                        }}
+                        icon={<Pencil className="h-4 w-4" />}
+                        tone="edit"
+                        label={t.edit}
+                      />
+                      <IconActionButton
                         onClick={() => handleDuplicateProduct(product)}
-                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-xs"
+                        icon={<Copy className="h-4 w-4" />}
+                        tone="neutral"
+                        label={t.duplicateProduct}
                         title={t.duplicateProduct}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                      <button
+                      />
+                      <IconActionButton
                         onClick={() => handleDeleteProduct(product.id)}
-                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                        icon={<Trash2 className="h-4 w-4" />}
+                        tone="danger"
+                        label={t.delete}
+                      />
                     </div>
                   </div>
                 </div>

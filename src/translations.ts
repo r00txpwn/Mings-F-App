@@ -44,6 +44,10 @@ export interface Translations {
   endDate: string;
   orders: string;
   aov: string;
+  /** KPI card helper line under Net Revenue */
+  kpiNetRevenueHint: string;
+  /** KPI card helper line under Operating Profit */
+  kpiOperatingProfitHint: string;
 
   // Sales
   addSale: string;
@@ -225,6 +229,16 @@ export interface Translations {
   signInToAccount: string;
   signIn: string;
   businessManagement: string;
+  staffAccessDeniedTitle: string;
+  staffAccessDeniedBody: string;
+  staffAccessRetry: string;
+  staffGoToOrder: string;
+  staffSignOut: string;
+  newUserRole: string;
+  userRoleStaff: string;
+  userRoleManager: string;
+  userRoleAdmin: string;
+  newUserStaffProfileHint: string;
 
   // Money
   trackMoney: string;
@@ -352,6 +366,9 @@ export interface Translations {
 
   // Product extensions
   kioskVisible: string;
+  onlineVisible: string;
+  onlineDelivery: string;
+  onlineTakeaway: string;
   productImage: string;
   sellingPriceLabel: string;
 
@@ -419,6 +436,80 @@ export interface Translations {
   platformCosts: string;
   noSalesInPeriod: string;
   payoutReceived: string;
+
+  // Online order (customer / ChoiceQR-style)
+  orderNavMenu: string;
+  orderNavCart: string;
+  orderNavAccount: string;
+  orderSignIn: string;
+  orderSignUp: string;
+  orderSignOut: string;
+  orderMyOrders: string;
+  orderNoOrders: string;
+  orderSavedAddresses: string;
+  orderEmail: string;
+  orderPassword: string;
+  orderCreateAccountHint: string;
+  orderYourName: string;
+  orderYourPhone: string;
+  orderSaveProfile: string;
+  orderAddAddress: string;
+  orderOnlineTitle: string;
+  orderAllCategories: string;
+  orderSubtotal: string;
+  orderDeliveryFeeRow: string;
+  orderFulfillmentTakeaway: string;
+  orderFulfillmentDelivery: string;
+  orderPhone: string;
+  orderNameOptional: string;
+  orderDeliveryAddress: string;
+  orderUseLocation: string;
+  orderGeoLocating: string;
+  orderGeoNotSupported: string;
+  orderGeoFailed: string;
+  orderGeoUpdated: string;
+  orderOutsideZone: string;
+  orderInZonePrefix: string;
+  orderPayment: string;
+  orderPayCod: string;
+  orderPayCash: string;
+  orderPayEpoint: string;
+  orderPlacedTitle: string;
+  orderTrackHint: string;
+  orderOpenTracking: string;
+  orderCheckout: string;
+  orderFulfillmentTakeawayDisabled: string;
+  orderOnlineDisabled: string;
+  orderViewCart: string;
+  orderAddressLabel: string;
+  orderAddressStreet: string;
+  orderLanguage: string;
+  orderSelectSavedAddress: string;
+  orderSaveAddressForNext: string;
+  orderLoadingMenu: string;
+  orderYourCart: string;
+  orderAuthEmail: string;
+  orderAuthSms: string;
+  orderSendSmsCode: string;
+  orderSmsCode: string;
+  orderVerifySms: string;
+  orderSmsSentHint: string;
+  orderChangePhone: string;
+  orderInvalidPhone: string;
+  orderAccountPhone: string;
+  orderMapSearchPlaceholder: string;
+  orderMapPinHint: string;
+  orderMapLoading: string;
+  orderMapUnavailable: string;
+  orderChooseFulfillmentTitle: string;
+  orderSearchMenu: string;
+  orderVenueInfoTitle: string;
+  orderVenueHours: string;
+  orderVenueAddress: string;
+  orderVenuePhone: string;
+  orderAddToCart: string;
+  orderSearchNoResults: string;
+  orderDeliveryDisabledInSettings: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -463,6 +554,8 @@ export const translations: Record<Language, Translations> = {
     endDate: 'End Date',
     orders: 'Orders',
     aov: 'AOV',
+    kpiNetRevenueHint: 'After COGS',
+    kpiOperatingProfitHint: 'After COGS & OPEX',
 
     addSale: 'Add Sale',
     saleAmount: 'Sale Amount',
@@ -634,6 +727,18 @@ export const translations: Record<Language, Translations> = {
     signInToAccount: 'Sign in to your account',
     signIn: 'Sign In',
     businessManagement: 'Business Management System',
+    staffAccessDeniedTitle: 'Staff access required',
+    staffAccessDeniedBody:
+      'This account is not set up as staff yet. Ask an admin to add you in Command Center → Users (Add New User), or use Order online if you are a customer only.',
+    staffAccessRetry: 'Check again',
+    staffGoToOrder: 'Order online',
+    staffSignOut: 'Sign out',
+    newUserRole: 'Role',
+    userRoleStaff: 'Staff',
+    userRoleManager: 'Manager',
+    userRoleAdmin: 'Admin',
+    newUserStaffProfileHint:
+      'Creates both login credentials and staff access to Command Center (same as your account).',
 
     trackMoney: 'Track sales, expenses, and purchases',
     salesIncome: 'Sales Income',
@@ -752,6 +857,9 @@ export const translations: Record<Language, Translations> = {
     viewKiosk: 'View Kiosk',
 
     kioskVisible: 'Show on Kiosk',
+    onlineVisible: 'Show on web order',
+    onlineDelivery: 'Online · Delivery',
+    onlineTakeaway: 'Online · Takeaway',
     productImage: 'Image URL',
     sellingPriceLabel: 'Selling Price',
 
@@ -817,6 +925,80 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Platform Costs',
     noSalesInPeriod: 'No sales found for this period',
     payoutReceived: 'Payout Received',
+
+    orderNavMenu: 'Menu',
+    orderNavCart: 'Cart',
+    orderNavAccount: 'Account',
+    orderSignIn: 'Sign in',
+    orderSignUp: 'Sign up',
+    orderSignOut: 'Sign out',
+    orderMyOrders: 'My orders',
+    orderNoOrders: 'No orders yet',
+    orderSavedAddresses: 'Saved addresses',
+    orderEmail: 'Email',
+    orderPassword: 'Password',
+    orderCreateAccountHint: 'Create an account to save addresses and see order history.',
+    orderYourName: 'Your name',
+    orderYourPhone: 'Phone',
+    orderSaveProfile: 'Save profile',
+    orderAddAddress: 'Add address',
+    orderOnlineTitle: 'Order online',
+    orderAllCategories: 'All',
+    orderSubtotal: 'Subtotal',
+    orderDeliveryFeeRow: 'Delivery',
+    orderFulfillmentTakeaway: 'Takeaway',
+    orderFulfillmentDelivery: 'Delivery',
+    orderPhone: 'Phone',
+    orderNameOptional: 'Name (optional)',
+    orderDeliveryAddress: 'Delivery address',
+    orderUseLocation: 'Use my location',
+    orderGeoLocating: 'Locating…',
+    orderGeoNotSupported: 'Geolocation not supported',
+    orderGeoFailed: 'Could not get location',
+    orderGeoUpdated: 'Location updated',
+    orderOutsideZone: 'Outside delivery zones — adjust location.',
+    orderInZonePrefix: 'In zone',
+    orderPayment: 'Payment',
+    orderPayCod: 'Cash on pickup / delivery',
+    orderPayCash: 'Cash',
+    orderPayEpoint: 'Card (E-point)',
+    orderPlacedTitle: 'Order placed',
+    orderTrackHint: 'Track status',
+    orderOpenTracking: 'Open tracking',
+    orderCheckout: 'Checkout',
+    orderFulfillmentTakeawayDisabled: 'Takeaway disabled — delivery only.',
+    orderOnlineDisabled: 'Online ordering is turned off.',
+    orderViewCart: 'View cart',
+    orderAddressLabel: 'Label',
+    orderAddressStreet: 'Street, building, apt',
+    orderLanguage: 'Language',
+    orderSelectSavedAddress: 'Use saved address',
+    orderSaveAddressForNext: 'Save this address for next time',
+    orderLoadingMenu: 'Loading menu…',
+    orderYourCart: 'Your cart',
+    orderAuthEmail: 'Email',
+    orderAuthSms: 'SMS',
+    orderSendSmsCode: 'Send code',
+    orderSmsCode: 'SMS code',
+    orderVerifySms: 'Verify & sign in',
+    orderSmsSentHint: 'We sent a code to your phone. Enter it below.',
+    orderChangePhone: 'Use a different number',
+    orderInvalidPhone: 'Enter a valid number with country code (e.g. +994…).',
+    orderAccountPhone: 'Phone',
+    orderMapSearchPlaceholder: 'Search for a street or place…',
+    orderMapPinHint: 'Drag the pin or search — we use the pin location for delivery.',
+    orderMapLoading: 'Loading map…',
+    orderMapUnavailable: 'Map preview unavailable. Type your address or use device location.',
+    orderChooseFulfillmentTitle: 'Pickup or delivery?',
+    orderSearchMenu: 'Search menu…',
+    orderVenueInfoTitle: 'Restaurant',
+    orderVenueHours: 'Hours',
+    orderVenueAddress: 'Address',
+    orderVenuePhone: 'Phone',
+    orderAddToCart: 'Add',
+    orderSearchNoResults: 'No dishes match your search.',
+    orderDeliveryDisabledInSettings:
+      'Delivery is turned off in your database. Set online_settings.delivery_enabled = true in Supabase (or run the latest migration), or choose pickup.',
   },
 
   az: {
@@ -860,6 +1042,8 @@ export const translations: Record<Language, Translations> = {
     endDate: 'Bitmə Tarixi',
     orders: 'Sifarişlər',
     aov: 'Orta Sifariş',
+    kpiNetRevenueHint: 'COGS-dan sonra',
+    kpiOperatingProfitHint: 'COGS və OPEX-dan sonra',
 
     addSale: 'Satış əlavə et',
     saleAmount: 'Satış məbləği',
@@ -1031,6 +1215,18 @@ export const translations: Record<Language, Translations> = {
     signInToAccount: 'Hesabınıza daxil olun',
     signIn: 'Daxil Ol',
     businessManagement: 'Biznes İdarəetmə Sistemi',
+    staffAccessDeniedTitle: 'Staff girişi tələb olunur',
+    staffAccessDeniedBody:
+      'Bu hesab hələ staff kimi təyin edilməyib. Admin-dən Command Center → İstifadəçilər (Yeni istifadəçi) ilə əlavə etməsini istəyin; yalnız müştəriyənsə Onlayn sifarişdən istifadə edin.',
+    staffAccessRetry: 'Yenidən yoxla',
+    staffGoToOrder: 'Onlayn sifariş',
+    staffSignOut: 'Çıxış',
+    newUserRole: 'Rol',
+    userRoleStaff: 'Personal',
+    userRoleManager: 'Menecer',
+    userRoleAdmin: 'Admin',
+    newUserStaffProfileHint:
+      'Həm giriş yaradır, həm də Command Center üçün staff girişi (sizin hesabınız kimi).',
 
     trackMoney: 'Satışları, xərcləri və alışları izləyin',
     salesIncome: 'Satış Gəliri',
@@ -1149,6 +1345,9 @@ export const translations: Record<Language, Translations> = {
     viewKiosk: 'Kiosku Aç',
 
     kioskVisible: 'Kioskda göstər',
+    onlineVisible: 'Web sifarişdə göstər',
+    onlineDelivery: 'Onlayn · Çatdırılma',
+    onlineTakeaway: 'Onlayn · Əlavə',
     productImage: 'Şəkil URL',
     sellingPriceLabel: 'Satış Qiyməti',
 
@@ -1214,6 +1413,80 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Platforma Xərcləri',
     noSalesInPeriod: 'Bu dövr üçün satış tapılmadı',
     payoutReceived: 'Alınan Ödəniş',
+
+    orderNavMenu: 'Menyu',
+    orderNavCart: 'Səbət',
+    orderNavAccount: 'Hesab',
+    orderSignIn: 'Daxil ol',
+    orderSignUp: 'Qeydiyyat',
+    orderSignOut: 'Çıxış',
+    orderMyOrders: 'Sifarişlərim',
+    orderNoOrders: 'Hələ sifariş yoxdur',
+    orderSavedAddresses: 'Yadda saxlanılan ünvanlar',
+    orderEmail: 'E-poçt',
+    orderPassword: 'Şifrə',
+    orderCreateAccountHint: 'Ünvanları saxlamaq və sifariş tarixçəsini görmək üçün hesab yaradın.',
+    orderYourName: 'Adınız',
+    orderYourPhone: 'Telefon',
+    orderSaveProfile: 'Profili saxla',
+    orderAddAddress: 'Ünvan əlavə et',
+    orderOnlineTitle: 'Onlayn sifariş',
+    orderAllCategories: 'Hamısı',
+    orderSubtotal: 'Ara cəm',
+    orderDeliveryFeeRow: 'Çatdırılma',
+    orderFulfillmentTakeaway: 'Götürmə',
+    orderFulfillmentDelivery: 'Çatdırılma',
+    orderPhone: 'Telefon',
+    orderNameOptional: 'Ad (istəyə bağlı)',
+    orderDeliveryAddress: 'Çatdırılma ünvanı',
+    orderUseLocation: 'Məkanımı istifadə et',
+    orderGeoLocating: 'Müəyyən edilir…',
+    orderGeoNotSupported: 'Geolokasiya dəstəklənmir',
+    orderGeoFailed: 'Məkan alına bilmədi',
+    orderGeoUpdated: 'Məkan yeniləndi',
+    orderOutsideZone: 'Çatdırılma zonasından kənar — məkanı düzəldin.',
+    orderInZonePrefix: 'Zona',
+    orderPayment: 'Ödəniş',
+    orderPayCod: 'Nağd (götürmə/çatdırılma)',
+    orderPayCash: 'Nağd',
+    orderPayEpoint: 'Kart (E-point)',
+    orderPlacedTitle: 'Sifariş verildi',
+    orderTrackHint: 'Statusu izlə',
+    orderOpenTracking: 'İzləməni aç',
+    orderCheckout: 'Ödənişə keç',
+    orderFulfillmentTakeawayDisabled: 'Götürmə söndürülüb — yalnız çatdırılma.',
+    orderOnlineDisabled: 'Onlayn sifariş söndürülüb.',
+    orderViewCart: 'Səbətə bax',
+    orderAddressLabel: 'Etiket',
+    orderAddressStreet: 'Küçə, bina, mənzil',
+    orderLanguage: 'Dil',
+    orderSelectSavedAddress: 'Saxlanılan ünvan',
+    orderSaveAddressForNext: 'Bu ünvanı növbəti dəfə üçün saxla',
+    orderLoadingMenu: 'Menyu yüklənir…',
+    orderYourCart: 'Səbətiniz',
+    orderAuthEmail: 'E-poçt',
+    orderAuthSms: 'SMS',
+    orderSendSmsCode: 'Kod göndər',
+    orderSmsCode: 'SMS kodu',
+    orderVerifySms: 'Təsdiqlə və daxil ol',
+    orderSmsSentHint: 'Telefonunuza kod göndərildi. Aşağıya daxil edin.',
+    orderChangePhone: 'Başqa nömrə',
+    orderInvalidPhone: 'Ölkə kodu ilə düzgün nömrə daxil edin (məs. +994…).',
+    orderAccountPhone: 'Telefon',
+    orderMapSearchPlaceholder: 'Küçə və ya yer axtarın…',
+    orderMapPinHint: 'İşarəni sürüyün və ya axtarın — çatdırılma üçün məkan işarədən götürülür.',
+    orderMapLoading: 'Xəritə yüklənir…',
+    orderMapUnavailable: 'Xəritə əlçatan deyil. Ünvanı yazın və ya cihaz məkanından istifadə edin.',
+    orderChooseFulfillmentTitle: 'Götürmə və ya çatdırılma?',
+    orderSearchMenu: 'Menyu axtar…',
+    orderVenueInfoTitle: 'Restoran',
+    orderVenueHours: 'İş saatları',
+    orderVenueAddress: 'Ünvan',
+    orderVenuePhone: 'Telefon',
+    orderAddToCart: 'Əlavə et',
+    orderSearchNoResults: 'Axtarışınıza uyğun yemək yoxdur.',
+    orderDeliveryDisabledInSettings:
+      'Çatdırılma verilənlər bazasında söndürülüb. Supabase-də online_settings.delivery_enabled = true edin və ya götürmə seçin.',
   },
 
   ru: {
@@ -1257,6 +1530,8 @@ export const translations: Record<Language, Translations> = {
     endDate: 'Дата окончания',
     orders: 'Заказы',
     aov: 'Ср. чек',
+    kpiNetRevenueHint: 'После COGS',
+    kpiOperatingProfitHint: 'После COGS и OPEX',
 
     addSale: 'Добавить продажу',
     saleAmount: 'Сумма продажи',
@@ -1428,6 +1703,18 @@ export const translations: Record<Language, Translations> = {
     signInToAccount: 'Войдите в свою учетную запись',
     signIn: 'Войти',
     businessManagement: 'Система Управления Бизнесом',
+    staffAccessDeniedTitle: 'Нужен доступ сотрудника',
+    staffAccessDeniedBody:
+      'Этот аккаунт ещё не добавлен как сотрудник. Попросите администратора создать вас в Command Center → Пользователи (Новый пользователь), или заказывайте как клиент.',
+    staffAccessRetry: 'Проверить снова',
+    staffGoToOrder: 'Заказать онлайн',
+    staffSignOut: 'Выйти',
+    newUserRole: 'Роль',
+    userRoleStaff: 'Сотрудник',
+    userRoleManager: 'Менеджер',
+    userRoleAdmin: 'Администратор',
+    newUserStaffProfileHint:
+      'Создаёт учётную запись и доступ сотрудника в Command Center (как у вашей учётной записи).',
 
     trackMoney: 'Отслеживайте продажи, расходы и закупки',
     salesIncome: 'Доход от Продаж',
@@ -1546,6 +1833,9 @@ export const translations: Record<Language, Translations> = {
     viewKiosk: 'Открыть Киоск',
 
     kioskVisible: 'Показать на киоске',
+    onlineVisible: 'Показать в веб-заказе',
+    onlineDelivery: 'Онлайн · Доставка',
+    onlineTakeaway: 'Онлайн · Самовывоз',
     productImage: 'URL изображения',
     sellingPriceLabel: 'Цена продажи',
 
@@ -1611,5 +1901,79 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Расходы на Платформы',
     noSalesInPeriod: 'Продаж за этот период не найдено',
     payoutReceived: 'Получено от Платформы',
+
+    orderNavMenu: 'Меню',
+    orderNavCart: 'Корзина',
+    orderNavAccount: 'Аккаунт',
+    orderSignIn: 'Войти',
+    orderSignUp: 'Регистрация',
+    orderSignOut: 'Выйти',
+    orderMyOrders: 'Мои заказы',
+    orderNoOrders: 'Пока нет заказов',
+    orderSavedAddresses: 'Сохранённые адреса',
+    orderEmail: 'Email',
+    orderPassword: 'Пароль',
+    orderCreateAccountHint: 'Создайте аккаунт, чтобы сохранять адреса и видеть историю заказов.',
+    orderYourName: 'Ваше имя',
+    orderYourPhone: 'Телефон',
+    orderSaveProfile: 'Сохранить профиль',
+    orderAddAddress: 'Добавить адрес',
+    orderOnlineTitle: 'Заказ онлайн',
+    orderAllCategories: 'Все',
+    orderSubtotal: 'Подытог',
+    orderDeliveryFeeRow: 'Доставка',
+    orderFulfillmentTakeaway: 'Самовывоз',
+    orderFulfillmentDelivery: 'Доставка',
+    orderPhone: 'Телефон',
+    orderNameOptional: 'Имя (необязательно)',
+    orderDeliveryAddress: 'Адрес доставки',
+    orderUseLocation: 'Моё местоположение',
+    orderGeoLocating: 'Определение…',
+    orderGeoNotSupported: 'Геолокация не поддерживается',
+    orderGeoFailed: 'Не удалось получить местоположение',
+    orderGeoUpdated: 'Местоположение обновлено',
+    orderOutsideZone: 'Вне зоны доставки — уточните точку.',
+    orderInZonePrefix: 'Зона',
+    orderPayment: 'Оплата',
+    orderPayCod: 'Наличные при получении',
+    orderPayCash: 'Наличные',
+    orderPayEpoint: 'Карта (E-point)',
+    orderPlacedTitle: 'Заказ оформлен',
+    orderTrackHint: 'Статус заказа',
+    orderOpenTracking: 'Открыть отслеживание',
+    orderCheckout: 'Оформить',
+    orderFulfillmentTakeawayDisabled: 'Самовывоз отключён — только доставка.',
+    orderOnlineDisabled: 'Онлайн-заказ отключён.',
+    orderViewCart: 'К корзине',
+    orderAddressLabel: 'Метка',
+    orderAddressStreet: 'Улица, дом, кв.',
+    orderLanguage: 'Язык',
+    orderSelectSavedAddress: 'Сохранённый адрес',
+    orderSaveAddressForNext: 'Сохранить этот адрес',
+    orderLoadingMenu: 'Загрузка меню…',
+    orderYourCart: 'Ваша корзина',
+    orderAuthEmail: 'Email',
+    orderAuthSms: 'SMS',
+    orderSendSmsCode: 'Отправить код',
+    orderSmsCode: 'Код из SMS',
+    orderVerifySms: 'Подтвердить и войти',
+    orderSmsSentHint: 'Мы отправили код на ваш телефон. Введите его ниже.',
+    orderChangePhone: 'Другой номер',
+    orderInvalidPhone: 'Укажите номер с кодом страны (например +994…).',
+    orderAccountPhone: 'Телефон',
+    orderMapSearchPlaceholder: 'Поиск улицы или места…',
+    orderMapPinHint: 'Перетащите метку или найдите адрес — доставка по положению метки.',
+    orderMapLoading: 'Загрузка карты…',
+    orderMapUnavailable: 'Карта недоступна. Введите адрес или используйте геолокацию.',
+    orderChooseFulfillmentTitle: 'Самовывоз или доставка?',
+    orderSearchMenu: 'Поиск в меню…',
+    orderVenueInfoTitle: 'Ресторан',
+    orderVenueHours: 'Часы',
+    orderVenueAddress: 'Адрес',
+    orderVenuePhone: 'Телефон',
+    orderAddToCart: 'В корзину',
+    orderSearchNoResults: 'Ничего не найдено.',
+    orderDeliveryDisabledInSettings:
+      'Доставка отключена в базе. Включите online_settings.delivery_enabled = true в Supabase или выберите самовывоз.',
   },
 };

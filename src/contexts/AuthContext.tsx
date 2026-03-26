@@ -1,39 +1,73 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  /** True when a row exists in `public.users` (staff/admin). False for customer-only auth.users. */
+  isStaff: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
+  signUp: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
+  /** SMS OTP via Supabase Auth (Twilio configured in project dashboard). */
+  sendPhoneOtp: (phone: string) => Promise<{ error: AuthError | null | Error }>;
+  verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: AuthError | null | Error }>;
   signOut: () => Promise<void>;
+  /** Re-check whether current user is present in `public.users`. */
+  refetchIsStaff: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+async function fetchIsStaff(userId: string): Promise<boolean> {
+  const { data, error } = await supabase.from('users').select('id').eq('id', userId).maybeSingle();
+  if (error) {
+    if (import.meta.env.DEV) {
+      console.warn('[auth] fetchIsStaff failed:', error.message);
+    }
+    return false;
+  }
+  return Boolean(data);
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isStaff, setIsStaff] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+    let cancelled = false;
+
+    const applySession = async (nextSession: Session | null) => {
+      setSession(nextSession);
+      const nextUser = nextSession?.user ?? null;
+      setUser(nextUser);
+      if (nextUser) {
+        const staff = await fetchIsStaff(nextUser.id);
+        if (!cancelled) setIsStaff(staff);
+      } else if (!cancelled) {
+        setIsStaff(false);
+      }
+      if (!cancelled) setLoading(false);
+    };
+
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      void applySession(s);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      (async () => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      })();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, s) => {
+      void applySession(s);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -52,12 +86,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  const sendPhoneOtp = async (phone: string) => {
+    const normalized = normalizePhoneE164(phone);
+    if (!isLikelyE164(normalized)) {
+      return { error: new Error('Invalid phone number. Use country code, e.g. +994…') };
+    }
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: normalized,
+      options: {
+        shouldCreateUser: true,
+      },
+    });
+    return { error };
+  };
+
+  const verifyPhoneOtp = async (phone: string, token: string) => {
+    const normalized = normalizePhoneE164(phone);
+    if (!isLikelyE164(normalized)) {
+      return { error: new Error('Invalid phone number') };
+    }
+    const code = token.replace(/\D/g, '');
+    if (code.length < 4) {
+      return { error: new Error('Enter the code from SMS') };
+    }
+    const { error } = await supabase.auth.verifyOtp({
+      phone: normalized,
+      token: code,
+      type: 'sms',
+    });
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
+  const refetchIsStaff = useCallback(async () => {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    const uid = s?.user?.id;
+    if (!uid) {
+      setIsStaff(false);
+      return;
+    }
+    const staff = await fetchIsStaff(uid);
+    setIsStaff(staff);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        isStaff,
+        signIn,
+        signUp,
+        sendPhoneOtp,
+        verifyPhoneOtp,
+        signOut,
+        refetchIsStaff,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

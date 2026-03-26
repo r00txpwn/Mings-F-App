@@ -23,6 +23,7 @@ export function MenuProductForm({ product, categories, selectedCategoryId, onSav
     image_url: product?.image_url || '',
     master_category_id: defaultCategoryId,
     kiosk_visible: product?.kiosk_visible ?? true,
+    online_visible: product?.online_visible ?? true,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -153,7 +154,7 @@ export function MenuProductForm({ product, categories, selectedCategoryId, onSav
             <select
               value={form.master_category_id}
               onChange={e => setForm({ ...form, master_category_id: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:border-emerald-500 dark:bg-gray-700 dark:text-white"
+              className="cockpit-select"
               required
             >
               {!form.master_category_id && <option value="">{t.noCategory}</option>}
@@ -163,12 +164,27 @@ export function MenuProductForm({ product, categories, selectedCategoryId, onSav
             </select>
           </div>
 
-          <label className="flex items-center gap-3 cursor-pointer">
-            <div className={`w-12 h-7 rounded-full transition-colors relative ${form.kiosk_visible ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
-              <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${form.kiosk_visible ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, kiosk_visible: !f.kiosk_visible }))}
+            className="flex items-center gap-3 text-left"
+          >
+            <div className={`relative h-7 w-12 rounded-full transition-colors ${form.kiosk_visible ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+              <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${form.kiosk_visible ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </div>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.kioskVisible}</span>
-          </label>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, online_visible: !f.online_visible }))}
+            className="flex items-center gap-3 text-left"
+          >
+            <div className={`relative h-7 w-12 rounded-full transition-colors ${form.online_visible ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+              <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${form.online_visible ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </div>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.onlineVisible}</span>
+          </button>
 
           <div className="flex gap-3 pt-2">
             <button

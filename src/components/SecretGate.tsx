@@ -11,11 +11,16 @@ export function SecretGate({ secretKey, children }: SecretGateProps) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const key = params.get('key');
-    if (key && key === secretKey) {
+    const required = (secretKey ?? '').trim();
+    // No secret in env → allow open access (local dev). In production, set VITE_KIOSK_SECRET.
+    if (!required) {
       setAuthorized(true);
+      setChecked(true);
+      return;
     }
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('key') ?? '';
+    setAuthorized(key === required);
     setChecked(true);
   }, [secretKey]);
 

@@ -3,6 +3,7 @@ import { ShoppingCart, Check, ChevronDown, ChevronRight, Edit2, Trash2, X, Loade
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, SalesChannel, Sale } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { PageHeader } from '../components/cockpit';
 
 interface GroupedSale {
   date: string;
@@ -204,36 +205,29 @@ export function SalesScreen() {
   };
 
   return (
-    <div className="animate-fadeIn">
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-1">
-          <ShoppingCart className="w-6 h-6 text-green-600 dark:text-green-400" />
-          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">{t.addSale}</h1>
-        </div>
-        <p className="text-gray-500 dark:text-gray-400 text-sm">{t.recordSale}</p>
-      </div>
+    <div className="animate-fadeIn mx-auto max-w-6xl space-y-6">
+      <PageHeader
+        eyebrow={t.sales}
+        title={t.addSale}
+        description={t.recordSale}
+        icon={ShoppingCart}
+      />
 
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-600 rounded-lg p-3 mb-6 text-red-900 dark:text-red-100 text-sm">
-          {error}
-        </div>
-      )}
+      {error && <div className="cockpit-alert-error">{error}</div>}
 
       {showSuccess && (
-        <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-500 dark:border-green-600 rounded-lg p-3 mb-6 flex items-center gap-2 animate-scaleIn">
-          <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
-          <span className="text-green-900 dark:text-green-100 text-sm font-medium">{t.savedSuccessfully}</span>
+        <div className="cockpit-alert-success">
+          <Check className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <span>{t.savedSuccessfully}</span>
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="cockpit-panel p-5 sm:p-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              {t.saleAmount}
-            </label>
+            <label className="cockpit-label">{t.saleAmount}</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-lg">₼</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400">₼</span>
               <input
                 type="number"
                 step="0.01"
@@ -241,93 +235,85 @@ export function SalesScreen() {
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-8 pr-4 py-3 text-lg border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                className="cockpit-input pl-8 font-mono"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              {t.numberOfOrders}
-            </label>
+            <label className="cockpit-label">{t.numberOfOrders}</label>
             <input
               type="number"
               min="1"
               placeholder="1"
               value={orderCount}
               onChange={(e) => setOrderCount(e.target.value)}
-              className="w-full px-4 py-3 text-lg border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              className="cockpit-input font-mono"
             />
           </div>
         </div>
 
         {amount && orderCount && Number(amount) > 0 && Number(orderCount) > 0 && (
-          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <div className="cockpit-inset mt-4 p-3.5">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">{t.aov}</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">₼{aov.toFixed(2)}</span>
+              <span className="text-slate-500 dark:text-slate-400">{t.aov}</span>
+              <span className="font-mono text-base font-semibold tabular-nums text-slate-900 dark:text-white">
+                ₼{aov.toFixed(2)}
+              </span>
             </div>
           </div>
         )}
 
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            {t.salesChannels}
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="mt-5">
+          <label className="cockpit-label">{t.salesChannels}</label>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
             {channels.map((channel) => (
               <button
                 key={channel.id}
                 onClick={() => setSelectedChannel(channel.id)}
-                className={`relative p-3 rounded-lg border transition-all ${
+                className={`relative rounded-xl border px-3 py-2.5 transition-all ${
                   selectedChannel === channel.id
-                    ? 'border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/20 shadow-sm'
-                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-500'
+                    ? 'border-cockpit-500 bg-cockpit-500/10 shadow-md shadow-cockpit-500/15 dark:border-cockpit-400'
+                    : 'border-slate-200 bg-white hover:border-slate-300 dark:border-white/10 dark:bg-slate-950/30 dark:hover:border-white/20'
                 }`}
               >
                 {selectedChannel === channel.id && (
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 dark:bg-green-400 rounded-full flex items-center justify-center shadow-md">
-                    <Check className="w-3.5 h-3.5 text-white" />
+                  <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-cockpit-600 shadow-md dark:bg-cockpit-500">
+                    <Check className="h-3.5 w-3.5 text-white" />
                   </div>
                 )}
-                <div className="mb-2 flex items-center justify-center h-10">
+                <div className="mb-1.5 flex h-8 items-center justify-center">
                   {channel.logo_url ? (
-                    <img src={channel.logo_url} alt={channel.name} className="h-10 w-10 object-contain" />
+                    <img src={channel.logo_url} alt={channel.name} className="h-8 w-8 object-contain" />
                   ) : (
-                    <div className="text-2xl">{channel.icon}</div>
+                    <div className="text-xl">{channel.icon}</div>
                   )}
                 </div>
-                <div className="text-xs font-medium text-gray-900 dark:text-white text-center">
-                  {channel.name}
-                </div>
+                <div className="text-center text-xs font-semibold text-slate-900 dark:text-white">{channel.name}</div>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              {t.transactionDate}
-            </label>
+            <label className="cockpit-label">{t.transactionDate}</label>
             <input
               type="date"
               value={transactionDate}
               onChange={(e) => setTransactionDate(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              className="cockpit-input font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              {t.saleDescription}
-            </label>
+            <label className="cockpit-label">{t.saleDescription}</label>
             <input
               type="text"
               placeholder={t.saleDescription}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              className="cockpit-input"
             />
           </div>
         </div>
@@ -335,7 +321,7 @@ export function SalesScreen() {
         <button
           onClick={handleSave}
           disabled={!amount || Number(amount) <= 0 || !orderCount || Number(orderCount) <= 0 || saving}
-          className="mt-6 w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-medium transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+          className="cockpit-btn-primary mt-5 w-full py-2.5"
         >
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
           {saving ? t.pleaseWait : t.save}
@@ -343,29 +329,27 @@ export function SalesScreen() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t.recentSales}</h2>
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <h2 className="cockpit-section-title mb-3">{t.recentSales}</h2>
+        <div className="cockpit-table-wrap">
           {loading ? (
-            <div className="p-8 flex items-center justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin text-cockpit-500" />
             </div>
           ) : sales.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-              {t.noSalesYet}
-            </div>
+            <div className="p-8 text-center text-slate-500 dark:text-slate-400">{t.noSalesYet}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                <thead className="cockpit-thead">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">{t.date}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">{t.salesChannels}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">{t.orders}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">{t.aov}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">{t.totalSales}</th>
+                    <th className="cockpit-th">{t.date}</th>
+                    <th className="cockpit-th">{t.salesChannels}</th>
+                    <th className="cockpit-th">{t.orders}</th>
+                    <th className="cockpit-th">{t.aov}</th>
+                    <th className="cockpit-th">{t.totalSales}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody>
                   {getGroupedSales().map((groupedSale) => {
                     const isExpanded = expandedDates.has(groupedSale.date);
                     const dateSales = getSalesForDate(groupedSale.date);
@@ -439,7 +423,7 @@ export function SalesScreen() {
                                   <select
                                     value={editingSale.sales_channel_id || ''}
                                     onChange={(e) => setEditingSale({ ...editingSale, sales_channel_id: e.target.value || null })}
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                                    className="cockpit-select py-1.5 text-sm"
                                   >
                                     <option value="">{t.none}</option>
                                     {channels.map(ch => (

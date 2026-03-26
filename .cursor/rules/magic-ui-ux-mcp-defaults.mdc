@@ -1,0 +1,16 @@
+---
+description: Always use Magic UI UX MCP for design improvements
+alwaysApply: true
+---
+
+# Magic UI UX MCP Defaults
+
+When working on UI, UX, layout, visual polish, accessibility, or interaction improvements in this project:
+
+- Use the installed Magic UI UX MCP as the primary assistant for design exploration and quality improvements.
+- Prioritize user experience outcomes: clarity, hierarchy, accessibility, responsiveness, and consistency.
+- Propose concrete design refinements before or alongside implementation when requirements are vague.
+- Keep components production-ready and avoid generic-looking UI output.
+- Ensure improvements align with the existing product style and branding direction.
+
+If a request is unrelated to frontend design/UX, proceed normally without forcing MCP usage.

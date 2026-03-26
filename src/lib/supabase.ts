@@ -2,8 +2,14 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Avoid crashing at module-evaluation time when env vars are missing.
+// ConfigCheck handles the user-facing error screen in that scenario.
+export const supabase = createClient(
+  hasSupabaseConfig ? supabaseUrl : 'http://127.0.0.1:54321',
+  hasSupabaseConfig ? supabaseAnonKey : 'dev-placeholder-anon-key'
+);
 
 export interface Category {
   id: string;
@@ -114,6 +120,15 @@ export interface Sale {
   display_number?: string | null;
   prep_started_at?: string | null;
   ready_at?: string | null;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  delivery_address?: string | null;
+  delivery_lat?: number | null;
+  delivery_lng?: number | null;
+  delivery_fee?: number | null;
+  delivery_zone_id?: string | null;
+  track_token?: string | null;
+  customer_user_id?: string | null;
   sales_channels?: SalesChannel;
   sale_items?: SaleItem[];
 }
@@ -155,6 +170,7 @@ export interface Product {
   created_at: string;
   updated_at: string;
   kiosk_visible?: boolean;
+  online_visible?: boolean;
   image_url?: string | null;
   display_order?: number;
   suppliers?: Supplier;

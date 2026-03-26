@@ -50,8 +50,48 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Prefer role from JWT/app metadata when available to avoid extra queries.
+    const claimedRole = user.app_metadata?.role;
+    let isAdmin = claimedRole === 'admin';
+
+    // Fallback to the project's users table role model when claim is absent.
+    if (claimedRole === undefined || claimedRole === null || claimedRole === '') {
+      const { data: roleRow, error: roleError } = await supabaseAdmin
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (roleError) {
+        return new Response(
+          JSON.stringify({ error: roleError.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      isAdmin = roleRow?.role === 'admin';
+    }
+
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     const url = new URL(req.url);
-    const path = url.pathname.replace('/user-management', '');
+    const path = (() => {
+      const p = url.pathname;
+      const idx = p.indexOf('/user-management');
+      if (idx === -1) return p;
+      return p.slice(idx + '/user-management'.length) || '/';
+    })();
 
     if (req.method === 'GET' && path === '/list') {
       const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
@@ -76,7 +116,11 @@ Deno.serve(async (req: Request) => {
     }
 
     if (req.method === 'POST' && path === '/create') {
-      const { email, password } = await req.json();
+      const body = await req.json();
+      const { email, password } = body;
+      const roleRaw = typeof body.role === 'string' ? body.role.toLowerCase() : 'staff';
+      const role =
+        roleRaw === 'admin' || roleRaw === 'manager' || roleRaw === 'staff' ? roleRaw : 'staff';
 
       if (!email || !password) {
         return new Response(
@@ -94,9 +138,31 @@ Deno.serve(async (req: Request) => {
         email_confirm: true,
       });
 
-      if (error) {
+      if (error || !data?.user) {
         return new Response(
-          JSON.stringify({ error: error.message }),
+          JSON.stringify({ error: error?.message ?? 'Failed to create auth user' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const newUser = data.user;
+      const username = email.trim();
+
+      const { error: profileError } = await supabaseAdmin.from('users').insert({
+        id: newUser.id,
+        username,
+        role,
+      });
+
+      if (profileError) {
+        await supabaseAdmin.auth.admin.deleteUser(newUser.id);
+        return new Response(
+          JSON.stringify({
+            error: `Auth user was created but staff profile failed: ${profileError.message}. Rolled back.`,
+          }),
           {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -105,7 +171,7 @@ Deno.serve(async (req: Request) => {
       }
 
       return new Response(
-        JSON.stringify({ user: data.user }),
+        JSON.stringify({ user: newUser, role }),
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

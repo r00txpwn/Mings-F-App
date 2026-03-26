@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SecretGate } from '../components/SecretGate';
 import { ThemeProvider } from '../contexts/ThemeContext';
-import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
+import { LanguageProvider } from '../contexts/LanguageContext';
 import { supabase, Product, Category, CartItem, SelectedModifiers } from '../lib/supabase';
 import { IdleScreen } from './IdleScreen';
 import { CategoryScreen } from './CategoryScreen';
@@ -24,7 +24,6 @@ function generateCartItemKey(productId: string, modifiers: SelectedModifiers): s
 }
 
 function KioskContent() {
-  const { t } = useLanguage();
   const [flow, setFlow] = useState<KioskFlow>('idle');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -105,7 +104,7 @@ function KioskContent() {
           .sort((a, b) => ((a as { display_order?: number }).display_order || 0) - ((b as { display_order?: number }).display_order || 0));
         return { ...p, modifier_groups: modifierGroups, product_modifier_groups: undefined };
       });
-      setProducts(mapped as Product[]);
+      setProducts(mapped as unknown as Product[]);
     }
     if (categoriesRes.data) setCategories(categoriesRes.data as Category[]);
     if (channelRes.data) setKioskChannelId(channelRes.data.id);

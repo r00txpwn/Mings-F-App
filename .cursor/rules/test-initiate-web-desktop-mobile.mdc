@@ -1,0 +1,32 @@
+---
+description: Run web desktop and mobile test workflow on "test initiate"
+alwaysApply: true
+---
+
+# Test Initiate Workflow
+
+When the user message includes the exact phrase `test initiate`, execute this testing workflow for the web app.
+
+## Scope
+
+- Test both desktop and mobile web experiences in the same run.
+- Prioritize critical user flows first, then consistency and regression checks.
+
+## Required Execution Order
+
+1. Validate test environment readiness (app reachable, auth ready, required tools available).
+2. Run desktop smoke checks for core flows (auth, navigation, key CRUD paths, date/input interactions, URL sync/refresh behavior).
+3. Run mobile viewport checks for equivalent critical flows (layout, tap targets, responsive menus, forms, dialogs, date pickers).
+4. Capture evidence: at least one screenshot per check (desktop and mobile sets separated).
+5. Report results in a clear pass/fail matrix with:
+   - check name
+   - platform (`desktop` or `mobile`)
+   - status
+   - screenshot filename/path
+   - blocker details for failures
+
+## Rules for Failures
+
+- If blocked, stop the affected check, document root cause, and continue remaining independent checks.
+- Do not claim completion without explicit pass/fail outcomes and artifacts.
+- If a fix is applied during testing, re-run the failed check and mark it as `retest: pass` or `retest: fail`.

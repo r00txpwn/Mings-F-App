@@ -2,20 +2,47 @@
 
 ## Overview
 
-Mings Financial Automation is a business management system for small to medium-sized businesses. It provides a unified dashboard to track sales, expenses, inventory, suppliers, and financial performance across multiple sales channels.
+Mings Financial Automation is a business management system for small to medium-sized businesses. It provides a unified **cockpit-style** dashboard to track sales, expenses, inventory, suppliers, and financial performance across multiple sales channels, plus **kiosk** self-service ordering and **kitchen display** (KDS) surfaces.
 
 ---
 
 ## Tech Stack
 
-| Layer       | Technology                          |
-|-------------|-------------------------------------|
-| Framework   | React 18 + TypeScript               |
-| Build Tool  | Vite 5                              |
-| Styling     | Tailwind CSS 3 (dark mode support)  |
-| Icons       | Lucide React                        |
-| Backend     | Supabase (PostgreSQL + Auth + Edge) |
-| Hosting     | Bolt / Vite dev server              |
+| Layer       | Technology |
+|-------------|------------|
+| Framework   | React 18 + TypeScript |
+| Build tool  | Vite 5 |
+| Styling     | Tailwind CSS 3 (`cockpit-*` design tokens, dark-first UI) |
+| Icons       | Lucide React |
+| Drag & drop | @dnd-kit/core (Kiosk orders Kanban) |
+| Backend     | Supabase (PostgreSQL + Auth + Realtime + Edge Functions) |
+| Hosting     | Local: `npm run dev` / `npm run preview` (port **4173**); production: static host (e.g. Vercel) + Supabase |
+
+---
+
+## Entry Points & Routes
+
+**Audit:** [docs/URL_ROUTING_AUDIT.md](docs/URL_ROUTING_AUDIT.md) — client paths, Edge Functions, known quirks.
+
+[`src/main.tsx`](src/main.tsx) chooses the root app by **pathname** (no `react-router`):
+
+| Path      | App |
+|-----------|-----|
+| `/`       | [`PublicNotFound`](src/PublicNotFound.tsx) — admin-denied root surface (no auto-redirect). |
+| `/spec-ops` | Staff cockpit ([`App.tsx`](src/App.tsx)) — default URL (`/spec-ops/` works). Override with `VITE_ADMIN_APP_PATH` in `.env` if needed. |
+| `/kiosk`  | [`KioskApp`](src/kiosk/KioskApp.tsx) — customer kiosk |
+| `/kds`    | [`KitchenDisplay`](src/kds/KitchenDisplay.tsx) — kitchen screen |
+| `/order`  | [`OrderApp`](src/order/OrderApp.tsx) — public online ordering (no `SecretGate`). Delivery checkout can use **Google Maps** (search + draggable pin + tap) when `VITE_GOOGLE_MAPS_API_KEY` is set — see `.env.example`. |
+| `/track`  | [`TrackingApp`](src/order/TrackingApp.tsx) — public order status via `track_token` |
+| *other*   | [`PublicNotFound`](src/PublicNotFound.tsx) — generic denied/404 (no admin hint, no `/order` push). |
+
+**Secret gates:** [`SecretGate`](src/components/SecretGate.tsx) wraps `/kiosk` and `/kds`. If `VITE_KIOSK_SECRET` / `VITE_KDS_SECRET` is **unset or empty**, that surface is **open** (no `?key=` required — useful for local dev). If set, `?key=` must match exactly. **`/order` and `/track` are always public** (still wrapped with [`ConfigCheck`](src/ConfigCheck.tsx) so missing Supabase env fails fast).
+
+**Staff URL:** Default **`/spec-ops/`** — not linked from customer flows. Optional `VITE_ADMIN_APP_PATH` overrides it.
+
+**Adding staff without SQL each time:** Admins use **Users → Add New User** in the cockpit. The `user-management` Edge Function creates `auth.users` and inserts **`public.users`** (role: staff / manager / admin), so new people can log in at the secret admin URL. You still need **one** initial admin row in `public.users` (migration or one-time SQL); after that, use the UI only.
+
+**Production static hosting:** SPA rewrites must serve `index.html` for `/order`, `/track`, `/kiosk`, `/kds`, and your secret admin path.
 
 ---
 
@@ -23,202 +50,261 @@ Mings Financial Automation is a business management system for small to medium-s
 
 ```
 /project
-├── index.html                           # HTML entry point
-├── .env                                 # Supabase credentials
+├── index.html
+├── .env                          # Gitignored; copy from .env.example
+├── .env.example
 ├── package.json
-├── vite.config.ts
-├── tailwind.config.js
+├── vite.config.ts                # preview: port 4173, strictPort
+├── tailwind.config.js            # cockpit palette, fonts
 ├── tsconfig.json / tsconfig.app.json
+├── README.md
+├── APP_STRUCTURE.md
+│
+├── /scripts
+│   └── verify-env.mjs            # Checks required VITE_* without printing secrets
 │
 ├── /src
-│   ├── main.tsx                         # App entry, wraps providers
-│   ├── App.tsx                          # Router & navigation shell
-│   ├── index.css                        # Tailwind directives
-│   ├── translations.ts                  # i18n strings (en, az, ru)
-│   ├── ConfigCheck.tsx                  # Env var validation
-│   ├── ErrorBoundary.tsx                # Error boundary wrapper
+│   ├── main.tsx                  # Path-based entry (App vs Kiosk vs KDS)
+│   ├── App.tsx                   # Sidebar navigation shell (“Command Center”)
+│   ├── index.css                 # Tailwind + cockpit utilities
+│   ├── translations.ts           # i18n (en, az, ru)
+│   ├── ConfigCheck.tsx           # Blocks app if Supabase env missing
+│   ├── ErrorBoundary.tsx
+│   ├── vite-env.d.ts
+│   │
+│   ├── /types
+│   │   └── analytics.ts          # KPI / analytics TypeScript types
 │   │
 │   ├── /lib
-│   │   └── supabase.ts                  # Supabase client + TypeScript interfaces
+│   │   └── supabase.ts           # Supabase client + domain interfaces
 │   │
 │   ├── /contexts
-│   │   ├── AuthContext.tsx              # Auth state (user, session, signIn/Out)
-│   │   ├── ThemeContext.tsx             # Light/Dark theme toggle
-│   │   └── LanguageContext.tsx          # Language selection + persistence
+│   │   ├── AuthContext.tsx
+│   │   ├── ThemeContext.tsx      # Default theme: dark
+│   │   └── LanguageContext.tsx
+│   │
+│   ├── /services/analytics
+│   │   ├── index.ts              # Re-exports
+│   │   ├── financeService.ts     # Revenue, channels, payouts, trends
+│   │   ├── kpiCalculations.ts
+│   │   ├── validation.ts
+│   │   └── types.ts
 │   │
 │   ├── /components
-│   │   ├── LineChart.tsx               # SVG line chart with tooltips
-│   │   ├── PieChart.tsx                # SVG pie chart with legend
-│   │   └── SearchableDropdown.tsx      # Filterable select dropdown
+│   │   ├── /analytics            # KpiCard, FilterBar, ChartCard, InsightPanel
+│   │   ├── /cockpit              # PageHeader, shared layout primitives
+│   │   ├── /kiosk
+│   │   │   ├── KioskOrdersBoard.tsx   # Kanban + @dnd-kit
+│   │   │   └── index.ts
+│   │   ├── SecretGate.tsx
+│   │   ├── LineChart.tsx
+│   │   ├── PieChart.tsx
+│   │   ├── DateRangePicker.tsx
+│   │   ├── SearchableDropdown.tsx
+│   │   ├── MenuCategoryManager.tsx
+│   │   ├── MenuProductForm.tsx
+│   │   ├── ProductModifierEditor.tsx
+│   │   └── ProductModifierAssigner.tsx
 │   │
 │   ├── /screens
-│   │   ├── LoginScreen.tsx             # Email/password authentication
-│   │   ├── HomeScreen.tsx              # Dashboard with KPIs and charts
-│   │   ├── SalesScreen.tsx             # Record and manage sales
-│   │   ├── ProductsScreen.tsx          # Inventory & product management
-│   │   ├── SuppliersScreen.tsx         # Supplier directory
-│   │   ├── ExpensesScreen.tsx          # Fixed costs & COGS tracking
-│   │   ├── ReportsScreen.tsx           # Financial analytics
-│   │   ├── MoneyScreen.tsx             # Consolidated transaction view
-│   │   ├── SettingsScreen.tsx          # Language, theme, channels
-│   │   └── UsersScreen.tsx             # Admin user management
+│   │   ├── LoginScreen.tsx
+│   │   ├── HomeScreen.tsx        # Executive KPIs, FilterBar, charts, channel drilldowns
+│   │   ├── SalesScreen.tsx
+│   │   ├── ProductsScreen.tsx
+│   │   ├── SuppliersScreen.tsx
+│   │   ├── ExpensesScreen.tsx
+│   │   ├── ReportsScreen.tsx
+│   │   ├── MoneyScreen.tsx
+│   │   ├── PayoutsScreen.tsx     # Platform payouts + reconciliation
+│   │   ├── MenuScreen.tsx        # Kiosk menu builder, modifiers
+│   │   ├── KioskOrdersScreen.tsx # Kanban board for kiosk fulfillment
+│   │   ├── SettingsScreen.tsx
+│   │   └── UsersScreen.tsx
 │   │
-│   └── /screens/expenses
-│       ├── ExpensesSummaryBar.tsx       # Expense totals summary
-│       ├── CategoryGroupedView.tsx     # Expenses grouped by category
-│       └── ManageCategoriesTab.tsx      # Category CRUD interface
+│   ├── /screens/expenses
+│   │   ├── ExpensesSummaryBar.tsx
+│   │   ├── CategoryGroupedView.tsx
+│   │   └── ManageCategoriesTab.tsx
+│   │
+│   ├── /kiosk                    # Customer-facing kiosk flow
+│   │   ├── KioskApp.tsx
+│   │   ├── KioskLayout.tsx
+│   │   ├── IdleScreen.tsx, CategoryScreen.tsx, ProductScreen.tsx
+│   │   ├── CartScreen.tsx, CheckoutScreen.tsx, ConfirmationScreen.tsx
+│   │   └── …
+│   │
+│   └── /kds                      # Kitchen display
+│       ├── KitchenDisplay.tsx
+│       ├── KdsHeader.tsx
+│       └── OrderCard.tsx
+│   │
+│   └── /order                    # Public web ordering + tracking
+│       ├── OrderApp.tsx
+│       ├── TrackingApp.tsx
+│       ├── invokeEdge.ts         # Calls Supabase Edge Functions with anon key
+│       └── /hooks/useOnlineMenu.ts
 │
 ├── /supabase
 │   ├── /functions
-│   │   └── /user-management
-│   │       └── index.ts                # Edge function for user CRUD
-│   │
-│   └── /migrations                     # 35 SQL migration files
-│       └── *.sql
+│   │   ├── user-management/index.ts   # Admin: users (auth-gated)
+│   │   ├── online-order-create/index.ts # Validates cart + creates `sales` (service role)
+│   │   ├── epoint-create-payment/index.ts
+│   │   ├── epoint-webhook/index.ts
+│   │   ├── wolt-drive-check/index.ts
+│   │   ├── wolt-drive-create/index.ts
+│   │   ├── wolt-drive-cancel/index.ts
+│   │   └── wolt-drive-webhook/index.ts
+│   └── /migrations/*.sql         # Schema evolution (40+ migration files)
 │
-└── /public/images                       # Static image assets
+└── /public                       # Static assets (if any)
 ```
 
 ---
 
-## Screens
+## Screens (Admin Shell)
 
-| Screen          | Purpose                                                      |
-|-----------------|--------------------------------------------------------------|
-| LoginScreen     | Email/password sign-in via Supabase Auth                     |
-| HomeScreen      | Dashboard with daily/weekly/monthly KPIs, charts, and trends |
-| SalesScreen     | Add, edit, delete sales; filter by channel and date          |
-| ProductsScreen  | Manage products, stock levels, pricing, supplier links       |
-| SuppliersScreen | Supplier directory with contact info and product associations|
-| ExpensesScreen  | Track fixed costs and COGS with two-level category system    |
-| ReportsScreen   | Financial reports with breakdowns by category and channel    |
-| MoneyScreen     | Unified view of all sales, expenses, and purchases           |
-| SettingsScreen  | Language, theme, and sales channel configuration             |
-| UsersScreen     | Admin-only user creation and deletion                        |
+| Screen | Purpose |
+|--------|---------|
+| LoginScreen | Email/password via Supabase Auth |
+| HomeScreen | KPI cards, date presets, revenue vs costs, channel performance, validation hints |
+| SalesScreen | Record/edit sales by channel |
+| ProductsScreen | Inventory, pricing, categories, stock reconciliation hooks |
+| SuppliersScreen | Supplier directory |
+| ExpensesScreen | COGS & operational expenses, categories |
+| ReportsScreen | Analytics filters, KPIs, activity |
+| MoneyScreen | Sales / expenses / purchases views |
+| PayoutsScreen | Third-party payouts vs expected revenue |
+| MenuScreen | Kiosk menu categories & products, modifiers |
+| KioskOrdersScreen | **Kanban** for kiosk + online (`source` in kiosk / online_delivery / online_takeaway); realtime + `delivery_orders` |
+| SettingsScreen | Language, theme, sales channels |
+| UsersScreen | Admin user list/create/delete via Edge Function |
 
 ---
 
-## Components
+## Kiosk & KDS
 
-| Component          | Purpose                                    |
-|--------------------|--------------------------------------------|
-| LineChart          | SVG line chart with multi-series and hover  |
-| PieChart           | SVG pie chart with legend and percentages   |
-| SearchableDropdown | Filterable dropdown select                  |
-| ExpensesSummaryBar | Expense totals and percentage breakdown     |
-| CategoryGroupedView| Expenses grouped and sorted by category     |
-| ManageCategoriesTab| Create, edit, delete expense categories     |
+| Surface | Role |
+|---------|------|
+| **Kiosk** (`/kiosk`) | Browse menu, cart, checkout; writes to `sales` with `source = kiosk` |
+| **KDS** (`/kds`) | Read/update **kiosk + online** orders (`order_status` pipeline) for kitchen |
+| **Kiosk orders (admin)** | Monitor same-day orders (kiosk + online) in Kanban; realtime on `sales` |
+| **Online** (`/order` / `/track`) | Public menu (`products.online_visible`), checkout via Edge `online-order-create`; tracking via RPC `get_sale_tracking_public` |
+
+---
+
+## Components (Selected)
+
+| Area | Purpose |
+|------|---------|
+| **analytics/** | KpiCard, FilterBar, ChartCard, InsightPanel — shared dashboard/reports |
+| **cockpit/** | PageHeader, design-aligned panels and tables |
+| **kiosk/KioskOrdersBoard** | Drag-and-drop columns (`@dnd-kit/core`) |
+| SecretGate | Optional URL key when env secret is set |
+| LineChart / PieChart | SVG charts |
+| DateRangePicker | Date range for filters |
 
 ---
 
 ## Contexts (Global State)
 
-| Context         | Manages                                                  |
-|-----------------|----------------------------------------------------------|
-| AuthContext      | User session, signIn, signUp, signOut                   |
-| ThemeContext     | Light/Dark theme with localStorage persistence          |
-| LanguageContext  | Language selection (en/az/ru) with DB + local persistence|
+| Context | Manages |
+|---------|---------|
+| AuthContext | Session, signIn/signOut |
+| ThemeContext | Light/dark (default **dark**) |
+| LanguageContext | `en` / `az` / `ru` |
 
 ---
 
-## Database Schema
+## Database Schema (summary)
 
-### Core Tables
+### Core tables
 
-| Table                 | Purpose                                      |
-|-----------------------|----------------------------------------------|
-| users                 | User profiles with roles (admin/manager/staff)|
-| user_preferences      | Per-user settings (language, etc.)            |
-| sales_channels        | Sales channel definitions (name, icon, color) |
-| sales                 | Individual sale transactions                  |
-| products              | Product catalog with pricing and stock        |
-| suppliers             | Supplier directory                            |
-| purchases             | COGS purchase records                         |
-| master_categories     | Two-level category hierarchy                  |
-| expense_items         | Sub-items within master categories            |
-| operational_expenses  | Fixed cost expenses                           |
+| Table | Purpose |
+|-------|---------|
+| sales_channels | Channel definitions (logos, icons, active flag) |
+| sales | Sales rows (`source`: manual, kiosk, `online_delivery`, `online_takeaway`; `order_status`; `track_token` for public tracking) |
+| products | Catalog, stock, `kiosk_visible`, `online_visible` |
+| online_settings | Takeaway/delivery toggles, hours JSON, min order |
+| delivery_zones | GeoJSON polygons, fees (active zones readable publicly) |
+| online_payments | E-point / card rows (admin read; writes via Edge service role) |
+| delivery_orders | Wolt Drive linkage (admin read; writes via Edge service role) |
+| suppliers | Supplier records |
+| purchases | Purchase / COGS |
+| master_categories | Category hierarchy |
+| operational_expenses / expense_items | Expense tracking |
+| platform_payouts | Payout reconciliation vs channels |
 
-### Supporting Tables
+### Other
 
-| Table                  | Purpose                                     |
-|------------------------|---------------------------------------------|
-| transactions           | Legacy transaction log                      |
-| supplier_orders        | Supplier order tracking                     |
-| supplier_payments      | Payment records for supplier orders         |
-| price_history          | Product price change audit trail            |
-| barcode_scans          | Barcode scan activity log                   |
-| audit_logs             | System-wide audit trail (INSERT/UPDATE/DELETE)|
-| budgets                | Budget planning by category                 |
-| goals                  | Financial target tracking                   |
-| recurring_transactions | Recurring expense/income definitions        |
-| customers              | Customer records (future use)               |
-| payment_methods        | Payment method definitions (future use)     |
-
-### Key Database Features
-
-- Row Level Security (RLS) enabled on all tables
-- UUID primary keys with gen_random_uuid()
-- Custom enums: user_role, payment_status, product_unit, category_type
-- Foreign key relationships enforced across tables
-- 35 migration files tracking schema evolution
+- RLS on user-facing tables; UUID PKs; audit triggers where migrated.
+- **Migrations:** `supabase/migrations/*.sql` (40+ files).
 
 ---
 
 ## Edge Functions
 
-| Function         | Method   | Purpose                        |
-|------------------|----------|--------------------------------|
-| user-management  | GET      | List all auth users            |
-| user-management  | POST     | Create new user (email/pass)   |
-| user-management  | DELETE   | Delete user by ID              |
-
-All endpoints require Bearer token authentication and return JSON responses with CORS headers.
-
----
-
-## Authentication
-
-- Supabase email/password authentication
-- JWT session tokens managed by Supabase client
-- AuthContext provides global auth state
-- RLS policies enforce data access rules at the database level
-- Three user roles: admin, manager, staff
-- Admin operations (user management) restricted by role
+| Function | Purpose |
+|----------|---------|
+| **user-management** | `GET` list users, `POST` create, `DELETE` by id — requires authenticated JWT; **admin** check (`app_metadata.role` / `users.role`) |
+| **online-order-create** | `POST` JSON cart — validates prices/modifiers/zones; inserts `sales` + line items (service role) |
+| **epoint-create-payment** | Prepares `online_payments` row + placeholder checkout URL (configure real E-point per docs) |
+| **epoint-webhook** | Updates `online_payments` + `sales.payment_status` when `EPOINT_WEBHOOK_SECRET` matches signature |
+| **wolt-drive-check** | Zone / coordinate helper (optional Wolt ping when token set) |
+| **wolt-drive-create** | Creates `delivery_orders` stub or real API integration |
+| **wolt-drive-cancel** | Cancels delivery row |
+| **wolt-drive-webhook** | Updates `delivery_orders` when `WOLT_WEBHOOK_SECRET` header matches |
 
 ---
 
-## Internationalization (i18n)
+## Authentication & Roles
 
-- Three supported languages: English, Azerbaijani, Russian
-- 302 translation keys in `/src/translations.ts`
-- Language persisted to both Supabase (user_preferences) and localStorage
-- LanguageContext provides `t` object and `setLanguage` method
+- Supabase Auth (JWT).
+- `AuthContext` + RLS on backend.
+- User management from **UsersScreen** calls Edge Function with session token.
 
 ---
 
-## Theme System
+## Internationalization
 
-- Light and Dark modes via Tailwind CSS `dark:` prefix
-- ThemeContext manages toggle and localStorage persistence
-- `dark` class applied to HTML root element
-- All screens and components support both themes
+- Languages: **en**, **az**, **ru** in [`src/translations.ts`](src/translations.ts).
+- Language persisted (user preferences + localStorage).
+
+---
+
+## Theme
+
+- Cockpit-oriented **dark-first** styling; light mode available in Settings.
+- Tailwind `cockpit-*` utilities in [`src/index.css`](src/index.css).
 
 ---
 
 ## Environment Variables
 
-| Variable               | Purpose                     |
-|------------------------|-----------------------------|
-| VITE_SUPABASE_URL      | Supabase project URL        |
-| VITE_SUPABASE_ANON_KEY | Supabase anonymous API key  |
+| Variable | Purpose |
+|----------|---------|
+| `VITE_SUPABASE_URL` | Required — Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Required — anon key |
+| `VITE_KIOSK_SECRET` | Optional — if set, `/kiosk?key=` must match; if empty, kiosk works without key |
+| `VITE_KDS_SECRET` | Optional — same pattern for `/kds` |
+
+Use `npm run verify-env` to confirm required vars are present (values not printed).
+
+---
+
+## Local Production Preview
+
+- `npm run build` → `dist/`
+- `npm run preview` → **http://127.0.0.1:4173/** (fixed port; fails if 4173 is busy — see `vite.config.ts`)
+
+SPA routes `/`, `/kiosk`, `/kds`, `/order`, `/track`, and admin path `/spec-ops` (or your `VITE_ADMIN_APP_PATH`) need host rewrites when deploying to static hosting (e.g. `vercel.json` → all routes to `index.html`).
 
 ---
 
 ## Key Patterns
 
-- **State management:** React Context API (no external state library)
-- **Data fetching:** Direct Supabase client queries in screen components
-- **Routing:** Tab-based navigation managed in App.tsx (no router library)
-- **Forms:** Controlled inputs with inline validation
-- **Charts:** Custom SVG implementations (no charting library)
-- **Styling:** Tailwind utility classes throughout
+- **State:** React Context (no Redux).
+- **Data:** Supabase client in screens/services; `services/analytics` for shared KPI/finance queries.
+- **Navigation:** Screen state in `App.tsx` (no React Router).
+- **Charts:** Custom SVG (`LineChart`, `PieChart`).
+- **Styling:** Tailwind + cockpit component classes.
+- **Kiosk orders UI:** `@dnd-kit` drag-and-drop between status columns.

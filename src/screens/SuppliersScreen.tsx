@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Truck, Plus, Edit2, Trash2, Save, X, Package } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, Supplier } from '../lib/supabase';
+import { PageHeader } from '../components/cockpit';
 
 export function SuppliersScreen() {
   const { t } = useLanguage();
@@ -137,147 +138,145 @@ export function SuppliersScreen() {
 
   return (
     <div className="animate-fadeIn">
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Truck className="w-6 h-6 text-gray-900 dark:text-white" />
-              <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">{t.suppliers}</h1>
-            </div>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">{t.manageSuppliers}</p>
-          </div>
-          {!isAdding && !editingId && (
-            <button
-              onClick={handleAdd}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
+      <PageHeader
+        eyebrow="Procurement"
+        title={t.suppliers}
+        description={t.manageSuppliers}
+        icon={Truck}
+        actions={
+          !isAdding && !editingId ? (
+            <button type="button" onClick={handleAdd} className="cockpit-btn-primary">
+              <Plus className="h-4 w-4" />
               Add Supplier
             </button>
-          )}
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
       {(isAdding || editingId) && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+        <div className="cockpit-panel mb-6 p-6">
+          <h3 className="cockpit-section-title mb-4">
             {isAdding ? t.addNewSupplier : t.editSupplier}
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-2">Supplier Name *</label>
+              <label className="cockpit-label mb-2">Supplier Name *</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-gray-900 dark:bg-gray-700 dark:text-white"
+                className="cockpit-input"
                 placeholder={t.enterSupplierName}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-2">{t.contactPerson}</label>
+              <label className="cockpit-label mb-2">{t.contactPerson}</label>
               <input
                 type="text"
                 value={formData.contact_person}
                 onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-gray-900 dark:bg-gray-700 dark:text-white"
+                className="cockpit-input"
                 placeholder={t.enterContactPerson}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-2">{t.email}</label>
+              <label className="cockpit-label mb-2">{t.email}</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-gray-900 dark:bg-gray-700 dark:text-white"
+                className="cockpit-input"
                 placeholder={t.enterEmail}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-2">{t.phone}</label>
+              <label className="cockpit-label mb-2">{t.phone}</label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-gray-900 dark:bg-gray-700 dark:text-white"
+                className="cockpit-input"
                 placeholder={t.enterPhone}
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-2">{t.address}</label>
+              <label className="cockpit-label mb-2">{t.address}</label>
               <input
                 type="text"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-gray-900 dark:bg-gray-700 dark:text-white"
+                className="cockpit-input"
                 placeholder={t.enterAddress}
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-2">{t.notes}</label>
+              <label className="cockpit-label mb-2">{t.notes}</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-gray-900 dark:bg-gray-700 dark:text-white resize-none"
+                className="cockpit-input resize-none"
                 placeholder={t.enterNotes}
                 rows={3}
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
+              type="button"
               onClick={handleSave}
               disabled={!formData.name.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 transition-colors disabled:cursor-not-allowed"
+              className="cockpit-btn-primary disabled:opacity-40"
             >
-              <Save className="w-4 h-4" />
+              <Save className="h-4 w-4" />
               Save
             </button>
-            <button
-              onClick={handleCancel}
-              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <X className="w-4 h-4" />
+            <button type="button" onClick={handleCancel} className="cockpit-btn-ghost">
+              <X className="h-4 w-4" />
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {suppliers.map((supplier) => {
           const isDeleting = deleteConfirm === supplier.id;
 
           return (
           <div
             key={supplier.id}
-            className={`bg-white dark:bg-gray-800 border rounded-lg p-5 transition-all ${
-              isDeleting ? 'ring-2 ring-red-500' : supplier.is_active ? 'border-gray-200 dark:border-gray-700' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 opacity-60'
+            className={`cockpit-panel p-5 transition-all ${
+              isDeleting
+                ? 'ring-2 ring-rose-500/80'
+                : supplier.is_active
+                  ? ''
+                  : 'opacity-60'
             }`}
           >
             {isDeleting ? (
-              <div className="space-y-4">
-                <p className="text-sm text-red-900 dark:text-red-100 font-medium">
+              <div className="space-y-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-800 dark:text-rose-100">
+                <p className="font-semibold">
                   Delete "{supplier.name}"? Associated products will be unlinked.
                 </p>
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => handleDelete(supplier.id)}
-                    className="flex-1 px-3 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
+                    className="flex-1 rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700"
                   >
                     Delete
                   </button>
                   <button
+                    type="button"
                     onClick={() => setDeleteConfirm(null)}
-                    className="flex-1 px-3 py-2 text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium"
+                    className="cockpit-btn-ghost flex-1 justify-center"
                   >
                     Cancel
                   </button>
@@ -285,61 +284,64 @@ export function SuppliersScreen() {
               </div>
             ) : (
               <>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Truck className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                    <h3 className="font-medium text-gray-900 dark:text-white">{supplier.name}</h3>
+                <div className="mb-3 flex items-start justify-between">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Truck className="h-5 w-5 shrink-0 text-cockpit-500" />
+                    <h3 className="truncate font-semibold text-slate-900 dark:text-white">{supplier.name}</h3>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex shrink-0 items-center gap-1">
                     <button
+                      type="button"
                       onClick={() => handleEdit(supplier)}
-                      className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
+                      className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-cockpit-400 dark:text-slate-500"
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Edit2 className="h-4 w-4" />
                     </button>
                     <button
+                      type="button"
                       onClick={() => setDeleteConfirm(supplier.id)}
-                      className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 rounded transition-colors"
+                      className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-rose-500/10 hover:text-rose-400"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
 
-            <div className="space-y-2 mb-3">
+            <div className="mb-3 space-y-2">
               {supplier.contact_person && (
-                <p className="text-xs text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">{t.contact}</span> {supplier.contact_person}
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  <span className="font-medium text-slate-800 dark:text-slate-200">{t.contact}</span> {supplier.contact_person}
                 </p>
               )}
               {supplier.email && (
-                <p className="text-xs text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">{t.email + ":"}</span> {supplier.email}
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  <span className="font-medium text-slate-800 dark:text-slate-200">{t.email + ":"}</span> {supplier.email}
                 </p>
               )}
               {supplier.phone && (
-                <p className="text-xs text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">{t.phone + ":"}</span> {supplier.phone}
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  <span className="font-medium text-slate-800 dark:text-slate-200">{t.phone + ":"}</span> {supplier.phone}
                 </p>
               )}
               {supplier.address && (
-                <p className="text-xs text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">{t.address + ":"}</span> {supplier.address}
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  <span className="font-medium text-slate-800 dark:text-slate-200">{t.address + ":"}</span> {supplier.address}
                 </p>
               )}
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                <Package className="w-3.5 h-3.5" />
+            <div className="flex items-center justify-between border-t border-white/10 pt-3 dark:border-white/5">
+              <div className="flex items-center gap-1.5 font-mono text-xs text-slate-500 dark:text-slate-400">
+                <Package className="h-3.5 w-3.5" />
                 <span>{productCounts[supplier.id] || 0} products</span>
               </div>
               <button
+                type="button"
                 onClick={() => handleToggleActive(supplier)}
-                className={`px-2.5 py-1 text-xs font-medium rounded ${
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
                   supplier.is_active
-                    ? 'bg-green-50 text-green-700'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                    : 'bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                 }`}
               >
                 {supplier.is_active ? t.active : t.inactive}
@@ -353,9 +355,9 @@ export function SuppliersScreen() {
       </div>
 
       {suppliers.length === 0 && !isAdding && (
-        <div className="text-center py-12">
-          <Truck className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-500 dark:text-gray-400 text-sm">{t.noSuppliersYet}</p>
+        <div className="cockpit-panel py-12 text-center">
+          <Truck className="mx-auto mb-3 h-12 w-12 text-slate-400 dark:text-slate-600" />
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t.noSuppliersYet}</p>
         </div>
       )}
     </div>

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Calendar, Settings2, Loader2 } from 'lucide-react';
+import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Settings2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useAuth } from '../contexts/AuthContext';
 import { ExpensesSummaryBar } from './expenses/ExpensesSummaryBar';
 import { CategoryGroupedView } from './expenses/CategoryGroupedView';
 import { ManageCategoriesTab } from './expenses/ManageCategoriesTab';
+import { PageHeader } from '../components/cockpit';
+import { DateRangePicker } from '../components/DateRangePicker';
 
 interface MasterCategory {
   id: string;
@@ -37,7 +38,7 @@ interface OperationalExpense {
 
 interface Purchase {
   id: string;
-  product_id: string;
+  product_id?: string | null;
   supplier_id: string | null;
   master_category_id: string | null;
   expense_item_id: string | null;
@@ -53,13 +54,6 @@ interface Purchase {
   expense_items?: { name: string };
 }
 
-interface Product {
-  id: string;
-  name: string;
-  unit: string;
-  master_category_id?: string | null;
-}
-
 interface Supplier {
   id: string;
   name: string;
@@ -69,7 +63,6 @@ type ActiveTab = 'operational' | 'cogs' | 'categories';
 
 export function ExpensesScreen() {
   const { t } = useLanguage();
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('operational');
   const [loading, setLoading] = useState(true);
 
@@ -77,7 +70,6 @@ export function ExpensesScreen() {
   const [subItems, setSubItems] = useState<SubItem[]>([]);
   const [expenses, setExpenses] = useState<OperationalExpense[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -100,12 +92,11 @@ export function ExpensesScreen() {
 
   const loadAllData = async (isInitial = false) => {
     if (isInitial) setLoading(true);
-    const [catRes, itemsRes, expRes, purRes, prodRes, suppRes] = await Promise.all([
+    const [catRes, itemsRes, expRes, purRes, suppRes] = await Promise.all([
       supabase.from('master_categories').select('*').in('type', ['purchase', 'expense']).order('name'),
       supabase.from('expense_items').select('*').order('name'),
       supabase.from('operational_expenses').select('*, master_categories(name, color), expense_items(name)').order('expense_date', { ascending: false }),
       supabase.from('purchases').select('*, products(name, unit), suppliers(name), master_categories(name, color), expense_items(name)').order('purchase_date', { ascending: false }),
-      supabase.from('products').select('id, name, unit, master_category_id').order('name'),
       supabase.from('suppliers').select('id, name').eq('is_active', true).order('name'),
     ]);
 
@@ -113,7 +104,6 @@ export function ExpensesScreen() {
     if (itemsRes.data) setSubItems(itemsRes.data);
     if (expRes.data) setExpenses(expRes.data as OperationalExpense[]);
     if (purRes.data) setPurchases(purRes.data as Purchase[]);
-    if (prodRes.data) setProducts(prodRes.data as Product[]);
     if (suppRes.data) setSuppliers(suppRes.data);
     if (isInitial) setLoading(false);
   };
@@ -284,7 +274,9 @@ export function ExpensesScreen() {
   };
 
   const handleDeletePurchase = async (id: string) => {
+    const purchase = purchases.find(p => p.id === id);
     await supabase.from('purchases').delete().eq('id', id);
+    await reconcileProductStock(purchase?.product_id, -(Number(purchase?.quantity) || 0));
     await loadAllData();
   };
 
@@ -406,6 +398,23 @@ export function ExpensesScreen() {
     await loadAllData();
   };
 
+  const reconcileProductStock = async (productId: string | null | undefined, deltaQuantity: number) => {
+    if (!productId || !deltaQuantity) return;
+
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('quantity')
+      .eq('id', productId)
+      .single();
+
+    if (error || !product) return;
+
+    await supabase
+      .from('products')
+      .update({ quantity: Number(product.quantity || 0) + deltaQuantity })
+      .eq('id', productId);
+  };
+
   const handleSubmitPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     const total_cost = purchaseFormData.quantity * purchaseFormData.unit_cost;
@@ -422,7 +431,12 @@ export function ExpensesScreen() {
     };
 
     if (editingPurchase) {
+      const oldProductId = editingPurchase.product_id || null;
+      const oldQuantity = Number(editingPurchase.quantity) || 0;
+      const newQuantity = Number(purchaseFormData.quantity) || 0;
+
       await supabase.from('purchases').update(payload).eq('id', editingPurchase.id);
+      await reconcileProductStock(oldProductId, newQuantity - oldQuantity);
     } else {
       await supabase.from('purchases').insert(payload);
     }
@@ -475,32 +489,36 @@ export function ExpensesScreen() {
 
   return (
     <div className="animate-fadeIn">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Expenses</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Manage operational costs and COGS in one place</p>
-        </div>
-        {activeTab === 'operational' && (
-          <button
-            onClick={() => { resetExpenseForm(); setShowExpenseForm(true); }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            {t.newExpense}
-          </button>
-        )}
-        {activeTab === 'cogs' && (
-          <button
-            onClick={() => { resetPurchaseForm(); setShowPurchaseForm(true); }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            {t.newPurchase}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Expenses"
+        description="Manage operational costs and COGS in one place"
+        eyebrow="Finance"
+        icon={DollarSign}
+        actions={
+          <>
+            {activeTab === 'operational' && (
+              <button
+                onClick={() => { resetExpenseForm(); setShowExpenseForm(true); }}
+                className="neon-btn-primary"
+              >
+                <Plus className="h-4 w-4" />
+                {t.newExpense}
+              </button>
+            )}
+            {activeTab === 'cogs' && (
+              <button
+                onClick={() => { resetPurchaseForm(); setShowPurchaseForm(true); }}
+                className="neon-btn-primary"
+              >
+                <Plus className="h-4 w-4" />
+                {t.newPurchase}
+              </button>
+            )}
+          </>
+        }
+      />
 
-      <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+      <div className="cockpit-panel-solid mb-6 flex gap-1 rounded-xl p-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -510,8 +528,8 @@ export function ExpensesScreen() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  ? 'bg-slate-900 text-white dark:bg-slate-700'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -525,31 +543,25 @@ export function ExpensesScreen() {
       </div>
 
       {activeTab !== 'categories' && (
-        <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="cockpit-panel-solid mb-5 flex flex-col gap-3 p-3 sm:flex-row">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+              className="cockpit-input w-full py-2.5 pl-10 pr-4 text-sm"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <input
-              type="date"
-              value={dateFilter.start}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
-              className="px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
-            />
-            <span className="text-gray-400 text-xs">to</span>
-            <input
-              type="date"
-              value={dateFilter.end}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
-              className="px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+            <DateRangePicker
+              startDate={dateFilter.start}
+              endDate={dateFilter.end}
+              onStartChange={(start) => setDateFilter((prev) => ({ ...prev, start }))}
+              onEndChange={(end) => setDateFilter((prev) => ({ ...prev, end }))}
+              startLabel="Start date"
+              endLabel="End date"
             />
           </div>
         </div>
@@ -715,7 +727,7 @@ export function ExpensesScreen() {
                   <select
                     value={expenseFormData.master_category_id}
                     onChange={(e) => setExpenseFormData(prev => ({ ...prev, master_category_id: e.target.value }))}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    className="cockpit-select"
                   >
                     <option value="">{t.selectCategory}</option>
                     {expenseCategories.map(cat => (
@@ -805,7 +817,7 @@ export function ExpensesScreen() {
             </div>
             <form onSubmit={handleSubmitPurchase} className="p-5 space-y-4 overflow-y-auto max-h-[calc(90vh-130px)]">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.purchaseItem || 'Item'} *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.expenseItem} *</label>
                 <div className="relative" ref={cogsItemDropdownRef}>
                   <button
                     type="button"
@@ -825,7 +837,7 @@ export function ExpensesScreen() {
                         })()}
                       </span>
                     ) : (
-                      <span className="text-gray-400">{t.searchPurchaseItems || 'Search items...'}</span>
+                      <span className="text-gray-400">Search items...</span>
                     )}
                     <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${isCogsItemDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -881,7 +893,7 @@ export function ExpensesScreen() {
                 <select
                   value={purchaseFormData.supplier_id}
                   onChange={(e) => setPurchaseFormData(prev => ({ ...prev, supplier_id: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  className="cockpit-select"
                 >
                   <option value="">{t.selectSupplier}</option>
                   {suppliers.map(s => (
@@ -941,7 +953,7 @@ export function ExpensesScreen() {
                   <select
                     value={purchaseFormData.payment_status}
                     onChange={(e) => setPurchaseFormData(prev => ({ ...prev, payment_status: e.target.value as 'pending' | 'partial' | 'paid' }))}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    className="cockpit-select"
                   >
                     <option value="pending">{t.pending}</option>
                     <option value="partial">{t.partial}</option>

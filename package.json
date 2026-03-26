@@ -8,9 +8,22 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "deploy:local": "npm run build && vite preview --host 127.0.0.1 --strictPort false",
+    "verify-env": "node scripts/verify-env.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "supabase:push": "npx --yes supabase@latest db push",
+    "supabase:deploy:order": "npx --yes supabase@latest functions deploy online-order-create --no-verify-jwt",
+    "supabase:deploy:epoint": "npx --yes supabase@latest functions deploy epoint-create-payment --no-verify-jwt",
+    "supabase:deploy:web": "npm run supabase:deploy:order && npm run supabase:deploy:epoint",
+    "supabase:sync": "npm run supabase:push && npm run supabase:deploy:web",
+    "supabase:repair:remote": "bash scripts/supabase-repair-remote-orphans.sh",
+    "supabase:repair:remote:ps": "powershell -ExecutionPolicy Bypass -File scripts/supabase-repair-remote-orphans.ps1",
+    "supabase:mark:applied": "bash scripts/supabase-mark-local-applied.sh",
+    "supabase:mark:applied:ps": "powershell -ExecutionPolicy Bypass -File scripts/supabase-mark-local-applied.ps1"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
     "@supabase/supabase-js": "^2.57.4",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
@@ -18,6 +31,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@playwright/test": "^1.58.2",
+    "@types/google.maps": "^3.58.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

@@ -1,3 +1,5 @@
+import { useMemo, useState } from 'react';
+
 interface PieChartData {
   label: string;
   value: number;
@@ -10,12 +12,18 @@ interface PieChartProps {
 }
 
 export function PieChart({ data, size = 200 }: PieChartProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
-  if (total === 0 || data.length === 0) {
+  const sortedData = useMemo(
+    () => [...data].sort((a, b) => b.value - a.value),
+    [data],
+  );
+
+  if (total === 0 || sortedData.length === 0) {
     return (
       <div
-        className="flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-full"
+        className="flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700"
         style={{ width: size, height: size }}
       >
         <span className="text-sm text-gray-400 dark:text-gray-500">No data</span>
@@ -23,76 +31,127 @@ export function PieChart({ data, size = 200 }: PieChartProps) {
     );
   }
 
-  let currentAngle = -90;
-  const slices = data.map((item) => {
-    const percentage = (item.value / total) * 100;
-    const angle = (item.value / total) * 360;
-    const startAngle = currentAngle;
-    const endAngle = currentAngle + angle;
-    currentAngle = endAngle;
+  const slices = sortedData.map((item) => {
+    const percentage = total > 0 ? (item.value / total) * 100 : 0;
+    return { ...item, percentage };
+  });
+  const safeActiveIndex = Math.min(activeIndex, Math.max(slices.length - 1, 0));
+  const activeSlice = slices[safeActiveIndex];
 
-    const startRad = (startAngle * Math.PI) / 180;
-    const endRad = (endAngle * Math.PI) / 180;
-    const radius = size / 2;
-    const centerX = radius;
-    const centerY = radius;
+  const chartSize = 120;
+  const center = 60;
+  const radius = 42;
+  const stroke = 18;
+  const gapSize = 1.5;
+  const circumference = 2 * Math.PI * radius;
 
-    const x1 = centerX + radius * Math.cos(startRad);
-    const y1 = centerY + radius * Math.sin(startRad);
-    const x2 = centerX + radius * Math.cos(endRad);
-    const y2 = centerY + radius * Math.sin(endRad);
-
-    const largeArcFlag = angle > 180 ? 1 : 0;
-
-    const pathData = [
-      `M ${centerX} ${centerY}`,
-      `L ${x1} ${y1}`,
-      `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-      'Z'
-    ].join(' ');
-
-    return {
-      ...item,
-      pathData,
-      percentage
-    };
+  let currentOffset = 0;
+  const ringSlices = slices.map((slice) => {
+    const rawLength = (slice.percentage / 100) * circumference;
+    const visibleLength = Math.max(0, rawLength - gapSize);
+    const dashArray = `${visibleLength} ${Math.max(circumference - visibleLength, 0)}`;
+    const dashOffset = -currentOffset;
+    currentOffset += rawLength;
+    return { ...slice, dashArray, dashOffset };
   });
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {slices.map((slice, index) => (
-          <path
-            key={index}
-            d={slice.pathData}
-            fill={slice.color}
-            stroke="white"
-            strokeWidth="2"
-            className="transition-opacity hover:opacity-80 cursor-pointer"
+    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-6">
+      <div className="relative mx-auto" style={{ width: size, height: size }}>
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${chartSize} ${chartSize}`}
+          className="drop-shadow-[0_8px_24px_rgba(37,99,235,0.18)]"
+        >
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={stroke}
+            className="text-slate-200/80 dark:text-slate-700/60"
           />
-        ))}
-      </svg>
-
-      <div className="w-full space-y-2">
-        {slices.map((slice, index) => (
-          <div key={index} className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-sm"
-                style={{ backgroundColor: slice.color }}
+          {ringSlices.map((slice, index) => {
+            const isActive = index === safeActiveIndex;
+            return (
+              <circle
+                key={slice.label}
+                cx={center}
+                cy={center}
+                r={radius}
+                fill="none"
+                stroke={slice.color}
+                strokeWidth={isActive ? stroke + 1.5 : stroke}
+                strokeLinecap="round"
+                strokeDasharray={slice.dashArray}
+                strokeDashoffset={slice.dashOffset}
+                transform={`rotate(-90 ${center} ${center})`}
+                className="cursor-pointer transition-all duration-300"
+                style={{ filter: isActive ? 'drop-shadow(0 0 8px rgba(59,130,246,0.45))' : 'none' }}
+                onMouseEnter={() => setActiveIndex(index)}
+                onFocus={() => setActiveIndex(index)}
               />
-              <span className="text-gray-700 dark:text-gray-300">{slice.label}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-600 dark:text-gray-400">
-                ₼{slice.value.toFixed(2)}
-              </span>
-              <span className="font-medium text-gray-900 dark:text-white min-w-[3rem] text-right">
-                {slice.percentage.toFixed(1)}%
-              </span>
-            </div>
-          </div>
-        ))}
+            );
+          })}
+        </svg>
+
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+            Top Category
+          </span>
+          <span className="mt-1 max-w-[70%] truncate text-sm font-semibold text-slate-900 dark:text-white">
+            {activeSlice.label}
+          </span>
+          <span className="mt-1 font-mono text-lg font-bold tabular-nums text-slate-900 dark:text-white">
+            ₼{activeSlice.value.toFixed(2)}
+          </span>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            {activeSlice.percentage.toFixed(1)}%
+          </span>
+        </div>
+      </div>
+
+      <div className="w-full space-y-1.5">
+        {slices.map((slice, index) => {
+          const isActive = index === safeActiveIndex;
+          return (
+            <button
+              key={slice.label}
+              type="button"
+              onMouseEnter={() => setActiveIndex(index)}
+              onFocus={() => setActiveIndex(index)}
+              onClick={() => setActiveIndex(index)}
+              className={`group flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition ${
+                isActive
+                  ? 'border-violet-400/45 bg-violet-500/10 shadow-[0_0_0_1px_rgba(139,92,246,0.28)]'
+                  : 'border-transparent hover:border-slate-200/80 hover:bg-slate-100/70 dark:hover:border-violet-500/20 dark:hover:bg-slate-800/40'
+              }`}
+            >
+              <div className="min-w-0">
+                <div className="mb-1 flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: slice.color }} />
+                  <span className="truncate text-sm text-slate-800 dark:text-slate-200">{slice.label}</span>
+                </div>
+                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${slice.percentage}%`, backgroundColor: slice.color }}
+                  />
+                </div>
+              </div>
+              <div className="ml-3 flex items-baseline gap-3">
+                <span className="font-mono text-sm tabular-nums text-slate-600 dark:text-slate-400">
+                  ₼{slice.value.toFixed(2)}
+                </span>
+                <span className="min-w-[3rem] text-right text-sm font-semibold text-slate-900 dark:text-white">
+                  {slice.percentage.toFixed(1)}%
+                </span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

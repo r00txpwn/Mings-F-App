@@ -3,14 +3,22 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ConfigCheck } from './ConfigCheck';
+import { PublicNotFound } from './PublicNotFound';
+import { assertAdminPathDoesNotCollide, isAdminPath, normalizePathname } from './lib/adminPath';
 import './index.css';
 
 const pathname = window.location.pathname;
+const pathNorm = normalizePathname(pathname);
+
+/** Admin and storefront are separate: no implicit redirect from `/` to `/order`. */
+void renderApp();
 
 async function renderApp() {
+  assertAdminPathDoesNotCollide();
+
   const root = createRoot(document.getElementById('root')!);
 
-  if (pathname === '/kiosk') {
+  if (pathNorm === '/kiosk') {
     const { KioskApp } = await import('./kiosk/KioskApp');
     root.render(
       <StrictMode>
@@ -21,7 +29,7 @@ async function renderApp() {
         </ConfigCheck>
       </StrictMode>
     );
-  } else if (pathname === '/kds') {
+  } else if (pathNorm === '/kds') {
     const { KitchenDisplay } = await import('./kds/KitchenDisplay');
     root.render(
       <StrictMode>
@@ -32,7 +40,29 @@ async function renderApp() {
         </ConfigCheck>
       </StrictMode>
     );
-  } else {
+  } else if (pathNorm === '/order') {
+    const { OrderApp } = await import('./order/OrderApp');
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <OrderApp />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+  } else if (pathNorm === '/track') {
+    const { TrackingApp } = await import('./order/TrackingApp');
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <TrackingApp />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+  } else if (isAdminPath(pathNorm)) {
     root.render(
       <StrictMode>
         <ConfigCheck>
@@ -42,7 +72,25 @@ async function renderApp() {
         </ConfigCheck>
       </StrictMode>
     );
+  } else if (pathNorm === '/') {
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <PublicNotFound />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+  } else {
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <PublicNotFound />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
   }
 }
-
-renderApp();

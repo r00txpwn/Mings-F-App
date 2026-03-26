@@ -1,7 +1,26 @@
-import { useState } from 'react';
-import { Home, ShoppingCart, Wallet, BarChart3, Settings, Menu, X, Package, Truck, Users, LogOut, DollarSign, Monitor, UtensilsCrossed, Banknote } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  Home,
+  ShoppingCart,
+  Wallet,
+  BarChart3,
+  Settings,
+  Menu,
+  X,
+  Package,
+  Truck,
+  Users,
+  LogOut,
+  DollarSign,
+  Monitor,
+  UtensilsCrossed,
+  Banknote,
+  Moon,
+  Sun,
+  Activity,
+} from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { HomeScreen } from './screens/HomeScreen';
 import { SalesScreen } from './screens/SalesScreen';
@@ -13,24 +32,98 @@ import { SuppliersScreen } from './screens/SuppliersScreen';
 import { UsersScreen } from './screens/UsersScreen';
 import { ExpensesScreen } from './screens/ExpensesScreen';
 import { LoginScreen } from './screens/LoginScreen';
+import { StaffAccessDeniedScreen } from './screens/StaffAccessDeniedScreen';
 import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 import { MenuScreen } from './screens/MenuScreen';
 import { PayoutsScreen } from './screens/PayoutsScreen';
 
-type Screen = 'home' | 'sales' | 'kiosk-orders' | 'menu-builder' | 'money' | 'reports' | 'products' | 'suppliers' | 'expenses' | 'payouts' | 'users' | 'settings';
+type Screen =
+  | 'home'
+  | 'sales'
+  | 'kiosk-orders'
+  | 'menu-builder'
+  | 'money'
+  | 'reports'
+  | 'products'
+  | 'suppliers'
+  | 'expenses'
+  | 'payouts'
+  | 'users'
+  | 'settings';
+
+const SCREEN_QUERY_KEY = 'screen';
+const DEFAULT_SCREEN: Screen = 'home';
+const ALL_SCREENS: Screen[] = [
+  'home',
+  'sales',
+  'kiosk-orders',
+  'menu-builder',
+  'money',
+  'reports',
+  'products',
+  'suppliers',
+  'expenses',
+  'payouts',
+  'users',
+  'settings',
+];
+
+function isScreen(value: string | null): value is Screen {
+  return Boolean(value) && ALL_SCREENS.includes(value as Screen);
+}
+
+function readScreenFromUrl(): Screen {
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get(SCREEN_QUERY_KEY);
+  return isScreen(raw) ? raw : DEFAULT_SCREEN;
+}
+
+function writeScreenToUrl(screen: Screen) {
+  const params = new URLSearchParams(window.location.search);
+  params.set(SCREEN_QUERY_KEY, screen);
+  const next = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+  window.history.pushState({}, '', next);
+}
 
 function AppContent() {
   const { t } = useLanguage();
-  const { user, loading, signOut } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const { theme, toggleTheme } = useTheme();
+  const { user, loading, signOut, isStaff } = useAuth();
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() => readScreenFromUrl());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isDark = theme === 'dark';
+
+  useEffect(() => {
+    const onPopState = () => {
+      setCurrentScreen(readScreenFromUrl());
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => {
+    const inUrl = readScreenFromUrl();
+    if (inUrl !== currentScreen) {
+      writeScreenToUrl(currentScreen);
+    }
+  }, [currentScreen]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div
+        className={`min-h-screen flex items-center justify-center font-sans ${
+          isDark ? 'neon-shell text-slate-100' : 'cockpit-bg-light text-slate-900'
+        }`}
+      >
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-300 border-t-gray-900 dark:border-gray-600 dark:border-t-gray-100 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+          <div className="relative mx-auto mb-6 h-14 w-14">
+            <div className="absolute inset-0 rounded-full border-2 border-cockpit-500/30" />
+            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-cockpit-400 border-r-cockpit-500/50" />
+            <Activity className="absolute inset-0 m-auto h-6 w-6 text-cockpit-400" />
+          </div>
+          <p className="text-sm font-medium tracking-wide text-slate-500 dark:text-slate-400">
+            Initializing cockpit…
+          </p>
         </div>
       </div>
     );
@@ -38,6 +131,10 @@ function AppContent() {
 
   if (!user) {
     return <LoginScreen />;
+  }
+
+  if (!isStaff) {
+    return <StaffAccessDeniedScreen />;
   }
 
   const renderScreen = () => {
@@ -77,113 +174,186 @@ function AppContent() {
   };
 
   const navItems: { id: Screen; icon: React.ReactNode; label: string }[] = [
-    { id: 'home', icon: <Home className="w-5 h-5" />, label: t.home },
-    { id: 'sales', icon: <ShoppingCart className="w-5 h-5" />, label: t.sales },
-    { id: 'kiosk-orders', icon: <Monitor className="w-5 h-5" />, label: t.kioskOrders },
-    { id: 'menu-builder', icon: <UtensilsCrossed className="w-5 h-5" />, label: t.menuBuilder },
-    { id: 'products', icon: <Package className="w-5 h-5" />, label: t.products },
-    { id: 'suppliers', icon: <Truck className="w-5 h-5" />, label: t.suppliers },
-    { id: 'expenses', icon: <DollarSign className="w-5 h-5" />, label: 'Expenses' },
-    { id: 'payouts', icon: <Banknote className="w-5 h-5" />, label: t.payouts },
-    { id: 'money', icon: <Wallet className="w-5 h-5" />, label: t.money },
-    { id: 'reports', icon: <BarChart3 className="w-5 h-5" />, label: t.reports },
-    { id: 'users', icon: <Users className="w-5 h-5" />, label: t.users },
-    { id: 'settings', icon: <Settings className="w-5 h-5" />, label: t.more },
+    { id: 'home', icon: <Home className="h-5 w-5 shrink-0" />, label: t.home },
+    { id: 'sales', icon: <ShoppingCart className="h-5 w-5 shrink-0" />, label: t.sales },
+    { id: 'kiosk-orders', icon: <Monitor className="h-5 w-5 shrink-0" />, label: t.kioskOrders },
+    { id: 'menu-builder', icon: <UtensilsCrossed className="h-5 w-5 shrink-0" />, label: t.menuBuilder },
+    { id: 'products', icon: <Package className="h-5 w-5 shrink-0" />, label: t.products },
+    { id: 'suppliers', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.suppliers },
+    { id: 'expenses', icon: <DollarSign className="h-5 w-5 shrink-0" />, label: 'Expenses' },
+    { id: 'payouts', icon: <Banknote className="h-5 w-5 shrink-0" />, label: t.payouts },
+    { id: 'money', icon: <Wallet className="h-5 w-5 shrink-0" />, label: t.money },
+    { id: 'reports', icon: <BarChart3 className="h-5 w-5 shrink-0" />, label: t.reports },
+    { id: 'users', icon: <Users className="h-5 w-5 shrink-0" />, label: t.users },
+    { id: 'settings', icon: <Settings className="h-5 w-5 shrink-0" />, label: t.more },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div
+      className={`min-h-screen font-sans transition-colors ${
+        isDark ? 'neon-shell text-slate-100' : 'cockpit-bg-light text-slate-900'
+      }`}
+    >
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40 lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
+          aria-hidden
         />
       )}
 
-      <aside className={`
-        w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 min-h-screen fixed left-0 top-0 z-50
-        transform transition-transform duration-200 ease-out
+      <aside
+        className={`
+        fixed left-0 top-0 z-50 flex min-h-screen w-[17rem] flex-col border-r transition-transform duration-200 ease-out
+        ${isDark ? 'border-violet-500/20 bg-slate-950/90 shadow-neon backdrop-blur-xl' : 'border-slate-200 bg-white/95 shadow-xl backdrop-blur-xl'}
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-gray-900 dark:bg-gray-700 p-2.5 rounded-lg">
-                <BarChart3 className="w-6 h-6 text-white" />
+      `}
+      >
+        <div
+          className={`border-b px-5 py-5 ${isDark ? 'border-white/5' : 'border-slate-100'}`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                  isDark
+                    ? 'bg-gradient-to-br from-cockpit-500 to-cockpit-700 shadow-lg shadow-cockpit-500/25'
+                    : 'bg-slate-900 text-white shadow-lg'
+                }`}
+              >
+                <BarChart3 className="h-6 w-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Business</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Manager</p>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cockpit-500 dark:text-cockpit-400">
+                  Ops
+                </p>
+                <h1 className="truncate text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                  Command Center
+                </h1>
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="lg:hidden text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-white/5 dark:hover:text-slate-200 lg:hidden"
+              aria-label="Close menu"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        <nav className="p-3 flex flex-col h-[calc(100vh-100px)]">
-          <div className="space-y-1">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
-                  currentScreen === item.id
-                    ? 'bg-gray-900 dark:bg-gray-700 text-white'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                }`}
-              >
-                <div className="transition-transform">
-                  {item.icon}
-                </div>
-                <span className="text-sm font-medium">{item.label}</span>
-              </button>
-            ))}
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+          <div className="space-y-0.5">
+            {navItems.map((item) => {
+              const active = currentScreen === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleNavClick(item.id)}
+                  className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all ${
+                    active
+                      ? isDark
+                        ? 'bg-violet-500/20 text-white shadow-inner ring-1 ring-violet-400/35'
+                        : 'bg-slate-900 text-white shadow-md'
+                      : isDark
+                        ? 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  {active && (
+                    <span
+                      className={`absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full ${
+                        isDark ? 'bg-violet-400 shadow-[0_0_14px_rgba(139,92,246,0.7)]' : 'bg-cockpit-500'
+                      }`}
+                    />
+                  )}
+                  <span
+                    className={
+                      active
+                        ? isDark
+                          ? 'text-violet-200'
+                          : 'text-white'
+                        : 'text-slate-500 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300'
+                    }
+                  >
+                    {item.icon}
+                  </span>
+                  <span className="truncate">{item.label}</span>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="mt-auto pt-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="mb-3 px-3">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Signed in as</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user?.email}</p>
+          <div className={`mt-auto space-y-2 border-t pt-3 ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                isDark
+                  ? 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {isDark ? 'Light mode' : 'Dark mode'}
+            </button>
+            <div
+              className={`rounded-lg border px-3 py-2 ${
+                isDark
+                  ? 'border-white/10 bg-slate-900/80'
+                  : 'border-slate-200 bg-slate-50'
+              }`}
+            >
+              <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Signed in</p>
+              <p
+                className={`truncate text-xs font-medium ${isDark ? 'text-slate-100' : 'text-slate-900'}`}
+              >
+                {user?.email}
+              </p>
             </div>
             <button
+              type="button"
               onClick={() => signOut()}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-rose-500 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
             >
-              <LogOut className="w-5 h-5" />
-              <span className="text-sm font-medium">Sign Out</span>
+              <LogOut className="h-5 w-5 shrink-0" />
+              Sign out
             </button>
           </div>
         </nav>
       </aside>
 
-      <div className="lg:ml-64 flex-1">
-        <header className="lg:hidden sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between p-4">
+      <div className="flex min-h-screen flex-1 flex-col lg:pl-[17rem]">
+        <header
+          className={`sticky top-0 z-30 border-b backdrop-blur-md lg:hidden ${
+            isDark ? 'border-white/5 bg-slate-950/80' : 'border-slate-200 bg-white/90'
+          }`}
+        >
+          <div className="flex items-center justify-between px-4 py-3">
             <button
+              type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="text-gray-600 dark:text-gray-300"
+              className="rounded-lg p-2 text-slate-600 dark:text-slate-300"
+              aria-label="Open menu"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="h-6 w-6" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="bg-gray-900 dark:bg-gray-700 p-2 rounded-lg">
-                <BarChart3 className="w-5 h-5 text-white" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-cockpit-500 to-cockpit-700 shadow-md">
+                <BarChart3 className="h-5 w-5 text-white" />
               </div>
-              <h1 className="text-base font-semibold text-gray-900 dark:text-white">Business Manager</h1>
+              <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
+                Command Center
+              </span>
             </div>
-            <div className="w-6" />
+            <div className="w-10" />
           </div>
         </header>
 
-        <main className="p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            {renderScreen()}
-          </div>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <div className="mx-auto max-w-[1600px]">{renderScreen()}</div>
         </main>
       </div>
     </div>
