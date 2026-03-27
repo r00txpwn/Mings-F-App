@@ -13,3 +13,5 @@ Runs `npm run build` then `vite preview` on **127.0.0.1**. Default port is **417
 ## Deploy
 
 See **[DEPLOY.md](DEPLOY.md)** for Vercel/Netlify/Supabase CLI steps. Production build: `npm run build` → `dist/`.
+
+_Deploy trigger note: this commit contains no functional app changes._
