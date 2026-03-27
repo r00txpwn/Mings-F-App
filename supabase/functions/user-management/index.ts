@@ -94,20 +94,35 @@ Deno.serve(async (req: Request) => {
     })();
 
     if (req.method === 'GET' && path === '/list') {
-      const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
+      const perPage = 200;
+      const allUsers: unknown[] = [];
+      let page = 1;
 
-      if (error) {
-        return new Response(
-          JSON.stringify({ error: error.message }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
+      while (true) {
+        const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+
+        if (error) {
+          return new Response(
+            JSON.stringify({ error: error.message }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
+        const users = data?.users ?? [];
+        allUsers.push(...users);
+
+        if (users.length < perPage) {
+          break;
+        }
+
+        page += 1;
       }
 
       return new Response(
-        JSON.stringify({ users }),
+        JSON.stringify({ users: allUsers }),
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

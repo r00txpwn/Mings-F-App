@@ -38,23 +38,34 @@ export function UsersScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/list`;
-    const response = await fetch(apiUrl, {
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/list?_ts=${Date.now()}`;
+    try {
+      const response = await fetch(apiUrl, {
+        cache: 'no-store',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-    const result = await response.json();
-    if (Array.isArray(result.users)) {
-      const mapped = (result.users as UserManagementUser[]).map((u) => ({
-        id: u.id,
-        email: u.email || '',
-        created_at: u.created_at,
-        last_sign_in_at: u.last_sign_in_at,
-      }));
-      setUsers(mapped);
+      const result = await response.json();
+      if (!response.ok) {
+        setError(result.error || 'Failed to load users');
+        return;
+      }
+
+      if (Array.isArray(result.users)) {
+        const mapped = (result.users as UserManagementUser[]).map((u) => ({
+          id: u.id,
+          email: u.email || '',
+          created_at: u.created_at,
+          last_sign_in_at: u.last_sign_in_at,
+        }));
+        mapped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setUsers(mapped);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load users');
     }
   };
 
@@ -103,12 +114,22 @@ export function UsersScreen() {
     if (result.error) {
       setError(result.error);
     } else {
+      if (result.user?.id) {
+        const createdUser: User = {
+          id: result.user.id,
+          email: result.user.email || email,
+          created_at: result.user.created_at || new Date().toISOString(),
+          last_sign_in_at: result.user.last_sign_in_at,
+        };
+        setUsers((prev) => [createdUser, ...prev.filter((u) => u.id !== createdUser.id)]);
+      }
       setSuccess(t.userCreated);
       setEmail('');
       setPassword('');
       setConfirmPassword('');
       setRole('staff');
       setShowForm(false);
+      loadUsers();
       setTimeout(() => {
         setSuccess('');
         loadUsers();
