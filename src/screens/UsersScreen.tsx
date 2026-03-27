@@ -48,9 +48,17 @@ export function UsersScreen() {
         },
       });
 
-      const result = await response.json();
+      const raw = await response.text();
+      let result: { error?: string; users?: UserManagementUser[] } = {};
+      try {
+        result = raw ? JSON.parse(raw) : {};
+      } catch {
+        result = {};
+      }
+
       if (!response.ok) {
-        setError(result.error || 'Failed to load users');
+        const details = result.error || raw || `HTTP ${response.status}`;
+        setError(`Failed to load users: ${details}`);
         return;
       }
 

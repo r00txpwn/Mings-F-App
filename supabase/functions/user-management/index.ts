@@ -94,36 +94,20 @@ Deno.serve(async (req: Request) => {
     })();
 
     if (req.method === 'GET' && path === '/list') {
-      // GoTrue pagination is safest at 100/page across hosted environments.
-      const perPage = 100;
-      const allUsers: unknown[] = [];
-      let page = 1;
+      const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
 
-      while (true) {
-        const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
-
-        if (error) {
-          return new Response(
-            JSON.stringify({ error: error.message }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          );
-        }
-
-        const users = Array.isArray(data?.users) ? data.users : [];
-        allUsers.push(...users);
-
-        if (users.length < perPage) {
-          break;
-        }
-
-        page += 1;
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
 
       return new Response(
-        JSON.stringify({ users: allUsers }),
+        JSON.stringify({ users }),
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -237,8 +221,9 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
