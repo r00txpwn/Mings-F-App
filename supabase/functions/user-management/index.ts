@@ -94,7 +94,8 @@ Deno.serve(async (req: Request) => {
     })();
 
     if (req.method === 'GET' && path === '/list') {
-      const perPage = 200;
+      // GoTrue pagination is safest at 100/page across hosted environments.
+      const perPage = 100;
       const allUsers: unknown[] = [];
       let page = 1;
 
@@ -111,7 +112,7 @@ Deno.serve(async (req: Request) => {
           );
         }
 
-        const users = data?.users ?? [];
+        const users = Array.isArray(data?.users) ? data.users : [];
         allUsers.push(...users);
 
         if (users.length < perPage) {
