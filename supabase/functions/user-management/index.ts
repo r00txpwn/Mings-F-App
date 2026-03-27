@@ -106,8 +106,13 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      const visibleUsers = (users ?? []).filter((u) => {
+        const email = typeof u.email === 'string' ? u.email : '';
+        return email.includes('@');
+      });
+
       return new Response(
-        JSON.stringify({ users }),
+        JSON.stringify({ users: visibleUsers }),
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -192,6 +197,23 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      // Remove app profile row first to avoid foreign-key related auth deletion failures.
+      const { error: profileDeleteError } = await supabaseAdmin
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (profileDeleteError) {
+        return new Response(
+          JSON.stringify({ error: `Failed to delete staff profile: ${profileDeleteError.message}` }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      // Perform hard delete after profile cleanup.
       const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
       if (error) {

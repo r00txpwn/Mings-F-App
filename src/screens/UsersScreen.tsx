@@ -34,16 +34,30 @@ export function UsersScreen() {
     loadUsers();
   }, []);
 
-  const loadUsers = async () => {
+  const getAccessToken = async (): Promise<string | null> => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (session?.access_token) {
+      return session.access_token;
+    }
 
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    return refreshed.session?.access_token ?? null;
+  };
+
+  const loadUsers = async (hasRetried = false) => {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      setError(t.notAuthenticated);
+      return;
+    }
+
+    setError('');
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/list?_ts=${Date.now()}`;
     try {
       const response = await fetch(apiUrl, {
         cache: 'no-store',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
       });
@@ -58,6 +72,11 @@ export function UsersScreen() {
 
       if (!response.ok) {
         const details = result.error || raw || `HTTP ${response.status}`;
+        if (!hasRetried && response.status === 401 && details.includes('Invalid JWT')) {
+          await supabase.auth.refreshSession();
+          await loadUsers(true);
+          return;
+        }
         setError(`Failed to load users: ${details}`);
         return;
       }
@@ -99,8 +118,8 @@ export function UsersScreen() {
 
     setLoading(true);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
       setError(t.notAuthenticated);
       setLoading(false);
       return;
@@ -110,7 +129,7 @@ export function UsersScreen() {
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${session.access_token}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, password, role }),
@@ -150,8 +169,8 @@ export function UsersScreen() {
       return;
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
       setError(t.notAuthenticated);
       return;
     }
@@ -160,7 +179,7 @@ export function UsersScreen() {
     const response = await fetch(apiUrl, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${session.access_token}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
     });

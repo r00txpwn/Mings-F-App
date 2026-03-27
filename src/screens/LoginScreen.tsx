@@ -1,7 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Lock, Mail, AlertCircle, Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import {
+  clearLoginFailures,
+  formatLockout,
+  getLockRemainingMs,
+  registerLoginFailure,
+} from '../lib/loginRateLimit';
 
 export function LoginScreen() {
   const { signIn } = useAuth();
@@ -10,6 +16,24 @@ export function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [lockRemainingMs, setLockRemainingMs] = useState(0);
+
+  useEffect(() => {
+    const next = getLockRemainingMs(email);
+    setLockRemainingMs(next);
+  }, [email]);
+
+  useEffect(() => {
+    if (lockRemainingMs <= 0) return;
+    const timer = window.setInterval(() => {
+      const next = getLockRemainingMs(email);
+      setLockRemainingMs(next);
+      if (next <= 0) {
+        window.clearInterval(timer);
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [email, lockRemainingMs]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,12 +55,39 @@ export function LoginScreen() {
       return;
     }
 
+    const remaining = getLockRemainingMs(nextEmail);
+    if (remaining > 0) {
+      setLockRemainingMs(remaining);
+      setError(`Too many failed attempts. Try again in ${formatLockout(remaining)}.`);
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await signIn(nextEmail, nextPassword);
 
     if (error) {
-      setError(error.message);
+      const message = error.message || 'Sign in failed';
+      const normalized = message.toLowerCase();
+      const isCredentialFailure =
+        normalized.includes('invalid login credentials') ||
+        normalized.includes('email not confirmed') ||
+        normalized.includes('invalid credentials');
+
+      if (isCredentialFailure) {
+        const nextRemaining = registerLoginFailure(nextEmail);
+        if (nextRemaining > 0) {
+          setLockRemainingMs(nextRemaining);
+          setError(`Too many failed attempts. Try again in ${formatLockout(nextRemaining)}.`);
+        } else {
+          setError(message);
+        }
+      } else {
+        setError(message);
+      }
+    } else {
+      clearLoginFailures(nextEmail);
+      setLockRemainingMs(0);
     }
     setLoading(false);
   };
@@ -71,6 +122,15 @@ export function LoginScreen() {
               <div className="mb-6 flex items-start gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-rose-100">
                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-400" />
                 <p className="text-sm">{error}</p>
+              </div>
+            )}
+
+            {lockRemainingMs > 0 && !error && (
+              <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-amber-100">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+                <p className="text-sm">
+                  Too many failed attempts. Try again in {formatLockout(lockRemainingMs)}.
+                </p>
               </div>
             )}
 
@@ -113,10 +173,10 @@ export function LoginScreen() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || lockRemainingMs > 0}
                 className="w-full rounded-xl bg-gradient-to-r from-cockpit-600 to-cockpit-700 py-3.5 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-cockpit-500/25 transition hover:from-cockpit-500 hover:to-cockpit-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {loading ? t.pleaseWait : t.signIn}
+                {loading ? t.pleaseWait : lockRemainingMs > 0 ? 'Temporarily locked' : t.signIn}
               </button>
             </form>
           </div>
