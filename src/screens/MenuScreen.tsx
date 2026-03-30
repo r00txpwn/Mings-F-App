@@ -151,7 +151,7 @@ export function MenuScreen() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        eyebrow="Kiosk menu"
+        eyebrow={t.menuBuilder}
         title={t.menuBuilder}
         description={t.manageMenu}
         icon={UtensilsCrossed}

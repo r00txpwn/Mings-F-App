@@ -7,6 +7,13 @@ export interface Translations {
   money: string;
   reports: string;
   more: string;
+  commandCenter: string;
+  signedIn: string;
+  system: string;
+  inventory: string;
+  procurement: string;
+  finance: string;
+  operations: string;
 
   // Common
   save: string;
@@ -37,9 +44,24 @@ export interface Translations {
   overview: string;
   period: string;
   today: string;
+  yesterday: string;
+  thisWeek: string;
   week: string;
   month: string;
   custom: string;
+  last7Days: string;
+  sevenDay: string;
+  last30Days: string;
+  monthToDate: string;
+  quarterToDate: string;
+  liveMetrics: string;
+  sevenDayVsPriorSevenDay: string;
+  revenueMomentumLast14Days: string;
+  noTrendData: string;
+  profitabilitySignal: string;
+  profitabilityWarning: string;
+  operatingProfitPositiveMessage: string;
+  operatingProfitNegativeMessage: string;
   startDate: string;
   endDate: string;
   orders: string;
@@ -60,6 +82,9 @@ export interface Translations {
   numberOfOrders: string;
   transactionDate: string;
   deleteSaleConfirm: string;
+  /** Add Sale: only partner channels; kiosk/online are app-generated */
+  salesManualEntryHint: string;
+  salesNoManualChannelsConfigured: string;
 
   // Income/Expense
   addIncome: string;
@@ -70,6 +95,7 @@ export interface Translations {
   date: string;
   income: string;
   expense: string;
+  expenses: string;
   operationalExpenses: string;
   netProfit: string;
   paymentMethod: string;
@@ -426,6 +452,35 @@ export interface Translations {
   payoutAmount: string;
   payoutDate: string;
   grossSales: string;
+  netRevenueLabel: string;
+  operatingProfitLabel: string;
+  grossMarginLabel: string;
+  revenueLabel: string;
+  operationalExpenseLabel: string;
+  purchaseCostLabel: string;
+  revenueVsCostsTrend: string;
+  expenseComposition: string;
+  payoutReconciliation: string;
+  expected: string;
+  actual: string;
+  difference: string;
+  matched: string;
+  mismatched: string;
+  weatherUnavailable: string;
+  cached: string;
+  clear: string;
+  cloudy: string;
+  fog: string;
+  rain: string;
+  snow: string;
+  storm: string;
+  mixed: string;
+  noDataForPeriod: string;
+  noTransactionsInPeriod: string;
+  noItemsFound: string;
+  searchExpenseItems: string;
+  searchItems: string;
+  addPurchase: string;
   commission: string;
   commissionRate: string;
   noPayoutsYet: string;
@@ -519,6 +574,13 @@ export const translations: Record<Language, Translations> = {
     money: 'Money',
     reports: 'Reports',
     more: 'More',
+    commandCenter: 'Command Center',
+    signedIn: 'Signed in',
+    system: 'System',
+    inventory: 'Inventory',
+    procurement: 'Procurement',
+    finance: 'Finance',
+    operations: 'Operations',
 
     save: 'Save',
     cancel: 'Cancel',
@@ -547,9 +609,24 @@ export const translations: Record<Language, Translations> = {
     overview: 'Overview and insights',
     period: 'Period',
     today: 'Today',
+    yesterday: 'Yesterday',
+    thisWeek: 'This week',
     week: 'Week',
     month: 'Month',
     custom: 'Custom',
+    last7Days: 'Last 7 Days',
+    sevenDay: '7-day',
+    last30Days: 'Last 30 Days',
+    monthToDate: 'Month to Date',
+    quarterToDate: 'Quarter to Date',
+    liveMetrics: 'Live metrics',
+    sevenDayVsPriorSevenDay: '7D vs prior 7D',
+    revenueMomentumLast14Days: 'Revenue momentum (last 14 days)',
+    noTrendData: 'No trend data',
+    profitabilitySignal: 'Profitability signal',
+    profitabilityWarning: 'Profitability warning',
+    operatingProfitPositiveMessage: 'Operating profit is positive at {profit} with an average order value of {aov}.',
+    operatingProfitNegativeMessage: 'Operating profit is negative at {profit}. Monitor COGS and operational expenses against sales momentum.',
     startDate: 'Start Date',
     endDate: 'End Date',
     orders: 'Orders',
@@ -567,6 +644,10 @@ export const translations: Record<Language, Translations> = {
     numberOfOrders: 'Number of Orders',
     transactionDate: 'Transaction Date',
     deleteSaleConfirm: 'Are you sure you want to delete this sale?',
+    salesManualEntryHint:
+      'Manual entry is for partner channels (Wolt, Bolt, ChoiceQR). Kiosk and web orders are created automatically by the app.',
+    salesNoManualChannelsConfigured:
+      'No partner channels available. Add or activate Wolt, Bolt, and ChoiceQR under Settings → Sales channels.',
 
     addIncome: 'Add Income',
     addExpense: 'Add Expense',
@@ -576,6 +657,7 @@ export const translations: Record<Language, Translations> = {
     date: 'Date',
     income: 'Income',
     expense: 'Expense',
+    expenses: 'Expenses',
     operationalExpenses: 'Operational Expenses',
     netProfit: 'Net Profit',
     paymentMethod: 'Payment Method',
@@ -915,6 +997,35 @@ export const translations: Record<Language, Translations> = {
     payoutAmount: 'Payout Amount',
     payoutDate: 'Payout Date',
     grossSales: 'Gross Sales',
+    netRevenueLabel: 'Net Revenue',
+    operatingProfitLabel: 'Operating Profit',
+    grossMarginLabel: 'Gross Margin',
+    revenueLabel: 'Revenue',
+    operationalExpenseLabel: 'Operational Expense',
+    purchaseCostLabel: 'Purchase Cost',
+    revenueVsCostsTrend: 'Revenue vs Costs Trend',
+    expenseComposition: 'Expense Composition',
+    payoutReconciliation: 'Payout Reconciliation',
+    expected: 'Expected',
+    actual: 'Actual',
+    difference: 'Difference',
+    matched: 'Matched',
+    mismatched: 'Mismatched',
+    weatherUnavailable: 'Weather unavailable',
+    cached: 'cached',
+    clear: 'Clear',
+    cloudy: 'Cloudy',
+    fog: 'Fog',
+    rain: 'Rain',
+    snow: 'Snow',
+    storm: 'Storm',
+    mixed: 'Mixed',
+    noDataForPeriod: 'No data for this period',
+    noTransactionsInPeriod: 'No transactions in this period',
+    noItemsFound: 'No items found',
+    searchExpenseItems: 'Search expense items...',
+    searchItems: 'Search items...',
+    addPurchase: 'Add Purchase',
     commission: 'Commission',
     commissionRate: 'Commission Rate',
     noPayoutsYet: 'No payouts recorded yet',
@@ -1007,6 +1118,13 @@ export const translations: Record<Language, Translations> = {
     money: 'Pul',
     reports: 'Hesabatlar',
     more: 'Daha çox',
+    commandCenter: 'Komanda Mərkəzi',
+    signedIn: 'Daxil olub',
+    system: 'Sistem',
+    inventory: 'Anbar',
+    procurement: 'Təchizat',
+    finance: 'Maliyyə',
+    operations: 'Əməliyyatlar',
 
     save: 'Yadda saxla',
     cancel: 'Ləğv et',
@@ -1035,9 +1153,24 @@ export const translations: Record<Language, Translations> = {
     overview: 'İcmal və statistika',
     period: 'Dövr',
     today: 'Bu gün',
+    yesterday: 'Dünən',
+    thisWeek: 'Bu həftə',
     week: 'Həftə',
     month: 'Ay',
     custom: 'Xüsusi',
+    last7Days: 'Son 7 gün',
+    sevenDay: '7 günlük',
+    last30Days: 'Son 30 gün',
+    monthToDate: 'Ayın əvvəlindən',
+    quarterToDate: 'Rübün əvvəlindən',
+    liveMetrics: 'Canlı metriklər',
+    sevenDayVsPriorSevenDay: 'Son 7 gün və əvvəlki 7 gün',
+    revenueMomentumLast14Days: 'Gəlir dinamikası (son 14 gün)',
+    noTrendData: 'Trend məlumatı yoxdur',
+    profitabilitySignal: 'Mənfəətlilik siqnalı',
+    profitabilityWarning: 'Mənfəətlilik xəbərdarlığı',
+    operatingProfitPositiveMessage: 'Əməliyyat mənfəəti {profit} səviyyəsində müsbətdir, orta sifariş dəyəri isə {aov}-dir.',
+    operatingProfitNegativeMessage: 'Əməliyyat mənfəəti {profit} səviyyəsində mənfidir. Maya dəyəri və əməliyyat xərclərini satış dinamikasına qarşı izləyin.',
     startDate: 'Başlama Tarixi',
     endDate: 'Bitmə Tarixi',
     orders: 'Sifarişlər',
@@ -1055,6 +1188,10 @@ export const translations: Record<Language, Translations> = {
     numberOfOrders: 'Sifarişlərin Sayı',
     transactionDate: 'Əməliyyat Tarixi',
     deleteSaleConfirm: 'Bu satışı silmək istədiyinizə əminsiniz?',
+    salesManualEntryHint:
+      'Əl ilə daxil etmə yalnız tərəfdaş kanalları üçündür (Wolt, Bolt, ChoiceQR). Kiosk və veb sifarişlər tətbiq tərəfindən avtomatik yaradılır.',
+    salesNoManualChannelsConfigured:
+      'Tərəfdaş kanalı yoxdur. Tənzimləmələr → Satış kanallarında Wolt, Bolt və ChoiceQR əlavə edin və ya aktiv edin.',
 
     addIncome: 'Gəlir əlavə et',
     addExpense: 'Xərc əlavə et',
@@ -1064,6 +1201,7 @@ export const translations: Record<Language, Translations> = {
     date: 'Tarix',
     income: 'Gəlir',
     expense: 'Xərc',
+    expenses: 'Xərclər',
     operationalExpenses: 'Əməliyyat Xərcləri',
     netProfit: 'Xalis Mənfəət',
     paymentMethod: 'Ödəmə Üsulu',
@@ -1403,6 +1541,35 @@ export const translations: Record<Language, Translations> = {
     payoutAmount: 'Ödəniş Məbləği',
     payoutDate: 'Ödəniş Tarixi',
     grossSales: 'Ümumi Satış',
+    netRevenueLabel: 'Xalis Gəlir',
+    operatingProfitLabel: 'Əməliyyat Mənfəəti',
+    grossMarginLabel: 'Ümumi Marja',
+    revenueLabel: 'Gəlir',
+    operationalExpenseLabel: 'Əməliyyat Xərci',
+    purchaseCostLabel: 'Alış Dəyəri',
+    revenueVsCostsTrend: 'Gəlir və Xərc Trendi',
+    expenseComposition: 'Xərc Tərkibi',
+    payoutReconciliation: 'Ödəniş Uzlaşdırması',
+    expected: 'Gözlənilən',
+    actual: 'Faktiki',
+    difference: 'Fərq',
+    matched: 'Uyğun',
+    mismatched: 'Uyğunsuz',
+    weatherUnavailable: 'Hava məlumatı mövcud deyil',
+    cached: 'keş',
+    clear: 'Açıq',
+    cloudy: 'Buludlu',
+    fog: 'Duman',
+    rain: 'Yağış',
+    snow: 'Qar',
+    storm: 'Fırtına',
+    mixed: 'Qarışıq',
+    noDataForPeriod: 'Bu dövr üçün məlumat yoxdur',
+    noTransactionsInPeriod: 'Bu dövrdə əməliyyat yoxdur',
+    noItemsFound: 'Maddə tapılmadı',
+    searchExpenseItems: 'Xərc maddələrini axtar...',
+    searchItems: 'Maddələri axtar...',
+    addPurchase: 'Alış əlavə et',
     commission: 'Komissiya',
     commissionRate: 'Komissiya Dərəcəsi',
     noPayoutsYet: 'Hələ ödəniş qeydə alınmayıb',
@@ -1495,6 +1662,13 @@ export const translations: Record<Language, Translations> = {
     money: 'Деньги',
     reports: 'Отчёты',
     more: 'Ещё',
+    commandCenter: 'Командный Центр',
+    signedIn: 'Выполнен вход',
+    system: 'Система',
+    inventory: 'Инвентарь',
+    procurement: 'Снабжение',
+    finance: 'Финансы',
+    operations: 'Операции',
 
     save: 'Сохранить',
     cancel: 'Отмена',
@@ -1523,9 +1697,24 @@ export const translations: Record<Language, Translations> = {
     overview: 'Обзор и статистика',
     period: 'Период',
     today: 'Сегодня',
+    yesterday: 'Вчера',
+    thisWeek: 'Эта неделя',
     week: 'Неделя',
     month: 'Месяц',
     custom: 'Настраиваемый',
+    last7Days: 'Последние 7 дней',
+    sevenDay: '7 дней',
+    last30Days: 'Последние 30 дней',
+    monthToDate: 'С начала месяца',
+    quarterToDate: 'С начала квартала',
+    liveMetrics: 'Живые метрики',
+    sevenDayVsPriorSevenDay: '7 дней против предыдущих 7 дней',
+    revenueMomentumLast14Days: 'Динамика выручки (последние 14 дней)',
+    noTrendData: 'Нет данных по тренду',
+    profitabilitySignal: 'Сигнал прибыльности',
+    profitabilityWarning: 'Предупреждение о прибыльности',
+    operatingProfitPositiveMessage: 'Операционная прибыль положительная: {profit}, при среднем чеке {aov}.',
+    operatingProfitNegativeMessage: 'Операционная прибыль отрицательная: {profit}. Отслеживайте себестоимость и операционные расходы относительно динамики продаж.',
     startDate: 'Дата начала',
     endDate: 'Дата окончания',
     orders: 'Заказы',
@@ -1543,6 +1732,10 @@ export const translations: Record<Language, Translations> = {
     numberOfOrders: 'Количество Заказов',
     transactionDate: 'Дата Транзакции',
     deleteSaleConfirm: 'Вы уверены, что хотите удалить эту продажу?',
+    salesManualEntryHint:
+      'Ручной ввод только для партнёрских каналов (Wolt, Bolt, ChoiceQR). Заказы киоска и веб создаются приложением автоматически.',
+    salesNoManualChannelsConfigured:
+      'Нет доступных партнёрских каналов. Добавьте или включите Wolt, Bolt и ChoiceQR в Настройки → Каналы продаж.',
 
     addIncome: 'Добавить доход',
     addExpense: 'Добавить расход',
@@ -1552,6 +1745,7 @@ export const translations: Record<Language, Translations> = {
     date: 'Дата',
     income: 'Доход',
     expense: 'Расход',
+    expenses: 'Расходы',
     operationalExpenses: 'Операционные Расходы',
     netProfit: 'Чистая Прибыль',
     paymentMethod: 'Способ Оплаты',
@@ -1891,6 +2085,35 @@ export const translations: Record<Language, Translations> = {
     payoutAmount: 'Сумма Выплаты',
     payoutDate: 'Дата Выплаты',
     grossSales: 'Валовые Продажи',
+    netRevenueLabel: 'Чистая Выручка',
+    operatingProfitLabel: 'Операционная Прибыль',
+    grossMarginLabel: 'Валовая Маржа',
+    revenueLabel: 'Выручка',
+    operationalExpenseLabel: 'Операционные Расходы',
+    purchaseCostLabel: 'Закупочная Стоимость',
+    revenueVsCostsTrend: 'Тренд выручки и затрат',
+    expenseComposition: 'Структура расходов',
+    payoutReconciliation: 'Сверка выплат',
+    expected: 'Ожидаемо',
+    actual: 'Фактически',
+    difference: 'Разница',
+    matched: 'Совпало',
+    mismatched: 'Не совпало',
+    weatherUnavailable: 'Погода недоступна',
+    cached: 'кэш',
+    clear: 'Ясно',
+    cloudy: 'Облачно',
+    fog: 'Туман',
+    rain: 'Дождь',
+    snow: 'Снег',
+    storm: 'Шторм',
+    mixed: 'Смешано',
+    noDataForPeriod: 'Нет данных за этот период',
+    noTransactionsInPeriod: 'Нет операций за этот период',
+    noItemsFound: 'Элементы не найдены',
+    searchExpenseItems: 'Поиск статей расхода...',
+    searchItems: 'Поиск элементов...',
+    addPurchase: 'Добавить закупку',
     commission: 'Комиссия',
     commissionRate: 'Ставка Комиссии',
     noPayoutsYet: 'Выплат пока нет',

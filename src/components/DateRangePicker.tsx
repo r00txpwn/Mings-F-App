@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface DateRangePickerProps {
   startDate: string;
@@ -64,6 +65,7 @@ export function DateRangePicker({
   endLabel,
   quickRanges = true,
 }: DateRangePickerProps) {
+  const { t } = useLanguage();
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -343,7 +345,7 @@ export function DateRangePicker({
                     }}
                     className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
                   >
-                    Today
+                    {t.today}
                   </button>
                   <button
                     type="button"
@@ -354,7 +356,7 @@ export function DateRangePicker({
                     }}
                     className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
                   >
-                    Yesterday
+                    {t.yesterday}
                   </button>
                   <button
                     type="button"
@@ -365,7 +367,7 @@ export function DateRangePicker({
                     }}
                     className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
                   >
-                    This week
+                    {t.thisWeek}
                   </button>
                   </div>
                 )}

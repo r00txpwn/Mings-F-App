@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Lock, Mail, AlertCircle, Activity } from 'lucide-react';
+import { Lock, Mail, AlertCircle } from 'lucide-react';
+import { MingsWordmark } from '../components/MingsWordmark';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
@@ -107,11 +108,13 @@ export function LoginScreen() {
       <div className="relative w-full max-w-md">
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-cockpit-glow backdrop-blur-xl">
           <div className="border-b border-white/5 bg-gradient-to-r from-cockpit-950/50 to-transparent px-8 py-8">
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cockpit-500 to-cockpit-700 shadow-lg shadow-cockpit-500/30">
-              <Activity className="h-7 w-7 text-white" />
+            <div className="mb-6 flex justify-center">
+              <div className="rounded-2xl bg-black px-6 py-4 shadow-lg shadow-black/50 ring-1 ring-white/10">
+                <MingsWordmark className="mx-auto h-12 w-auto max-w-[220px] object-contain object-center" />
+              </div>
             </div>
             <p className="text-center text-[10px] font-bold uppercase tracking-[0.25em] text-cockpit-400">
-              Secure access
+              {t.signInToAccount}
             </p>
             <h1 className="mt-2 text-center text-2xl font-bold tracking-tight text-white">{t.welcomeBack}</h1>
             <p className="mt-2 text-center text-sm text-slate-400">{t.signInToAccount}</p>

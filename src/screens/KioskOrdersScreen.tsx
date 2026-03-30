@@ -77,7 +77,7 @@ export function KioskOrdersScreen() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        eyebrow="Operations"
+        eyebrow={t.operations}
         title={t.kioskOrders}
         description="Kanban board — drag orders between columns to update status."
         icon={Monitor}

@@ -136,7 +136,7 @@ export function MoneyScreen() {
 
   return (
     <div className="animate-fadeIn">
-      <PageHeader eyebrow="Treasury" title={t.money} description={t.trackMoney} />
+      <PageHeader eyebrow={t.money} title={t.money} description={t.trackMoney} />
 
       {error && <div className="cockpit-alert-error">{error}</div>}
 
@@ -150,14 +150,14 @@ export function MoneyScreen() {
           delta={netDeltaLabel}
           trend={netTrend}
           loading={loading}
-          subtitle="7D vs prior 7D"
+          subtitle={t.sevenDayVsPriorSevenDay}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <ChartCard title="Revenue momentum (last 14 days)" loading={loading}>
+        <ChartCard title={t.revenueMomentumLast14Days} loading={loading}>
           {topTrendBuckets.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No trend data</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t.noTrendData}</p>
           ) : (
             <div className="space-y-2">
               {topTrendBuckets.map((point) => {
@@ -179,12 +179,15 @@ export function MoneyScreen() {
           )}
         </ChartCard>
         <InsightPanel
-          title={kpis.operatingProfit >= 0 ? 'Profitability signal' : 'Profitability warning'}
+          title={kpis.operatingProfit >= 0 ? t.profitabilitySignal : t.profitabilityWarning}
           severity={kpis.operatingProfit >= 0 ? 'success' : 'warning'}
         >
           {kpis.operatingProfit >= 0
-            ? `Operating profit is positive at ₼${kpis.operatingProfit.toFixed(2)} with an average order value of ₼${kpis.avgOrderValue.toFixed(2)}.`
-            : `Operating profit is negative at ₼${kpis.operatingProfit.toFixed(2)}. Monitor COGS and operational expenses against sales momentum.`}
+            ? t.operatingProfitPositiveMessage
+              .replace('{profit}', `₼${kpis.operatingProfit.toFixed(2)}`)
+              .replace('{aov}', `₼${kpis.avgOrderValue.toFixed(2)}`)
+            : t.operatingProfitNegativeMessage
+              .replace('{profit}', `₼${kpis.operatingProfit.toFixed(2)}`)}
         </InsightPanel>
       </div>
 

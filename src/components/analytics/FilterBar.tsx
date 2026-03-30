@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { DateRangePicker } from '../DateRangePicker';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export type DatePreset = 'today' | '7d' | '30d' | 'mtd' | 'qtd' | 'custom';
 
@@ -13,15 +14,6 @@ export interface FilterBarProps {
   channelFilter?: ReactNode;
 }
 
-const PRESET_OPTIONS: Array<{ value: DatePreset; label: string }> = [
-  { value: 'today', label: 'Today' },
-  { value: '7d', label: '7D' },
-  { value: '30d', label: '30D' },
-  { value: 'mtd', label: 'MTD' },
-  { value: 'qtd', label: 'QTD' },
-  { value: 'custom', label: 'Custom' },
-];
-
 export function FilterBar({
   selectedPreset,
   onPresetChange,
@@ -31,13 +23,22 @@ export function FilterBar({
   onEndDateChange,
   channelFilter,
 }: FilterBarProps) {
+  const { t } = useLanguage();
+  const PRESET_OPTIONS: Array<{ value: DatePreset; label: string }> = [
+    { value: 'today', label: t.today },
+    { value: '7d', label: '7D' },
+    { value: '30d', label: '30D' },
+    { value: 'mtd', label: 'MTD' },
+    { value: 'qtd', label: 'QTD' },
+    { value: 'custom', label: t.custom },
+  ];
   const showCustomInputs = selectedPreset === 'custom' && onStartDateChange && onEndDateChange;
 
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm backdrop-blur-sm dark:border-violet-400/20 dark:bg-slate-900/60 dark:shadow-neon-soft">
       <div className="mb-1 flex items-center gap-2 px-1">
         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-cockpit-600 dark:text-cockpit-400">
-          Range
+          {t.period}
         </span>
       </div>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -71,8 +72,8 @@ export function FilterBar({
             endDate={endDate ?? ''}
             onStartChange={onStartDateChange}
             onEndChange={onEndDateChange}
-            startLabel="Start"
-            endLabel="End"
+            startLabel={t.startDate}
+            endLabel={t.endDate}
           />
         </div>
       ) : null}

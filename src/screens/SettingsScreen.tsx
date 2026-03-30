@@ -25,11 +25,37 @@ export function SettingsScreen() {
   const [showChannelSuccess, setShowChannelSuccess] = useState(false);
   const [deleteChannelConfirm, setDeleteChannelConfirm] = useState<string | null>(null);
 
+  const languageNames: Record<Language, Record<Language, string>> = {
+    en: { en: 'English', az: 'Azerbaijani', ru: 'Russian' },
+    az: { en: 'İngilis', az: 'Azərbaycan', ru: 'Rus' },
+    ru: { en: 'Английский', az: 'Азербайджанский', ru: 'Русский' },
+  };
   const languages: { code: Language; name: string; flag: string }[] = [
-    { code: 'en', name: 'English', flag: '🇬🇧' },
-    { code: 'az', name: 'Azərbaycan', flag: '🇦🇿' },
-    { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+    { code: 'en', name: languageNames[language].en, flag: '🇬🇧' },
+    { code: 'az', name: languageNames[language].az, flag: '🇦🇿' },
+    { code: 'ru', name: languageNames[language].ru, flag: '🇷🇺' },
   ];
+
+  const localizeChannelDescription = (channel: SalesChannel) => {
+    const base = channel.description?.trim();
+    if (!base) return '';
+    if (base === 'Food delivery and ride-hailing platform') {
+      if (language === 'az') return 'Yemək çatdırılması və ride-hailing platforması';
+      if (language === 'ru') return 'Платформа доставки еды и такси';
+      return base;
+    }
+    if (base === 'QR code ordering system') {
+      if (language === 'az') return 'QR kod sifariş sistemi';
+      if (language === 'ru') return 'Система заказов по QR-коду';
+      return base;
+    }
+    if (base === 'Food delivery platform') {
+      if (language === 'az') return 'Yemək çatdırılması platforması';
+      if (language === 'ru') return 'Платформа доставки еды';
+      return base;
+    }
+    return base;
+  };
 
   useEffect(() => {
     fetchSalesChannels();
@@ -133,7 +159,7 @@ export function SettingsScreen() {
         </div>
       )}
 
-      <PageHeader eyebrow="System" title={t.settings} description={t.applicationPreferences} icon={Globe} />
+      <PageHeader eyebrow={t.system} title={t.settings} description={t.applicationPreferences} icon={Globe} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="cockpit-panel p-6">
@@ -238,7 +264,7 @@ export function SettingsScreen() {
             <h3 className="mb-3 text-base font-bold text-slate-700 dark:text-slate-300">{t.activeChannels}</h3>
             <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
               {salesChannels.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">No channels yet</p>
+                <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">{t.noDataForPeriod}</p>
               ) : (
                 salesChannels.map((channel) => (
                   <div
@@ -257,7 +283,7 @@ export function SettingsScreen() {
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{channel.name}</p>
-                        <p className="truncate text-xs text-slate-600 dark:text-slate-400">{channel.description}</p>
+                        <p className="truncate text-xs text-slate-600 dark:text-slate-400">{localizeChannelDescription(channel)}</p>
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">

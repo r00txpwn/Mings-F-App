@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Tag, ShoppingCart, DollarSign } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { DangerConfirmRow } from '../../components/ui/DangerConfirmRow';
 import { IconActionButton } from '../../components/ui/IconActionButton';
 
@@ -29,6 +30,7 @@ interface ManageCategoriesTabProps {
 
 export function ManageCategoriesTab({ categories, subItems, onDataChanged }: ManageCategoriesTabProps) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showSubItemForm, setShowSubItemForm] = useState<string | null>(null);
@@ -144,7 +146,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
           }`}
         >
           <ShoppingCart className="h-4 w-4" />
-          COGS Categories
+          {t.cogsCategories}
           <span className="rounded-md bg-black/15 px-1.5 py-0.5 text-[10px] font-semibold text-white/90 dark:bg-white/10 dark:text-slate-200">
             {purchaseCategories.length}
           </span>
@@ -158,7 +160,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
           }`}
         >
           <DollarSign className="h-4 w-4" />
-          Operational Categories
+          {t.fixedCostCategories}
           <span className="rounded-md bg-black/15 px-1.5 py-0.5 text-[10px] font-semibold text-white/90 dark:bg-white/10 dark:text-slate-200">
             {expenseCategories.length}
           </span>
@@ -173,17 +175,17 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
             className="neon-btn-primary"
           >
             <Plus className="h-4 w-4" />
-            New Category
+            {t.addCategory}
           </button>
         </div>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:w-[340px]">
           <div className="rounded-lg border border-slate-200/80 bg-white/70 px-3 py-2 dark:border-violet-500/20 dark:bg-slate-900/50">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Categories</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">{t.categories}</p>
             <p className="mt-1 font-mono text-lg font-semibold text-slate-900 dark:text-white">{currentCategories.length}</p>
           </div>
           <div className="rounded-lg border border-slate-200/80 bg-white/70 px-3 py-2 dark:border-violet-500/20 dark:bg-slate-900/50">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Sub-items</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">{t.items}</p>
             <p className="mt-1 font-mono text-lg font-semibold text-slate-900 dark:text-white">{totalSubItems}</p>
           </div>
         </div>
@@ -194,7 +196,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md">
             <div className="p-5 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {editingCategory ? 'Edit Category' : 'New Category'}
+                {editingCategory ? t.edit : t.addCategory}
               </h3>
             </div>
             <div className="p-5 space-y-4">
@@ -208,7 +210,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                   }`}
                 >
-                  COGS
+                  {t.cogs}
                 </button>
                 <button
                   type="button"
@@ -219,12 +221,12 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                   }`}
                 >
-                  Operational
+                  {t.operationalExpenses}
                 </button>
               </div>
               <input
                 type="text"
-                placeholder="Category Name *"
+                placeholder={`${t.categoryName} *`}
                 value={categoryForm.name}
                 onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
                 className="cockpit-input w-full"
@@ -232,13 +234,13 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
               />
               <input
                 type="text"
-                placeholder="Description (optional)"
+                placeholder={t.descriptionOptional}
                 value={categoryForm.description}
                 onChange={(e) => setCategoryForm(prev => ({ ...prev, description: e.target.value }))}
                 className="cockpit-input w-full"
               />
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Color</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">{t.color}</label>
                 <input
                   type="color"
                   value={categoryForm.color}
@@ -252,13 +254,13 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                   disabled={!categoryForm.name.trim()}
                   className="neon-btn-primary flex-1 justify-center disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {editingCategory ? 'Update' : 'Create'}
+                  {editingCategory ? t.update : t.create}
                 </button>
                 <button
                   onClick={() => { setShowCategoryForm(false); setEditingCategory(null); }}
                   className="neon-btn-secondary"
                 >
-                  Cancel
+                  {t.cancel}
                 </button>
               </div>
             </div>
@@ -270,7 +272,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
         <div className="text-center py-12">
           <Tag className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">
-            No {activePanel === 'purchase' ? 'COGS' : 'operational'} categories yet
+            {activePanel === 'purchase' ? t.noCOGSCategories : t.noFixedCostCategories}
           </p>
           <button
             onClick={() => {
@@ -279,7 +281,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
             }}
             className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
           >
-            Create your first category
+            {t.createFirstOne}
           </button>
         </div>
       ) : (
@@ -311,7 +313,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                           {cat.description && <p className="text-xs text-slate-500 dark:text-slate-400">{cat.description}</p>}
                         </div>
                         <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                          {catSubItems.length} sub-items
+                          {catSubItems.length} {t.items}
                         </span>
                       </button>
                       <div className="flex items-center gap-1">
@@ -319,19 +321,19 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                           onClick={() => { setShowSubItemForm(cat.id); setEditingSubItem(null); setSubItemForm({ name: '' }); }}
                           icon={<Plus className="h-4 w-4" />}
                           tone="success"
-                          title="Add sub-item"
+                          title={t.addExpenseItem}
                         />
                         <IconActionButton
                           onClick={() => startEditCategory(cat)}
                           icon={<Edit2 className="h-3.5 w-3.5" />}
                           tone="edit"
-                          label="Edit category"
+                          label={t.edit}
                         />
                         <IconActionButton
                           onClick={() => setDeleteConfirm({ type: 'category', id: cat.id })}
                           icon={<Trash2 className="h-3.5 w-3.5" />}
                           tone="danger"
-                          label="Delete category"
+                          label={t.delete}
                         />
                       </div>
                     </div>
@@ -343,7 +345,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                             <div className="flex items-center gap-2">
                               <input
                                 type="text"
-                                placeholder="Sub-item name..."
+                                placeholder={t.expenseItemName}
                                 value={subItemForm.name}
                                 onChange={(e) => setSubItemForm({ name: e.target.value })}
                                 className="cockpit-input flex-1"
@@ -355,13 +357,13 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                                 disabled={!subItemForm.name.trim()}
                                 className="rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                               >
-                                {editingSubItem ? 'Update' : 'Add'}
+                                {editingSubItem ? t.update : t.add}
                               </button>
                               <button
                                 onClick={() => { setShowSubItemForm(null); setEditingSubItem(null); }}
                                 className="px-3 py-2 text-sm text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                               >
-                                Cancel
+                                {t.cancel}
                               </button>
                             </div>
                           </div>
@@ -369,12 +371,12 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
 
                         {catSubItems.length === 0 && showSubItemForm !== cat.id ? (
                           <div className="px-4 py-4 text-center">
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">No sub-items yet</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{t.noExpenseItems}</p>
                             <button
                               onClick={() => { setShowSubItemForm(cat.id); setSubItemForm({ name: '' }); }}
                               className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                             >
-                              Add first sub-item
+                              {t.createFirstExpenseItem}
                             </button>
                           </div>
                         ) : (
@@ -397,14 +399,14 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                                         onClick={() => startEditSubItem(si)}
                                         icon={<Edit2 className="h-3 w-3" />}
                                         tone="edit"
-                                        label="Edit sub-item"
+                                        label={t.edit}
                                         className="h-7 w-7"
                                       />
                                       <IconActionButton
                                         onClick={() => setDeleteConfirm({ type: 'subitem', id: si.id })}
                                         icon={<Trash2 className="h-3 w-3" />}
                                         tone="danger"
-                                        label="Delete sub-item"
+                                        label={t.delete}
                                         className="h-7 w-7"
                                       />
                                     </div>

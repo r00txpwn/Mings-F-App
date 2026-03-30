@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { TrendingDown } from 'lucide-react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface CategorySummary {
   id: string;
@@ -15,6 +16,7 @@ interface ExpensesSummaryBarProps {
 }
 
 export function ExpensesSummaryBar({ categories, totalAmount, label }: ExpensesSummaryBarProps) {
+  const { t } = useLanguage();
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => b.total - a.total),
     [categories],
@@ -96,14 +98,14 @@ export function ExpensesSummaryBar({ categories, totalAmount, label }: ExpensesS
               })}
               {sortedCategories.length > 6 && (
                 <div className="px-1 text-xs text-slate-500 dark:text-slate-400">
-                  +{sortedCategories.length - 6} more categories
+                  +{sortedCategories.length - 6} {t.categories}
                 </div>
               )}
             </div>
 
             <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-violet-500/20 dark:bg-slate-900/60">
               <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                Focus category
+                {t.category}
               </div>
               <div className="mt-1 truncate text-sm font-semibold text-slate-900 dark:text-white">
                 {activeCategory?.name ?? '—'}
@@ -112,7 +114,7 @@ export function ExpensesSummaryBar({ categories, totalAmount, label }: ExpensesS
                 ₼{activeCategory?.total.toFixed(2) ?? '0.00'}
               </div>
               <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                {activeShare.toFixed(1)}% of total
+                {activeShare.toFixed(1)}% {t.ofExpenses}
               </div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
                 <div

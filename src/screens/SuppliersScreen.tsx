@@ -139,7 +139,7 @@ export function SuppliersScreen() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        eyebrow="Procurement"
+        eyebrow={t.procurement}
         title={t.suppliers}
         description={t.manageSuppliers}
         icon={Truck}
@@ -147,7 +147,7 @@ export function SuppliersScreen() {
           !isAdding && !editingId ? (
             <button type="button" onClick={handleAdd} className="cockpit-btn-primary">
               <Plus className="h-4 w-4" />
-              Add Supplier
+              {t.addSupplier}
             </button>
           ) : null
         }
