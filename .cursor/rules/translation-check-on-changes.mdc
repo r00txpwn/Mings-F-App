@@ -1,0 +1,35 @@
+---
+description: Require i18n translation checks on UI and user-facing code changes
+alwaysApply: true
+---
+
+# Translation check on UI and code changes
+
+This app localizes the staff cockpit via `src/translations.ts` (keys on `Translations`) and `useLanguage()` → `t.<key>` from `src/contexts/LanguageContext.tsx`. Supported languages: **en**, **az**, **ru**.
+
+## When this rule applies
+
+- **Any change** that adds or edits **user-visible text** (labels, buttons, placeholders, errors, toasts, table headers, chart titles, aria-labels meant for humans, empty states).
+- **Any UI / React / TSX** change in `src/` that could surface new copy.
+- **General code** changes that introduce strings shown in the product UI (not logs-only).
+
+## Required workflow (before finishing a task)
+
+1. **Do not hardcode** user-facing English (or any single language) in components. Add or reuse a key in `src/translations.ts` and wire `const { t } = useLanguage();` → `t.yourKey`.
+2. **Define every new key for all three languages** in the same file: `en`, `az`, and `ru` objects must stay in sync. If a key is missing, TypeScript will fail once the key is on the `Translations` interface.
+3. **Reuse** existing keys when the meaning matches; avoid duplicate wording across screens.
+4. After edits, run **`npm run typecheck`** so missing translation keys surface as TS errors.
+5. For dynamic sentences, use placeholders in the translation string (e.g. `{name}`) and `.replace()` in code—do not concatenate English-only fragments in JSX.
+
+## Out of scope (no translation pass required)
+
+- Internal variable names, API field names, Supabase table/column names.
+- Comments and developer-only `console` messages.
+- Third-party or database-provided content (e.g. channel names from `sales_channels`) unless you explicitly localize that layer.
+
+## Quick self-check
+
+- Grep for quoted UI strings in touched files: prefer `t.` for visible strings.
+- Confirm new/changed `t.*` keys exist under **en / az / ru** in `translations.ts`.
+
+If a change is backend-only with no UI impact, translation checks are optional.
