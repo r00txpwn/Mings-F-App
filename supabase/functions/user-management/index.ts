@@ -94,35 +94,25 @@ Deno.serve(async (req: Request) => {
     })();
 
     if (req.method === 'GET' && path === '/list') {
-      const perPage = 200;
-      const allUsers: unknown[] = [];
-      let page = 1;
+      const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
 
-      while (true) {
-        const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
-
-        if (error) {
-          return new Response(
-            JSON.stringify({ error: error.message }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          );
-        }
-
-        const users = data?.users ?? [];
-        allUsers.push(...users);
-
-        if (users.length < perPage) {
-          break;
-        }
-
-        page += 1;
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
 
+      const visibleUsers = (users ?? []).filter((u) => {
+        const email = typeof u.email === 'string' ? u.email : '';
+        return email.includes('@');
+      });
+
       return new Response(
-        JSON.stringify({ users: allUsers }),
+        JSON.stringify({ users: visibleUsers }),
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -207,6 +197,23 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      // Remove app profile row first to avoid foreign-key related auth deletion failures.
+      const { error: profileDeleteError } = await supabaseAdmin
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (profileDeleteError) {
+        return new Response(
+          JSON.stringify({ error: `Failed to delete staff profile: ${profileDeleteError.message}` }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      // Perform hard delete after profile cleanup.
       const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
       if (error) {
@@ -236,8 +243,9 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

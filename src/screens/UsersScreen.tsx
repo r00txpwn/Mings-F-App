@@ -34,23 +34,50 @@ export function UsersScreen() {
     loadUsers();
   }, []);
 
-  const loadUsers = async () => {
+  const getAccessToken = async (): Promise<string | null> => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (session?.access_token) {
+      return session.access_token;
+    }
 
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    return refreshed.session?.access_token ?? null;
+  };
+
+  const loadUsers = async (hasRetried = false) => {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      setError(t.notAuthenticated);
+      return;
+    }
+
+    setError('');
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/list?_ts=${Date.now()}`;
     try {
       const response = await fetch(apiUrl, {
         cache: 'no-store',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
       });
 
-      const result = await response.json();
+      const raw = await response.text();
+      let result: { error?: string; users?: UserManagementUser[] } = {};
+      try {
+        result = raw ? JSON.parse(raw) : {};
+      } catch {
+        result = {};
+      }
+
       if (!response.ok) {
-        setError(result.error || 'Failed to load users');
+        const details = result.error || raw || `HTTP ${response.status}`;
+        if (!hasRetried && response.status === 401 && details.includes('Invalid JWT')) {
+          await supabase.auth.refreshSession();
+          await loadUsers(true);
+          return;
+        }
+        setError(`${t.errorOccurred}: ${details}`);
         return;
       }
 
@@ -65,7 +92,7 @@ export function UsersScreen() {
         setUsers(mapped);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load users');
+      setError(err instanceof Error ? err.message : t.errorOccurred);
     }
   };
 
@@ -91,8 +118,8 @@ export function UsersScreen() {
 
     setLoading(true);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
       setError(t.notAuthenticated);
       setLoading(false);
       return;
@@ -102,7 +129,7 @@ export function UsersScreen() {
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${session.access_token}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, password, role }),
@@ -142,8 +169,8 @@ export function UsersScreen() {
       return;
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
       setError(t.notAuthenticated);
       return;
     }
@@ -152,7 +179,7 @@ export function UsersScreen() {
     const response = await fetch(apiUrl, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${session.access_token}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
     });
@@ -171,14 +198,14 @@ export function UsersScreen() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        eyebrow="Access"
+        eyebrow={t.users}
         title={t.users}
         description={t.manageUsers}
         icon={Users}
         actions={
           <button type="button" onClick={() => setShowForm(!showForm)} className="cockpit-btn-primary">
             <Plus className="h-4 w-4" />
-            Add New User
+            {t.addNewUser}
           </button>
         }
       />
@@ -202,7 +229,7 @@ export function UsersScreen() {
           <h3 className="cockpit-section-title mb-4">{t.createNewUser}</h3>
           <form onSubmit={handleCreateUser} className="space-y-4">
             <div>
-              <label className="cockpit-label mb-2">Email Address</label>
+              <label className="cockpit-label mb-2">{t.emailAddress}</label>
               <input
                 type="email"
                 value={email}
@@ -213,7 +240,7 @@ export function UsersScreen() {
             </div>
 
             <div>
-              <label className="cockpit-label mb-2">Password</label>
+              <label className="cockpit-label mb-2">{t.password}</label>
               <input
                 type="password"
                 value={password}
@@ -224,7 +251,7 @@ export function UsersScreen() {
             </div>
 
             <div>
-              <label className="cockpit-label mb-2">Confirm Password</label>
+              <label className="cockpit-label mb-2">{t.confirmPassword}</label>
               <input
                 type="password"
                 value={confirmPassword}
@@ -264,7 +291,7 @@ export function UsersScreen() {
                 }}
                 className="cockpit-btn-ghost"
               >
-                Cancel
+                {t.cancel}
               </button>
             </div>
           </form>
@@ -276,17 +303,17 @@ export function UsersScreen() {
           <table className="w-full min-w-[640px]">
             <thead className="cockpit-thead">
               <tr>
-                <th className="cockpit-th">User</th>
-                <th className="cockpit-th">Created</th>
-                <th className="cockpit-th">Last Sign In</th>
-                <th className="cockpit-th text-right">Actions</th>
+                <th className="cockpit-th">{t.user}</th>
+                <th className="cockpit-th">{t.createdAt}</th>
+                <th className="cockpit-th">{t.lastSignIn}</th>
+                <th className="cockpit-th text-right">{t.actions}</th>
               </tr>
             </thead>
             <tbody>
               {users.length === 0 ? (
                 <tr className="cockpit-tr">
                   <td colSpan={4} className="cockpit-td py-10 text-center text-slate-500 dark:text-slate-400">
-                    No users found
+                    {t.noUsersFound}
                   </td>
                 </tr>
               ) : (
@@ -314,7 +341,7 @@ export function UsersScreen() {
                         type="button"
                         onClick={() => handleDeleteUser(user.id)}
                         className="rounded-lg p-2 text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
-                        title="Delete user"
+                        title={`${t.delete} ${t.user}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

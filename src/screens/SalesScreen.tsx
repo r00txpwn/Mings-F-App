@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Check, ChevronDown, ChevronRight, Edit2, Trash2, X, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, SalesChannel, Sale } from '../lib/supabase';
@@ -11,6 +11,14 @@ interface GroupedSale {
   totalOrders: number;
   aov: number;
   channels: SalesChannel[];
+}
+
+/** Partner channels allowed for manual Add Sale (kiosk / online are created by the app). */
+const MANUAL_SALE_CHANNEL_NAMES = new Set(['wolt', 'bolt', 'choiceqr']);
+
+function isManualSaleChannel(ch: SalesChannel): boolean {
+  const n = (ch.name ?? '').trim().toLowerCase();
+  return MANUAL_SALE_CHANNEL_NAMES.has(n);
 }
 
 export function SalesScreen() {
@@ -33,10 +41,32 @@ export function SalesScreen() {
 
   const aov = (Number(amount) / Number(orderCount)) || 0;
 
+  const manualChannels = useMemo(
+    () => channels.filter(isManualSaleChannel).sort((a, b) => a.name.localeCompare(b.name)),
+    [channels],
+  );
+
+  const editChannelOptions = useMemo(() => {
+    if (!editingSale?.sales_channel_id) return manualChannels;
+    const current = channels.find((c) => c.id === editingSale.sales_channel_id);
+    if (!current || manualChannels.some((c) => c.id === current.id)) return manualChannels;
+    return [...manualChannels, current].sort((a, b) => a.name.localeCompare(b.name));
+  }, [channels, editingSale?.sales_channel_id, manualChannels]);
+
   useEffect(() => {
     loadChannels();
     loadSales();
   }, []);
+
+  useEffect(() => {
+    if (manualChannels.length === 0) {
+      setSelectedChannel(null);
+      return;
+    }
+    setSelectedChannel((prev) =>
+      prev && manualChannels.some((c) => c.id === prev) ? prev : manualChannels[0].id,
+    );
+  }, [manualChannels]);
 
   const loadChannels = async () => {
     const { data, error: err } = await supabase
@@ -51,9 +81,6 @@ export function SalesScreen() {
     }
     if (data) {
       setChannels(data);
-      if (data.length > 0) {
-        setSelectedChannel(data[0].id);
-      }
     }
   };
 
@@ -77,6 +104,10 @@ export function SalesScreen() {
 
   const handleSave = async () => {
     if (!amount || Number(amount) <= 0 || !orderCount || Number(orderCount) <= 0) return;
+    if (!selectedChannel || !manualChannels.some((c) => c.id === selectedChannel)) {
+      setError(t.salesNoManualChannelsConfigured);
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -266,33 +297,41 @@ export function SalesScreen() {
 
         <div className="mt-5">
           <label className="cockpit-label">{t.salesChannels}</label>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-            {channels.map((channel) => (
-              <button
-                key={channel.id}
-                onClick={() => setSelectedChannel(channel.id)}
-                className={`relative rounded-xl border px-3 py-2.5 transition-all ${
-                  selectedChannel === channel.id
-                    ? 'border-cockpit-500 bg-cockpit-500/10 shadow-md shadow-cockpit-500/15 dark:border-cockpit-400'
-                    : 'border-slate-200 bg-white hover:border-slate-300 dark:border-white/10 dark:bg-slate-950/30 dark:hover:border-white/20'
-                }`}
-              >
-                {selectedChannel === channel.id && (
-                  <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-cockpit-600 shadow-md dark:bg-cockpit-500">
-                    <Check className="h-3.5 w-3.5 text-white" />
-                  </div>
-                )}
-                <div className="mb-1.5 flex h-8 items-center justify-center">
-                  {channel.logo_url ? (
-                    <img src={channel.logo_url} alt={channel.name} className="h-8 w-8 object-contain" />
-                  ) : (
-                    <div className="text-xl">{channel.icon}</div>
+          <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">{t.salesManualEntryHint}</p>
+          {manualChannels.length === 0 ? (
+            <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+              {t.salesNoManualChannelsConfigured}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+              {manualChannels.map((channel) => (
+                <button
+                  key={channel.id}
+                  type="button"
+                  onClick={() => setSelectedChannel(channel.id)}
+                  className={`relative rounded-xl border px-3 py-2.5 transition-all ${
+                    selectedChannel === channel.id
+                      ? 'border-cockpit-500 bg-cockpit-500/10 shadow-md shadow-cockpit-500/15 dark:border-cockpit-400'
+                      : 'border-slate-200 bg-white hover:border-slate-300 dark:border-white/10 dark:bg-slate-950/30 dark:hover:border-white/20'
+                  }`}
+                >
+                  {selectedChannel === channel.id && (
+                    <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-cockpit-600 shadow-md dark:bg-cockpit-500">
+                      <Check className="h-3.5 w-3.5 text-white" />
+                    </div>
                   )}
-                </div>
-                <div className="text-center text-xs font-semibold text-slate-900 dark:text-white">{channel.name}</div>
-              </button>
-            ))}
-          </div>
+                  <div className="mb-1.5 flex h-8 items-center justify-center">
+                    {channel.logo_url ? (
+                      <img src={channel.logo_url} alt={channel.name} className="h-8 w-8 object-contain" />
+                    ) : (
+                      <div className="text-xl">{channel.icon}</div>
+                    )}
+                  </div>
+                  <div className="text-center text-xs font-semibold text-slate-900 dark:text-white">{channel.name}</div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -320,7 +359,15 @@ export function SalesScreen() {
 
         <button
           onClick={handleSave}
-          disabled={!amount || Number(amount) <= 0 || !orderCount || Number(orderCount) <= 0 || saving}
+          disabled={
+            !amount ||
+            Number(amount) <= 0 ||
+            !orderCount ||
+            Number(orderCount) <= 0 ||
+            saving ||
+            manualChannels.length === 0 ||
+            !selectedChannel
+          }
           className="cockpit-btn-primary mt-5 w-full py-2.5"
         >
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
@@ -426,7 +473,7 @@ export function SalesScreen() {
                                     className="cockpit-select py-1.5 text-sm"
                                   >
                                     <option value="">{t.none}</option>
-                                    {channels.map(ch => (
+                                    {editChannelOptions.map((ch) => (
                                       <option key={ch.id} value={ch.id}>{ch.name}</option>
                                     ))}
                                   </select>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronRight, Edit2, Trash2 } from 'lucide-react';
 import { DangerConfirmRow } from '../../components/ui/DangerConfirmRow';
 import { IconActionButton } from '../../components/ui/IconActionButton';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface GroupedItem {
   id: string;
@@ -34,6 +35,7 @@ interface CategoryGroupedViewProps {
 }
 
 export function CategoryGroupedView({ groups, type, onEdit, onDelete, currency = '₼' }: CategoryGroupedViewProps) {
+  const { t } = useLanguage();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(groups[0] ? [groups[0].categoryId] : []));
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const grandTotal = groups.reduce((sum, group) => sum + group.total, 0);
@@ -111,21 +113,21 @@ export function CategoryGroupedView({ groups, type, onEdit, onDelete, currency =
                 <table className="w-full">
                   <thead className="bg-slate-50 dark:bg-slate-900/60">
                     <tr>
-                      <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Date</th>
+                      <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">{t.date}</th>
                       <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
-                        Item
+                        {t.item}
                       </th>
                       {type === 'cogs' && (
                         <>
-                          <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Supplier</th>
-                          <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Qty</th>
+                          <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">{t.supplier}</th>
+                          <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">{t.quantity}</th>
                         </>
                       )}
                       {type === 'operational' && (
-                        <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Payment</th>
+                        <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">{t.payment}</th>
                       )}
-                      <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Description</th>
-                      <th className="px-5 py-2.5 text-right text-xs font-medium text-slate-500 dark:text-slate-400">Amount</th>
+                      <th className="px-5 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">{t.description}</th>
+                      <th className="px-5 py-2.5 text-right text-xs font-medium text-slate-500 dark:text-slate-400">{t.amount}</th>
                       <th className="w-20 px-5 py-2.5 text-right text-xs font-medium text-slate-500 dark:text-slate-400"></th>
                     </tr>
                   </thead>
@@ -136,7 +138,7 @@ export function CategoryGroupedView({ groups, type, onEdit, onDelete, currency =
                           <tr key={item.id} className="bg-red-50 dark:bg-red-900/20">
                             <td colSpan={type === 'cogs' ? 7 : 6} className="px-5 py-3">
                               <DangerConfirmRow
-                                message="Delete this entry?"
+                                message={`${t.delete} ${t.item}?`}
                                 onConfirm={() => { onDelete(item.id); setDeleteConfirm(null); }}
                                 onCancel={() => setDeleteConfirm(null)}
                               />
@@ -180,14 +182,14 @@ export function CategoryGroupedView({ groups, type, onEdit, onDelete, currency =
                                 onClick={() => onEdit(item.id)}
                                 icon={<Edit2 className="h-3.5 w-3.5" />}
                                 tone="edit"
-                                label="Edit"
+                                label={t.edit}
                                 className="h-8 w-8"
                               />
                               <IconActionButton
                                 onClick={() => setDeleteConfirm(item.id)}
                                 icon={<Trash2 className="h-3.5 w-3.5" />}
                                 tone="danger"
-                                label="Delete"
+                                label={t.delete}
                                 className="h-8 w-8"
                               />
                             </div>

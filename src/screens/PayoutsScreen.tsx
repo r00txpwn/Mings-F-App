@@ -241,7 +241,7 @@ export function PayoutsScreen() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        eyebrow="Treasury"
+        eyebrow={t.money}
         title={t.platformPayouts}
         description={t.trackPlatformPayouts}
         icon={Banknote}
@@ -406,7 +406,7 @@ export function PayoutsScreen() {
               ) : previewGross !== null ? (
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">Expected</div>
+                        <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">{t.expected}</div>
                     <div className="font-mono text-lg font-semibold tabular-nums text-slate-900 dark:text-white">
                       ₼{previewGross.toFixed(2)}
                     </div>
@@ -414,13 +414,13 @@ export function PayoutsScreen() {
                   {payoutAmount && Number(payoutAmount) > 0 && (
                     <>
                       <div>
-                        <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">Actual</div>
+                        <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">{t.actual}</div>
                         <div className="font-mono text-lg font-semibold tabular-nums text-cockpit-600 dark:text-cockpit-400">
                           ₼{Number(payoutAmount).toFixed(2)}
                         </div>
                       </div>
                       <div>
-                        <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">Diff</div>
+                        <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">{t.difference}</div>
                         <div className={`font-mono text-lg font-semibold tabular-nums ${(previewDifference ?? 0) >= 0 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
                           {previewDifference !== null && previewDifference > 0 ? '+' : ''}₼{(previewDifference ?? 0).toFixed(2)}
                         </div>

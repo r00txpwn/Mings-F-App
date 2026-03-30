@@ -36,6 +36,7 @@ import { StaffAccessDeniedScreen } from './screens/StaffAccessDeniedScreen';
 import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 import { MenuScreen } from './screens/MenuScreen';
 import { PayoutsScreen } from './screens/PayoutsScreen';
+import { MingsWordmark } from './components/MingsWordmark';
 
 type Screen =
   | 'home'
@@ -122,7 +123,7 @@ function AppContent() {
             <Activity className="absolute inset-0 m-auto h-6 w-6 text-cockpit-400" />
           </div>
           <p className="text-sm font-medium tracking-wide text-slate-500 dark:text-slate-400">
-            Initializing cockpit…
+            {t.pleaseWait}
           </p>
         </div>
       </div>
@@ -180,7 +181,7 @@ function AppContent() {
     { id: 'menu-builder', icon: <UtensilsCrossed className="h-5 w-5 shrink-0" />, label: t.menuBuilder },
     { id: 'products', icon: <Package className="h-5 w-5 shrink-0" />, label: t.products },
     { id: 'suppliers', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.suppliers },
-    { id: 'expenses', icon: <DollarSign className="h-5 w-5 shrink-0" />, label: 'Expenses' },
+    { id: 'expenses', icon: <DollarSign className="h-5 w-5 shrink-0" />, label: t.expenses },
     { id: 'payouts', icon: <Banknote className="h-5 w-5 shrink-0" />, label: t.payouts },
     { id: 'money', icon: <Wallet className="h-5 w-5 shrink-0" />, label: t.money },
     { id: 'reports', icon: <BarChart3 className="h-5 w-5 shrink-0" />, label: t.reports },
@@ -228,7 +229,7 @@ function AppContent() {
                   Ops
                 </p>
                 <h1 className="truncate text-lg font-bold tracking-tight text-slate-900 dark:text-white">
-                  Command Center
+                  {t.commandCenter}
                 </h1>
               </div>
             </div>
@@ -297,7 +298,7 @@ function AppContent() {
               }`}
             >
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              {isDark ? 'Light mode' : 'Dark mode'}
+              {isDark ? t.lightMode : t.darkMode}
             </button>
             <div
               className={`rounded-lg border px-3 py-2 ${
@@ -306,7 +307,7 @@ function AppContent() {
                   : 'border-slate-200 bg-slate-50'
               }`}
             >
-              <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">Signed in</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">{t.signedIn}</p>
               <p
                 className={`truncate text-xs font-medium ${isDark ? 'text-slate-100' : 'text-slate-900'}`}
               >
@@ -319,7 +320,7 @@ function AppContent() {
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-rose-500 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
             >
               <LogOut className="h-5 w-5 shrink-0" />
-              Sign out
+              {t.staffSignOut}
             </button>
           </div>
         </nav>
@@ -340,12 +341,12 @@ function AppContent() {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-cockpit-500 to-cockpit-700 shadow-md">
-                <BarChart3 className="h-5 w-5 text-white" />
+            <div className="flex min-w-0 max-w-[min(200px,55vw)] items-center gap-2">
+              <div className="flex h-9 shrink-0 items-center justify-center rounded-lg bg-black px-2 py-1 shadow-md ring-1 ring-white/10">
+                <MingsWordmark className="h-6 w-auto max-w-[100px] object-contain" />
               </div>
-              <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
-                Command Center
+              <span className="min-w-0 truncate text-sm font-bold tracking-tight text-slate-900 dark:text-white">
+                {t.commandCenter}
               </span>
             </div>
             <div className="w-10" />

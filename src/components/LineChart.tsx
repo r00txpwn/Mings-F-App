@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 interface DataPoint {
   date: string;
   value: number;
@@ -15,10 +16,11 @@ interface LineChartProps {
 }
 
 export function LineChart({ series, height = 300 }: LineChartProps) {
+  const { t } = useLanguage();
   if (series.length === 0 || series.every(s => s.data.length === 0)) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
-        No data available
+        {t.noDataForPeriod}
       </div>
     );
   }

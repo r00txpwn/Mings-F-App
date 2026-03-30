@@ -295,7 +295,7 @@ export function ReportsScreen() {
 
   return (
     <div className="animate-fadeIn space-y-6 sm:space-y-8">
-      <PageHeader eyebrow="Analytics" title={t.reports} description={t.financialInsights} icon={BarChart3} />
+      <PageHeader eyebrow={t.reports} title={t.reports} description={t.financialInsights} icon={BarChart3} />
 
       <div className="space-y-3">
         <FilterBar
@@ -404,7 +404,7 @@ export function ReportsScreen() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <ChartCard title={t.salesByChannel}>
               {channelStats.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No data for this period</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t.noDataForPeriod}</p>
               ) : (
                 <div className="space-y-3">
                   {channelStats.map((stat) => (
@@ -426,7 +426,7 @@ export function ReportsScreen() {
 
             <ChartCard title={`${t.cogs} ${t.categoryBreakdown}`}>
               {cogsCategoryStats.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No data for this period</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t.noDataForPeriod}</p>
               ) : (
                 <div className="space-y-3">
                   {cogsCategoryStats.slice(0, 10).map((stat) => (
@@ -445,7 +445,7 @@ export function ReportsScreen() {
 
           <ChartCard title={`${t.operationalExpenses} ${t.categoryBreakdown}`}>
             {opexCategoryStats.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No data for this period</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t.noDataForPeriod}</p>
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {opexCategoryStats.slice(0, 12).map((stat) => (
@@ -463,7 +463,7 @@ export function ReportsScreen() {
 
           <ChartCard title={t.transactionHistory}>
             {activityItems.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No transactions in this period</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t.noTransactionsInPeriod}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">

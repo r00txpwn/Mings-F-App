@@ -3,6 +3,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { PieChart } from '../components/PieChart';
 import { LineChart } from '../components/LineChart';
 import { ChartCard, FilterBar, InsightPanel, KpiCard, type DatePreset } from '../components/analytics';
+import { WeatherForecastStrip } from '../components/home/WeatherForecastStrip';
 import {
   computeExecutiveKpis,
   fetchChannelPerformance,
@@ -102,10 +103,10 @@ export function HomeScreen() {
 
   const getPeriodLabel = () => {
     if (preset === 'today') return t.today;
-    if (preset === '7d') return 'Last 7 Days';
-    if (preset === '30d') return 'Last 30 Days';
-    if (preset === 'mtd') return 'Month to Date';
-    if (preset === 'qtd') return 'Quarter to Date';
+    if (preset === '7d') return t.last7Days;
+    if (preset === '30d') return t.last30Days;
+    if (preset === 'mtd') return t.monthToDate;
+    if (preset === 'qtd') return t.quarterToDate;
     if (preset === 'custom' && customStartDate && customEndDate) {
       return `${customStartDate} - ${customEndDate}`;
     }
@@ -172,16 +173,17 @@ export function HomeScreen() {
 
   return (
     <div className="animate-fadeIn">
-      <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cockpit-600 dark:text-cockpit-400">
-            Live metrics
+            {t.liveMetrics}
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{t.home}</h1>
           <p className="mt-1 max-w-xl text-sm text-slate-500 dark:text-slate-400">{t.overview}</p>
         </div>
-        <div className="font-mono text-xs tabular-nums text-slate-500 dark:text-slate-500">
-          {getPeriodLabel()}
+        <div className="flex flex-col items-start gap-2 lg:items-end">
+          <div className="font-mono text-xs tabular-nums text-slate-500 dark:text-slate-500">{getPeriodLabel()}</div>
+          <WeatherForecastStrip />
         </div>
       </div>
 
@@ -198,33 +200,33 @@ export function HomeScreen() {
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard label="Revenue" value="--" loading />
-          <KpiCard label="Net Revenue" value="--" loading />
-          <KpiCard label="Operating Profit" value="--" loading />
-          <KpiCard label="Gross Margin" value="--" loading />
+          <KpiCard label={t.revenueLabel} value="--" loading />
+          <KpiCard label={t.netRevenueLabel} value="--" loading />
+          <KpiCard label={t.operatingProfitLabel} value="--" loading />
+          <KpiCard label={t.grossMarginLabel} value="--" loading />
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <KpiCard
-              label="Gross Sales"
+              label={t.grossSales}
               value={`₼${kpis.grossSales.toFixed(2)}`}
               subtitle={`${kpis.orderCount.toFixed(0)} ${t.orders} • ₼${kpis.avgOrderValue.toFixed(2)} ${t.aov}`}
             />
             <KpiCard
-              label="Net Revenue"
+              label={t.netRevenueLabel}
               value={`₼${kpis.netRevenue.toFixed(2)}`}
               subtitle={t.kpiNetRevenueHint}
             />
             <KpiCard
-              label="Operating Profit"
+              label={t.operatingProfitLabel}
               value={`₼${kpis.operatingProfit.toFixed(2)}`}
               subtitle={t.kpiOperatingProfitHint}
               trend={kpis.operatingProfit >= 0 ? 'up' : 'down'}
               delta={`${kpis.operatingProfit >= 0 ? '+' : ''}${((kpis.operatingProfit / Math.max(kpis.netRevenue, 1)) * 100).toFixed(1)}%`}
             />
             <KpiCard
-              label="Gross Margin"
+              label={t.grossMarginLabel}
               value={`${kpis.grossMarginPct.toFixed(1)}%`}
               subtitle={`COGS ₼${kpis.cogs.toFixed(2)} • OPEX ₼${kpis.opex.toFixed(2)}`}
               trend={kpis.grossMarginPct >= 35 ? 'up' : kpis.grossMarginPct >= 20 ? 'neutral' : 'down'}
@@ -233,7 +235,7 @@ export function HomeScreen() {
 
           {error && (
             <div className="mt-6">
-              <InsightPanel title="Analytics data error" severity="warning">
+              <InsightPanel title={t.errorOccurred} severity="warning">
                 <p>{error}</p>
               </InsightPanel>
             </div>
@@ -241,7 +243,7 @@ export function HomeScreen() {
 
           {validationIssues.length > 0 && (
             <div className="mt-6">
-              <InsightPanel title="Analytics consistency warning" severity="warning">
+              <InsightPanel title={t.errorOccurred} severity="warning">
                 <p className="text-sm">Detected {validationIssues.length} consistency issue(s) in aggregated KPI data.</p>
                 <ul className="mt-2 list-disc pl-5">
                   {validationIssues.slice(0, 3).map((item) => (
@@ -255,10 +257,10 @@ export function HomeScreen() {
           )}
 
           <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <ChartCard title="Revenue vs Costs Trend">
+            <ChartCard title={t.revenueVsCostsTrend}>
               <LineChart series={financeTrendSeries} height={320} />
             </ChartCard>
-            <ChartCard title="Expense Composition">
+            <ChartCard title={t.expenseComposition}>
               <PieChart data={topExpenseCategories} size={240} />
             </ChartCard>
           </div>
@@ -295,32 +297,32 @@ export function HomeScreen() {
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{channel.channelName}</p>
                       <p className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">₼{channel.grossSales.toFixed(2)}</p>
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        {channel.orderCount.toFixed(0)} orders • ₼{channel.avgOrderValue.toFixed(2)} AOV • {(channel.grossMarginPct ?? 0).toFixed(1)}% share
+                        {channel.orderCount.toFixed(0)} {t.orders} • ₼{channel.avgOrderValue.toFixed(2)} {t.aov} • {(channel.grossMarginPct ?? 0).toFixed(1)}{t.share}
                       </p>
                     </div>
                   ))}
               </div>
             </ChartCard>
 
-            <ChartCard title="Payout Reconciliation">
+            <ChartCard title={t.payoutReconciliation}>
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/50">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Expected</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.expected}</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">₼{(payoutReconciliation?.totalExpected ?? 0).toFixed(2)}</p>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/50">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Actual</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.actual}</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">₼{(payoutReconciliation?.totalActual ?? 0).toFixed(2)}</p>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/50">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Difference</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.difference}</p>
                   <p className={`text-sm font-semibold ${(payoutReconciliation?.totalDifference ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     ₼{(payoutReconciliation?.totalDifference ?? 0).toFixed(2)}
                   </p>
                 </div>
               </div>
               <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                Matched: {payoutReconciliation?.matchedCount ?? 0} • Mismatched: {payoutReconciliation?.mismatchedCount ?? 0} • Pending: {payoutReconciliation?.pendingCount ?? 0}
+                {t.matched}: {payoutReconciliation?.matchedCount ?? 0} • {t.mismatched}: {payoutReconciliation?.mismatchedCount ?? 0} • {t.pending}: {payoutReconciliation?.pendingCount ?? 0}
               </div>
             </ChartCard>
           </div>

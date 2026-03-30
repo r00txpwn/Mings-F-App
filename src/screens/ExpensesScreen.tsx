@@ -490,9 +490,9 @@ export function ExpensesScreen() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Expenses"
-        description="Manage operational costs and COGS in one place"
-        eyebrow="Finance"
+        title={t.expense}
+        description={t.trackFixedCosts}
+        eyebrow={t.finance}
         icon={DollarSign}
         actions={
           <>
@@ -548,7 +548,7 @@ export function ExpensesScreen() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder={t.search}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="cockpit-input w-full py-2.5 pl-10 pr-4 text-sm"
@@ -560,8 +560,8 @@ export function ExpensesScreen() {
               endDate={dateFilter.end}
               onStartChange={(start) => setDateFilter((prev) => ({ ...prev, start }))}
               onEndChange={(end) => setDateFilter((prev) => ({ ...prev, end }))}
-              startLabel="Start date"
-              endLabel="End date"
+              startLabel={t.startDate}
+              endLabel={t.endDate}
             />
           </div>
         </div>
@@ -572,7 +572,7 @@ export function ExpensesScreen() {
           <ExpensesSummaryBar
             categories={opexCategorySummary}
             totalAmount={opexTotal}
-            label="Total Operational Expenses"
+            label={t.operationalExpenses}
           />
           {opexGroups.length === 0 ? (
             <div className="text-center py-16">
@@ -603,7 +603,7 @@ export function ExpensesScreen() {
           <ExpensesSummaryBar
             categories={cogsCategorySummary}
             totalAmount={cogsTotal}
-            label="Total COGS (Food Cost)"
+            label={t.cogs}
           />
           {cogsGroups.length === 0 ? (
             <div className="text-center py-16">
@@ -670,7 +670,7 @@ export function ExpensesScreen() {
                         })()}
                       </span>
                     ) : (
-                      <span className="text-gray-400">Search expense items...</span>
+                      <span className="text-gray-400">{t.searchExpenseItems}</span>
                     )}
                     <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${isItemDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -684,7 +684,7 @@ export function ExpensesScreen() {
                             type="text"
                             value={itemSearchText}
                             onChange={(e) => setItemSearchText(e.target.value)}
-                            placeholder="Search..."
+                            placeholder={t.search}
                             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
                             autoFocus
                           />
@@ -692,7 +692,7 @@ export function ExpensesScreen() {
                       </div>
                       <div className="max-h-48 overflow-y-auto">
                         {filteredDropdownItems.length === 0 ? (
-                          <div className="px-3 py-4 text-sm text-center text-gray-500">No items found</div>
+                          <div className="px-3 py-4 text-sm text-center text-gray-500">{t.noItemsFound}</div>
                         ) : (
                           filteredDropdownItems.map((item) => {
                             const cat = categories.find(c => c.id === item.master_category_id);
@@ -837,7 +837,7 @@ export function ExpensesScreen() {
                         })()}
                       </span>
                     ) : (
-                      <span className="text-gray-400">Search items...</span>
+                      <span className="text-gray-400">{t.searchItems}</span>
                     )}
                     <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${isCogsItemDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -851,7 +851,7 @@ export function ExpensesScreen() {
                             type="text"
                             value={cogsItemSearchText}
                             onChange={(e) => setCogsItemSearchText(e.target.value)}
-                            placeholder="Search..."
+                            placeholder={t.search}
                             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                             autoFocus
                           />
@@ -859,7 +859,7 @@ export function ExpensesScreen() {
                       </div>
                       <div className="max-h-48 overflow-y-auto">
                         {filteredCogsDropdownItems.length === 0 ? (
-                          <div className="px-3 py-4 text-sm text-center text-gray-500">No items found</div>
+                          <div className="px-3 py-4 text-sm text-center text-gray-500">{t.noItemsFound}</div>
                         ) : (
                           filteredCogsDropdownItems.map((item) => {
                             const cat = categories.find(c => c.id === item.master_category_id);
