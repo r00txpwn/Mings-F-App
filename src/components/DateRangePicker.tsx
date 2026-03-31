@@ -39,7 +39,12 @@ function formatDisplay(dateStr: string) {
   return `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`;
 }
 
-const toISO = (date: Date) => date.toISOString().split('T')[0];
+const toISO = (date: Date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
 function getQuickRanges() {
   const now = new Date();
@@ -47,12 +52,19 @@ function getQuickRanges() {
   const yesterdayDate = new Date(now);
   yesterdayDate.setDate(now.getDate() - 1);
   const yesterday = toISO(yesterdayDate);
+  const tomorrowDate = new Date(now);
+  tomorrowDate.setDate(now.getDate() + 1);
+  const tomorrow = toISO(tomorrowDate);
   const weekStart = new Date(now);
   weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   return {
     today: { start: today, end: today },
     yesterday: { start: yesterday, end: yesterday },
     thisWeek: { start: toISO(weekStart), end: today },
+    tomorrow: { start: tomorrow, end: tomorrow },
+    thisMonth: { start: toISO(monthStart), end: toISO(monthEnd) },
   };
 }
 
@@ -368,6 +380,28 @@ export function DateRangePicker({
                     className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
                   >
                     {t.thisWeek}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onStartChange(quick.tomorrow.start);
+                      onEndChange(quick.tomorrow.end);
+                      setOpen(false);
+                    }}
+                    className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
+                  >
+                    {t.tomorrow}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onStartChange(quick.thisMonth.start);
+                      onEndChange(quick.thisMonth.end);
+                      setOpen(false);
+                    }}
+                    className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
+                  >
+                    {t.thisMonth}
                   </button>
                   </div>
                 )}

@@ -46,6 +46,8 @@ export interface Translations {
   today: string;
   yesterday: string;
   thisWeek: string;
+  tomorrow: string;
+  thisMonth: string;
   week: string;
   month: string;
   custom: string;
@@ -193,6 +195,8 @@ export interface Translations {
   partial: string;
   paid: string;
   additionalNotes: string;
+  pastPurchases: string;
+  useThis: string;
   updatePurchase: string;
   createPurchase: string;
   noPurchasesYet: string;
@@ -611,6 +615,8 @@ export const translations: Record<Language, Translations> = {
     today: 'Today',
     yesterday: 'Yesterday',
     thisWeek: 'This week',
+    tomorrow: 'Tomorrow',
+    thisMonth: 'This month',
     week: 'Week',
     month: 'Month',
     custom: 'Custom',
@@ -750,6 +756,8 @@ export const translations: Record<Language, Translations> = {
     partial: 'Partial',
     paid: 'Paid',
     additionalNotes: 'Additional notes about this purchase...',
+    pastPurchases: 'Past Purchases',
+    useThis: 'Use this',
     updatePurchase: 'Update Purchase',
     createPurchase: 'Create Purchase',
     noPurchasesYet: 'No purchases yet',
@@ -1155,6 +1163,8 @@ export const translations: Record<Language, Translations> = {
     today: 'Bu gün',
     yesterday: 'Dünən',
     thisWeek: 'Bu həftə',
+    tomorrow: 'Sabah',
+    thisMonth: 'Bu ay',
     week: 'Həftə',
     month: 'Ay',
     custom: 'Xüsusi',
@@ -1294,6 +1304,8 @@ export const translations: Record<Language, Translations> = {
     partial: 'Qismən',
     paid: 'Ödənilib',
     additionalNotes: 'Bu alış haqqında əlavə qeydlər...',
+    pastPurchases: 'Keçmiş Alışlar',
+    useThis: 'Bunu istifadə et',
     updatePurchase: 'Alışı Yenilə',
     createPurchase: 'Alış Yarat',
     noPurchasesYet: 'Hələ alış yoxdur',
@@ -1699,6 +1711,8 @@ export const translations: Record<Language, Translations> = {
     today: 'Сегодня',
     yesterday: 'Вчера',
     thisWeek: 'Эта неделя',
+    tomorrow: 'Завтра',
+    thisMonth: 'Этот месяц',
     week: 'Неделя',
     month: 'Месяц',
     custom: 'Настраиваемый',
@@ -1838,6 +1852,8 @@ export const translations: Record<Language, Translations> = {
     partial: 'Частичная',
     paid: 'Оплачено',
     additionalNotes: 'Дополнительные заметки об этой закупке...',
+    pastPurchases: 'Прошлые Закупки',
+    useThis: 'Использовать',
     updatePurchase: 'Обновить Закупку',
     createPurchase: 'Создать Закупку',
     noPurchasesYet: 'Закупок пока нет',
