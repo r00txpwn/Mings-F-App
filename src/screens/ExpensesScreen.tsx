@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Settings2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -60,6 +60,26 @@ interface Supplier {
 }
 
 type ActiveTab = 'operational' | 'cogs' | 'categories';
+type PurchasePriceSuggestion = {
+  unit_cost: number;
+  supplier_id: string | null;
+  supplier_name: string;
+  purchase_date: string;
+};
+
+const toLocalDateInput = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getCurrentMonthRange = () => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return { start: toLocalDateInput(start), end: toLocalDateInput(end) };
+};
 
 export function ExpensesScreen() {
   const { t } = useLanguage();
@@ -78,13 +98,7 @@ export function ExpensesScreen() {
   const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState(() => {
-    const now = new Date();
-    return {
-      start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0],
-      end: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0],
-    };
-  });
+  const [dateFilter, setDateFilter] = useState(() => getCurrentMonthRange());
 
   useEffect(() => {
     loadAllData(true);
@@ -351,6 +365,35 @@ export function ExpensesScreen() {
     );
   });
 
+  const purchasePriceSuggestions = useMemo<PurchasePriceSuggestion[]>(() => {
+    if (!purchaseFormData.expense_item_id) return [];
+
+    const filtered = purchases
+      .filter((purchase) =>
+        purchase.expense_item_id === purchaseFormData.expense_item_id &&
+        Number(purchase.unit_cost) > 0
+      )
+      .sort((a, b) => b.purchase_date.localeCompare(a.purchase_date));
+
+    const seen = new Set<string>();
+    const unique: PurchasePriceSuggestion[] = [];
+    for (const purchase of filtered) {
+      const unitCost = Number(purchase.unit_cost);
+      const supplierId = purchase.supplier_id || null;
+      const key = `${unitCost.toFixed(2)}::${supplierId || 'no-supplier'}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push({
+        unit_cost: unitCost,
+        supplier_id: supplierId,
+        supplier_name: purchase.suppliers?.name || t.noSupplier,
+        purchase_date: purchase.purchase_date.split('T')[0],
+      });
+      if (unique.length >= 5) break;
+    }
+    return unique;
+  }, [purchaseFormData.expense_item_id, purchases, t.noSupplier]);
+
   const handleSelectExpenseItem = (itemId: string) => {
     const item = subItems.find(i => i.id === itemId);
     if (item) {
@@ -435,10 +478,18 @@ export function ExpensesScreen() {
       const oldQuantity = Number(editingPurchase.quantity) || 0;
       const newQuantity = Number(purchaseFormData.quantity) || 0;
 
-      await supabase.from('purchases').update(payload).eq('id', editingPurchase.id);
+      const { error } = await supabase.from('purchases').update(payload).eq('id', editingPurchase.id);
+      if (error) {
+        console.error('Failed to update purchase:', error);
+        return;
+      }
       await reconcileProductStock(oldProductId, newQuantity - oldQuantity);
     } else {
-      await supabase.from('purchases').insert(payload);
+      const { error } = await supabase.from('purchases').insert(payload);
+      if (error) {
+        console.error('Failed to create purchase:', error);
+        return;
+      }
     }
 
     resetPurchaseForm();
@@ -450,7 +501,7 @@ export function ExpensesScreen() {
       master_category_id: '',
       expense_item_id: '',
       amount: 0,
-      expense_date: new Date().toISOString().split('T')[0],
+      expense_date: toLocalDateInput(new Date()),
       payment_method: '',
       description: '',
     });
@@ -465,7 +516,7 @@ export function ExpensesScreen() {
       supplier_id: '',
       quantity: 1,
       unit_cost: 0,
-      purchase_date: new Date().toISOString().split('T')[0],
+      purchase_date: toLocalDateInput(new Date()),
       payment_status: 'pending',
       notes: '',
     });
@@ -901,6 +952,44 @@ export function ExpensesScreen() {
                   ))}
                 </select>
               </div>
+
+              {purchaseFormData.expense_item_id && purchasePriceSuggestions.length > 0 && (
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    {t.pastPurchases}
+                  </p>
+                  <div className="space-y-2">
+                    {purchasePriceSuggestions.map((entry) => (
+                      <div
+                        key={`${entry.unit_cost}-${entry.supplier_id ?? 'none'}-${entry.purchase_date}`}
+                        className="flex items-center justify-between gap-3 rounded-md bg-gray-50 dark:bg-gray-700/40 px-2.5 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            ₼{entry.unit_cost.toFixed(2)}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {entry.supplier_name} • {entry.purchase_date}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPurchaseFormData((prev) => ({
+                              ...prev,
+                              unit_cost: entry.unit_cost,
+                              supplier_id: entry.supplier_id || prev.supplier_id,
+                            }))
+                          }
+                          className="shrink-0 rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 transition-colors"
+                        >
+                          {t.useThis}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
