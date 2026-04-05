@@ -51,7 +51,8 @@ export function KpiCard({
         <div className="flex shrink-0 items-center justify-end">
           {hasDelta ? (
             <span
-              className={`inline-flex h-7 items-center rounded-full px-2 py-1 text-xs font-semibold ${getDeltaStyles(
+              title={delta}
+              className={`inline-flex h-7 max-w-[5.5rem] shrink-0 items-center justify-center truncate rounded-full px-2 py-1 text-xs font-semibold tabular-nums ${getDeltaStyles(
                 trend
               )}`}
             >

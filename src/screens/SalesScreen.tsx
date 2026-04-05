@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, SalesChannel, Sale } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { PageHeader } from '../components/cockpit';
+import { SingleDatePicker } from '../components/SingleDatePicker';
 
 interface GroupedSale {
   date: string;
@@ -337,11 +338,10 @@ export function SalesScreen() {
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="cockpit-label">{t.transactionDate}</label>
-            <input
-              type="date"
+            <SingleDatePicker
               value={transactionDate}
-              onChange={(e) => setTransactionDate(e.target.value)}
-              className="cockpit-input font-mono"
+              onChange={setTransactionDate}
+              placeholder={t.transactionDate}
             />
           </div>
 
@@ -459,11 +459,10 @@ export function SalesScreen() {
                             return (
                               <tr key={sale.id} className="bg-blue-50 dark:bg-blue-900/20" onClick={(e) => e.stopPropagation()}>
                                 <td className="px-4 py-3 pl-12">
-                                  <input
-                                    type="date"
+                                  <SingleDatePicker
                                     value={editingSale.sale_date.split('T')[0]}
-                                    onChange={(e) => setEditingSale({ ...editingSale, sale_date: e.target.value })}
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                                    onChange={(date) => setEditingSale({ ...editingSale, sale_date: date })}
+                                    placeholder={t.date}
                                   />
                                 </td>
                                 <td className="px-4 py-3">

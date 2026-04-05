@@ -9,6 +9,7 @@ interface User {
   email: string;
   created_at: string;
   last_sign_in_at?: string;
+  role: 'staff' | 'manager' | 'admin';
 }
 
 interface UserManagementUser {
@@ -16,6 +17,7 @@ interface UserManagementUser {
   email?: string;
   created_at: string;
   last_sign_in_at?: string;
+  role?: 'staff' | 'manager' | 'admin';
 }
 
 export function UsersScreen() {
@@ -87,6 +89,7 @@ export function UsersScreen() {
           email: u.email || '',
           created_at: u.created_at,
           last_sign_in_at: u.last_sign_in_at,
+          role: u.role || 'staff',
         }));
         mapped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setUsers(mapped);
@@ -147,6 +150,7 @@ export function UsersScreen() {
           email: result.user.email || email,
           created_at: result.user.created_at || new Date().toISOString(),
           last_sign_in_at: result.user.last_sign_in_at,
+          role,
         };
         setUsers((prev) => [createdUser, ...prev.filter((u) => u.id !== createdUser.id)]);
       }
@@ -306,13 +310,14 @@ export function UsersScreen() {
                 <th className="cockpit-th">{t.user}</th>
                 <th className="cockpit-th">{t.createdAt}</th>
                 <th className="cockpit-th">{t.lastSignIn}</th>
+                <th className="cockpit-th">{t.newUserRole}</th>
                 <th className="cockpit-th text-right">{t.actions}</th>
               </tr>
             </thead>
             <tbody>
               {users.length === 0 ? (
                 <tr className="cockpit-tr">
-                  <td colSpan={4} className="cockpit-td py-10 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={5} className="cockpit-td py-10 text-center text-slate-500 dark:text-slate-400">
                     {t.noUsersFound}
                   </td>
                 </tr>
@@ -335,6 +340,9 @@ export function UsersScreen() {
                     </td>
                     <td className="cockpit-td font-mono text-sm tabular-nums text-slate-600 dark:text-slate-300">
                       {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : t.never}
+                    </td>
+                    <td className="cockpit-td text-sm text-slate-700 dark:text-slate-200">
+                      {user.role}
                     </td>
                     <td className="cockpit-td text-right">
                       <button

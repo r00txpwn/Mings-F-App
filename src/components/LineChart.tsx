@@ -10,12 +10,37 @@ interface DataSeries {
   data: DataPoint[];
 }
 
+export type LineChartValueFormat = 'currency' | 'integer';
+
 interface LineChartProps {
   series: DataSeries[];
   height?: number;
+  /** Default `currency` (₼) for backward compatibility. */
+  valueFormat?: LineChartValueFormat;
+  /** Show color key under chart. Default: true when more than one series. */
+  showLegend?: boolean;
 }
 
-export function LineChart({ series, height = 300 }: LineChartProps) {
+function formatAxisValue(value: number, format: LineChartValueFormat): string {
+  if (format === 'integer') {
+    return Math.round(value).toString();
+  }
+  return `₼${value.toFixed(0)}`;
+}
+
+function formatTooltipValue(value: number, format: LineChartValueFormat): string {
+  if (format === 'integer') {
+    return value.toFixed(0);
+  }
+  return `₼${value.toFixed(2)}`;
+}
+
+export function LineChart({
+  series,
+  height = 300,
+  valueFormat = 'currency',
+  showLegend,
+}: LineChartProps) {
   const { t } = useLanguage();
   if (series.length === 0 || series.every(s => s.data.length === 0)) {
     return (
@@ -33,9 +58,9 @@ export function LineChart({ series, height = 300 }: LineChartProps) {
   const maxValue = Math.max(...allValues, 0);
   const minValue = 0;
 
-  const padding = { top: 20, right: 20, bottom: 40, left: 60 };
-  const width = 800;
-  const chartWidth = width - padding.left - padding.right;
+  const padding = { top: 16, right: 12, bottom: 32, left: 52 };
+  const innerWidth = 800;
+  const chartWidth = innerWidth - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
   const xScale = (index: number) => {
@@ -57,9 +82,19 @@ export function LineChart({ series, height = 300 }: LineChartProps) {
     return minValue + (maxValue - minValue) * (i / yTicks);
   });
 
+  const legendVisible = showLegend ?? series.length > 1;
+  const ariaLabel = series.map((s) => s.label).join(', ');
+
   return (
-    <div className="overflow-x-auto">
-      <svg width={width} height={height} className="text-gray-700 dark:text-gray-300">
+    <div className="w-full min-w-0 overflow-x-hidden" role="figure" aria-label={ariaLabel}>
+      <svg
+        viewBox={`0 0 ${innerWidth} ${height}`}
+        width="100%"
+        height={height}
+        preserveAspectRatio="xMidYMid meet"
+        className="block max-w-full text-gray-700 dark:text-gray-300"
+        role="presentation"
+      >
         <line
           x1={padding.left}
           y1={padding.top}
@@ -94,13 +129,13 @@ export function LineChart({ series, height = 300 }: LineChartProps) {
                 strokeDasharray="4"
               />
               <text
-                x={padding.left - 10}
+                x={padding.left - 8}
                 y={y}
                 textAnchor="end"
                 alignmentBaseline="middle"
-                className="text-xs fill-current"
+                className="text-[10px] fill-current"
               >
-                ₼{value.toFixed(0)}
+                {formatAxisValue(value, valueFormat)}
               </text>
             </g>
           );
@@ -114,9 +149,9 @@ export function LineChart({ series, height = 300 }: LineChartProps) {
               {showLabel && (
                 <text
                   x={x}
-                  y={padding.top + chartHeight + 20}
+                  y={padding.top + chartHeight + 18}
                   textAnchor="middle"
-                  className="text-xs fill-current"
+                  className="text-[10px] fill-current"
                 >
                   {formatDate(date)}
                 </text>
@@ -142,7 +177,7 @@ export function LineChart({ series, height = 300 }: LineChartProps) {
                 d={pathData}
                 fill="none"
                 stroke={s.color}
-                strokeWidth="2.5"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
@@ -156,13 +191,27 @@ export function LineChart({ series, height = 300 }: LineChartProps) {
                     stroke="white"
                     strokeWidth="2"
                   />
-                  <title>{`${s.label}: ₼${p.value.toFixed(2)}`}</title>
+                  <title>{`${s.label}: ${formatTooltipValue(p.value, valueFormat)}`}</title>
                 </g>
               ))}
             </g>
           );
         })}
       </svg>
+      {legendVisible && series.length > 0 ? (
+        <ul className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-slate-200/80 pt-2 dark:border-white/10">
+          {series.map((s, idx) => (
+            <li key={`${s.label}-${idx}`} className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-400">
+              <span
+                className="h-2 w-5 shrink-0 rounded-sm"
+                style={{ backgroundColor: s.color }}
+                aria-hidden
+              />
+              <span>{s.label}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

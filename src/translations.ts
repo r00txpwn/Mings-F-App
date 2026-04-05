@@ -463,6 +463,9 @@ export interface Translations {
   operationalExpenseLabel: string;
   purchaseCostLabel: string;
   revenueVsCostsTrend: string;
+  orderMetricsTrend: string;
+  topCategory: string;
+  kpiRatioUnavailable: string;
   expenseComposition: string;
   payoutReconciliation: string;
   expected: string;
@@ -495,6 +498,14 @@ export interface Translations {
   platformCosts: string;
   noSalesInPeriod: string;
   payoutReceived: string;
+  /** Sum of recorded sales for the payout period (channel + dates) */
+  periodRevenue: string;
+  /** Commission implied as revenue minus payout (same idea as platform fee) */
+  impliedCommission: string;
+  /** Footer line: count of payout records in the selected range, e.g. "{count} payout periods" */
+  payoutPeriodsInRange: string;
+  /** Home / dashboard card title: revenue, payout, commission — not "reconciliation" */
+  payoutSummaryCard: string;
 
   // Online order (customer / ChoiceQR-style)
   orderNavMenu: string;
@@ -1012,6 +1023,9 @@ export const translations: Record<Language, Translations> = {
     operationalExpenseLabel: 'Operational Expense',
     purchaseCostLabel: 'Purchase Cost',
     revenueVsCostsTrend: 'Revenue vs Costs Trend',
+    orderMetricsTrend: 'Orders & AOV',
+    topCategory: 'Top category',
+    kpiRatioUnavailable: '—',
     expenseComposition: 'Expense Composition',
     payoutReconciliation: 'Payout Reconciliation',
     expected: 'Expected',
@@ -1044,6 +1058,10 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Platform Costs',
     noSalesInPeriod: 'No sales found for this period',
     payoutReceived: 'Payout Received',
+    periodRevenue: 'Period revenue',
+    impliedCommission: 'Commission',
+    payoutPeriodsInRange: '{count} payout periods in this range',
+    payoutSummaryCard: 'Payout summary',
 
     orderNavMenu: 'Menu',
     orderNavCart: 'Cart',
@@ -1560,6 +1578,9 @@ export const translations: Record<Language, Translations> = {
     operationalExpenseLabel: 'Əməliyyat Xərci',
     purchaseCostLabel: 'Alış Dəyəri',
     revenueVsCostsTrend: 'Gəlir və Xərc Trendi',
+    orderMetricsTrend: 'Sifarişlər və orta çek',
+    topCategory: 'Əsas kateqoriya',
+    kpiRatioUnavailable: '—',
     expenseComposition: 'Xərc Tərkibi',
     payoutReconciliation: 'Ödəniş Uzlaşdırması',
     expected: 'Gözlənilən',
@@ -1592,6 +1613,10 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Platforma Xərcləri',
     noSalesInPeriod: 'Bu dövr üçün satış tapılmadı',
     payoutReceived: 'Alınan Ödəniş',
+    periodRevenue: 'Dövr üzrə gəlir',
+    impliedCommission: 'Komissiya',
+    payoutPeriodsInRange: 'Bu aralıqda {count} ödəniş dövrü',
+    payoutSummaryCard: 'Ödəniş xülasəsi',
 
     orderNavMenu: 'Menyu',
     orderNavCart: 'Səbət',
@@ -2108,6 +2133,9 @@ export const translations: Record<Language, Translations> = {
     operationalExpenseLabel: 'Операционные Расходы',
     purchaseCostLabel: 'Закупочная Стоимость',
     revenueVsCostsTrend: 'Тренд выручки и затрат',
+    orderMetricsTrend: 'Заказы и средний чек',
+    topCategory: 'Топ категория',
+    kpiRatioUnavailable: '—',
     expenseComposition: 'Структура расходов',
     payoutReconciliation: 'Сверка выплат',
     expected: 'Ожидаемо',
@@ -2140,6 +2168,10 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Расходы на Платформы',
     noSalesInPeriod: 'Продаж за этот период не найдено',
     payoutReceived: 'Получено от Платформы',
+    periodRevenue: 'Выручка за период',
+    impliedCommission: 'Комиссия',
+    payoutPeriodsInRange: 'В этом диапазоне периодов выплат: {count}',
+    payoutSummaryCard: 'Сводка выплат',
 
     orderNavMenu: 'Меню',
     orderNavCart: 'Корзина',

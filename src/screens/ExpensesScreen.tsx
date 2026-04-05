@@ -7,6 +7,7 @@ import { CategoryGroupedView } from './expenses/CategoryGroupedView';
 import { ManageCategoriesTab } from './expenses/ManageCategoriesTab';
 import { PageHeader } from '../components/cockpit';
 import { DateRangePicker } from '../components/DateRangePicker';
+import { SingleDatePicker } from '../components/SingleDatePicker';
 
 interface MasterCategory {
   id: string;
@@ -804,12 +805,10 @@ export function ExpensesScreen() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.dateRequired}</label>
-                  <input
-                    type="date"
+                  <SingleDatePicker
                     value={expenseFormData.expense_date}
-                    onChange={(e) => setExpenseFormData(prev => ({ ...prev, expense_date: e.target.value }))}
-                    required
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    onChange={(date) => setExpenseFormData(prev => ({ ...prev, expense_date: date }))}
+                    placeholder={t.date}
                   />
                 </div>
                 <div>
@@ -1029,12 +1028,10 @@ export function ExpensesScreen() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.purchaseDate} *</label>
-                  <input
-                    type="date"
+                  <SingleDatePicker
                     value={purchaseFormData.purchase_date}
-                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, purchase_date: e.target.value }))}
-                    required
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    onChange={(date) => setPurchaseFormData(prev => ({ ...prev, purchase_date: date }))}
+                    placeholder={t.purchaseDate}
                   />
                 </div>
                 <div>
