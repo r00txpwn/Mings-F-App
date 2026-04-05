@@ -24,8 +24,12 @@ export function HomeScreen() {
   const [expenseBreakdown, setExpenseBreakdown] = useState<ExpenseBreakdownData | null>(null);
   const [payoutReconciliation, setPayoutReconciliation] = useState<PayoutReconciliationSummary | null>(null);
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(new Set());
+  const [orderMetricView, setOrderMetricView] = useState<'aov' | 'orders'>('aov');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const chartHeight = 200;
+  const pieSize = 190;
 
   useEffect(() => {
     void loadDashboard();
@@ -126,23 +130,45 @@ export function HomeScreen() {
   const financeTrendSeries = useMemo(
     () => [
       {
-        label: 'Revenue',
+        label: t.revenueLabel,
         color: '#10B981',
         data: trendData.map((d) => ({ date: d.bucket, value: d.revenue })),
       },
       {
-        label: 'Operational Expense',
+        label: t.operationalExpenseLabel,
         color: '#EF4444',
         data: trendData.map((d) => ({ date: d.bucket, value: d.operationalExpense })),
       },
       {
-        label: 'Purchase Cost',
+        label: t.purchaseCostLabel,
         color: '#F59E0B',
         data: trendData.map((d) => ({ date: d.bucket, value: d.purchaseCost })),
       },
     ],
-    [trendData],
+    [trendData, t.revenueLabel, t.operationalExpenseLabel, t.purchaseCostLabel],
   );
+
+  const orderVolumeSeries = useMemo(() => {
+    if (orderMetricView === 'aov') {
+      return [
+        {
+          label: t.aov,
+          color: '#8B5CF6',
+          data: trendData.map((d) => ({
+            date: d.bucket,
+            value: d.orders > 0 ? d.revenue / d.orders : 0,
+          })),
+        },
+      ];
+    }
+    return [
+      {
+        label: t.orders,
+        color: '#3B82F6',
+        data: trendData.map((d) => ({ date: d.bucket, value: d.orders })),
+      },
+    ];
+  }, [trendData, orderMetricView, t.aov, t.orders]);
 
   const topExpenseCategories = useMemo(() => {
     const map = new Map<string, { amount: number; color: string }>();
@@ -157,6 +183,11 @@ export function HomeScreen() {
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
   }, [expenseBreakdown]);
+
+  const operatingProfitMarginPct = useMemo(() => {
+    if (Math.abs(kpis.netRevenue) < 0.01) return null;
+    return (kpis.operatingProfit / kpis.netRevenue) * 100;
+  }, [kpis.netRevenue, kpis.operatingProfit]);
 
   const validationIssues = useMemo(() => {
     const channelRevenueTotal = channelPerformance.reduce((sum, channel) => sum + channel.grossSales, 0);
@@ -173,7 +204,7 @@ export function HomeScreen() {
 
   return (
     <div className="animate-fadeIn">
-      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cockpit-600 dark:text-cockpit-400">
             {t.liveMetrics}
@@ -187,7 +218,7 @@ export function HomeScreen() {
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <FilterBar
           selectedPreset={preset}
           onPresetChange={setPreset}
@@ -207,7 +238,7 @@ export function HomeScreen() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <KpiCard
               label={t.grossSales}
               value={`₼${kpis.grossSales.toFixed(2)}`}
@@ -223,7 +254,11 @@ export function HomeScreen() {
               value={`₼${kpis.operatingProfit.toFixed(2)}`}
               subtitle={t.kpiOperatingProfitHint}
               trend={kpis.operatingProfit >= 0 ? 'up' : 'down'}
-              delta={`${kpis.operatingProfit >= 0 ? '+' : ''}${((kpis.operatingProfit / Math.max(kpis.netRevenue, 1)) * 100).toFixed(1)}%`}
+              delta={
+                operatingProfitMarginPct === null
+                  ? t.kpiRatioUnavailable
+                  : `${operatingProfitMarginPct >= 0 ? '+' : ''}${operatingProfitMarginPct.toFixed(1)}%`
+              }
             />
             <KpiCard
               label={t.grossMarginLabel}
@@ -234,7 +269,7 @@ export function HomeScreen() {
           </div>
 
           {error && (
-            <div className="mt-6">
+            <div className="mt-3">
               <InsightPanel title={t.errorOccurred} severity="warning">
                 <p>{error}</p>
               </InsightPanel>
@@ -242,7 +277,7 @@ export function HomeScreen() {
           )}
 
           {validationIssues.length > 0 && (
-            <div className="mt-6">
+            <div className="mt-3">
               <InsightPanel title={t.errorOccurred} severity="warning">
                 <p className="text-sm">Detected {validationIssues.length} consistency issue(s) in aggregated KPI data.</p>
                 <ul className="mt-2 list-disc pl-5">
@@ -256,18 +291,56 @@ export function HomeScreen() {
             </div>
           )}
 
-          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <ChartCard title={t.revenueVsCostsTrend}>
-              <LineChart series={financeTrendSeries} height={320} />
+          <div className="mt-4 grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3">
+            <ChartCard compact title={t.revenueVsCostsTrend}>
+              <LineChart series={financeTrendSeries} height={chartHeight} />
             </ChartCard>
-            <ChartCard title={t.expenseComposition}>
-              <PieChart data={topExpenseCategories} size={240} />
+            <ChartCard
+              compact
+              title={t.orderMetricsTrend}
+              actions={
+                <div className="flex rounded-lg border border-slate-200 p-0.5 dark:border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setOrderMetricView('aov')}
+                    className={`rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide transition ${
+                      orderMetricView === 'aov'
+                        ? 'bg-cockpit-600 text-white'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    {t.aov}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderMetricView('orders')}
+                    className={`rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide transition ${
+                      orderMetricView === 'orders'
+                        ? 'bg-cockpit-600 text-white'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    {t.orders}
+                  </button>
+                </div>
+              }
+            >
+              <LineChart
+                series={orderVolumeSeries}
+                height={chartHeight}
+                valueFormat={orderMetricView === 'aov' ? 'currency' : 'integer'}
+              />
+            </ChartCard>
+            <ChartCard compact title={t.expenseComposition}>
+              <div className="flex justify-center">
+                <PieChart data={topExpenseCategories} size={pieSize} />
+              </div>
             </ChartCard>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <ChartCard title={t.salesByChannel}>
-              <div className="mb-4 flex flex-wrap gap-2">
+          <div className="mt-4 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+            <ChartCard compact title={t.salesByChannel}>
+              <div className="mb-2 flex flex-wrap gap-2">
                 {channelPerformance.map((channel) => {
                   const isSelected = selectedChannels.has(channel.channelId);
                   return (
@@ -304,25 +377,25 @@ export function HomeScreen() {
               </div>
             </ChartCard>
 
-            <ChartCard title={t.payoutReconciliation}>
+            <ChartCard compact title={t.payoutSummaryCard}>
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/50">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.expected}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.periodRevenue}</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">₼{(payoutReconciliation?.totalExpected ?? 0).toFixed(2)}</p>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/50">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.actual}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.payoutReceived}</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">₼{(payoutReconciliation?.totalActual ?? 0).toFixed(2)}</p>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/50">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.difference}</p>
-                  <p className={`text-sm font-semibold ${(payoutReconciliation?.totalDifference ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    ₼{(payoutReconciliation?.totalDifference ?? 0).toFixed(2)}
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.impliedCommission}</p>
+                  <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">
+                    ₼{Math.max(0, (payoutReconciliation?.totalExpected ?? 0) - (payoutReconciliation?.totalActual ?? 0)).toFixed(2)}
                   </p>
                 </div>
               </div>
-              <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                {t.matched}: {payoutReconciliation?.matchedCount ?? 0} • {t.mismatched}: {payoutReconciliation?.mismatchedCount ?? 0} • {t.pending}: {payoutReconciliation?.pendingCount ?? 0}
+              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {t.payoutPeriodsInRange.replace('{count}', String(payoutReconciliation?.items?.length ?? 0))}
               </div>
             </ChartCard>
           </div>

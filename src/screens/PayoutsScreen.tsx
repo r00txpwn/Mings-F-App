@@ -4,8 +4,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, SalesChannel, PlatformPayout } from '../lib/supabase';
 import { DateRangePicker } from '../components/DateRangePicker';
+import { SingleDatePicker } from '../components/SingleDatePicker';
 import { fetchPayoutReconciliation } from '../services/analytics';
-import type { ReconciliationStatus } from '../types/analytics';
 import { PageHeader } from '../components/cockpit';
 import { IconActionButton } from '../components/ui/IconActionButton';
 import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
@@ -14,8 +14,6 @@ interface PayoutWithCalc extends PlatformPayout {
   grossSales: number;
   commissionAmount: number;
   commissionPercent: number;
-  reconciliationStatus: ReconciliationStatus;
-  payoutDifference: number;
 }
 
 export function PayoutsScreen() {
@@ -87,10 +85,7 @@ export function PayoutsScreen() {
       const maxEnd = payoutsData.reduce((max, p) => (p.period_end > max ? p.period_end : max), payoutsData[0]?.period_end);
       const channelIds = [...new Set(payoutsData.map((p) => p.sales_channel_id))];
 
-      let reconciliationById = new Map<
-        string,
-        { expectedAmount: number; difference: number; status: ReconciliationStatus }
-      >();
+      let grossByPayoutId = new Map<string, number>();
 
       if (payoutsData.length > 0) {
         const { data: reconciliation, error: reconciliationError } = await fetchPayoutReconciliation({
@@ -102,32 +97,22 @@ export function PayoutsScreen() {
         if (reconciliationError) {
           setError(reconciliationError);
         } else if (reconciliation) {
-          reconciliationById = new Map(
-            reconciliation.items.map((item) => [
-              item.payoutId,
-              {
-                expectedAmount: item.expectedAmount,
-                difference: item.difference,
-                status: item.status,
-              },
-            ])
-          );
+          grossByPayoutId = new Map(reconciliation.items.map((item) => [item.payoutId, item.expectedAmount]));
         }
       }
 
       const withCalc = await Promise.all(
         payoutsData.map(async (p) => {
-          const reconciliation = reconciliationById.get(p.id);
-          const gross = reconciliation ? reconciliation.expectedAmount : await calcGrossSales(p.sales_channel_id, p.period_start, p.period_end);
-          const commissionAmount = gross - Number(p.payout_amount);
+          const fromBatch = grossByPayoutId.get(p.id);
+          const gross = fromBatch !== undefined ? fromBatch : await calcGrossSales(p.sales_channel_id, p.period_start, p.period_end);
+          const payoutNum = Number(p.payout_amount);
+          const commissionAmount = Math.max(0, gross - payoutNum);
           const commissionPercent = gross > 0 ? (commissionAmount / gross) * 100 : 0;
           return {
             ...p,
             grossSales: gross,
             commissionAmount,
             commissionPercent,
-            reconciliationStatus: reconciliation?.status ?? 'pending',
-            payoutDifference: reconciliation?.difference ?? Number(p.payout_amount) - gross,
           };
         })
       );
@@ -234,9 +219,11 @@ export function PayoutsScreen() {
   const totalCommission = payouts.reduce((s, p) => s + p.commissionAmount, 0);
   const avgCommissionRate = totalGross > 0 ? (totalCommission / totalGross) * 100 : 0;
 
-  const previewDifference = previewGross !== null && payoutAmount
-    ? Number(payoutAmount) - previewGross
-    : null;
+  const previewPayoutNum = payoutAmount ? Number(payoutAmount) : 0;
+  const previewCommission =
+    previewGross !== null && payoutAmount && previewPayoutNum > 0 ? Math.max(0, previewGross - previewPayoutNum) : null;
+  const previewCommissionPct =
+    previewGross !== null && previewGross > 0 && previewCommission !== null ? (previewCommission / previewGross) * 100 : null;
 
   return (
     <div className="animate-fadeIn">
@@ -269,7 +256,7 @@ export function PayoutsScreen() {
       {payouts.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <SummaryCard
-            label={t.grossSales}
+            label={t.periodRevenue}
             value={`₼${totalGross.toFixed(2)}`}
             color="text-slate-900 dark:text-white"
           />
@@ -373,11 +360,10 @@ export function PayoutsScreen() {
                 <label className="cockpit-label mb-1.5">
                   {t.payoutDate} *
                 </label>
-                <input
-                  type="date"
+                <SingleDatePicker
                   value={payoutDate}
-                  onChange={(e) => setPayoutDate(e.target.value)}
-                  className="cockpit-input font-mono text-sm"
+                  onChange={setPayoutDate}
+                  placeholder={t.payoutDate}
                 />
               </div>
               <div>
@@ -404,31 +390,37 @@ export function PayoutsScreen() {
                   {t.pleaseWait}
                 </div>
               ) : previewGross !== null ? (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <div>
-                        <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">{t.expected}</div>
+                    <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">{t.periodRevenue}</div>
                     <div className="font-mono text-lg font-semibold tabular-nums text-slate-900 dark:text-white">
                       ₼{previewGross.toFixed(2)}
                     </div>
                   </div>
-                  {payoutAmount && Number(payoutAmount) > 0 && (
+                  {payoutAmount && previewPayoutNum > 0 ? (
                     <>
                       <div>
-                        <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">{t.actual}</div>
+                        <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">{t.payoutReceived}</div>
                         <div className="font-mono text-lg font-semibold tabular-nums text-cockpit-600 dark:text-cockpit-400">
-                          ₼{Number(payoutAmount).toFixed(2)}
+                          ₼{previewPayoutNum.toFixed(2)}
                         </div>
                       </div>
                       <div>
-                        <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">{t.difference}</div>
-                        <div className={`font-mono text-lg font-semibold tabular-nums ${(previewDifference ?? 0) >= 0 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {previewDifference !== null && previewDifference > 0 ? '+' : ''}₼{(previewDifference ?? 0).toFixed(2)}
+                        <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">{t.impliedCommission}</div>
+                        <div className="font-mono text-lg font-semibold tabular-nums text-rose-600 dark:text-rose-400">
+                          ₼{(previewCommission ?? 0).toFixed(2)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">{t.commissionRate}</div>
+                        <div className="font-mono text-lg font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+                          {previewCommissionPct !== null ? `${previewCommissionPct.toFixed(1)}%` : '—'}
                         </div>
                       </div>
                     </>
-                  )}
+                  ) : null}
                   {previewGross === 0 && (
-                    <div className="col-span-2 flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                    <div className="col-span-full flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       {t.noSalesInPeriod}
                     </div>
@@ -473,7 +465,7 @@ export function PayoutsScreen() {
                 return (
                   <div key={p.id}>
                     <div
-                      className="flex cursor-pointer items-center gap-4 px-5 py-4 transition-colors hover:bg-slate-50/80 dark:hover:bg-white/[0.03]"
+                      className="flex cursor-pointer flex-wrap items-center gap-3 px-5 py-4 transition-colors hover:bg-slate-50/80 dark:hover:bg-white/[0.03] sm:gap-4"
                       onClick={() => setExpandedId(isExpanded ? null : p.id)}
                     >
                       <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">
@@ -484,13 +476,12 @@ export function PayoutsScreen() {
                         )}
                       </div>
 
-                        <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-semibold text-slate-900 dark:text-white">{ch?.name}</span>
                           <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
                             {new Date(p.period_start).toLocaleDateString()} — {new Date(p.period_end).toLocaleDateString()}
                           </span>
-                          <StatusPill status={p.reconciliationStatus} />
                         </div>
                         <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                           {t.payoutDate}: {new Date(p.payout_date).toLocaleDateString()}
@@ -498,22 +489,24 @@ export function PayoutsScreen() {
                         </div>
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-6">
+                      <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-4 sm:gap-6">
+                        <div className="text-right">
+                          <div className="font-mono text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                            ₼{p.grossSales.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{t.periodRevenue}</div>
+                        </div>
                         <div className="text-right">
                           <div className="font-mono text-sm font-semibold tabular-nums text-cockpit-600 dark:text-cockpit-400">
                             ₼{Number(p.payout_amount).toFixed(2)}
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400">
-                            {t.payoutReceived}
-                          </div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{t.payoutReceived}</div>
                         </div>
                         <div className="text-right">
-                          <div className={`font-mono text-sm font-semibold tabular-nums ${p.payoutDifference < 0 ? 'text-red-600 dark:text-red-400' : p.payoutDifference > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                            {p.payoutDifference > 0 ? '+' : ''}₼{p.payoutDifference.toFixed(2)}
+                          <div className="font-mono text-sm font-semibold tabular-nums text-rose-600 dark:text-rose-400">
+                            ₼{p.commissionAmount.toFixed(2)}
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400">
-                            expected vs actual
-                          </div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{t.impliedCommission}</div>
                         </div>
                         {isExpanded ? (
                           <ChevronDown className="h-4 w-4 text-slate-400" />
@@ -526,14 +519,22 @@ export function PayoutsScreen() {
                     {isExpanded && (
                       <div className="cockpit-inset px-5 pb-4">
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-3">
-                          <DetailCell label="Expected" value={`₼${p.grossSales.toFixed(2)}`} />
-                          <DetailCell label="Actual" value={`₼${Number(p.payout_amount).toFixed(2)}`} valueClass="text-cockpit-600 dark:text-cockpit-400" />
+                          <DetailCell label={t.periodRevenue} value={`₼${p.grossSales.toFixed(2)}`} />
                           <DetailCell
-                            label="Difference"
-                            value={`${p.payoutDifference > 0 ? '+' : ''}₼${p.payoutDifference.toFixed(2)}`}
-                            valueClass={p.payoutDifference < 0 ? 'text-red-600 dark:text-red-400' : p.payoutDifference > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}
+                            label={t.payoutReceived}
+                            value={`₼${Number(p.payout_amount).toFixed(2)}`}
+                            valueClass="text-cockpit-600 dark:text-cockpit-400"
                           />
-                          <DetailCell label={t.commissionRate} value={`${p.commissionPercent.toFixed(1)}%`} valueClass={p.commissionPercent > 0 ? 'text-amber-600 dark:text-amber-400' : ''} />
+                          <DetailCell
+                            label={t.impliedCommission}
+                            value={`₼${p.commissionAmount.toFixed(2)}`}
+                            valueClass="text-rose-600 dark:text-rose-400"
+                          />
+                          <DetailCell
+                            label={t.commissionRate}
+                            value={`${p.commissionPercent.toFixed(1)}%`}
+                            valueClass={p.commissionPercent > 0 ? 'text-amber-600 dark:text-amber-400' : ''}
+                          />
                         </div>
 
                         {isDeleting ? (
@@ -595,27 +596,5 @@ function DetailCell({ label, value, valueClass = '' }: { label: string; value: s
       <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">{label}</div>
       <div className={`font-mono text-sm font-semibold tabular-nums text-slate-900 dark:text-white ${valueClass}`}>{value}</div>
     </div>
-  );
-}
-
-function StatusPill({ status }: { status: ReconciliationStatus }) {
-  const statusLabel: Record<ReconciliationStatus, string> = {
-    matched: 'Matched',
-    underpaid: 'Underpaid',
-    overpaid: 'Overpaid',
-    pending: 'Pending',
-  };
-
-  const statusClass: Record<ReconciliationStatus, string> = {
-    matched: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    underpaid: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-    overpaid: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
-    pending: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
-  };
-
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass[status]}`}>
-      {statusLabel[status]}
-    </span>
   );
 }

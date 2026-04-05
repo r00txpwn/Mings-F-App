@@ -111,8 +111,41 @@ Deno.serve(async (req: Request) => {
         return email.includes('@');
       });
 
+      const ids = visibleUsers.map((u) => u.id);
+      const profileById = new Map<string, { role: 'admin' | 'manager' | 'staff' }>();
+      if (ids.length > 0) {
+        const { data: profiles, error: profilesError } = await supabaseAdmin
+          .from('users')
+          .select('id, role')
+          .in('id', ids);
+
+        if (profilesError) {
+          return new Response(
+            JSON.stringify({ error: profilesError.message }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
+        for (const profile of profiles ?? []) {
+          profileById.set(profile.id, {
+            role: profile.role,
+          });
+        }
+      }
+
+      const mergedUsers = visibleUsers.map((u) => {
+        const profile = profileById.get(u.id);
+        return {
+          ...u,
+          role: profile?.role ?? 'staff',
+        };
+      });
+
       return new Response(
-        JSON.stringify({ users: visibleUsers }),
+        JSON.stringify({ users: mergedUsers }),
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

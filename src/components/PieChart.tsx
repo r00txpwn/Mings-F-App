@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface PieChartData {
   label: string;
@@ -12,6 +13,7 @@ interface PieChartProps {
 }
 
 export function PieChart({ data, size = 200 }: PieChartProps) {
+  const { t } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -26,7 +28,7 @@ export function PieChart({ data, size = 200 }: PieChartProps) {
         className="flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700"
         style={{ width: size, height: size }}
       >
-        <span className="text-sm text-gray-400 dark:text-gray-500">No data</span>
+        <span className="px-2 text-center text-xs text-gray-400 dark:text-gray-500">{t.noDataForPeriod}</span>
       </div>
     );
   }
@@ -56,7 +58,7 @@ export function PieChart({ data, size = 200 }: PieChartProps) {
   });
 
   return (
-    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-6">
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
       <div className="relative mx-auto" style={{ width: size, height: size }}>
         <svg
           width={size}
@@ -97,23 +99,23 @@ export function PieChart({ data, size = 200 }: PieChartProps) {
           })}
         </svg>
 
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-            Top Category
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-1 text-center">
+          <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+            {t.topCategory}
           </span>
-          <span className="mt-1 max-w-[70%] truncate text-sm font-semibold text-slate-900 dark:text-white">
+          <span className="mt-0.5 max-w-[85%] truncate text-xs font-semibold leading-tight text-slate-900 dark:text-white">
             {activeSlice.label}
           </span>
-          <span className="mt-1 font-mono text-lg font-bold tabular-nums text-slate-900 dark:text-white">
+          <span className="mt-0.5 font-mono text-sm font-bold tabular-nums text-slate-900 dark:text-white">
             ₼{activeSlice.value.toFixed(2)}
           </span>
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
             {activeSlice.percentage.toFixed(1)}%
           </span>
         </div>
       </div>
 
-      <div className="w-full space-y-1.5">
+      <div className="min-w-0 flex-1 space-y-1">
         {slices.map((slice, index) => {
           const isActive = index === safeActiveIndex;
           return (
@@ -123,32 +125,20 @@ export function PieChart({ data, size = 200 }: PieChartProps) {
               onMouseEnter={() => setActiveIndex(index)}
               onFocus={() => setActiveIndex(index)}
               onClick={() => setActiveIndex(index)}
-              className={`group flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition ${
+              className={`flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition ${
                 isActive
-                  ? 'border-violet-400/45 bg-violet-500/10 shadow-[0_0_0_1px_rgba(139,92,246,0.28)]'
+                  ? 'border-violet-400/50 bg-violet-500/10 shadow-sm dark:border-violet-500/35'
                   : 'border-transparent hover:border-slate-200/80 hover:bg-slate-100/70 dark:hover:border-violet-500/20 dark:hover:bg-slate-800/40'
               }`}
             >
-              <div className="min-w-0">
-                <div className="mb-1 flex items-center gap-2">
-                  <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: slice.color }} />
-                  <span className="truncate text-sm text-slate-800 dark:text-slate-200">{slice.label}</span>
-                </div>
-                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${slice.percentage}%`, backgroundColor: slice.color }}
-                  />
-                </div>
-              </div>
-              <div className="ml-3 flex items-baseline gap-3">
-                <span className="font-mono text-sm tabular-nums text-slate-600 dark:text-slate-400">
-                  ₼{slice.value.toFixed(2)}
-                </span>
-                <span className="min-w-[3rem] text-right text-sm font-semibold text-slate-900 dark:text-white">
-                  {slice.percentage.toFixed(1)}%
-                </span>
-              </div>
+              <div className="h-2 w-2 shrink-0 rounded-sm" style={{ backgroundColor: slice.color }} />
+              <span className="min-w-0 flex-1 truncate text-xs text-slate-800 dark:text-slate-200">{slice.label}</span>
+              <span className="shrink-0 font-mono text-[11px] tabular-nums text-slate-600 dark:text-slate-400">
+                ₼{slice.value.toFixed(2)}
+              </span>
+              <span className="shrink-0 font-mono text-[11px] font-semibold tabular-nums text-slate-900 dark:text-white">
+                {slice.percentage.toFixed(0)}%
+              </span>
             </button>
           );
         })}

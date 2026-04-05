@@ -5,6 +5,7 @@ import { supabase, Product, Supplier } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
 import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
 import { IconActionButton } from '../components/ui/IconActionButton';
+import { SingleDatePicker } from '../components/SingleDatePicker';
 
 interface Category {
   id: string;
@@ -837,12 +838,10 @@ export function ProductsScreen() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Date *
                   </label>
-                  <input
-                    type="date"
+                  <SingleDatePicker
                     value={purchaseFormData.purchase_date}
-                    onChange={(e) => setPurchaseFormData({ ...purchaseFormData, purchase_date: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    onChange={(date) => setPurchaseFormData({ ...purchaseFormData, purchase_date: date })}
+                    placeholder={t.date}
                   />
                 </div>
 
