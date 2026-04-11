@@ -95,61 +95,104 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col transition-opacity duration-200 ${closing ? 'opacity-0' : 'opacity-100'}`}
+      className={`fixed inset-0 z-50 flex flex-col transition-opacity duration-200 font-montserrat ${closing ? 'opacity-0' : 'opacity-100'}`}
     >
-      <div className="absolute inset-0 bg-black/70" onClick={handleClose} />
-
+      {/* Overlay */}
       <div
-        className={`relative flex flex-col bg-gray-900 w-full h-full sm:max-w-lg sm:mx-auto sm:my-4 sm:rounded-2xl sm:h-auto sm:max-h-[92vh] transition-transform duration-200 ${
-          closing ? 'translate-y-8' : 'translate-y-0'
-        }`}
+        className="absolute inset-0"
+        style={{ backgroundColor: 'rgba(31,31,31,0.92)' }}
+        onClick={handleClose}
+      />
+
+      {/* Modal panel */}
+      <div
+        className={`relative flex flex-col w-full h-full sm:max-w-lg sm:mx-auto sm:my-4 sm:h-auto sm:max-h-[92vh] transition-transform duration-200 ${closing ? 'translate-y-8' : 'translate-y-0'}`}
+        style={{
+          backgroundColor: 'var(--kiosk-card)',
+          borderRadius: '22px',
+        }}
       >
+        {/* Product image */}
         <div className="relative flex-shrink-0">
           {product.image_url ? (
-            <div className="w-full h-56 sm:h-64 bg-gray-800 sm:rounded-t-2xl overflow-hidden">
+            <div
+              className="w-full h-56 sm:h-64 overflow-hidden"
+              style={{ borderRadius: '22px 22px 0 0', backgroundColor: '#383838' }}
+            >
               <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
             </div>
           ) : (
-            <div className="w-full h-40 bg-gray-800 sm:rounded-t-2xl flex items-center justify-center">
-              <Package className="w-16 h-16 text-gray-600" />
+            <div
+              className="w-full h-40 flex items-center justify-center"
+              style={{ borderRadius: '22px 22px 0 0', backgroundColor: '#383838' }}
+            >
+              <Package className="w-16 h-16" style={{ color: 'var(--kiosk-smoke)' }} />
             </div>
           )}
+          {/* Close button */}
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+            className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+            style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: 'var(--kiosk-white)' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.7)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.5)')}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
+          {/* Product info */}
           <div className="p-5">
-            <h2 className="text-2xl font-bold text-white mb-1">{product.name}</h2>
+            <h2
+              className="text-2xl font-bold mb-1"
+              style={{ color: 'var(--kiosk-white)' }}
+            >
+              {product.name}
+            </h2>
             {product.description && (
-              <p className="text-gray-400 text-sm mb-3">{product.description}</p>
+              <p className="text-sm mb-3" style={{ color: 'var(--kiosk-smoke)' }}>{product.description}</p>
             )}
-            <p className="text-emerald-400 text-xl font-bold">₼{Number(product.selling_price).toFixed(2)}</p>
+            <p
+              className="text-xl font-bold"
+              style={{ color: 'var(--kiosk-primary)' }}
+            >
+              ₼{Number(product.selling_price).toFixed(2)}
+            </p>
           </div>
 
+          {/* Modifier groups */}
           {groups.length > 0 && (
             <div className="space-y-1">
               {groups.map(group => {
                 const selectedCount = (selections[group.id] || []).length;
                 const isSingle = group.max_select === 1;
                 return (
-                  <div key={group.id} className="px-5 py-4 border-t border-gray-800">
+                  <div
+                    key={group.id}
+                    className="px-5 py-4"
+                    style={{ borderTop: '1px solid var(--kiosk-border)' }}
+                  >
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <h3 className="text-white font-semibold">{group.name}</h3>
-                        <p className="text-gray-500 text-xs mt-0.5">
+                        <h3
+                          className="font-semibold"
+                          style={{ color: 'var(--kiosk-white)' }}
+                        >
+                          {group.name}
+                        </h3>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--kiosk-smoke)' }}>
                           {isSingle ? t.chooseOne : `${t.chooseUpTo} ${group.max_select}`}
                           {group.is_required && (
-                            <span className="ml-2 text-red-400">({t.required})</span>
+                            <span className="ml-2" style={{ color: 'var(--kiosk-primary)' }}>({t.required})</span>
                           )}
                         </p>
                       </div>
                       {!isSingle && group.max_select > 1 && (
-                        <span className="text-xs text-gray-500">{selectedCount}/{group.max_select}</span>
+                        <span className="text-xs" style={{ color: 'var(--kiosk-smoke)' }}>
+                          {selectedCount}/{group.max_select}
+                        </span>
                       )}
                     </div>
 
@@ -162,32 +205,52 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
                             key={option.id}
                             onClick={() => !atMax && handleToggleOption(group, option)}
                             disabled={atMax}
-                            className={`w-full flex items-center gap-3 p-3.5 rounded-xl transition-all ${
-                              selected
-                                ? 'bg-emerald-900/30 border-2 border-emerald-500'
+                            className="w-full flex items-center gap-3 p-3.5 rounded-[18px] transition-all"
+                            style={{
+                              backgroundColor: selected ? 'rgba(214,87,69,0.12)' : 'rgba(255,255,255,0.04)',
+                              outline: selected
+                                ? '2.5px solid var(--kiosk-primary)'
                                 : atMax
-                                  ? 'bg-gray-800/50 border-2 border-gray-800 opacity-40'
-                                  : 'bg-gray-800 border-2 border-gray-700 hover:border-gray-600 active:scale-[0.98]'
-                            }`}
+                                  ? '2.5px solid transparent'
+                                  : '2.5px solid transparent',
+                              opacity: atMax ? 0.4 : 1,
+                            }}
                           >
-                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                              selected
-                                ? 'bg-emerald-500 border-emerald-500'
-                                : 'border-gray-600'
-                            }`}>
+                            {/* Check indicator */}
+                            <div
+                              className="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors"
+                              style={{
+                                backgroundColor: selected ? 'var(--kiosk-primary)' : 'transparent',
+                                borderColor: selected ? 'var(--kiosk-primary)' : 'var(--kiosk-smoke)',
+                              }}
+                            >
                               {selected && <Check className="w-3.5 h-3.5 text-white" />}
                             </div>
+
+                            {/* Option image */}
                             {option.image_url && (
-                              <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gray-700">
+                              <div
+                                className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0"
+                                style={{ backgroundColor: '#383838' }}
+                              >
                                 <img src={option.image_url} alt="" className="w-full h-full object-cover" />
                               </div>
                             )}
-                            <span className="flex-1 text-left text-white text-sm font-medium">{option.name}</span>
-                            <span className={`text-sm flex-shrink-0 ${
-                              Number(option.price_adjustment) > 0
-                                ? 'text-emerald-400 font-semibold'
-                                : 'text-gray-500'
-                            }`}>
+
+                            <span
+                              className="flex-1 text-left text-sm font-medium"
+                              style={{ color: 'var(--kiosk-white)' }}
+                            >
+                              {option.name}
+                            </span>
+                            <span
+                              className="text-sm flex-shrink-0 font-semibold"
+                              style={{
+                                color: Number(option.price_adjustment) > 0
+                                  ? 'var(--kiosk-primary)'
+                                  : 'var(--kiosk-smoke)',
+                              }}
+                            >
                               {formatPrice(Number(option.price_adjustment))}
                             </span>
                           </button>
@@ -201,34 +264,61 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
           )}
         </div>
 
-        <div className="flex-shrink-0 p-4 border-t border-gray-800 bg-gray-900 sm:rounded-b-2xl">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="flex items-center bg-gray-800 rounded-xl p-1">
+        {/* Footer: qty stepper + add button */}
+        <div
+          className="flex-shrink-0 p-4"
+          style={{
+            borderTop: '1px solid var(--kiosk-border)',
+            borderRadius: '0 0 22px 22px',
+            backgroundColor: 'var(--kiosk-card)',
+          }}
+        >
+          <div className="flex items-center gap-4">
+            {/* Quantity stepper */}
+            <div
+              className="flex items-center rounded-[18px] p-1"
+              style={{ backgroundColor: '#383838' }}
+            >
               <button
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="w-11 h-11 flex items-center justify-center text-white hover:bg-gray-700 rounded-lg transition-colors"
+                className="w-12 h-12 flex items-center justify-center rounded-xl transition-colors"
+                style={{ color: 'var(--kiosk-white)' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 <Minus className="w-5 h-5" />
               </button>
-              <span className="text-white font-bold w-10 text-center text-lg">{quantity}</span>
+              <span
+                className="font-bold w-10 text-center text-lg"
+                style={{ color: 'var(--kiosk-white)' }}
+              >
+                {quantity}
+              </span>
               <button
                 onClick={() => setQuantity(q => q + 1)}
-                className="w-11 h-11 flex items-center justify-center text-white hover:bg-gray-700 rounded-lg transition-colors"
+                className="w-12 h-12 flex items-center justify-center rounded-xl transition-colors"
+                style={{ color: 'var(--kiosk-white)' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 <Plus className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Add to cart button */}
             <button
               onClick={handleAdd}
               disabled={!allRequiredMet}
-              className={`flex-1 py-4 rounded-2xl font-semibold text-lg transition-all flex items-center justify-center gap-2 min-h-[56px] ${
-                allRequiredMet
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-[0.98]'
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-              }`}
+              className="flex-1 text-white py-4 rounded-[18px] font-bold text-lg transition-all flex items-center justify-center gap-2 min-h-[56px]"
+              style={{
+                backgroundColor: allRequiredMet ? 'var(--kiosk-primary)' : 'var(--kiosk-smoke)',
+                cursor: allRequiredMet ? 'pointer' : 'not-allowed',
+              }}
+              onMouseEnter={e => { if (allRequiredMet) e.currentTarget.style.filter = 'brightness(1.1)'; }}
+              onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
             >
               {allRequiredMet
-                ? `${t.addToCart} - ₼${totalPrice.toFixed(2)}`
+                ? `${t.addToCart} — ₼${totalPrice.toFixed(2)}`
                 : t.selectRequired
               }
             </button>

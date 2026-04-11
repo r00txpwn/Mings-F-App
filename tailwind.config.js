@@ -10,6 +10,15 @@ export default {
         display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
       },
       colors: {
+        kiosk: {
+          bg: '#1f1f1f',
+          card: '#2c2c2c',
+          primary: '#d65745',
+          teal: '#37bc9d',
+          white: '#eeeeee',
+          smoke: '#676767',
+          border: '#595959',
+        },
         cockpit: {
           50: '#f0fdfa',
           100: '#ccfbf1',

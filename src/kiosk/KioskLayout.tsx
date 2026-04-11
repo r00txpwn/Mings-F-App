@@ -1,4 +1,4 @@
-import { ArrowLeft, Globe } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Language } from '../translations';
 
@@ -19,35 +19,60 @@ export function KioskLayout({ onBack, showBack, children }: KioskLayoutProps) {
   const { language, setLanguage } = useLanguage();
 
   return (
-    <div className="neon-shell fixed inset-0 flex flex-col overflow-hidden">
-      <div className="flex shrink-0 items-center justify-between border-b border-violet-500/25 bg-slate-900/95 px-6 py-3 shadow-neon-soft backdrop-blur-md">
+    <div
+      className="kiosk-shell font-montserrat fixed inset-0 flex flex-col overflow-hidden"
+      style={{ backgroundColor: 'var(--kiosk-bg)', color: 'var(--kiosk-white)' }}
+    >
+      {/* Header bar */}
+      <div
+        className="flex shrink-0 items-center justify-between px-6 py-3"
+        style={{
+          backgroundColor: 'var(--kiosk-card)',
+          borderBottom: '1px solid var(--kiosk-border)',
+        }}
+      >
         <div className="w-24">
           {showBack && (
             <button
               onClick={onBack}
-              className="flex min-h-[48px] items-center gap-2 rounded-xl px-3 text-gray-400 transition-colors hover:bg-violet-500/15 hover:text-white"
+              className="flex min-h-[48px] items-center gap-2 rounded-xl px-3 transition-colors"
+              style={{ color: 'var(--kiosk-white)' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(214,87,69,0.15)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <Globe className="h-4 w-4 text-violet-300" />
+
+        {/* Language switcher */}
+        <div className="flex items-center gap-1">
           {LANGUAGES.map((lang) => (
             <button
               key={lang.code}
               onClick={() => setLanguage(lang.code)}
-              className={`min-h-[40px] rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              className="min-h-[36px] rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors"
+              style={
                 language === lang.code
-                  ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-neon-soft'
-                  : 'text-slate-300 hover:bg-violet-500/15 hover:text-white'
-              }`}
+                  ? { backgroundColor: 'var(--kiosk-primary)', color: '#fff' }
+                  : { color: 'var(--kiosk-smoke)' }
+              }
+              onMouseEnter={e => {
+                if (language !== lang.code)
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--kiosk-white)';
+              }}
+              onMouseLeave={e => {
+                if (language !== lang.code)
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--kiosk-smoke)';
+              }}
             >
               {lang.label}
             </button>
           ))}
         </div>
       </div>
+
+      {/* Main content */}
       <div className="flex-1 overflow-y-auto">
         {children}
       </div>
