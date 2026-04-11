@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface ConfirmationScreenProps {
@@ -26,32 +25,83 @@ export function ConfirmationScreen({ displayNumber, onDone }: ConfirmationScreen
   }, [onDone]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-full p-8 select-none">
-      <div className="bg-emerald-900/30 p-6 rounded-full mb-8">
-        <CheckCircle className="w-20 h-20 text-emerald-400" />
+    <div
+      className="flex flex-col min-h-full p-8 select-none font-montserrat"
+      style={{ backgroundColor: 'var(--kiosk-bg)' }}
+    >
+      {/* Top content — centered */}
+      <div className="flex-1 flex flex-col items-center justify-center text-center">
+        {/* "Order added" heading */}
+        <h1
+          className="font-bold mb-3 leading-tight"
+          style={{ color: 'var(--kiosk-white)', fontSize: '2.2rem' }}
+        >
+          {t.orderConfirmed}
+        </h1>
+        <p className="text-lg mb-10" style={{ color: 'var(--kiosk-smoke)' }}>
+          {t.payAtCounter}
+        </p>
+
+        {/* Order number card */}
+        <div
+          className="rounded-[22px] px-12 py-8 mb-10"
+          style={{
+            backgroundColor: 'var(--kiosk-card)',
+            border: '2.5px solid var(--kiosk-primary)',
+          }}
+        >
+          <p
+            className="text-sm font-semibold uppercase tracking-widest mb-3"
+            style={{ color: 'var(--kiosk-smoke)' }}
+          >
+            {t.yourOrderNumber}
+          </p>
+          <p
+            className="font-bold tracking-wider"
+            style={{ fontSize: '5rem', lineHeight: 1, color: 'var(--kiosk-primary)' }}
+          >
+            {displayNumber}
+          </p>
+        </div>
+
+        {/* Decorative circle */}
+        <div
+          className="w-16 h-16 rounded-full opacity-20 mb-8"
+          style={{ backgroundColor: 'var(--kiosk-primary)' }}
+        />
       </div>
 
-      <h1 className="text-3xl font-bold text-white mb-3 text-center">
-        {t.orderConfirmed}
-      </h1>
-
-      <p className="text-gray-400 text-lg mb-10">{t.payAtCounter}</p>
-
-      <div className="bg-gray-800 rounded-3xl p-8 mb-10 border-2 border-emerald-500">
-        <p className="text-gray-400 text-sm font-medium text-center mb-2">
-          {t.yourOrderNumber}
-        </p>
-        <p className="text-7xl font-bold text-emerald-400 text-center tracking-wider">
-          {displayNumber}
-        </p>
+      {/* Footer buttons (qomander style: two side-by-side) */}
+      <div className="flex gap-4 max-w-md mx-auto w-full">
+        <button
+          onClick={onDone}
+          className="font-bold rounded-[18px] transition-all active:scale-95 min-h-[70px]"
+          style={{
+            flex: '0 0 47%',
+            border: '1px solid var(--kiosk-border)',
+            color: 'var(--kiosk-white)',
+            backgroundColor: 'transparent',
+            fontSize: '1.05rem',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--kiosk-primary)')}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--kiosk-border)')}
+        >
+          Done ({countdown}s)
+        </button>
+        <button
+          onClick={onDone}
+          className="text-white font-bold rounded-[18px] transition-all active:scale-95 min-h-[70px]"
+          style={{
+            flex: '0 0 47%',
+            backgroundColor: 'var(--kiosk-primary)',
+            fontSize: '1.05rem',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
+          onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
+        >
+          Order More
+        </button>
       </div>
-
-      <button
-        onClick={onDone}
-        className="bg-gray-800 hover:bg-gray-700 text-white px-12 py-4 rounded-2xl font-medium transition-colors min-h-[60px]"
-      >
-        Done ({countdown}s)
-      </button>
     </div>
   );
 }

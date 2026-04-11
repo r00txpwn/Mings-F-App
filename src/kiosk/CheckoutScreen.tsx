@@ -113,57 +113,115 @@ export function CheckoutScreen({ cart, total, kioskChannelId, onConfirmed, onBac
   };
 
   return (
-    <div className="flex flex-col h-full p-6">
-      <h2 className="text-2xl font-bold text-white mb-6">{t.confirmOrder}</h2>
+    <div
+      className="flex flex-col h-full p-6 font-montserrat"
+      style={{ backgroundColor: 'var(--kiosk-bg)' }}
+    >
+      <h2
+        className="text-2xl font-bold mb-6 flex-shrink-0"
+        style={{ color: 'var(--kiosk-white)' }}
+      >
+        {t.confirmOrder}
+      </h2>
 
-      <div className="flex-1 overflow-y-auto pb-28">
-        <div className="bg-gray-800 rounded-2xl p-5 border border-gray-700 mb-4">
-          <h3 className="text-gray-400 text-sm font-medium mb-4">{t.orderDetails}</h3>
+      {/* Order details card */}
+      <div className="flex-1 overflow-y-auto pb-32">
+        <div
+          className="rounded-[22px] p-5 mb-4"
+          style={{
+            backgroundColor: 'var(--kiosk-card)',
+            border: '1px solid var(--kiosk-border)',
+          }}
+        >
+          <h3
+            className="text-sm font-semibold mb-4 uppercase tracking-wider"
+            style={{ color: 'var(--kiosk-smoke)' }}
+          >
+            {t.orderDetails}
+          </h3>
           <div className="space-y-3">
             {cart.map((item) => {
               const modSummary = getModifierSummary(item);
               return (
                 <div key={item.cartItemKey} className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+                    style={{ backgroundColor: '#383838' }}
+                  >
                     {item.product.image_url ? (
                       <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
                     ) : (
-                      <Package className="w-5 h-5 text-gray-500" />
+                      <Package className="w-5 h-5" style={{ color: 'var(--kiosk-smoke)' }} />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{item.product.name}</p>
+                    <p
+                      className="text-sm font-semibold truncate"
+                      style={{ color: 'var(--kiosk-white)' }}
+                    >
+                      {item.product.name}
+                    </p>
                     {modSummary && (
-                      <p className="text-gray-500 text-xs truncate">{modSummary}</p>
+                      <p className="text-xs truncate" style={{ color: 'var(--kiosk-smoke)' }}>{modSummary}</p>
                     )}
-                    <p className="text-gray-500 text-xs">x{item.quantity}</p>
+                    <p className="text-xs" style={{ color: 'var(--kiosk-smoke)' }}>x{item.quantity}</p>
                   </div>
-                  <p className="text-white font-semibold text-sm">
+                  <p
+                    className="font-bold text-sm flex-shrink-0"
+                    style={{ color: 'var(--kiosk-primary)' }}
+                  >
                     ₼{getItemTotal(item).toFixed(2)}
                   </p>
                 </div>
               );
             })}
           </div>
-          <div className="border-t border-gray-700 mt-4 pt-4 flex items-center justify-between">
-            <span className="text-gray-400 font-medium">{t.orderTotal}</span>
-            <span className="text-white text-2xl font-bold">₼{total.toFixed(2)}</span>
+
+          {/* Total row */}
+          <div
+            className="mt-4 pt-4 flex items-center justify-between"
+            style={{ borderTop: '1px solid var(--kiosk-border)' }}
+          >
+            <span className="font-semibold" style={{ color: 'var(--kiosk-smoke)' }}>{t.orderTotal}</span>
+            <span
+              className="text-2xl font-bold"
+              style={{ color: 'var(--kiosk-primary)' }}
+            >
+              ₼{total.toFixed(2)}
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 p-4 flex gap-3">
+      {/* Footer buttons */}
+      <div
+        className="fixed bottom-0 left-0 right-0 p-4 flex gap-3"
+        style={{
+          backgroundColor: 'var(--kiosk-card)',
+          borderTop: '1px solid var(--kiosk-border)',
+        }}
+      >
         <button
           onClick={onBack}
           disabled={submitting}
-          className="flex-1 border border-gray-600 text-gray-300 hover:text-white py-4 rounded-2xl font-medium transition-colors min-h-[60px]"
+          className="flex-1 py-4 rounded-[18px] font-semibold transition-all min-h-[60px]"
+          style={{
+            border: '1px solid var(--kiosk-border)',
+            color: 'var(--kiosk-white)',
+            backgroundColor: 'transparent',
+          }}
         >
           {t.back}
         </button>
         <button
           onClick={handleConfirm}
           disabled={submitting}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white py-4 rounded-2xl font-semibold text-lg transition-colors flex items-center justify-center gap-2 min-h-[60px]"
+          className="flex-1 text-white py-4 rounded-[18px] font-bold text-lg transition-all flex items-center justify-center gap-2 min-h-[60px]"
+          style={{
+            backgroundColor: submitting ? 'var(--kiosk-smoke)' : 'var(--kiosk-primary)',
+          }}
+          onMouseEnter={e => { if (!submitting) e.currentTarget.style.filter = 'brightness(1.1)'; }}
+          onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
         >
           {submitting ? <Loader2 className="w-6 h-6 animate-spin" /> : t.confirmOrder}
         </button>

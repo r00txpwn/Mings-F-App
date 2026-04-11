@@ -1,6 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --kiosk-bg: #1f1f1f;
+  --kiosk-card: #2c2c2c;
+  --kiosk-primary: #d65745;
+  --kiosk-teal: #37bc9d;
+  --kiosk-white: #eeeeee;
+  --kiosk-smoke: #676767;
+  --kiosk-border: #595959;
+}
 
 @layer utilities {
   @keyframes fadeIn {
@@ -41,6 +53,58 @@
   .animate-pulse-slow {
     animation: pulseSlow 3s ease-in-out infinite;
   }
+
+  .kiosk-scroll-shadow {
+    position: relative;
+  }
+
+  .kiosk-scroll-shadow::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, var(--kiosk-bg));
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .kiosk-sidebar-shadow::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(to bottom, transparent, var(--kiosk-card));
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+/* Kiosk custom scrollbar */
+.kiosk-shell * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--kiosk-primary) #404040;
+}
+
+.kiosk-shell *::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.kiosk-shell *::-webkit-scrollbar-track {
+  background: #404040;
+}
+
+.kiosk-shell *::-webkit-scrollbar-thumb {
+  background-color: var(--kiosk-primary);
+  border-radius: 32px;
+}
+
+.font-montserrat {
+  font-family: 'Montserrat', system-ui, sans-serif;
 }
 
 @media print {

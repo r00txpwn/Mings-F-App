@@ -4,8 +4,7 @@ import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider } from '../contexts/LanguageContext';
 import { supabase, Product, Category, CartItem, SelectedModifiers } from '../lib/supabase';
 import { IdleScreen } from './IdleScreen';
-import { CategoryScreen } from './CategoryScreen';
-import { ProductScreen } from './ProductScreen';
+import { MenuScreen } from './MenuScreen';
 import { CartScreen } from './CartScreen';
 import { CheckoutScreen } from './CheckoutScreen';
 import { ConfirmationScreen } from './ConfirmationScreen';
@@ -13,7 +12,7 @@ import { UpsellModal } from './UpsellModal';
 import { KioskLayout } from './KioskLayout';
 import { ProductDetailModal } from './ProductDetailModal';
 
-type KioskFlow = 'idle' | 'categories' | 'products' | 'cart' | 'checkout' | 'confirmation';
+type KioskFlow = 'idle' | 'menu' | 'cart' | 'checkout' | 'confirmation';
 
 function generateCartItemKey(productId: string, modifiers: SelectedModifiers): string {
   const modKey = Object.entries(modifiers)
@@ -27,7 +26,6 @@ function KioskContent() {
   const [flow, setFlow] = useState<KioskFlow>('idle');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [kioskChannelId, setKioskChannelId] = useState<string | null>(null);
   const [confirmedOrder, setConfirmedOrder] = useState<{ displayNumber: string } | null>(null);
@@ -51,7 +49,6 @@ function KioskContent() {
       timeoutRef.current = setTimeout(() => {
         setFlow('idle');
         setCart([]);
-        setSelectedCategory(null);
         setShowUpsell(false);
         setDetailProduct(null);
       }, 60000);
@@ -183,14 +180,9 @@ function KioskContent() {
 
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const handleCategorySelect = (category: Category) => {
-    setSelectedCategory(category);
-    setFlow('products');
-  };
-
   const handleBack = () => {
-    if (flow === 'products') setFlow('categories');
-    else if (flow === 'cart') setFlow('products');
+    if (flow === 'menu') setFlow('idle');
+    else if (flow === 'cart') setFlow('menu');
     else if (flow === 'checkout') setFlow('cart');
     else setFlow('idle');
   };
@@ -205,14 +197,12 @@ function KioskContent() {
   const renderScreen = () => {
     switch (flow) {
       case 'idle':
-        return <IdleScreen onStart={() => setFlow('categories')} />;
-      case 'categories':
-        return <CategoryScreen categories={categories} onSelect={handleCategorySelect} />;
-      case 'products':
+        return <IdleScreen onStart={() => setFlow('menu')} />;
+      case 'menu':
         return (
-          <ProductScreen
-            products={products.filter(p => p.master_category_id === selectedCategory?.id)}
-            category={selectedCategory}
+          <MenuScreen
+            products={products}
+            categories={categories}
             cart={cart}
             onAddToCart={handleProductTap}
             onUpdateQuantity={(productId, delta) => {
@@ -237,7 +227,7 @@ function KioskContent() {
             total={cartTotal}
             onUpdateQuantity={updateCartQuantity}
             onRemove={removeFromCart}
-            onContinueShopping={() => setFlow('categories')}
+            onContinueShopping={() => setFlow('menu')}
             onCheckout={() => setFlow('checkout')}
           />
         );
@@ -261,7 +251,6 @@ function KioskContent() {
             onDone={() => {
               setFlow('idle');
               setCart([]);
-              setSelectedCategory(null);
               setConfirmedOrder(null);
             }}
           />
@@ -278,7 +267,7 @@ function KioskContent() {
       showBack={flow !== 'idle' && flow !== 'confirmation'}
     >
       {renderScreen()}
-      {showUpsell && flow === 'products' && upsellProducts.length > 0 && (
+      {showUpsell && flow === 'menu' && upsellProducts.length > 0 && (
         <UpsellModal
           products={upsellProducts}
           onAdd={(product) => {
