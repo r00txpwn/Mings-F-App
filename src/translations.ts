@@ -533,6 +533,15 @@ export interface Translations {
   orderPayCod: string;
   orderPayCash: string;
   orderPayEpoint: string;
+  orderPayCodLabel: string;
+  orderPayCashLabel: string;
+  orderPayCardLabel: string;
+  orderSignInWithGoogle: string;
+  orderOrDivider: string;
+  orderContinueAsGuest: string;
+  orderSignedInAs: string;
+  orderFasterCheckoutHint: string;
+  orderSaveForNextTime: string;
   orderPlacedTitle: string;
   orderTrackHint: string;
   orderOpenTracking: string;
@@ -1081,6 +1090,15 @@ export const translations: Record<Language, Translations> = {
     orderPayCod: 'Cash on pickup / delivery',
     orderPayCash: 'Cash',
     orderPayEpoint: 'Card (E-point)',
+    orderPayCodLabel: 'Pay on Delivery',
+    orderPayCashLabel: 'Cash',
+    orderPayCardLabel: 'Card (Epoint)',
+    orderSignInWithGoogle: 'Continue with Google',
+    orderOrDivider: 'or',
+    orderContinueAsGuest: 'or continue as guest',
+    orderSignedInAs: 'Ordering as',
+    orderFasterCheckoutHint: 'Sign in for faster checkout',
+    orderSaveForNextTime: 'Save your details for next time — faster checkout always',
     orderPlacedTitle: 'Order placed',
     orderTrackHint: 'Track status',
     orderOpenTracking: 'Open tracking',
@@ -1629,6 +1647,15 @@ export const translations: Record<Language, Translations> = {
     orderPayCod: 'Nağd (götürmə/çatdırılma)',
     orderPayCash: 'Nağd',
     orderPayEpoint: 'Kart (E-point)',
+    orderPayCodLabel: 'Çatdırılmada ödə',
+    orderPayCashLabel: 'Nağd',
+    orderPayCardLabel: 'Kart (Epoint)',
+    orderSignInWithGoogle: 'Google ilə davam et',
+    orderOrDivider: 'və ya',
+    orderContinueAsGuest: 'və ya qonaq kimi davam et',
+    orderSignedInAs: 'Sifariş verən',
+    orderFasterCheckoutHint: 'Sürətli ödəniş üçün daxil olun',
+    orderSaveForNextTime: 'Məlumatlarınızı növbəti dəfə üçün saxlayın',
     orderPlacedTitle: 'Sifariş verildi',
     orderTrackHint: 'Statusu izlə',
     orderOpenTracking: 'İzləməni aç',
@@ -2177,6 +2204,15 @@ export const translations: Record<Language, Translations> = {
     orderPayCod: 'Наличные при получении',
     orderPayCash: 'Наличные',
     orderPayEpoint: 'Карта (E-point)',
+    orderPayCodLabel: 'Оплата при доставке',
+    orderPayCashLabel: 'Наличные',
+    orderPayCardLabel: 'Карта (Epoint)',
+    orderSignInWithGoogle: 'Продолжить с Google',
+    orderOrDivider: 'или',
+    orderContinueAsGuest: 'или продолжить как гость',
+    orderSignedInAs: 'Заказываю как',
+    orderFasterCheckoutHint: 'Войдите для быстрой оплаты',
+    orderSaveForNextTime: 'Сохранить данные для следующего раза',
     orderPlacedTitle: 'Заказ оформлен',
     orderTrackHint: 'Статус заказа',
     orderOpenTracking: 'Открыть отслеживание',

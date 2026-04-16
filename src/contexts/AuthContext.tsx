@@ -11,6 +11,8 @@ interface AuthContextType {
   isStaff: boolean;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
+  /** OAuth redirect — resolves immediately (page navigates away). */
+  signInWithGoogle: () => Promise<{ error: AuthError | null | Error }>;
   /** SMS OTP via Supabase Auth (Twilio configured in project dashboard). */
   sendPhoneOtp: (phone: string) => Promise<{ error: AuthError | null | Error }>;
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: AuthError | null | Error }>;
@@ -117,6 +119,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/' },
+    });
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -141,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isStaff,
         signIn,
         signUp,
+        signInWithGoogle,
         sendPhoneOtp,
         verifyPhoneOtp,
         signOut,
