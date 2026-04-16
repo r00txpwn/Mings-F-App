@@ -1,43 +1,56 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
-
-async function verifySignature(rawBody: string, signature: string | null, secret: string): boolean {
-  if (!signature || !secret) return false;
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    enc.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(rawBody));
-  const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('');
-  const expected = signature.replace(/^sha256=/, '').trim();
-  return hex === expected || signature === hex;
-}
+import { epointSignature } from '../_shared/epointSign.ts';
 
 /**
- * E-point webhook — verify the real header/body format from E-point documentation before production.
- * Expects JSON: { external_id?: string, status?: string, sale_id?: string } and optional X-Epoint-Signature.
+ * Epoint posts to this webhook with Content-Type: application/x-www-form-urlencoded
+ * Body params: data (base64 JSON) + signature (base64 SHA1 raw).
+ * Verification: recompute signature using EPOINT_PRIVATE_KEY and compare.
  */
+async function verifyEpointCallback(data: string, signature: string, privateKey: string): Promise<boolean> {
+  if (!privateKey) return true; // skip verification in dev when key not set
+  const expected = await epointSignature(privateKey, data);
+  return expected === signature;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
 
-  const secret = Deno.env.get('EPOINT_WEBHOOK_SECRET') ?? '';
-  const rawBody = await req.text();
-  const sig = req.headers.get('X-Epoint-Signature') ?? req.headers.get('x-signature');
+  const privateKey = Deno.env.get('EPOINT_PRIVATE_KEY') ?? '';
+  const contentType = req.headers.get('content-type') ?? '';
 
-  if (secret && !(await verifySignature(rawBody, sig, secret))) {
+  let data: string;
+  let signature: string;
+
+  // Epoint sends URL-encoded form; accept JSON fallback for testing
+  if (contentType.includes('application/x-www-form-urlencoded')) {
+    const text = await req.text();
+    const params = new URLSearchParams(text);
+    data = params.get('data') ?? '';
+    signature = params.get('signature') ?? '';
+  } else {
+    let json: Record<string, unknown>;
+    try {
+      json = await req.json() as Record<string, unknown>;
+    } catch {
+      return jsonResponse({ error: 'Invalid body' }, 400);
+    }
+    data = String(json.data ?? '');
+    signature = String(json.signature ?? '');
+  }
+
+  if (!data) return jsonResponse({ error: 'data param required' }, 400);
+
+  if (!(await verifyEpointCallback(data, signature, privateKey))) {
     return jsonResponse({ error: 'Invalid signature' }, 401);
   }
 
   let payload: Record<string, unknown>;
   try {
-    payload = JSON.parse(rawBody) as Record<string, unknown>;
+    payload = JSON.parse(atob(data)) as Record<string, unknown>;
   } catch {
-    return jsonResponse({ error: 'Invalid JSON' }, 400);
+    return jsonResponse({ error: 'Invalid data encoding' }, 400);
   }
 
   const supabase = createClient(
@@ -46,12 +59,13 @@ Deno.serve(async (req: Request) => {
     { auth: { persistSession: false, autoRefreshToken: false } }
   );
 
-  const externalId = (payload.external_id ?? payload.externalId) as string | undefined;
-  const status = String(payload.status ?? payload.payment_status ?? '').toLowerCase();
+  // Epoint payload fields: order_id (our externalId), status, bank_transaction_id, rrn, bank_response_code
+  const externalId = (payload.order_id ?? payload.external_id ?? payload.externalId) as string | undefined;
   const saleId = (payload.sale_id ?? payload.saleId) as string | undefined;
+  const status = String(payload.status ?? '').toLowerCase();
 
   if (!externalId && !saleId) {
-    return jsonResponse({ error: 'external_id or sale_id required' }, 400);
+    return jsonResponse({ error: 'order_id or sale_id required' }, 400);
   }
 
   const payRes = externalId
@@ -59,11 +73,11 @@ Deno.serve(async (req: Request) => {
     : await supabase.from('online_payments').select('id, sale_id').eq('sale_id', saleId!).maybeSingle();
 
   const pay = payRes.data;
-  const error = payRes.error;
-  if (error || !pay) return jsonResponse({ error: 'Payment not found' }, 404);
+  if (payRes.error || !pay) return jsonResponse({ error: 'Payment not found' }, 404);
 
-  const paid = status === 'success' || status === 'completed' || status === 'paid';
-  const failed = status === 'failed' || status === 'cancelled';
+  // Epoint statuses: success, error, returned, server_error
+  const paid = status === 'success';
+  const failed = status === 'error' || status === 'returned' || status === 'server_error';
 
   await supabase
     .from('online_payments')
@@ -79,6 +93,27 @@ Deno.serve(async (req: Request) => {
       .from('sales')
       .update({ payment_status: 'paid' })
       .eq('id', pay.sale_id as string);
+
+    // Auto-dispatch Wolt Drive for paid delivery orders
+    const { data: saleRow } = await supabase
+      .from('sales')
+      .select('source')
+      .eq('id', pay.sale_id as string)
+      .maybeSingle();
+
+    if (saleRow?.source === 'online_delivery') {
+      const woltUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/wolt-drive-create`;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+      // Fire-and-forget — don't delay the webhook response
+      fetch(woltUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({ saleId: pay.sale_id }),
+      }).catch((err) => console.error('Wolt Drive dispatch error:', err));
+    }
   } else if (failed) {
     await supabase
       .from('sales')

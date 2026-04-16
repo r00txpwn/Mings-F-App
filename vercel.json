@@ -1,3 +1,4 @@
 {
+  "_comment": "TWO-PROJECT DEPLOYMENT: Deploy as two separate Vercel projects. Set VITE_APP_SURFACE=sp for sp.mings.az and VITE_APP_SURFACE=order for order.mings.az. Both projects share the same Supabase project (same VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

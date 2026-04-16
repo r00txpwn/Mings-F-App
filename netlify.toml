@@ -1,8 +1,24 @@
+# TWO-SITE DEPLOYMENT
+# Deploy this repo TWICE as two separate Netlify sites:
+#
+# Site 1 — sp.mings.az (Admin & Finance Dashboard)
+#   Build environment variable: VITE_APP_SURFACE=sp
+#   Custom domain: sp.mings.az
+#
+# Site 2 — order.mings.az (Online Ordering & Order Management)
+#   Build environment variable: VITE_APP_SURFACE=order
+#   Custom domain: order.mings.az
+#
+# Both sites:
+#   - Use the same git repository and build command
+#   - Share the same Supabase project (same VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)
+#   - Use the SPA fallback redirect below so all sub-paths load index.html
+
 [build]
   command = "npm run build"
   publish = "dist"
 
-# SPA fallback so /order, /track, /kiosk, /kds load the app
+# SPA fallback — required for client-side routing on all surfaces
 [[redirects]]
   from = "/*"
   to = "/index.html"

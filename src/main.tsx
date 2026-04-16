@@ -7,90 +7,56 @@ import { PublicNotFound } from './PublicNotFound';
 import { assertAdminPathDoesNotCollide, isAdminPath, normalizePathname } from './lib/adminPath';
 import './index.css';
 
-const pathname = window.location.pathname;
-const pathNorm = normalizePathname(pathname);
+// VITE_APP_SURFACE controls which routes are exposed:
+//   'sp'    → sp.mings.az    (admin cockpit + KDS)
+//   'order' → order.mings.az (online ordering + kiosk + order management)
+const surface = (import.meta.env.VITE_APP_SURFACE ?? 'sp').trim();
 
-/** Admin and storefront are separate: no implicit redirect from `/` to `/order`. */
+const pathNorm = normalizePathname(window.location.pathname);
+
 void renderApp();
 
 async function renderApp() {
-  assertAdminPathDoesNotCollide();
-
   const root = createRoot(document.getElementById('root')!);
 
-  if (pathNorm === '/kiosk') {
-    const { KioskApp } = await import('./kiosk/KioskApp');
-    root.render(
+  function wrap(child: React.ReactNode) {
+    return (
       <StrictMode>
         <ConfigCheck>
-          <ErrorBoundary>
-            <KioskApp />
-          </ErrorBoundary>
+          <ErrorBoundary>{child}</ErrorBoundary>
         </ConfigCheck>
       </StrictMode>
     );
-  } else if (pathNorm === '/kds') {
-    const { KitchenDisplay } = await import('./kds/KitchenDisplay');
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <KitchenDisplay />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
-  } else if (pathNorm === '/order') {
-    const { OrderApp } = await import('./order/OrderApp');
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <OrderApp />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
-  } else if (pathNorm === '/track') {
-    const { TrackingApp } = await import('./order/TrackingApp');
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <TrackingApp />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
-  } else if (isAdminPath(pathNorm)) {
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <App />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
-  } else if (pathNorm === '/') {
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <PublicNotFound />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
+  }
+
+  if (surface === 'order') {
+    // order.mings.az routes
+    if (pathNorm === '/') {
+      const { OrderApp } = await import('./order/OrderApp');
+      root.render(wrap(<OrderApp />));
+    } else if (pathNorm === '/track') {
+      const { TrackingApp } = await import('./order/TrackingApp');
+      root.render(wrap(<TrackingApp />));
+    } else if (pathNorm === '/kiosk') {
+      const { KioskApp } = await import('./kiosk/KioskApp');
+      root.render(wrap(<KioskApp />));
+    } else if (pathNorm === '/management') {
+      const { OrderManagementApp } = await import('./order/OrderManagementApp');
+      root.render(wrap(<OrderManagementApp />));
+    } else {
+      root.render(wrap(<PublicNotFound />));
+    }
   } else {
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <PublicNotFound />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
+    // sp.mings.az routes (default)
+    assertAdminPathDoesNotCollide();
+
+    if (pathNorm === '/kds') {
+      const { KitchenDisplay } = await import('./kds/KitchenDisplay');
+      root.render(wrap(<KitchenDisplay />));
+    } else if (pathNorm === '/' || isAdminPath(pathNorm)) {
+      root.render(wrap(<App />));
+    } else {
+      root.render(wrap(<PublicNotFound />));
+    }
   }
 }
