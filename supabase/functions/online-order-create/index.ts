@@ -3,7 +3,7 @@ import { corsPreflightResponse, jsonResponse } from '../_shared/cors.ts';
 import { pointInGeoJsonPolygon } from '../_shared/geo.ts';
 
 type FulfillmentType = 'takeaway' | 'delivery';
-type PaymentMethod = 'cash' | 'cod' | 'epoint';
+type PaymentMethod = 'cash' | 'cod';
 
 interface CartLine {
   productId: string;
@@ -266,12 +266,7 @@ async function handleRequest(req: Request): Promise<Response> {
     }
   }
 
-  let paymentStatus: string;
-  if (paymentMethod === 'epoint') {
-    paymentStatus = 'pending';
-  } else {
-    paymentStatus = 'unpaid';
-  }
+  const paymentStatus = 'unpaid';
 
   const itemCount = resolvedLines.reduce((s, l) => s + l.quantity, 0);
 
@@ -344,6 +339,19 @@ async function handleRequest(req: Request): Promise<Response> {
     }
   }
 
+  if (fulfillmentType === 'delivery') {
+    EdgeRuntime.waitUntil(
+      fetch(`${supabaseUrl}/functions/v1/wolt-drive-create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({ saleId }),
+      }).catch(() => {})
+    );
+  }
+
   return jsonResponse({
     saleId,
     trackToken,
@@ -351,6 +359,6 @@ async function handleRequest(req: Request): Promise<Response> {
     total,
     deliveryFee,
     paymentMethod,
-    nextStep: paymentMethod === 'epoint' ? 'epoint-create-payment' : 'track',
+    nextStep: 'track',
   });
 }

@@ -1,5 +1,5 @@
 export type OnlineFulfillmentType = 'takeaway' | 'delivery';
-export type OnlinePaymentMethod = 'cash' | 'cod' | 'epoint';
+export type OnlinePaymentMethod = 'cash' | 'cod';
 
 export interface OnlineCartLine {
   productId: string;
@@ -15,7 +15,7 @@ export interface OnlineOrderCreateResponse {
   total: number;
   deliveryFee: number;
   paymentMethod: OnlinePaymentMethod;
-  nextStep: 'epoint-create-payment' | 'track';
+  nextStep: 'track';
 }
 
 export interface DeliveryZoneRow {

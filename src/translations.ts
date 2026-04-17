@@ -535,7 +535,6 @@ export interface Translations {
   orderPayEpoint: string;
   orderPayCodLabel: string;
   orderPayCashLabel: string;
-  orderPayCardLabel: string;
   orderSignInWithGoogle: string;
   orderOrDivider: string;
   orderContinueAsGuest: string;
@@ -1092,7 +1091,6 @@ export const translations: Record<Language, Translations> = {
     orderPayEpoint: 'Card (E-point)',
     orderPayCodLabel: 'Pay on Delivery',
     orderPayCashLabel: 'Cash',
-    orderPayCardLabel: 'Card (Epoint)',
     orderSignInWithGoogle: 'Continue with Google',
     orderOrDivider: 'or',
     orderContinueAsGuest: 'or continue as guest',
@@ -1649,7 +1647,6 @@ export const translations: Record<Language, Translations> = {
     orderPayEpoint: 'Kart (E-point)',
     orderPayCodLabel: 'Çatdırılmada ödə',
     orderPayCashLabel: 'Nağd',
-    orderPayCardLabel: 'Kart (Epoint)',
     orderSignInWithGoogle: 'Google ilə davam et',
     orderOrDivider: 'və ya',
     orderContinueAsGuest: 'və ya qonaq kimi davam et',
@@ -2206,7 +2203,6 @@ export const translations: Record<Language, Translations> = {
     orderPayEpoint: 'Карта (E-point)',
     orderPayCodLabel: 'Оплата при доставке',
     orderPayCashLabel: 'Наличные',
-    orderPayCardLabel: 'Карта (Epoint)',
     orderSignInWithGoogle: 'Продолжить с Google',
     orderOrDivider: 'или',
     orderContinueAsGuest: 'или продолжить как гость',

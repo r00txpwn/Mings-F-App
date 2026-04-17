@@ -280,22 +280,6 @@ function OrderContent() {
       }
 
       const data = res.data;
-      if (data.nextStep === 'epoint-create-payment' && paymentMethod === 'epoint') {
-        const pay = await invokeEdgeFunction<{ saleId: string }, { checkoutUrl?: string }>(
-          'epoint-create-payment',
-          { saleId: data.saleId },
-          accessToken
-        );
-        if (!pay.ok) {
-          setSubmitError(pay.error ?? 'Payment init failed');
-          setSubmitting(false);
-          return;
-        }
-        if (pay.data?.checkoutUrl) {
-          window.location.href = pay.data.checkoutUrl;
-          return;
-        }
-      }
 
       if (
         user &&
@@ -772,12 +756,11 @@ function OrderContent() {
 
           <div className="space-y-2">
             <label className="text-xs text-slate-500">{t.orderPayment}</label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {(
                 [
                   { value: 'cod', icon: '🚗', label: t.orderPayCodLabel },
                   { value: 'cash', icon: '💵', label: t.orderPayCashLabel },
-                  { value: 'epoint', icon: '💳', label: t.orderPayCardLabel },
                 ] as { value: OnlinePaymentMethod; icon: string; label: string }[]
               ).map(({ value, icon, label }) => (
                 <button
