@@ -16,7 +16,7 @@ Pick **one** of:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - `VITE_APP_SURFACE` (`order` on `order.mings.az`, `sp` on `sp.mings.az`)
-   - Optional: `VITE_ORDER_APP_ORIGIN` (for staff links to customer app), `VITE_GOOGLE_MAPS_API_KEY`, `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`
+   - Optional: `VITE_ORDER_APP_ORIGIN` (for staff links to customer app), `VITE_GOOGLE_MAPS_API_KEY`, `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`, `VITE_ENABLE_COMBOS`, `VITE_WOLT_PORTAL_URL`
 
 Hostnames are also mapped at runtime as a safety net:
 - `order.*` always resolves to customer surface
@@ -60,6 +60,7 @@ Recent combo-related migrations to ensure are applied:
 
 - `20260418140100_combo_deals.sql`
 - `20260418153000_add_products_upsell_combo_id.sql`
+- `20260418191000_combo_discount_fields.sql`
 
 **From this repo (uses `npx`, no global CLI required):**
 

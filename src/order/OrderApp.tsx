@@ -103,6 +103,7 @@ function OrderContent() {
     productPrice: number;
     combo: ComboDealRow;
   } | null>(null);
+  const combosEnabled = (import.meta.env.VITE_ENABLE_COMBOS as string | undefined)?.toLowerCase() !== 'false';
 
   const [result, setResult] = useState<OnlineOrderCreateResponse | null>(null);
 
@@ -112,6 +113,10 @@ function OrderContent() {
   }, []);
 
   useEffect(() => {
+    if (!combosEnabled) {
+      setCombos([]);
+      return;
+    }
     void (async () => {
       const [s, z] = await Promise.all([
         supabase.from('online_settings').select('*').limit(1).maybeSingle(),
@@ -181,9 +186,11 @@ function OrderContent() {
           })),
         }));
         setCombos(normalized as unknown as ComboDealRow[]);
+      } else {
+        setCombos([]);
       }
     })();
-  }, []);
+  }, [combosEnabled]);
 
   const { showTakeaway, showDelivery } = useMemo(
     () => getOnlineFulfillmentVisibility(settings),
@@ -384,6 +391,7 @@ function OrderContent() {
   }, [cart]);
 
   const maybeUpsell = (product: Product) => {
+    if (!combosEnabled) return;
     if (!product.combo_upsell_eligible || combos.length === 0) return;
     const byId = product.upsell_combo_id ? combos.find((c) => c.id === product.upsell_combo_id) : null;
     const fallback = combos.find((combo) =>
@@ -773,7 +781,7 @@ function OrderContent() {
         </header>
       )}
 
-      {flow === 'browse' && navTab === 'menu' && combos.length > 0 ? (
+      {flow === 'browse' && navTab === 'menu' && combosEnabled && combos.length > 0 ? (
         <div className="border-b border-white/10 px-3 pb-3 pt-2">
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-amber-400">{t.orderCombosSection}</h2>
           <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:thin]">
