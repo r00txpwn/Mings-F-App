@@ -104,7 +104,7 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
     for (const group of product?.modifier_groups ?? []) {
       const defaults = (group.modifier_options ?? [])
         .filter((opt) => opt.is_available !== false && opt.is_default)
-        .slice(0, Math.max(1, Number(group.max_select ?? 1)));
+        .slice(0, Math.max(0, Number(group.max_select ?? 1)));
       for (const opt of defaults) {
         modifierOptionIds.push(opt.id);
         modifierNames.push(opt.name);

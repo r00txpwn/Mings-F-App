@@ -312,14 +312,28 @@ function OrderContent() {
             comboName: row.comboName,
             basePrice: Number(row.basePrice),
             quantity: Math.max(1, Number(row.quantity || 1)),
-            selections: (row.selections ?? []).map((sel) => ({
-              groupId: sel.groupId,
-              itemId: sel.itemId,
-              groupName: sel.groupName,
-              itemName: sel.itemName,
-              modifierOptionIds: sel.modifierOptionIds ?? [],
-              modifierNames: sel.modifierNames ?? [],
-            })),
+            selections: (row.selections ?? []).map((sel) => {
+              // Rebuild modifier names from live combo data to drop stale/deleted options
+              const group = deal.combo_groups.find((g) => g.id === sel.groupId);
+              const item = group?.combo_group_items.find((i) => i.id === sel.itemId);
+              const allOptions = (item?.products?.modifier_groups ?? []).flatMap(
+                (mg) => mg.modifier_options ?? []
+              );
+              const validIds = (sel.modifierOptionIds ?? []).filter((id) =>
+                allOptions.some((o) => o.id === id && o.is_available !== false)
+              );
+              const validNames = validIds.map(
+                (id) => allOptions.find((o) => o.id === id)?.name ?? ''
+              ).filter(Boolean);
+              return {
+                groupId: sel.groupId,
+                itemId: sel.itemId,
+                groupName: sel.groupName,
+                itemName: sel.itemName,
+                modifierOptionIds: validIds,
+                modifierNames: validNames,
+              };
+            }),
             cartItemKey: row.cartItemKey,
           });
         }
