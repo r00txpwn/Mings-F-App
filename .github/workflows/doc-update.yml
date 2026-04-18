@@ -1,0 +1,51 @@
+name: Doc Updater
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'supabase/functions/**'
+      - 'supabase/migrations/**'
+      - 'package.json'
+
+permissions:
+  contents: write
+
+jobs:
+  update-docs:
+    name: Update APP_STRUCTURE.md
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # need diff vs previous commit
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate route chart
+        run: npm run routes
+
+      - name: Update documentation via Claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MODE: doc-update
+        run: node scripts/qa-orchestrator.mjs
+
+      - name: Commit updated docs
+        run: |
+          git config user.name "Doc Bot"
+          git config user.email "doc-bot@mings.az"
+          git add APP_STRUCTURE.md docs/ROUTE_CHART.md docs/
+          git diff --staged --quiet || git commit -m "docs: auto-update structure docs [skip ci]"
+          git push origin HEAD
