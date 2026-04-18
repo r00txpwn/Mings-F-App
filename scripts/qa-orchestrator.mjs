@@ -57,16 +57,14 @@ function runCommand(cmd, options = {}) {
 /** Detect which AI backend is available. */
 function detectBackend() {
   if (process.env.ANTHROPIC_API_KEY) return 'sdk';
-  try {
-    execSync('claude --version', { stdio: 'ignore' });
-    return 'cli';
-  } catch {
-    return 'none';
-  }
+  // Don't attempt claude CLI as a subprocess — it requires an interactive TTY
+  // and will hang/timeout when spawned from Node. Use ANTHROPIC_API_KEY instead.
+  return 'none';
 }
 
 /**
- * Ask Claude a question. Uses SDK if API key present, falls back to CLI.
+ * Ask Claude via the Anthropic SDK.
+ * Returns null if ANTHROPIC_API_KEY is not set.
  */
 async function askClaude(system, userPrompt) {
   const backend = detectBackend();
@@ -83,38 +81,7 @@ async function askClaude(system, userPrompt) {
     return msg.content[0].type === 'text' ? msg.content[0].text : '';
   }
 
-  if (backend === 'cli') {
-    // Write prompt to a temp file to avoid shell escaping issues
-    const tmpFile = join(ROOT, 'test-results/.qa-prompt.txt');
-    ensureDir(join(ROOT, 'test-results'));
-    writeFileSync(tmpFile, `${system}\n\n---\n\n${userPrompt}`, 'utf8');
-    try {
-      const output = execFileSync('claude', ['--print', `--system-prompt=${system}`, userPrompt.slice(0, 8000)], {
-        encoding: 'utf8',
-        cwd: ROOT,
-        maxBuffer: 10 * 1024 * 1024,
-        timeout: 120_000,
-      });
-      return output.trim();
-    } catch (e) {
-      // claude CLI might not support --system-prompt flag — try simpler form
-      try {
-        const combined = `${system}\n\n---\n\n${userPrompt.slice(0, 10000)}`;
-        const output = execFileSync('claude', ['--print', combined], {
-          encoding: 'utf8',
-          cwd: ROOT,
-          maxBuffer: 10 * 1024 * 1024,
-          timeout: 120_000,
-        });
-        return output.trim();
-      } catch (e2) {
-        console.error('claude CLI call failed:', e2.message);
-        return null;
-      }
-    }
-  }
-
-  return null; // no backend
+  return null;
 }
 
 function collectSourceSnapshot() {
@@ -190,6 +157,36 @@ async function runQaAgent() {
   ensureDir(join(ROOT, 'test-results'));
   ensureDir(join(ROOT, 'docs'));
 
+  // In CI, result files are pre-written by the workflow steps.
+  // Locally, run the checks now and capture output.
+  const isCI = !!process.env.CI;
+  if (!isCI) {
+    console.log('Running checks locally...\n');
+
+    const checks = [
+      { name: 'typecheck', cmd: 'npm run typecheck', out: 'test-results/typecheck.txt', envFlag: 'TYPECHECK_FAILED' },
+      { name: 'lint',      cmd: 'npm run lint',      out: 'test-results/lint.txt',      envFlag: 'LINT_FAILED' },
+      { name: 'build',     cmd: 'npm run build',     out: 'test-results/build.txt',     envFlag: 'BUILD_FAILED' },
+      { name: 'unit',      cmd: 'npm test -- --reporter=verbose --reporter=json --outputFile=test-results/unit-results.json', out: 'test-results/unit-console.txt', envFlag: 'UNIT_FAILED' },
+    ];
+
+    for (const c of checks) {
+      process.stdout.write(`  ${c.name.padEnd(12)}`);
+      try {
+        const out = execSync(c.cmd, { encoding: 'utf8', cwd: ROOT, stdio: 'pipe' });
+        writeFileSync(join(ROOT, c.out), out, 'utf8');
+        process.env[c.envFlag] = 'false';
+        console.log('✅ PASSED');
+      } catch (e) {
+        const out = (e.stdout ?? '') + (e.stderr ?? '');
+        writeFileSync(join(ROOT, c.out), out, 'utf8');
+        process.env[c.envFlag] = 'true';
+        console.log('❌ FAILED');
+      }
+    }
+    console.log('');
+  }
+
   const typecheckOut = readFile(join(ROOT, 'test-results/typecheck.txt'));
   const lintOut      = readFile(join(ROOT, 'test-results/lint.txt'));
   const buildOut     = readFile(join(ROOT, 'test-results/build.txt'));
@@ -223,7 +220,7 @@ async function runQaAgent() {
   const now            = new Date().toISOString();
   const backend        = detectBackend();
 
-  console.log(`AI backend: ${backend}`);
+  console.log(`AI backend: ${backend === 'sdk' ? 'Anthropic SDK (API key)' : 'none — set ANTHROPIC_API_KEY for AI analysis'}`);
 
   const system = 'You are an expert QA engineer and code reviewer. You produce precise, actionable, well-structured QA reports. You never pad reports with generic observations — every finding is specific to the actual code shown.';
 
