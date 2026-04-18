@@ -188,6 +188,46 @@ export interface Product {
   modifier_groups?: ModifierGroup[];
 }
 
+export type ComboDiscountType = 'percent' | 'fixed';
+
+export interface ComboGroupItem {
+  id: string;
+  group_id: string;
+  menu_item_id: string;
+  price_adjustment: number;
+  products?: Product | null;
+}
+
+export interface ComboGroup {
+  id: string;
+  combo_id: string;
+  name: string;
+  required: boolean;
+  sort_order: number;
+  combo_group_items?: ComboGroupItem[];
+}
+
+export interface ComboDeal {
+  id: string;
+  name: string;
+  base_price: number;
+  is_active: boolean;
+  image_url?: string | null;
+  sort_order: number;
+  discount_enabled?: boolean;
+  discount_type?: ComboDiscountType;
+  discount_value?: number;
+  apply_discount_to_modifiers?: boolean;
+  combo_groups?: ComboGroup[];
+}
+
+export interface ComboSelection {
+  groupId: string;
+  groupName: string;
+  item: Product;
+  priceAdjustment: number;
+}
+
 export interface SelectedModifiers {
   [groupId: string]: ModifierOption[];
 }
@@ -198,6 +238,11 @@ export interface CartItem {
   notes: string;
   selectedModifiers: SelectedModifiers;
   cartItemKey: string;
+  isCombo?: boolean;
+  comboId?: string;
+  comboName?: string;
+  comboBasePrice?: number;
+  comboSelections?: ComboSelection[];
 }
 
 export interface PlatformPayout {

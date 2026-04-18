@@ -8,6 +8,7 @@ Combo deals in Ming's are bundled pricing products designed for fast upsell in Q
 - Combo components are selected from required single-select groups.
 - Modifiers can be chosen per component, but combo total still uses fixed base price.
 - Combo lines are not part of default discount arithmetic.
+- Discount config fields can be stored on combos for future pricing modes, but defaults remain disabled.
 
 ## Data model
 
@@ -15,6 +16,7 @@ Combo deals in Ming's are bundled pricing products designed for fast upsell in Q
 
 - `combo_deals`
   - `id`, `name`, `base_price`, `is_active`, `image_url`, `sort_order`
+  - `discount_enabled`, `discount_type ('percent'|'fixed')`, `discount_value`, `apply_discount_to_modifiers`
 - `combo_groups`
   - `id`, `combo_id`, `name`, `selection_type='single'`, `required`, `sort_order`
 - `combo_group_items`

@@ -79,3 +79,4 @@ npm run supabase:deploy:web
 
 - `20260418140100_combo_deals.sql` — combo tables + sale item combo fields + upsell eligibility flag.
 - `20260418153000_add_products_upsell_combo_id.sql` — explicit product-to-combo upsell mapping.
+- `20260418191000_combo_discount_fields.sql` — combo discount config foundation columns (`discount_*`) with non-negative constraint.
