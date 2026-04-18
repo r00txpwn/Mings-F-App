@@ -4,19 +4,68 @@ import App from './App.tsx';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ConfigCheck } from './ConfigCheck';
 import { PublicNotFound } from './PublicNotFound';
-import { assertAdminPathDoesNotCollide, isAdminPath, normalizePathname } from './lib/adminPath';
+import { getAppSurface, isStaffRoutePath, normalizePathname } from './lib/surfaceRouting';
 import './index.css';
 
 const pathname = window.location.pathname;
 const pathNorm = normalizePathname(pathname);
+const appSurface = getAppSurface();
 
-/** Admin and storefront are separate: no implicit redirect from `/` to `/order`. */
 void renderApp();
 
 async function renderApp() {
-  assertAdminPathDoesNotCollide();
-
   const root = createRoot(document.getElementById('root')!);
+
+  if (appSurface === 'order') {
+    if (pathNorm === '/order') {
+      window.location.replace('/');
+      return;
+    }
+
+    if (pathNorm === '/') {
+      const { OrderApp } = await import('./order/OrderApp');
+      root.render(
+        <StrictMode>
+          <ConfigCheck>
+            <ErrorBoundary>
+              <OrderApp />
+            </ErrorBoundary>
+          </ConfigCheck>
+        </StrictMode>
+      );
+      return;
+    }
+
+    if (pathNorm === '/track') {
+      const { TrackingApp } = await import('./order/TrackingApp');
+      root.render(
+        <StrictMode>
+          <ConfigCheck>
+            <ErrorBoundary>
+              <TrackingApp />
+            </ErrorBoundary>
+          </ConfigCheck>
+        </StrictMode>
+      );
+      return;
+    }
+
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <PublicNotFound />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+    return;
+  }
+
+  if (pathNorm === '/spec-ops') {
+    window.location.replace('/');
+    return;
+  }
 
   if (pathNorm === '/kiosk') {
     const { KioskApp } = await import('./kiosk/KioskApp');
@@ -29,7 +78,10 @@ async function renderApp() {
         </ConfigCheck>
       </StrictMode>
     );
-  } else if (pathNorm === '/kds') {
+    return;
+  }
+
+  if (pathNorm === '/kds') {
     const { KitchenDisplay } = await import('./kds/KitchenDisplay');
     root.render(
       <StrictMode>
@@ -40,29 +92,10 @@ async function renderApp() {
         </ConfigCheck>
       </StrictMode>
     );
-  } else if (pathNorm === '/order') {
-    const { OrderApp } = await import('./order/OrderApp');
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <OrderApp />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
-  } else if (pathNorm === '/track') {
-    const { TrackingApp } = await import('./order/TrackingApp');
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <TrackingApp />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
-  } else if (isAdminPath(pathNorm)) {
+    return;
+  }
+
+  if (isStaffRoutePath(pathNorm)) {
     root.render(
       <StrictMode>
         <ConfigCheck>
@@ -72,25 +105,16 @@ async function renderApp() {
         </ConfigCheck>
       </StrictMode>
     );
-  } else if (pathNorm === '/') {
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <PublicNotFound />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
-  } else {
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <PublicNotFound />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
+    return;
   }
+
+  root.render(
+    <StrictMode>
+      <ConfigCheck>
+        <ErrorBoundary>
+          <PublicNotFound />
+        </ErrorBoundary>
+      </ConfigCheck>
+    </StrictMode>
+  );
 }

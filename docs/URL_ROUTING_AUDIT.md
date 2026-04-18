@@ -1,87 +1,78 @@
-# URL & path audit (client routes, Edge Functions, logical risks)
+# URL & path audit (domain-rooted routing)
 
-Last reviewed: 2026-03-26
+Last reviewed: 2026-04-18
 
-## 1. SPA entry (`src/main.tsx`)
+## 1. Surface model (`src/main.tsx`)
+
+Routing is now selected by `VITE_APP_SURFACE`:
+
+- `order` surface (deploy to `order.mings.az`)
+- `sp` surface (deploy to `sp.mings.az`)
+
+### `VITE_APP_SURFACE=order`
 
 | Normalized path | App | Notes |
 |-----------------|-----|--------|
-| `/` | `PublicNotFound` | Admin-denied root surface; no redirect to `/order`. |
-| `/kiosk` | `KioskApp` | Uses `pathNorm` (trailing slash OK). |
-| `/kds` | `KitchenDisplay` | Uses `pathNorm` (fixed: was `pathname`, so `/kds/` was broken). |
-| `/order` | `OrderApp` | Public ordering. |
-| `/track` | `TrackingApp` | Query `?token=` for status. |
-| `/spec-ops` | `App` (cockpit) | Default admin URL. Optional `VITE_ADMIN_APP_PATH` overrides. |
-| **Anything else** | `PublicNotFound` | No hints about admin URL. |
+| `/` | `OrderApp` | Customer ordering root. |
+| `/track` | `TrackingApp` | Tracking page. |
+| `/order` | Redirect to `/` | Legacy compatibility route. |
+| **Anything else** | `PublicNotFound` | Non-customer paths denied. |
 
-### Logical notes
+### `VITE_APP_SURFACE=sp`
 
-- **Case**: Paths are case-sensitive (`/Order` ≠ `/order`) → 404. Acceptable for static hosting.
-- **Subpath deployment**: All internal links use absolute paths (`/order`, `/kiosk`). A Vite **`base`** other than `/` is **not** supported without refactoring links and router.
-- **Admin path**: Default `/spec-ops` is fixed in client code; override env is inlined if set — rely on Auth + RLS + passwords.
+| Normalized path | App | Notes |
+|-----------------|-----|--------|
+| `/` | `App` (staff cockpit) | Staff root. |
+| `/sales`, `/products`, ... | `App` | Staff screen determined by pathname. |
+| `/kiosk` | `KioskApp` | Separate operational surface. |
+| `/kds` | `KitchenDisplay` | Separate operational surface. |
+| `/spec-ops` | Redirect to `/` | Legacy compatibility route. |
+| **Anything else** | `PublicNotFound` | Unknown path denied. |
 
----
+## 2. Staff route mapping (`src/App.tsx`)
 
-## 2. In-app navigation & redirects
+Staff navigation moved from query-param state (`?screen=...`) to real paths:
 
-| Location | Behavior | Risk / note |
-|----------|----------|-------------|
-| `App.tsx` | Non-staff logged-in users → `StaffAccessDeniedScreen` (no auto-redirect to `/order`). | OK. |
-| `OrderApp.tsx` | E-point success → external `checkoutUrl`. Done screen → `/track?token=`. | External URL must be trusted (payment provider). |
-| `PublicNotFound.tsx` | Denied/404 messaging for root + unknown paths. | No storefront auto-redirect from `/` or invalid paths. |
-| `StaffAccessDeniedScreen.tsx` | Link to `/order`. | OK. |
-| `KioskOrdersScreen.tsx` | `window.open('/order')`, `window.open('/kiosk?key=…')` | If `VITE_KIOSK_SECRET` is empty, opens `/kiosk` without key (dev behavior aligns with `SecretGate`). |
+- `/` → home
+- `/sales`
+- `/kiosk-orders`
+- `/menu-builder`
+- `/combos`
+- `/products`
+- `/suppliers`
+- `/expenses`
+- `/payouts`
+- `/money`
+- `/reports`
+- `/users`
+- `/settings`
 
----
+`?screen=...` is still accepted as a fallback for old links, but path routing is now primary.
 
-## 3. Edge Functions (HTTP)
+## 3. Hosting rewrites and redirects (`vercel.json`)
 
-Invoked from the browser (or webhooks):
+- SPA fallback remains: `/(.*)` → `/index.html`
+- Legacy redirects:
+  - `order.mings.az/order` → `/`
+  - `sp.mings.az/spec-ops` → `/`
+
+## 4. Cross-surface links
+
+- Staff links to customer storefront use `getOrderAppUrl()` from `src/lib/surfaceRouting.ts`.
+- Host mapping defaults to `sp.*` → `order.*`, with optional override via `VITE_ORDER_APP_ORIGIN`.
+
+## 5. Edge Functions (unchanged by route rework)
 
 | Function | Client usage | Auth |
-|----------|----------------|------|
-| `online-order-create` | `invokeEdgeFunction` POST (`OrderApp`) | Bearer: user JWT or anon key. |
-| `epoint-create-payment` | `invokeEdgeFunction` POST (`OrderApp`) | Same. |
-| `user-management` | `UsersScreen` GET `…/user-management/list`, POST `…/create`, DELETE `…/delete/:id` | Bearer: staff session JWT. **Admin-only** (role `admin` in `public.users` or JWT claim). |
-| `epoint-webhook` | Server-to-server (E-point) | Not a browser route. |
-| `wolt-drive-*` | Backend / integrations | Not audited as SPA paths. |
+|----------|--------------|------|
+| `online-order-create` | `invokeEdgeFunction` (`OrderApp`) | Bearer: anon/user token |
+| `epoint-create-payment` | `invokeEdgeFunction` (`OrderApp`) | Bearer: anon/user token |
+| `user-management` | `UsersScreen` admin operations | Bearer: staff session JWT (admin-only) |
+| `epoint-webhook` | Server-to-server webhook | Not browser-routed |
+| `wolt-drive-*` | Backend/integration | Not browser-routed |
 
-### `user-management` path parsing
+## 6. Risks and checks
 
-Uses suffix after `/user-management` in `req.url` so both deployed URL shapes work (e.g. `…/functions/v1/user-management/list`).
-
-### Logical risks
-
-- **Managers** cannot call `user-management` (admin-only). If product needs “manager invites staff”, policy must change.
-- **Create user** must insert `public.users` after Auth create; rollback on failure (implemented in Edge Function).
-
----
-
-## 4. Kiosk / KDS gates (`SecretGate.tsx`)
-
-- If `VITE_KIOSK_SECRET` / `VITE_KDS_SECRET` is **empty**, gate **allows** access (documented for local dev).
-- **Production**: set secrets and always use `?key=` (or accept open kiosk — business risk).
-
----
-
-## 5. Consistency checklist (done)
-
-- [x] `/kds` and `/kds/` both resolve to KDS (`pathNorm`).
-- [x] `/kiosk` and `/kiosk/` both resolve to kiosk (`pathNorm`).
-- [x] Reserved paths in `adminPath.ts` don’t collide with public routes.
-
----
-
-## 6. Recommended follow-ups (not implemented)
-
-1. **Optional React Router** for future: query params, nested admin routes, `basename` for subfolder deploys.
-2. **`robots.txt`**: optionally disallow `/` redirect target patterns if SEO matters (usually N/A for apps behind login).
-3. **E2E tests**: smoke tests for `/order`, admin path, `/kiosk`, `/kds`.
-
----
-
-## 7. Expected browser history behavior
-
-- Navigating directly to `/spec-ops` and using in-app tabs (e.g. Money) should keep browser history within admin pages.
-- Pressing browser back from admin pages should not trigger any root redirect to `/order`.
-- `/order` remains explicitly reachable only via direct path entry (`/order`) or intentional links.
+1. Ensure each Vercel project/domain sets the correct `VITE_APP_SURFACE`.
+2. Validate legacy redirects only trigger on the intended hostnames.
+3. Keep `/kiosk` and `/kds` behind secrets in production (`VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`).

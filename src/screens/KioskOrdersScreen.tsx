@@ -3,6 +3,7 @@ import { Monitor, RefreshCw, ExternalLink } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { getOrderAppUrl } from '../lib/surfaceRouting';
 import { PageHeader } from '../components/cockpit';
 import { KioskOrdersBoard, type KioskOrder, type KioskOrderStatus } from '../components/kiosk';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -87,7 +88,7 @@ export function KioskOrdersScreen() {
           <>
             <button
               type="button"
-              onClick={() => window.open('/order', '_blank')}
+              onClick={() => window.open(getOrderAppUrl('/'), '_blank')}
               className="cockpit-btn-ghost rounded-xl border border-slate-200 dark:border-white/10"
             >
               <ExternalLink className="h-4 w-4" />

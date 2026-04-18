@@ -1,3 +1,17 @@
 {
+  "redirects": [
+    {
+      "source": "/order",
+      "has": [{ "type": "host", "value": "order.mings.az" }],
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/spec-ops",
+      "has": [{ "type": "host", "value": "sp.mings.az" }],
+      "destination": "/",
+      "permanent": false
+    }
+  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
