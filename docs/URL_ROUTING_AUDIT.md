@@ -15,6 +15,7 @@ Routing is now selected by `VITE_APP_SURFACE`:
 |-----------------|-----|--------|
 | `/` | `OrderApp` | Customer ordering root. |
 | `/track` | `TrackingApp` | Tracking page. |
+| `/order-manager` | `OrderManagerApp` | Staff-authenticated operations surface (mobile-first). |
 | `/order` | Redirect to `/` | Legacy compatibility route. |
 | **Anything else** | `PublicNotFound` | Non-customer paths denied. |
 
@@ -26,6 +27,7 @@ Routing is now selected by `VITE_APP_SURFACE`:
 | `/sales`, `/products`, ... | `App` | Staff screen determined by pathname. |
 | `/kiosk` | `KioskApp` | Separate operational surface. |
 | `/kds` | `KitchenDisplay` | Separate operational surface. |
+| `/order-manager` | `OrderManagerApp` | Also available on staff surface for operational access. |
 | `/spec-ops` | Redirect to `/` | Legacy compatibility route. |
 | **Anything else** | `PublicNotFound` | Unknown path denied. |
 
@@ -76,3 +78,4 @@ Staff navigation moved from query-param state (`?screen=...`) to real paths:
 1. Ensure each Vercel project/domain sets the correct `VITE_APP_SURFACE`.
 2. Validate legacy redirects only trigger on the intended hostnames.
 3. Keep `/kiosk` and `/kds` behind secrets in production (`VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`).
+4. `/order-manager` uses staff auth (same guard as cockpit); verify non-staff users see access denied.

@@ -652,6 +652,41 @@ export interface Translations {
   comboItemPriceAdjustment: string;
   comboUpsellLink: string;
   comboUpsellNone: string;
+
+  // Order Manager
+  omActiveOrders: string;
+  omPastOrders: string;
+  omMenuEditor: string;
+  omNewOrders: string;
+  omScheduledOrders: string;
+  omInProgress: string;
+  omReady: string;
+  omInDelivery: string;
+  omAccept: string;
+  omMarkReady: string;
+  omPickedUp: string;
+  omDelivered: string;
+  omSaveDispatch: string;
+  omPrepTime: string;
+  omReminderBefore: string;
+  omToday: string;
+  omYesterday: string;
+  omLast7Days: string;
+  omThisMonth: string;
+  omLastMonth: string;
+  omProducts: string;
+  omCombos: string;
+  omKioskToggle: string;
+  omOnlineToggle: string;
+  omActiveToggle: string;
+  omNoActiveOrders: string;
+  omNoScheduledOrders: string;
+  omNoPastOrders: string;
+  omSourceKiosk: string;
+  omSourceTakeaway: string;
+  omSourceDelivery: string;
+  omTitle: string;
+  omReminderSet: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -1281,6 +1316,40 @@ export const translations: Record<Language, Translations> = {
     comboItemPriceAdjustment: 'Price adjustment',
     comboUpsellLink: 'Upsell mapping',
     comboUpsellNone: 'No combo',
+
+    omActiveOrders: 'Active Orders',
+    omPastOrders: 'Past Orders',
+    omMenuEditor: 'Menu Editor',
+    omNewOrders: 'New Orders',
+    omScheduledOrders: 'Scheduled Orders',
+    omInProgress: 'In Progress',
+    omReady: 'Ready',
+    omInDelivery: 'In Delivery',
+    omAccept: 'Accept',
+    omMarkReady: 'Ready',
+    omPickedUp: 'Picked up',
+    omDelivered: 'Delivered',
+    omSaveDispatch: 'Save & Dispatch',
+    omPrepTime: 'Prep time',
+    omReminderBefore: 'Reminder before',
+    omToday: 'Today',
+    omYesterday: 'Yesterday',
+    omLast7Days: 'Last 7 days',
+    omThisMonth: 'This month',
+    omLastMonth: 'Last month',
+    omProducts: 'Products',
+    omCombos: 'Combos',
+    omKioskToggle: 'Kiosk',
+    omOnlineToggle: 'Online',
+    omActiveToggle: 'Active',
+    omNoActiveOrders: 'No active orders',
+    omNoScheduledOrders: 'No scheduled orders',
+    omNoPastOrders: 'No past orders for this range',
+    omSourceKiosk: 'Kiosk',
+    omSourceTakeaway: 'Online · Takeaway',
+    omSourceDelivery: 'Online · Delivery',
+    omTitle: 'Order Manager',
+    omReminderSet: 'Reminder set',
   },
 
   az: {
@@ -1908,6 +1977,40 @@ export const translations: Record<Language, Translations> = {
     comboItemPriceAdjustment: 'Qiymət fərqi',
     comboUpsellLink: 'Upsell uyğunluğu',
     comboUpsellNone: 'Kombo yoxdur',
+
+    omActiveOrders: 'Aktiv sifarişlər',
+    omPastOrders: 'Keçmiş sifarişlər',
+    omMenuEditor: 'Menyu redaktoru',
+    omNewOrders: 'Yeni sifarişlər',
+    omScheduledOrders: 'Planlı sifarişlər',
+    omInProgress: 'Hazırlanır',
+    omReady: 'Hazır',
+    omInDelivery: 'Çatdırılmada',
+    omAccept: 'Qəbul et',
+    omMarkReady: 'Hazır et',
+    omPickedUp: 'Təhvil verildi',
+    omDelivered: 'Çatdırıldı',
+    omSaveDispatch: 'Saxla və yola sal',
+    omPrepTime: 'Hazırlıq vaxtı',
+    omReminderBefore: 'Xatırlatma',
+    omToday: 'Bu gün',
+    omYesterday: 'Dünən',
+    omLast7Days: 'Son 7 gün',
+    omThisMonth: 'Bu ay',
+    omLastMonth: 'Ötən ay',
+    omProducts: 'Məhsullar',
+    omCombos: 'Kombolar',
+    omKioskToggle: 'Kiosk',
+    omOnlineToggle: 'Onlayn',
+    omActiveToggle: 'Aktiv',
+    omNoActiveOrders: 'Aktiv sifariş yoxdur',
+    omNoScheduledOrders: 'Planlı sifariş yoxdur',
+    omNoPastOrders: 'Bu aralıqda keçmiş sifariş yoxdur',
+    omSourceKiosk: 'Kiosk',
+    omSourceTakeaway: 'Onlayn · Əlavə',
+    omSourceDelivery: 'Onlayn · Çatdırılma',
+    omTitle: 'Sifariş meneceri',
+    omReminderSet: 'Xatırlatma quruldu',
   },
 
   ru: {
@@ -2535,5 +2638,38 @@ export const translations: Record<Language, Translations> = {
     comboItemPriceAdjustment: 'Корректировка цены',
     comboUpsellLink: 'Привязка upsell',
     comboUpsellNone: 'Без комбо',
+    omActiveOrders: 'Активные заказы',
+    omPastOrders: 'Прошлые заказы',
+    omMenuEditor: 'Редактор меню',
+    omNewOrders: 'Новые заказы',
+    omScheduledOrders: 'Запланированные заказы',
+    omInProgress: 'В работе',
+    omReady: 'Готово',
+    omInDelivery: 'В доставке',
+    omAccept: 'Принять',
+    omMarkReady: 'Готово',
+    omPickedUp: 'Забрано',
+    omDelivered: 'Доставлено',
+    omSaveDispatch: 'Сохранить и отправить',
+    omPrepTime: 'Время готовки',
+    omReminderBefore: 'Напомнить за',
+    omToday: 'Сегодня',
+    omYesterday: 'Вчера',
+    omLast7Days: 'Последние 7 дней',
+    omThisMonth: 'Этот месяц',
+    omLastMonth: 'Прошлый месяц',
+    omProducts: 'Продукты',
+    omCombos: 'Комбо',
+    omKioskToggle: 'Киоск',
+    omOnlineToggle: 'Онлайн',
+    omActiveToggle: 'Активно',
+    omNoActiveOrders: 'Нет активных заказов',
+    omNoScheduledOrders: 'Нет запланированных заказов',
+    omNoPastOrders: 'Нет прошлых заказов за период',
+    omSourceKiosk: 'Киоск',
+    omSourceTakeaway: 'Онлайн · Самовывоз',
+    omSourceDelivery: 'Онлайн · Доставка',
+    omTitle: 'Менеджер заказов',
+    omReminderSet: 'Напоминание установлено',
   },
 };
