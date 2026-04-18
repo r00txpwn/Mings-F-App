@@ -1,0 +1,3 @@
+#!/bin/sh
+# Regenerate the route chart before every commit and stage the result.
+node scripts/generate-route-chart.js && git add docs/ROUTE_CHART.md
