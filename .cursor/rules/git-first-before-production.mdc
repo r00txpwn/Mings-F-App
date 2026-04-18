@@ -1,0 +1,32 @@
+---
+description: Never deploy to customer-facing production without pushing to git first
+alwaysApply: true
+---
+
+# Git first — no direct production deploy
+
+## Rule
+
+**Do not** ship changes to **production** (live customer-facing hosts) by uploading or CLI-deploying from a local workspace **before** the same changes exist on the **remote git repository** (`git push` to the branch your team uses for release).
+
+## What counts as “production”
+
+- **Vercel:** `vercel deploy --prod`, `npx vercel deploy --prod`, or any flow that promotes to the **production** target / production domain (e.g. `sp.mings.az`, `order.mings.az`, `*.vercel.app` production alias).
+- **Any other** static host or PaaS “production” / “prod” environment that bypasses the repo.
+
+**Local preview** (`npm run dev`, `npm run deploy:local`, `vite preview`) is **not** production; this rule does not block those.
+
+## Required workflow
+
+1. **Commit** the changes with a clear message.
+2. **`git push`** to the remote (correct branch / PR flow your team uses).
+3. **Then** deploy production — ideally via **Git integration** (push triggers Vercel build) or, if using CLI, only **after** the push so what ships matches the remote branch.
+
+## For agents
+
+- **Do not** run production deploy commands on behalf of the user unless production deploy is explicitly requested **and** changes are already **pushed** (or the user explicitly confirms an exception).
+- If the user asks to “deploy to production,” **default** to: ensure work is committed and pushed; prefer **git-triggered** deploys over **CLI upload** deploys.
+
+## Why
+
+Direct CLI deploy can publish **uncommitted or unpushed** work, drift from `main`, and make rollbacks and audits harder. **Git is the source of truth** for what runs in production.
