@@ -161,7 +161,7 @@ async function handleRequest(req: Request): Promise<Response> {
     for (const z of zones ?? []) {
       const poly = z.polygon as { type?: string; coordinates?: number[][][] };
       if (pointInGeoJsonPolygon(lng, lat, poly)) {
-        matched = z as typeof matched;
+        matched = z as { id: string; delivery_fee: number; min_order_amount: number; polygon: unknown };
         break;
       }
     }
@@ -218,6 +218,11 @@ async function handleRequest(req: Request): Promise<Response> {
     unitPrice: number;
     lineNotes: string;
     comboSelectionsJson: Record<string, unknown>;
+    comboComponentModifiers: Array<{
+      comboGroupName: string;
+      optionName: string;
+      priceAdjustment: number;
+    }>;
   };
   const resolvedLines: Array<ResolvedProductLine | ResolvedComboLine> = [];
 
@@ -246,7 +251,12 @@ async function handleRequest(req: Request): Promise<Response> {
       }
 
       const selections = line.comboSelections ?? [];
-      const itemsPayload: Array<{ group: string; item: string; itemId: string }> = [];
+      const itemsPayload: Array<{ group: string; item: string; itemId: string; modifiers?: string[] }> = [];
+      const comboComponentModifiers: Array<{
+        comboGroupName: string;
+        optionName: string;
+        priceAdjustment: number;
+      }> = [];
 
       for (const g of groups) {
         const gid = (g as { id: string }).id;
@@ -270,16 +280,49 @@ async function handleRequest(req: Request): Promise<Response> {
         }
         const { data: pname } = await supabase
           .from('products')
-          .select('name, online_visible')
+          .select(
+            'name, online_visible, product_modifier_groups(modifier_groups(id, name, modifier_options(id, name, price_adjustment, is_available)))'
+          )
           .eq('id', pick.itemId)
           .maybeSingle();
         if (!pname || (pname as { online_visible?: boolean }).online_visible === false) {
           return jsonResponse({ error: 'Combo item unavailable' }, 400);
         }
+        const selectedModifierIds = pick.modifierOptionIds ?? [];
+        const pmgs = ((pname as { product_modifier_groups?: unknown[] }).product_modifier_groups ?? []) as Array<{
+          modifier_groups: {
+            id: string;
+            name: string;
+            modifier_options?: Array<{
+              id: string;
+              name: string;
+              price_adjustment: number;
+              is_available: boolean;
+            }>;
+          };
+        }>;
+        const modifierGroups = pmgs.map((row) => row.modifier_groups).filter(Boolean);
+        const modifierNames: string[] = [];
+        for (const modifierId of selectedModifierIds) {
+          const parentGroup = modifierGroups.find((group) =>
+            (group.modifier_options ?? []).some((option) => option.id === modifierId)
+          );
+          const opt = parentGroup?.modifier_options?.find((option) => option.id === modifierId);
+          if (!opt || opt.is_available === false) {
+            return jsonResponse({ error: 'Invalid combo modifier option' }, 400);
+          }
+          modifierNames.push(opt.name);
+          comboComponentModifiers.push({
+            comboGroupName: `${gname}${parentGroup?.name ? ` / ${parentGroup.name}` : ''}`,
+            optionName: opt.name,
+            priceAdjustment: Number(opt.price_adjustment ?? 0),
+          });
+        }
         itemsPayload.push({
           group: gname,
           item: (pname as { name: string }).name,
           itemId: pick.itemId,
+          modifiers: modifierNames.length > 0 ? modifierNames : undefined,
         });
       }
 
@@ -298,6 +341,7 @@ async function handleRequest(req: Request): Promise<Response> {
           combo: comboName,
           items: itemsPayload,
         },
+        comboComponentModifiers,
       });
       continue;
     }
@@ -311,9 +355,11 @@ async function handleRequest(req: Request): Promise<Response> {
       return jsonResponse({ error: `Invalid product: ${line.productId}` }, 400);
     }
     const base = Number((p as { selling_price: number }).selling_price);
-    const pmgs = (p as { product_modifier_groups?: unknown[] }).product_modifier_groups ?? [];
+    const pmgs = ((p as { product_modifier_groups?: unknown[] }).product_modifier_groups ?? []) as Array<{
+      modifier_groups: Record<string, unknown>;
+    }>;
     const groups = pmgs
-      .map((x: { modifier_groups: Record<string, unknown> }) => x.modifier_groups)
+      .map((x) => x.modifier_groups)
       .filter(Boolean) as Array<{
       id: string;
       name: string;
@@ -366,6 +412,7 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   const total = subtotal + deliveryFee;
+  // Combos remain bundled pricing lines and should stay outside discount arithmetic by default.
   const minOrder = Number(settings.min_order_amount ?? 0);
   if (total < minOrder) {
     return jsonResponse({ error: `Minimum order is ₼${minOrder.toFixed(2)}` }, 400);
@@ -451,6 +498,19 @@ async function handleRequest(req: Request): Promise<Response> {
       if (siErr || !saleItem) {
         await supabase.from('sales').delete().eq('id', saleId);
         return jsonResponse({ error: siErr?.message ?? 'Failed to create combo line' }, 500);
+      }
+      if (line.comboComponentModifiers.length > 0) {
+        const comboModifierRows = line.comboComponentModifiers.map((mod) => ({
+          sale_item_id: saleItem.id,
+          modifier_group_name: mod.comboGroupName,
+          modifier_option_name: mod.optionName,
+          price_adjustment: mod.priceAdjustment,
+        }));
+        const { error: comboModErr } = await supabase.from('sale_item_modifiers').insert(comboModifierRows);
+        if (comboModErr) {
+          await supabase.from('sales').delete().eq('id', saleId);
+          return jsonResponse({ error: comboModErr.message }, 500);
+        }
       }
       continue;
     }

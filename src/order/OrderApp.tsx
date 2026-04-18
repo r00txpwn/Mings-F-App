@@ -51,10 +51,12 @@ function generateCartItemKey(productId: string, modifiers: SelectedModifiers): s
 
 function generateComboCartKey(
   comboId: string,
-  selections: Array<{ groupId: string; itemId: string }>
+  selections: Array<{ groupId: string; itemId: string; modifierOptionIds?: string[] }>
 ): string {
   const s = [...selections].sort((a, b) => a.groupId.localeCompare(b.groupId));
-  return `combo:${comboId}:${s.map((x) => `${x.groupId}:${x.itemId}`).join('|')}`;
+  return `combo:${comboId}:${s
+    .map((x) => `${x.groupId}:${x.itemId}:${[...(x.modifierOptionIds ?? [])].sort().join(',')}`)
+    .join('|')}`;
 }
 
 const ORDER_CART_STORAGE_KEY = 'mings_order_cart_v1';
@@ -96,7 +98,11 @@ function OrderContent() {
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [combos, setCombos] = useState<ComboDealRow[]>([]);
   const [comboBuilder, setComboBuilder] = useState<ComboDealRow | null>(null);
-  const [upsellOffer, setUpsellOffer] = useState<{ productName: string } | null>(null);
+  const [upsellOffer, setUpsellOffer] = useState<{
+    productName: string;
+    productPrice: number;
+    combo: ComboDealRow;
+  } | null>(null);
 
   const [result, setResult] = useState<OnlineOrderCreateResponse | null>(null);
 
@@ -126,13 +132,56 @@ function OrderContent() {
              id, name, required, sort_order,
              combo_group_items (
                id, menu_item_id,
-               products ( id, name, selling_price )
+               products (
+                 id, name, selling_price,
+                 product_modifier_groups (
+                   id, modifier_group_id, display_order,
+                   modifier_groups (
+                     id, name, min_select, max_select, is_required, display_order,
+                     modifier_options (id, name, price_adjustment, is_available, is_default, display_order)
+                   )
+                 )
+               )
              )
            )`
         )
         .eq('is_active', true)
         .order('sort_order');
-      if (!error && data?.length) setCombos(data as unknown as ComboDealRow[]);
+      if (!error && data?.length) {
+        const normalized = (data as Array<Record<string, unknown>>).map((combo) => ({
+          ...combo,
+          combo_groups: ((combo.combo_groups as Array<Record<string, unknown>> | undefined) ?? []).map((group) => ({
+            ...group,
+            combo_group_items: ((group.combo_group_items as Array<Record<string, unknown>> | undefined) ?? []).map(
+              (groupItem) => {
+                const product = (groupItem.products as Record<string, unknown> | null) ?? null;
+                if (!product) return groupItem;
+                const pmgs = (product.product_modifier_groups as Array<{ modifier_groups?: Record<string, unknown> }> | undefined) ?? [];
+                const modifierGroups = pmgs
+                  .map((row) => row.modifier_groups)
+                  .filter(Boolean)
+                  .map((modifierGroup) => ({
+                    ...modifierGroup,
+                    modifier_options: (
+                      ((modifierGroup as { modifier_options?: Array<Record<string, unknown>> }).modifier_options ?? []).filter(
+                        (option) => option.is_available !== false
+                      ) as Array<Record<string, unknown>>
+                    ),
+                  }));
+                return {
+                  ...groupItem,
+                  products: {
+                    ...product,
+                    modifier_groups: modifierGroups,
+                    product_modifier_groups: undefined,
+                  },
+                };
+              }
+            ),
+          })),
+        }));
+        setCombos(normalized as unknown as ComboDealRow[]);
+      }
     })();
   }, []);
 
@@ -191,6 +240,7 @@ function OrderContent() {
   const cartTotal = useMemo(() => {
     return cart.reduce((sum, item) => {
       if (item.kind === 'combo') {
+        // Combos are bundled pricing, not discountable item bundles.
         return sum + item.basePrice * item.quantity;
       }
       const modTotal = Object.values(item.selectedModifiers)
@@ -213,32 +263,72 @@ function OrderContent() {
     try {
       const raw = localStorage.getItem(ORDER_CART_STORAGE_KEY);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as Array<{
-        kind: 'product';
-        productId: string;
-        quantity: number;
-        notes?: string;
-        cartItemKey: string;
-      }>;
+      const parsed = JSON.parse(raw) as Array<
+        | {
+            kind: 'product';
+            productId: string;
+            quantity: number;
+            notes?: string;
+            cartItemKey: string;
+          }
+        | {
+            kind: 'combo';
+            comboId: string;
+            comboName: string;
+            basePrice: number;
+            quantity: number;
+            selections: Array<{
+              groupId: string;
+              itemId: string;
+              groupName: string;
+              itemName: string;
+              modifierOptionIds?: string[];
+              modifierNames?: string[];
+            }>;
+            cartItemKey: string;
+          }
+      >;
       const next: OrderCartLine[] = [];
       for (const row of parsed) {
-        if (row.kind !== 'product') continue;
-        const p = products.find((x) => x.id === row.productId);
-        if (!p) continue;
-        next.push({
-          kind: 'product',
-          product: p,
-          quantity: row.quantity,
-          notes: row.notes ?? '',
-          selectedModifiers: {},
-          cartItemKey: row.cartItemKey,
-        });
+        if (row.kind === 'product') {
+          const p = products.find((x) => x.id === row.productId);
+          if (!p) continue;
+          next.push({
+            kind: 'product',
+            product: p,
+            quantity: row.quantity,
+            notes: row.notes ?? '',
+            selectedModifiers: {},
+            cartItemKey: row.cartItemKey,
+          });
+          continue;
+        }
+        if (row.kind === 'combo') {
+          const deal = combos.find((c) => c.id === row.comboId);
+          if (!deal) continue;
+          next.push({
+            kind: 'combo',
+            comboId: row.comboId,
+            comboName: row.comboName,
+            basePrice: Number(row.basePrice),
+            quantity: Math.max(1, Number(row.quantity || 1)),
+            selections: (row.selections ?? []).map((sel) => ({
+              groupId: sel.groupId,
+              itemId: sel.itemId,
+              groupName: sel.groupName,
+              itemName: sel.itemName,
+              modifierOptionIds: sel.modifierOptionIds ?? [],
+              modifierNames: sel.modifierNames ?? [],
+            })),
+            cartItemKey: row.cartItemKey,
+          });
+        }
       }
       if (next.length) setCart(next);
     } catch {
       /* ignore */
     }
-  }, [loading, products, cart.length]);
+  }, [loading, products, combos, cart.length]);
 
   useEffect(() => {
     if (cart.length === 0) {
@@ -246,15 +336,33 @@ function OrderContent() {
       return;
     }
     try {
-      const payload = cart
-        .filter((c): c is Extract<OrderCartLine, { kind: 'product' }> => c.kind === 'product')
-        .map((c) => ({
-          kind: 'product' as const,
-          productId: c.product.id,
+      const payload = cart.map((c) => {
+        if (c.kind === 'product') {
+          return {
+            kind: 'product' as const,
+            productId: c.product.id,
+            quantity: c.quantity,
+            notes: c.notes,
+            cartItemKey: c.cartItemKey,
+          };
+        }
+        return {
+          kind: 'combo' as const,
+          comboId: c.comboId,
+          comboName: c.comboName,
+          basePrice: c.basePrice,
           quantity: c.quantity,
-          notes: c.notes,
+          selections: c.selections.map((s) => ({
+            groupId: s.groupId,
+            itemId: s.itemId,
+            groupName: s.groupName,
+            itemName: s.itemName,
+            modifierOptionIds: s.modifierOptionIds,
+            modifierNames: s.modifierNames,
+          })),
           cartItemKey: c.cartItemKey,
-        }));
+        };
+      });
       localStorage.setItem(ORDER_CART_STORAGE_KEY, JSON.stringify(payload));
     } catch {
       /* ignore */
@@ -262,10 +370,19 @@ function OrderContent() {
   }, [cart]);
 
   const maybeUpsell = (product: Product) => {
-    if (product.combo_upsell_eligible && combos.length > 0) {
-      setUpsellOffer({ productName: product.name });
-      window.setTimeout(() => setUpsellOffer(null), 8000);
-    }
+    if (!product.combo_upsell_eligible || combos.length === 0) return;
+    const byId = product.upsell_combo_id ? combos.find((c) => c.id === product.upsell_combo_id) : null;
+    const fallback = combos.find((combo) =>
+      combo.combo_groups.some((group) => group.combo_group_items.some((item) => item.menu_item_id === product.id))
+    );
+    const targetCombo = byId ?? fallback ?? null;
+    if (!targetCombo) return;
+    setUpsellOffer({
+      productName: product.name,
+      productPrice: Number(product.selling_price || 0),
+      combo: targetCombo,
+    });
+    window.setTimeout(() => setUpsellOffer(null), 8000);
   };
 
   const addToCartWithModifiers = (product: Product, selectedModifiers: SelectedModifiers) => {
@@ -303,7 +420,11 @@ function OrderContent() {
   const addComboLine = (line: Omit<Extract<OrderCartLine, { kind: 'combo' }>, 'cartItemKey'>) => {
     const key = generateComboCartKey(
       line.comboId,
-      line.selections.map((s) => ({ groupId: s.groupId, itemId: s.itemId }))
+      line.selections.map((s) => ({
+        groupId: s.groupId,
+        itemId: s.itemId,
+        modifierOptionIds: s.modifierOptionIds,
+      }))
     );
     const existing = cart.find((c) => c.kind === 'combo' && c.cartItemKey === key);
     if (existing && existing.kind === 'combo') {
@@ -367,6 +488,7 @@ function OrderContent() {
             comboSelections: item.selections.map((s) => ({
               groupId: s.groupId,
               itemId: s.itemId,
+              modifierOptionIds: s.modifierOptionIds,
             })),
             notes: undefined,
           };
@@ -651,6 +773,20 @@ function OrderContent() {
                 <span className="font-semibold text-white">{c.name}</span>
                 <span className="mt-1 font-mono text-lg text-cockpit-400">₼{Number(c.base_price).toFixed(2)}</span>
                 <span className="mt-2 text-xs text-cockpit-300">{t.orderComboCustomize}</span>
+                {(() => {
+                  const listPrice = c.combo_groups.reduce((sum, group) => {
+                    if (group.required === false) return sum;
+                    const first = group.combo_group_items.find((item) => item.products);
+                    return sum + Number(first?.products?.selling_price ?? 0);
+                  }, 0);
+                  const savings = listPrice - Number(c.base_price ?? 0);
+                  if (savings <= 0) return null;
+                  return (
+                    <span className="mt-2 inline-flex w-fit rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300">
+                      {t.orderComboSavingsBadge.replace('{amount}', savings.toFixed(2))}
+                    </span>
+                  );
+                })()}
               </button>
             ))}
           </div>
@@ -720,6 +856,17 @@ function OrderContent() {
                           <Plus className="h-4 w-4" />
                         </button>
                       </div>
+                      {item.selections.some((selection) => selection.modifierNames.length > 0) ? (
+                        <div className="space-y-1">
+                          {item.selections
+                            .filter((selection) => selection.modifierNames.length > 0)
+                            .map((selection) => (
+                              <p key={`${selection.groupId}:${selection.itemId}`} className="text-xs text-slate-400">
+                                {selection.itemName}: {selection.modifierNames.join(', ')}
+                              </p>
+                            ))}
+                        </div>
+                      ) : null}
                     </li>
                   );
                 }
@@ -1001,10 +1148,15 @@ function OrderContent() {
         </button>
       )}
 
-      {upsellOffer && combos.length > 0 ? (
+      {upsellOffer ? (
         <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-3 right-3 z-[30] rounded-2xl border border-violet-500/40 bg-slate-900/98 p-4 shadow-neon backdrop-blur-md">
           <p className="text-sm font-medium text-white">
-            {t.orderUpsellTitle.replace('{name}', upsellOffer.productName)}
+            {t.orderUpsellMakeItComboNamed
+              .replace('{name}', upsellOffer.combo.name)
+              .replace(
+                '{price}',
+                Math.max(0, Number(upsellOffer.combo.base_price) - Number(upsellOffer.productPrice)).toFixed(2)
+              )}
           </p>
           <div className="mt-3 flex gap-2">
             <button
@@ -1012,7 +1164,7 @@ function OrderContent() {
               className="neon-btn-primary flex-1 py-3 text-sm"
               onClick={() => {
                 setUpsellOffer(null);
-                setComboBuilder(combos[0] ?? null);
+                setComboBuilder(upsellOffer.combo);
               }}
             >
               {t.orderUpsellYes}

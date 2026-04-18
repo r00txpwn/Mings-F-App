@@ -230,7 +230,7 @@ export function OrderCard({ order, now, ordersInPrepCount, onUpdateStatus }: Ord
           if (item.is_combo && item.combo_selections) {
             const cs = item.combo_selections as {
               combo?: string;
-              items?: Array<{ group: string; item: string }>;
+              items?: Array<{ group: string; item: string; modifiers?: string[] }>;
             };
             return (
               <div key={item.id} className="rounded-lg border border-amber-600/40 bg-black/20 p-2">
@@ -238,10 +238,15 @@ export function OrderCard({ order, now, ordersInPrepCount, onUpdateStatus }: Ord
                   {cs.combo ?? item.product_name}
                 </p>
                 {cs.items?.map((row, i) => (
-                  <p key={i} className="ml-1 text-sm text-gray-200">
-                    <span className="text-emerald-400">{item.quantity}×</span> {row.item}{' '}
-                    <span className="text-xs text-gray-500">({row.group})</span>
-                  </p>
+                  <div key={i} className="ml-1">
+                    <p className="text-sm text-gray-200">
+                      <span className="text-emerald-400">{item.quantity}×</span> {row.item}{' '}
+                      <span className="text-xs text-gray-500">({row.group})</span>
+                    </p>
+                    {row.modifiers && row.modifiers.length > 0 ? (
+                      <p className="ml-4 text-xs text-gray-500">{row.modifiers.join(', ')}</p>
+                    ) : null}
+                  </div>
                 ))}
               </div>
             );

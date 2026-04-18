@@ -128,7 +128,10 @@ function TrackingContent() {
               const row = item as {
                 id?: string;
                 is_combo?: boolean;
-                combo_selections?: { combo?: string; items?: Array<{ group: string; item: string }> };
+                combo_selections?: {
+                  combo?: string;
+                  items?: Array<{ group: string; item: string; modifiers?: string[] }>;
+                };
                 product_name?: string;
                 quantity?: number;
               };
@@ -137,12 +140,19 @@ function TrackingContent() {
                 return (
                   <li key={String(row.id)} className="rounded-lg border border-amber-500/35 bg-amber-500/5 p-3">
                     <p className="text-xs font-bold uppercase tracking-wide text-amber-200">{cs.combo ?? row.product_name}</p>
-                    {cs.items?.map((line, i) => (
-                      <p key={i} className="text-slate-200">
-                        {row.quantity ?? 1}× {line.item}{' '}
-                        <span className="text-xs text-slate-500">({line.group})</span>
-                      </p>
-                    ))}
+                    {cs.items?.map((line, i) => {
+                      return (
+                        <div key={i}>
+                          <p className="text-slate-200">
+                            {row.quantity ?? 1}× {line.item}{' '}
+                            <span className="text-xs text-slate-500">({line.group})</span>
+                          </p>
+                          {line.modifiers && line.modifiers.length > 0 ? (
+                            <p className="ml-4 text-xs text-slate-500">{line.modifiers.join(', ')}</p>
+                          ) : null}
+                        </div>
+                      );
+                    })}
                   </li>
                 );
               }

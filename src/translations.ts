@@ -612,8 +612,10 @@ export interface Translations {
   orderDeliveryNotesLabel: string;
   orderDeliveryNotesPlaceholder: string;
   orderUpsellTitle: string;
+  orderUpsellMakeItComboNamed: string;
   orderUpsellYes: string;
   orderUpsellNo: string;
+  orderComboSavingsBadge: string;
   comboBuilderHeader: string;
   comboBuilderStepOf: string;
   comboBuilderAddToCart: string;
@@ -642,6 +644,14 @@ export interface Translations {
   combosScreenGroupsHint: string;
   combosName: string;
   combosEmpty: string;
+  comboGroupsTitle: string;
+  comboGroupAdd: string;
+  comboGroupRequired: string;
+  comboItemsTitle: string;
+  comboItemAdd: string;
+  comboItemPriceAdjustment: string;
+  comboUpsellLink: string;
+  comboUpsellNone: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -1232,8 +1242,10 @@ export const translations: Record<Language, Translations> = {
     orderDeliveryNotesPlaceholder:
       'Apartment no., floor, entry code, or notes for the courier',
     orderUpsellTitle: 'Make {name} a combo?',
+    orderUpsellMakeItComboNamed: 'Make it {name} for +₼{price}?',
     orderUpsellYes: 'Yes, upgrade',
     orderUpsellNo: 'No thanks',
+    orderComboSavingsBadge: 'Save ₼{amount}',
     comboBuilderHeader: 'Build combo',
     comboBuilderStepOf: 'Step {n} of {t}',
     comboBuilderAddToCart: 'Add combo to cart',
@@ -1261,6 +1273,14 @@ export const translations: Record<Language, Translations> = {
       'After creating a combo, add groups and menu items in Supabase Table Editor (combo_groups / combo_group_items) or extend this screen later.',
     combosName: 'Combo name',
     combosEmpty: 'No combos yet — create one above.',
+    comboGroupsTitle: 'Groups',
+    comboGroupAdd: 'Add group',
+    comboGroupRequired: 'Required',
+    comboItemsTitle: 'Items',
+    comboItemAdd: 'Add item',
+    comboItemPriceAdjustment: 'Price adjustment',
+    comboUpsellLink: 'Upsell mapping',
+    comboUpsellNone: 'No combo',
   },
 
   az: {
@@ -1849,8 +1869,10 @@ export const translations: Record<Language, Translations> = {
     orderDeliveryNotesLabel: 'Mənzil / kuryer üçün qeyd',
     orderDeliveryNotesPlaceholder: 'Mənzil, mərtəbə, kod və ya kuryer üçün qeyd',
     orderUpsellTitle: '{name} kombo edək?',
+    orderUpsellMakeItComboNamed: '{name} komboya +₼{price} əlavə edək?',
     orderUpsellYes: 'Bəli, yenilə',
     orderUpsellNo: 'Xeyr',
+    orderComboSavingsBadge: '₼{amount} qənaət',
     comboBuilderHeader: 'Kombo yığ',
     comboBuilderStepOf: 'Addım {n} / {t}',
     comboBuilderAddToCart: 'Kombonu səbətə əlavə et',
@@ -1878,6 +1900,14 @@ export const translations: Record<Language, Translations> = {
       'Kombo yaratdıqdan sonra qruplar və məhsulları Supabase Table Editor-də əlavə edin (combo_groups / combo_group_items).',
     combosName: 'Kombo adı',
     combosEmpty: 'Hələ kombo yoxdur — yuxarıdan yaradın.',
+    comboGroupsTitle: 'Qruplar',
+    comboGroupAdd: 'Qrup əlavə et',
+    comboGroupRequired: 'Məcburi',
+    comboItemsTitle: 'Məhsullar',
+    comboItemAdd: 'Məhsul əlavə et',
+    comboItemPriceAdjustment: 'Qiymət fərqi',
+    comboUpsellLink: 'Upsell uyğunluğu',
+    comboUpsellNone: 'Kombo yoxdur',
   },
 
   ru: {
@@ -2466,8 +2496,10 @@ export const translations: Record<Language, Translations> = {
     orderDeliveryNotesLabel: 'Квартира / примечания для курьера',
     orderDeliveryNotesPlaceholder: 'Квартира, этаж, код домофона или примечания',
     orderUpsellTitle: 'Сделать «{name}» комбо?',
+    orderUpsellMakeItComboNamed: 'Сделать {name} комбо за +₼{price}?',
     orderUpsellYes: 'Да, улучшить',
     orderUpsellNo: 'Нет',
+    orderComboSavingsBadge: 'Экономия ₼{amount}',
     comboBuilderHeader: 'Собрать комбо',
     comboBuilderStepOf: 'Шаг {n} из {t}',
     comboBuilderAddToCart: 'Добавить комбо в корзину',
@@ -2495,5 +2527,13 @@ export const translations: Record<Language, Translations> = {
       'После создания комбо добавьте группы и позиции в Supabase (таблицы combo_groups / combo_group_items).',
     combosName: 'Название комбо',
     combosEmpty: 'Комбо пока нет — создайте выше.',
+    comboGroupsTitle: 'Группы',
+    comboGroupAdd: 'Добавить группу',
+    comboGroupRequired: 'Обязательно',
+    comboItemsTitle: 'Позиции',
+    comboItemAdd: 'Добавить позицию',
+    comboItemPriceAdjustment: 'Корректировка цены',
+    comboUpsellLink: 'Привязка upsell',
+    comboUpsellNone: 'Без комбо',
   },
 };

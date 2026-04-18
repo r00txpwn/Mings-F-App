@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import type { OrderCartLine } from '../types/orderCart';
 
@@ -10,7 +10,27 @@ export type ComboGroupRow = {
   combo_group_items: Array<{
     id: string;
     menu_item_id: string;
-    products: { id: string; name: string; selling_price: number } | null;
+    products: {
+      id: string;
+      name: string;
+      selling_price: number;
+      modifier_groups?: Array<{
+        id: string;
+        name: string;
+        min_select: number;
+        max_select: number;
+        is_required: boolean;
+        display_order: number;
+        modifier_options?: Array<{
+          id: string;
+          name: string;
+          price_adjustment: number;
+          is_available: boolean;
+          is_default: boolean;
+          display_order: number;
+        }>;
+      }>;
+    } | null;
   }>;
 };
 
@@ -21,6 +41,11 @@ export type ComboDealRow = {
   image_url?: string | null;
   combo_groups: ComboGroupRow[];
 };
+
+type ComboModifierGroup = NonNullable<
+  NonNullable<ComboGroupRow['combo_group_items'][number]['products']>['modifier_groups']
+>[number];
+type ComboModifierOption = NonNullable<ComboModifierGroup['modifier_options']>[number];
 
 interface ComboBuilderProps {
   combo: ComboDealRow;
@@ -43,15 +68,145 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
   );
 
   const [step, setStep] = useState(0);
-  const [selections, setSelections] = useState<
-    Record<string, { itemId: string; groupName: string; itemName: string }>
+  const [selectionState, setSelectionState] = useState<
+    Record<
+      string,
+      {
+        itemId: string;
+        groupName: string;
+        itemName: string;
+        modifierOptionIds: string[];
+        modifierNames: string[];
+      }
+    >
   >({});
-
   const g = groups[step];
-  const canNext = g ? Boolean(selections[g.id]) : false;
+  const canNext = g ? Boolean(selectionState[g.id]) : false;
 
-  const pickItem = (groupId: string, itemId: string, groupName: string, itemName: string) => {
-    setSelections((prev) => ({ ...prev, [groupId]: { itemId, groupName, itemName } }));
+  const sortedStepItems = useMemo(() => {
+    return (g?.combo_group_items ?? []).filter((row) => row.products);
+  }, [g?.combo_group_items]);
+
+  const getDefaultModifiers = (
+    product:
+      | {
+          modifier_groups?: Array<{
+            id: string;
+            max_select: number;
+            modifier_options?: Array<{ id: string; name: string; is_default: boolean; is_available: boolean }>;
+          }>;
+        }
+      | null
+      | undefined
+  ) => {
+    const modifierOptionIds: string[] = [];
+    const modifierNames: string[] = [];
+    for (const group of product?.modifier_groups ?? []) {
+      const defaults = (group.modifier_options ?? [])
+        .filter((opt) => opt.is_available !== false && opt.is_default)
+        .slice(0, Math.max(1, Number(group.max_select ?? 1)));
+      for (const opt of defaults) {
+        modifierOptionIds.push(opt.id);
+        modifierNames.push(opt.name);
+      }
+    }
+    return { modifierOptionIds, modifierNames };
+  };
+
+  useEffect(() => {
+    if (!g) return;
+    if (selectionState[g.id]) return;
+    const first = sortedStepItems[0];
+    if (!first?.products) return;
+    const defaults = getDefaultModifiers(first.products);
+    setSelectionState((prev) => ({
+      ...prev,
+      [g.id]: {
+        itemId: first.menu_item_id,
+        groupName: g.name,
+        itemName: first.products?.name ?? '',
+        modifierOptionIds: defaults.modifierOptionIds,
+        modifierNames: defaults.modifierNames,
+      },
+    }));
+  }, [g, selectionState, sortedStepItems]);
+
+  const pickItem = (
+    groupId: string,
+    itemId: string,
+    groupName: string,
+    itemName: string,
+    product: ComboGroupRow['combo_group_items'][number]['products']
+  ) => {
+    const defaults = getDefaultModifiers(product);
+    setSelectionState((prev) => ({
+      ...prev,
+      [groupId]: {
+        itemId,
+        groupName,
+        itemName,
+        modifierOptionIds: defaults.modifierOptionIds,
+        modifierNames: defaults.modifierNames,
+      },
+    }));
+  };
+
+  const selectedStepItem = useMemo(() => {
+    if (!g) return null;
+    const selectedItemId = selectionState[g.id]?.itemId;
+    if (!selectedItemId) return null;
+    return (g.combo_group_items ?? []).find((row) => row.menu_item_id === selectedItemId)?.products ?? null;
+  }, [g, selectionState]);
+
+  const toggleModifier = (
+    modifierGroup: ComboModifierGroup,
+    option: ComboModifierOption
+  ) => {
+    if (!g || !selectedStepItem) return;
+    const current = selectionState[g.id];
+    if (!current) return;
+
+    const optionsByGroup = new Map<string, string[]>();
+    for (const mg of selectedStepItem.modifier_groups ?? []) {
+      optionsByGroup.set(
+        mg.id,
+        current.modifierOptionIds.filter((id) => (mg.modifier_options ?? []).some((opt) => opt.id === id))
+      );
+    }
+
+    const selectedForGroup = optionsByGroup.get(modifierGroup.id) ?? [];
+    const isSelected = selectedForGroup.includes(option.id);
+    const max = Math.max(1, Number(modifierGroup.max_select ?? 1));
+    let nextForGroup = selectedForGroup;
+
+    if (max === 1) {
+      nextForGroup = [option.id];
+    } else if (isSelected) {
+      nextForGroup = selectedForGroup.filter((id) => id !== option.id);
+    } else if (selectedForGroup.length < max) {
+      nextForGroup = [...selectedForGroup, option.id];
+    } else {
+      return;
+    }
+
+    optionsByGroup.set(modifierGroup.id, nextForGroup);
+    const nextIds = Array.from(optionsByGroup.values()).flat();
+    const nextNames = nextIds
+      .map((id) =>
+        (selectedStepItem.modifier_groups ?? [])
+          .flatMap((group) => group.modifier_options ?? [])
+          .find((opt) => opt.id === id)?.name
+      )
+      .filter((name): name is string => Boolean(name));
+
+    setSelectionState((prev) => ({
+      ...prev,
+      [g.id]: {
+        ...current,
+        modifierOptionIds: nextIds,
+        modifierNames: nextNames,
+      },
+    }));
   };
 
   const handleNext = () => {
@@ -60,13 +215,15 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
       return;
     }
     const selList = groups.map((gr) => {
-      const row = selections[gr.id];
+      const row = selectionState[gr.id];
       if (!row) throw new Error('missing');
       return {
         groupId: gr.id,
         itemId: row.itemId,
         groupName: row.groupName,
         itemName: row.itemName,
+        modifierOptionIds: row.modifierOptionIds,
+        modifierNames: row.modifierNames,
       };
     });
     onAddToCart({
@@ -100,15 +257,15 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
             <h2 className="text-lg font-semibold text-white">{g.name}</h2>
             <p className="text-xs text-slate-500">{labels.pickOne}</p>
             <div className="space-y-2">
-              {(g.combo_group_items ?? []).map((row) => {
+              {sortedStepItems.map((row) => {
                 const p = row.products;
                 if (!p) return null;
-                const active = selections[g.id]?.itemId === row.menu_item_id;
+                const active = selectionState[g.id]?.itemId === row.menu_item_id;
                 return (
                   <button
                     key={row.id}
                     type="button"
-                    onClick={() => pickItem(g.id, row.menu_item_id, g.name, p.name)}
+                    onClick={() => pickItem(g.id, row.menu_item_id, g.name, p.name, p)}
                     className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
                       active
                         ? 'border-cockpit-500 bg-cockpit-600/20 text-white'
@@ -121,6 +278,59 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
                 );
               })}
             </div>
+            {selectedStepItem?.modifier_groups && selectedStepItem.modifier_groups.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {selectedStepItem.modifier_groups
+                  .filter((modifierGroup) => (modifierGroup.modifier_options ?? []).some((opt) => opt.is_available !== false))
+                  .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+                  .map((modifierGroup) => {
+                    const selectedIds = selectionState[g.id]?.modifierOptionIds ?? [];
+                    const selectedInGroup = selectedIds.filter((id) =>
+                      (modifierGroup.modifier_options ?? []).some((opt) => opt.id === id)
+                    );
+                    const max = Math.max(1, Number(modifierGroup.max_select ?? 1));
+                    return (
+                      <div key={modifierGroup.id} className="rounded-xl border border-white/10 bg-slate-900/70 p-3">
+                        <p className="text-sm font-semibold text-white">{modifierGroup.name}</p>
+                        <p className="text-xs text-slate-500">
+                          {max === 1 ? labels.pickOne : `${labels.pickOne} (${selectedInGroup.length}/${max})`}
+                        </p>
+                        <div className="mt-2 space-y-2">
+                          {(modifierGroup.modifier_options ?? [])
+                            .filter((opt) => opt.is_available !== false)
+                            .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+                            .map((opt) => {
+                              const active = selectedIds.includes(opt.id);
+                              const atLimit = !active && max > 1 && selectedInGroup.length >= max;
+                              return (
+                                <button
+                                  key={opt.id}
+                                  type="button"
+                                  disabled={atLimit}
+                                  onClick={() => toggleModifier(modifierGroup, opt)}
+                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                                    active
+                                      ? 'border-cockpit-500 bg-cockpit-600/20 text-white'
+                                      : 'border-white/10 text-slate-300 hover:border-cockpit-500/40'
+                                  } ${atLimit ? 'opacity-40' : ''}`}
+                                >
+                                  <span>{opt.name}</span>
+                                  <span className="font-mono text-xs text-slate-500">
+                                    {Number(opt.price_adjustment) > 0
+                                      ? `+₼${Number(opt.price_adjustment).toFixed(2)}`
+                                      : Number(opt.price_adjustment) < 0
+                                        ? `-₼${Math.abs(Number(opt.price_adjustment)).toFixed(2)}`
+                                        : '₼0.00'}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : null}
           </>
         ) : (
           <p className="text-slate-500">—</p>

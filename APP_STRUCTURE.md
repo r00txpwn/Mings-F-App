@@ -175,6 +175,7 @@ Mings Financial Automation is a business management system for small to medium-s
 | MoneyScreen | Sales / expenses / purchases views |
 | PayoutsScreen | Third-party payouts vs expected revenue |
 | MenuScreen | Kiosk menu categories & products, modifiers |
+| CombosScreen | Combo deals, group/item setup, upsell mapping |
 | KioskOrdersScreen | **Kanban** for kiosk + online (`source` in kiosk / online_delivery / online_takeaway); realtime + `delivery_orders` |
 | SettingsScreen | Language, theme, sales channels |
 | UsersScreen | Admin user list/create/delete via Edge Function |
@@ -189,6 +190,8 @@ Mings Financial Automation is a business management system for small to medium-s
 | **KDS** (`/kds`) | Read/update **kiosk + online** orders (`order_status` pipeline) for kitchen |
 | **Kiosk orders (admin)** | Monitor same-day orders (kiosk + online) in Kanban; realtime on `sales` |
 | **Online** (`/order` / `/track`) | Public menu (`products.online_visible`), checkout via Edge `online-order-create`; tracking via RPC `get_sale_tracking_public` |
+
+Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
 
 ---
 
@@ -223,7 +226,8 @@ Mings Financial Automation is a business management system for small to medium-s
 |-------|---------|
 | sales_channels | Channel definitions (logos, icons, active flag) |
 | sales | Sales rows (`source`: manual, kiosk, `online_delivery`, `online_takeaway`; `order_status`; `track_token` for public tracking) |
-| products | Catalog, stock, `kiosk_visible`, `online_visible` |
+| products | Catalog, stock, `kiosk_visible`, `online_visible`, combo upsell flags |
+| combo_deals / combo_groups / combo_group_items | Combo catalog and group-item mapping |
 | online_settings | Takeaway/delivery toggles, hours JSON, min order |
 | delivery_zones | GeoJSON polygons, fees (active zones readable publicly) |
 | online_payments | E-point / card rows (admin read; writes via Edge service role) |
@@ -246,7 +250,7 @@ Mings Financial Automation is a business management system for small to medium-s
 | Function | Purpose |
 |----------|---------|
 | **user-management** | `GET` list users, `POST` create, `DELETE` by id — requires authenticated JWT; **admin** check (`app_metadata.role` / `users.role`) |
-| **online-order-create** | `POST` JSON cart — validates prices/modifiers/zones; inserts `sales` + line items (service role) |
+| **online-order-create** | `POST` JSON cart — validates prices/modifiers/zones; inserts `sales` + line items (including combo selections and combo component modifiers) |
 | **epoint-create-payment** | Prepares `online_payments` row + placeholder checkout URL (configure real E-point per docs) |
 | **epoint-webhook** | Updates `online_payments` + `sales.payment_status` when `EPOINT_WEBHOOK_SECRET` matches signature |
 | **wolt-drive-check** | Zone / coordinate helper (optional Wolt ping when token set) |

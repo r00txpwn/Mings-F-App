@@ -52,6 +52,11 @@ supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 ```
 
+Recent combo-related migrations to ensure are applied:
+
+- `20260418140100_combo_deals.sql`
+- `20260418153000_add_products_upsell_combo_id.sql`
+
 **From this repo (uses `npx`, no global CLI required):**
 
 ```bash

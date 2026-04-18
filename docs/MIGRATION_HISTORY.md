@@ -72,3 +72,10 @@ Review the generated file(s), then commit. This is a larger workflow; prefer rep
 ```bash
 npm run supabase:deploy:web
 ```
+
+---
+
+## Recent combo migrations
+
+- `20260418140100_combo_deals.sql` — combo tables + sale item combo fields + upsell eligibility flag.
+- `20260418153000_add_products_upsell_combo_id.sql` — explicit product-to-combo upsell mapping.

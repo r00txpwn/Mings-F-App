@@ -181,6 +181,8 @@ export interface Product {
   display_order?: number;
   /** When true, adding this item alone may show “make it a combo” upsell (online order). */
   combo_upsell_eligible?: boolean;
+  /** Optional explicit combo to offer in upsell popup. */
+  upsell_combo_id?: string | null;
   suppliers?: Supplier;
   categories?: Category;
   modifier_groups?: ModifierGroup[];
