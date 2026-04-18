@@ -124,6 +124,8 @@ export interface Sale {
   prep_started_at?: string | null;
   ready_at?: string | null;
   estimated_ready_at?: string | null;
+  scheduled_for?: string | null;
+  reminder_at?: string | null;
   online_payment_method?: string | null;
   delivery_notes?: string | null;
   customer_name?: string | null;

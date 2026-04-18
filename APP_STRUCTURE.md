@@ -189,6 +189,7 @@ Mings Financial Automation is a business management system for small to medium-s
 | **Kiosk** (`/kiosk`) | Browse menu, cart, checkout; writes to `sales` with `source = kiosk` |
 | **KDS** (`/kds`) | Read/update **kiosk + online** orders (`order_status` pipeline) for kitchen |
 | **Kiosk orders (admin)** | Monitor same-day orders (kiosk + online) in Kanban; realtime on `sales` |
+| **Order manager** (`/order-manager`) | Staff-authenticated mobile-first operations view: active flow, past orders, menu toggles |
 | **Online** (`/order` / `/track`) | Public menu (`products.online_visible`), checkout via Edge `online-order-create`; tracking via RPC `get_sale_tracking_public` |
 
 Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)

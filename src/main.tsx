@@ -50,6 +50,20 @@ async function renderApp() {
       return;
     }
 
+    if (pathNorm === '/order-manager') {
+      const { OrderManagerApp } = await import('./order-manager/OrderManagerApp');
+      root.render(
+        <StrictMode>
+          <ConfigCheck>
+            <ErrorBoundary>
+              <OrderManagerApp />
+            </ErrorBoundary>
+          </ConfigCheck>
+        </StrictMode>
+      );
+      return;
+    }
+
     root.render(
       <StrictMode>
         <ConfigCheck>
@@ -88,6 +102,20 @@ async function renderApp() {
         <ConfigCheck>
           <ErrorBoundary>
             <KitchenDisplay />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+    return;
+  }
+
+  if (pathNorm === '/order-manager') {
+    const { OrderManagerApp } = await import('./order-manager/OrderManagerApp');
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <OrderManagerApp />
           </ErrorBoundary>
         </ConfigCheck>
       </StrictMode>

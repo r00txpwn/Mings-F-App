@@ -61,6 +61,7 @@ Recent combo-related migrations to ensure are applied:
 - `20260418140100_combo_deals.sql`
 - `20260418153000_add_products_upsell_combo_id.sql`
 - `20260418191000_combo_discount_fields.sql`
+- `20260418200000_add_scheduled_orders.sql`
 
 **From this repo (uses `npx`, no global CLI required):**
 
