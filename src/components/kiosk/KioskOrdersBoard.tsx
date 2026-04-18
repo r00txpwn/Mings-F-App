@@ -203,9 +203,20 @@ function OrderCard({
                   : 'Kiosk'}
             </span>
             {online && method === 'epoint' && payStatus !== 'paid' && (
-              <span className="rounded-md border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300">
-                {t.kioskPaymentPendingBadge}
-              </span>
+              <>
+                <span className="rounded-md border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300">
+                  {t.kioskPaymentPendingBadge}
+                </span>
+                {status !== 'cancelled' && (
+                  <button
+                    type="button"
+                    onClick={() => void onConfirmPayment(order.id)}
+                    className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 hover:bg-emerald-500/20 dark:text-emerald-200"
+                  >
+                    {t.markAsPaid}
+                  </button>
+                )}
+              </>
             )}
             {online && (method === 'cod' || method === 'cash') && (
               <span className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
@@ -361,6 +372,7 @@ interface KioskOrdersBoardProps {
   onConfirmPayment: (orderId: string) => Promise<void>;
   staffAccessToken: string | null;
   onReload: () => Promise<void>;
+  realtimeConnected: boolean;
 }
 
 const WOLT_BROADCAST_CH = 'wolt-dispatch-broadcast';
@@ -373,6 +385,7 @@ export function KioskOrdersBoard({
   onConfirmPayment,
   staffAccessToken,
   onReload,
+  realtimeConnected,
 }: KioskOrdersBoardProps) {
   const { t } = useLanguage();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -458,7 +471,11 @@ export function KioskOrdersBoard({
       return;
     }
 
-    await onStatusChange(orderId, newStatus);
+    try {
+      await onStatusChange(orderId, newStatus);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update order status.');
+    }
   };
 
   const columnTitle = (s: KioskOrderStatus): string => {
@@ -528,6 +545,17 @@ export function KioskOrdersBoard({
 
   return (
     <div className="space-y-4">
+      {!realtimeConnected ? (
+        <button
+          type="button"
+          onClick={() => void onReload()}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-700 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+        >
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-white" aria-hidden />
+          Live updates paused — tap to reconnect
+        </button>
+      ) : null}
+
       <p className="text-xs text-slate-500 dark:text-slate-400">
         Drag cards between columns to update status. Use the grip handle. Unpaid orders must stay in <strong>New</strong> until
         payment is confirmed.
@@ -611,15 +639,6 @@ export function KioskOrdersBoard({
                     }}
                     savingTracking={savingSaleId === order.id}
                   />
-                  {order.payment_status === 'unpaid' && order.order_status !== 'cancelled' && (
-                    <button
-                      type="button"
-                      onClick={() => void onConfirmPayment(order.id)}
-                      className="mt-2 w-full rounded-lg bg-emerald-600 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
-                    >
-                      {t.confirmPayment}
-                    </button>
-                  )}
                 </div>
               ))}
             </DroppableColumn>

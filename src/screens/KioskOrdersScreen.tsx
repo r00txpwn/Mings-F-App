@@ -13,6 +13,7 @@ export function KioskOrdersScreen() {
   const { session } = useAuth();
   const [orders, setOrders] = useState<KioskOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date().toISOString().split('T')[0];
     return { start: today, end: today };
@@ -57,9 +58,12 @@ export function KioskOrdersScreen() {
         () => void loadOrders()
       );
     }
-    channel.subscribe();
+    channel.subscribe((status) => {
+      setRealtimeConnected(status === 'SUBSCRIBED');
+    });
 
     return () => {
+      setRealtimeConnected(false);
       supabase.removeChannel(channel);
     };
   }, [loadOrders]);
@@ -68,12 +72,14 @@ export function KioskOrdersScreen() {
     const updates: Record<string, unknown> = { order_status: newStatus };
     if (newStatus === 'preparing') updates.prep_started_at = new Date().toISOString();
     if (newStatus === 'ready') updates.ready_at = new Date().toISOString();
-    await supabase.from('sales').update(updates).eq('id', orderId);
+    const { error } = await supabase.from('sales').update(updates).eq('id', orderId);
+    if (error) throw new Error(error.message);
     await loadOrders();
   };
 
   const handleConfirmPayment = async (orderId: string) => {
-    await supabase.from('sales').update({ payment_status: 'paid' }).eq('id', orderId);
+    const { error } = await supabase.from('sales').update({ payment_status: 'paid' }).eq('id', orderId);
+    if (error) throw new Error(error.message);
     await loadOrders();
   };
 
@@ -135,6 +141,7 @@ export function KioskOrdersScreen() {
         onConfirmPayment={handleConfirmPayment}
         staffAccessToken={session?.access_token ?? null}
         onReload={loadOrders}
+        realtimeConnected={realtimeConnected}
       />
     </div>
   );

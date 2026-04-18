@@ -548,15 +548,17 @@ function OrderContent() {
           { saleId: data.saleId },
           accessToken
         );
-        if (!pay.ok) {
-          setSubmitError(pay.error ?? 'Payment init failed');
+        if (!pay.ok || !pay.data?.checkoutUrl) {
+          // Order exists in DB but payment gateway is unreachable — show recovery screen
+          setResult(data);
+          setCart([]);
+          setDeliveryNotes('');
+          setFlow('done');
           setSubmitting(false);
           return;
         }
-        if (pay.data?.checkoutUrl) {
-          window.location.href = pay.data.checkoutUrl;
-          return;
-        }
+        window.location.href = pay.data.checkoutUrl;
+        return;
       }
 
       if (
@@ -696,11 +698,18 @@ function OrderContent() {
 
   if (flow === 'done' && result) {
     const trackUrl = `${window.location.origin}/track?token=${encodeURIComponent(result.trackToken)}`;
+    const epointStuck = result.nextStep === 'epoint-create-payment';
     return (
       <div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
         <div className="mx-auto max-w-md rounded-2xl border border-white/10 bg-slate-900/80 p-6">
           <h1 className="text-2xl font-bold text-white">{t.orderPlacedTitle}</h1>
           <p className="mt-2 font-mono text-cockpit-400">#{result.displayNumber}</p>
+          {epointStuck ? (
+            <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-900/20 p-4">
+              <p className="text-sm font-semibold text-amber-400">{t.orderEpointRecoveryTitle}</p>
+              <p className="mt-1 text-xs text-slate-400">{t.orderEpointRecoveryHint}</p>
+            </div>
+          ) : null}
           <p className="mt-4 text-sm text-slate-400">
             {t.orderTrackHint}:{' '}
             <a href={trackUrl} className="text-cockpit-400 underline">
@@ -1071,6 +1080,11 @@ function OrderContent() {
                     <>
                       {t.orderInZonePrefix}: {zoneMatch.name} · {t.orderDeliveryFeeRow} ₼
                       {Number(zoneMatch.delivery_fee).toFixed(2)}
+                      {Number(zoneMatch.min_order_amount) > 0 ? (
+                        <span className="text-slate-500">
+                          · {t.orderMinOrder} ₼{Number(zoneMatch.min_order_amount).toFixed(2)}
+                        </span>
+                      ) : null}
                     </>
                   ) : (
                     <span className="text-amber-400">{t.orderOutsideZone}</span>
@@ -1106,7 +1120,7 @@ function OrderContent() {
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value as OnlinePaymentMethod)}
             >
-              <option value="cod">{t.orderPayCod}</option>
+              <option value="cod">{fulfillment === 'takeaway' ? t.orderPayCodTakeaway : t.orderPayCod}</option>
               <option value="cash">{t.orderPayCash}</option>
               <option value="epoint">{t.orderPayEpoint}</option>
             </select>

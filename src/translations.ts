@@ -384,6 +384,7 @@ export interface Translations {
   // Kiosk Admin
   kioskOrders: string;
   confirmPayment: string;
+  markAsPaid: string;
   printAgain: string;
   cancelOrder: string;
   orderSource: string;
@@ -565,10 +566,14 @@ export interface Translations {
   orderGeoUpdated: string;
   orderOutsideZone: string;
   orderInZonePrefix: string;
+  orderMinOrder: string;
   orderPayment: string;
   orderPayCod: string;
+  orderPayCodTakeaway: string;
   orderPayCash: string;
   orderPayEpoint: string;
+  orderEpointRecoveryTitle: string;
+  orderEpointRecoveryHint: string;
   orderPlacedTitle: string;
   orderTrackHint: string;
   orderOpenTracking: string;
@@ -1020,6 +1025,7 @@ export const translations: Record<Language, Translations> = {
 
     kioskOrders: 'Kiosk Orders',
     confirmPayment: 'Confirm Payment',
+    markAsPaid: 'Mark as Paid',
     printAgain: 'Print Again',
     cancelOrder: 'Cancel Order',
     orderSource: 'Source',
@@ -1193,10 +1199,14 @@ export const translations: Record<Language, Translations> = {
     orderGeoUpdated: 'Location updated',
     orderOutsideZone: 'Outside delivery zones — adjust location.',
     orderInZonePrefix: 'In zone',
+    orderMinOrder: 'Min. order',
     orderPayment: 'Payment',
-    orderPayCod: 'Cash on pickup / delivery',
+    orderPayCod: 'Cash on delivery',
+    orderPayCodTakeaway: 'Cash on pickup',
     orderPayCash: 'Cash',
     orderPayEpoint: 'Card (E-point)',
+    orderEpointRecoveryTitle: 'Payment page unavailable',
+    orderEpointRecoveryHint: 'Your order was placed. Use the link below to check status or contact us.',
     orderPlacedTitle: 'Order placed',
     orderTrackHint: 'Track status',
     orderOpenTracking: 'Open tracking',
@@ -1648,6 +1658,7 @@ export const translations: Record<Language, Translations> = {
 
     kioskOrders: 'Kiosk Sifarişləri',
     confirmPayment: 'Ödənişi təsdiq et',
+    markAsPaid: 'Ödənildi kimi işarələ',
     printAgain: 'Yenidən çap et',
     cancelOrder: 'Sifarişi ləğv et',
     orderSource: 'Mənbə',
@@ -1821,10 +1832,14 @@ export const translations: Record<Language, Translations> = {
     orderGeoUpdated: 'Məkan yeniləndi',
     orderOutsideZone: 'Çatdırılma zonasından kənar — məkanı düzəldin.',
     orderInZonePrefix: 'Zona',
+    orderMinOrder: 'Min. sifariş',
     orderPayment: 'Ödəniş',
-    orderPayCod: 'Nağd (götürmə/çatdırılma)',
+    orderPayCod: 'Çatdırılmada nağd',
+    orderPayCodTakeaway: 'Götürmədə nağd',
     orderPayCash: 'Nağd',
     orderPayEpoint: 'Kart (E-point)',
+    orderEpointRecoveryTitle: 'Ödəniş səhifəsi əlçatmazdır',
+    orderEpointRecoveryHint: 'Sifarişiniz qəbul edildi. Statusu yoxlamaq üçün aşağıdakı linkdən istifadə edin.',
     orderPlacedTitle: 'Sifariş verildi',
     orderTrackHint: 'Statusu izlə',
     orderOpenTracking: 'İzləməni aç',
@@ -2275,6 +2290,7 @@ export const translations: Record<Language, Translations> = {
 
     kioskOrders: 'Заказы с Киоска',
     confirmPayment: 'Подтвердить оплату',
+    markAsPaid: 'Отметить как оплачено',
     printAgain: 'Печать повторно',
     cancelOrder: 'Отменить заказ',
     orderSource: 'Источник',
@@ -2448,10 +2464,14 @@ export const translations: Record<Language, Translations> = {
     orderGeoUpdated: 'Местоположение обновлено',
     orderOutsideZone: 'Вне зоны доставки — уточните точку.',
     orderInZonePrefix: 'Зона',
+    orderMinOrder: 'Мин. заказ',
     orderPayment: 'Оплата',
-    orderPayCod: 'Наличные при получении',
+    orderPayCod: 'Наличные при доставке',
+    orderPayCodTakeaway: 'Наличные при получении',
     orderPayCash: 'Наличные',
     orderPayEpoint: 'Карта (E-point)',
+    orderEpointRecoveryTitle: 'Страница оплаты недоступна',
+    orderEpointRecoveryHint: 'Ваш заказ принят. Используйте ссылку ниже, чтобы проверить статус.',
     orderPlacedTitle: 'Заказ оформлен',
     orderTrackHint: 'Статус заказа',
     orderOpenTracking: 'Открыть отслеживание',
