@@ -373,6 +373,13 @@ export interface Translations {
   prepTime: string;
   connected: string;
   reconnecting: string;
+  kdsConnectionLostBanner: string;
+  kdsPaymentPendingOnline: string;
+  kdsPaymentCashCod: string;
+  kdsPaymentConfirmed: string;
+  kdsPrepTimeLabel: string;
+  kdsBusyKitchenHint: string;
+  kdsCourierNoteLabel: string;
 
   // Kiosk Admin
   kioskOrders: string;
@@ -386,6 +393,7 @@ export interface Translations {
   orderDetails: string;
   preparing: string;
   ready: string;
+  dispatched: string;
   completed: string;
   cancelled: string;
   unpaid: string;
@@ -393,6 +401,23 @@ export interface Translations {
   filterByStatus: string;
   noKioskOrders: string;
   viewKiosk: string;
+  kioskPaymentPendingBadge: string;
+  kioskPaymentCashCodBadge: string;
+  kioskPaymentPaidBadge: string;
+  woltTrackingLink: string;
+  woltOpenPortal: string;
+  woltDispatchLocked: string;
+  woltCopyAll: string;
+  woltCopiedAll: string;
+  woltTrackingUrlLabel: string;
+  woltSaveDispatched: string;
+  woltCopyCustomer: string;
+  woltCopyPhone: string;
+  woltCopyAddress: string;
+  woltCopyNotes: string;
+  woltCopyFailed: string;
+  woltSaveFailed: string;
+  saving: string;
 
   // Product extensions
   kioskVisible: string;
@@ -580,6 +605,43 @@ export interface Translations {
   orderAddToCart: string;
   orderSearchNoResults: string;
   orderDeliveryDisabledInSettings: string;
+  orderCombosSection: string;
+  orderComboCustomize: string;
+  orderComboBadge: string;
+  orderPhoneFormatHint: string;
+  orderDeliveryNotesLabel: string;
+  orderDeliveryNotesPlaceholder: string;
+  orderUpsellTitle: string;
+  orderUpsellYes: string;
+  orderUpsellNo: string;
+  comboBuilderHeader: string;
+  comboBuilderStepOf: string;
+  comboBuilderAddToCart: string;
+  comboBuilderNext: string;
+  comboBuilderPickOne: string;
+
+  // Customer tracking (/track)
+  trackingPageTitle: string;
+  trackingOrderLabel: string;
+  trackingKitchenStatus: string;
+  trackingPayment: string;
+  trackingTotal: string;
+  trackingLoading: string;
+  trackingNotFound: string;
+  trackingMissingToken: string;
+  trackOnWolt: string;
+  trackStatusPending: string;
+  trackStatusPreparing: string;
+  trackStatusReady: string;
+  trackStatusDispatched: string;
+  trackStatusCompleted: string;
+
+  // Combos admin
+  combosScreenTitle: string;
+  combosScreenDescription: string;
+  combosScreenGroupsHint: string;
+  combosName: string;
+  combosEmpty: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -937,6 +999,14 @@ export const translations: Record<Language, Translations> = {
     prepTime: 'Prep Time',
     connected: 'Connected',
     reconnecting: 'Reconnecting',
+    kdsConnectionLostBanner:
+      'CONNECTION LOST — Orders may be missing. Tap here to reconnect.',
+    kdsPaymentPendingOnline: 'PAYMENT PENDING — do not prepare yet',
+    kdsPaymentCashCod: 'CASH / COD',
+    kdsPaymentConfirmed: '✓ Payment Confirmed',
+    kdsPrepTimeLabel: 'Prep time (minutes)',
+    kdsBusyKitchenHint: 'Busy kitchen? 20 min is suggested.',
+    kdsCourierNoteLabel: 'Courier',
 
     kioskOrders: 'Kiosk Orders',
     confirmPayment: 'Confirm Payment',
@@ -949,6 +1019,7 @@ export const translations: Record<Language, Translations> = {
     orderDetails: 'Order Details',
     preparing: 'Preparing',
     ready: 'Ready',
+    dispatched: 'Dispatched',
     completed: 'Completed',
     cancelled: 'Cancelled',
     unpaid: 'Unpaid',
@@ -956,6 +1027,23 @@ export const translations: Record<Language, Translations> = {
     filterByStatus: 'Filter by Status',
     noKioskOrders: 'No kiosk orders yet',
     viewKiosk: 'View Kiosk',
+    kioskPaymentPendingBadge: 'Online payment pending',
+    kioskPaymentCashCodBadge: 'CASH / COD',
+    kioskPaymentPaidBadge: '✓ Paid',
+    woltTrackingLink: 'Wolt tracking',
+    woltOpenPortal: 'Open Wolt portal',
+    woltDispatchLocked: 'Being booked… ({seconds}s)',
+    woltCopyAll: 'Copy all for Wolt',
+    woltCopiedAll: 'Copied!',
+    woltTrackingUrlLabel: 'Tracking URL',
+    woltSaveDispatched: 'Save & mark dispatched',
+    woltCopyCustomer: 'Customer',
+    woltCopyPhone: 'Phone',
+    woltCopyAddress: 'Address',
+    woltCopyNotes: 'Notes',
+    woltCopyFailed: 'Could not copy to clipboard.',
+    woltSaveFailed: 'Could not save tracking URL.',
+    saving: 'Saving…',
 
     kioskVisible: 'Show on Kiosk',
     onlineVisible: 'Show on web order',
@@ -1136,6 +1224,43 @@ export const translations: Record<Language, Translations> = {
     orderSearchNoResults: 'No dishes match your search.',
     orderDeliveryDisabledInSettings:
       'Delivery is turned off in your database. Set online_settings.delivery_enabled = true in Supabase (or run the latest migration), or choose pickup.',
+    orderCombosSection: 'Combos',
+    orderComboCustomize: 'Customize',
+    orderComboBadge: 'Combo',
+    orderPhoneFormatHint: 'Use Azerbaijan format: +994 followed by 9 digits.',
+    orderDeliveryNotesLabel: 'Apartment / notes for courier',
+    orderDeliveryNotesPlaceholder:
+      'Apartment no., floor, entry code, or notes for the courier',
+    orderUpsellTitle: 'Make {name} a combo?',
+    orderUpsellYes: 'Yes, upgrade',
+    orderUpsellNo: 'No thanks',
+    comboBuilderHeader: 'Build combo',
+    comboBuilderStepOf: 'Step {n} of {t}',
+    comboBuilderAddToCart: 'Add combo to cart',
+    comboBuilderNext: 'Next',
+    comboBuilderPickOne: 'Choose one option',
+
+    trackingPageTitle: 'Order status',
+    trackingOrderLabel: 'Order',
+    trackingKitchenStatus: 'Kitchen status',
+    trackingPayment: 'Payment',
+    trackingTotal: 'Total',
+    trackingLoading: 'Loading…',
+    trackingNotFound: 'Order not found',
+    trackingMissingToken: 'Missing tracking link',
+    trackOnWolt: 'Track your order on Wolt',
+    trackStatusPending: 'We received your order!',
+    trackStatusPreparing: 'Your food is being prepared',
+    trackStatusReady: 'Almost there — courier is being assigned',
+    trackStatusDispatched: 'On the way!',
+    trackStatusCompleted: 'Delivered — enjoy your meal!',
+
+    combosScreenTitle: 'Combo deals',
+    combosScreenDescription: 'Create bundled offers for the online menu.',
+    combosScreenGroupsHint:
+      'After creating a combo, add groups and menu items in Supabase Table Editor (combo_groups / combo_group_items) or extend this screen later.',
+    combosName: 'Combo name',
+    combosEmpty: 'No combos yet — create one above.',
   },
 
   az: {
@@ -1492,6 +1617,14 @@ export const translations: Record<Language, Translations> = {
     prepTime: 'Hazırlıq müddəti',
     connected: 'Bağlı',
     reconnecting: 'Yenidən bağlanılır',
+    kdsConnectionLostBanner:
+      'BAĞLANTI KƏSİLDİ — Sifarişlər çata bilməz. Yenidən bağlanmaq üçün toxunun.',
+    kdsPaymentPendingOnline: 'ÖDƏNİŞ GÖZLƏNİR — hələ hazırlamayın',
+    kdsPaymentCashCod: 'NAĞD / ÇATDIRILMADA',
+    kdsPaymentConfirmed: '✓ Ödəniş təsdiqləndi',
+    kdsPrepTimeLabel: 'Hazırlıq müddəti (dəqiqə)',
+    kdsBusyKitchenHint: 'Mətbəx yüklüdür? 20 dəq tövsiyə olunur.',
+    kdsCourierNoteLabel: 'Kuryer',
 
     kioskOrders: 'Kiosk Sifarişləri',
     confirmPayment: 'Ödənişi təsdiq et',
@@ -1504,6 +1637,7 @@ export const translations: Record<Language, Translations> = {
     orderDetails: 'Sifariş Detalları',
     preparing: 'Hazırlanır',
     ready: 'Hazır',
+    dispatched: 'Yoldadır',
     completed: 'Tamamlandı',
     cancelled: 'Ləğv edildi',
     unpaid: 'Ödənilməyib',
@@ -1511,6 +1645,23 @@ export const translations: Record<Language, Translations> = {
     filterByStatus: 'Statusa görə filtr',
     noKioskOrders: 'Hələ kiosk sifarişi yoxdur',
     viewKiosk: 'Kiosku Aç',
+    kioskPaymentPendingBadge: 'Onlayn ödəniş gözlənilir',
+    kioskPaymentCashCodBadge: 'NAĞD / ÇATDIRILMADA',
+    kioskPaymentPaidBadge: '✓ Ödənilib',
+    woltTrackingLink: 'Wolt izləmə',
+    woltOpenPortal: 'Wolt portalını aç',
+    woltDispatchLocked: 'Sifariş edilir… ({seconds}s)',
+    woltCopyAll: 'Hamısını Wolt üçün kopyala',
+    woltCopiedAll: 'Kopyalandı!',
+    woltTrackingUrlLabel: 'İzləmə linki',
+    woltSaveDispatched: 'Saxla və yola sal',
+    woltCopyCustomer: 'Müştəri',
+    woltCopyPhone: 'Telefon',
+    woltCopyAddress: 'Ünvan',
+    woltCopyNotes: 'Qeydlər',
+    woltCopyFailed: 'Mübadilə buferinə kopyalamaq alınmadı.',
+    woltSaveFailed: 'İzləmə linki saxlanılmadı.',
+    saving: 'Saxlanılır…',
 
     kioskVisible: 'Kioskda göstər',
     onlineVisible: 'Web sifarişdə göstər',
@@ -1691,6 +1842,42 @@ export const translations: Record<Language, Translations> = {
     orderSearchNoResults: 'Axtarışınıza uyğun yemək yoxdur.',
     orderDeliveryDisabledInSettings:
       'Çatdırılma verilənlər bazasında söndürülüb. Supabase-də online_settings.delivery_enabled = true edin və ya götürmə seçin.',
+    orderCombosSection: 'Kombolar',
+    orderComboCustomize: 'Fərdiləşdir',
+    orderComboBadge: 'Kombo',
+    orderPhoneFormatHint: 'Azərbaycan formatı: +994 və 9 rəqəm.',
+    orderDeliveryNotesLabel: 'Mənzil / kuryer üçün qeyd',
+    orderDeliveryNotesPlaceholder: 'Mənzil, mərtəbə, kod və ya kuryer üçün qeyd',
+    orderUpsellTitle: '{name} kombo edək?',
+    orderUpsellYes: 'Bəli, yenilə',
+    orderUpsellNo: 'Xeyr',
+    comboBuilderHeader: 'Kombo yığ',
+    comboBuilderStepOf: 'Addım {n} / {t}',
+    comboBuilderAddToCart: 'Kombonu səbətə əlavə et',
+    comboBuilderNext: 'Növbəti',
+    comboBuilderPickOne: 'Bir seçim edin',
+
+    trackingPageTitle: 'Sifariş statusu',
+    trackingOrderLabel: 'Sifariş',
+    trackingKitchenStatus: 'Mətbəx statusu',
+    trackingPayment: 'Ödəniş',
+    trackingTotal: 'Cəmi',
+    trackingLoading: 'Yüklənir…',
+    trackingNotFound: 'Sifariş tapılmadı',
+    trackingMissingToken: 'İzləmə linki yoxdur',
+    trackOnWolt: 'Wolt-da izlə',
+    trackStatusPending: 'Sifarişiniz qəbul edildi!',
+    trackStatusPreparing: 'Yeməyiniz hazırlanır',
+    trackStatusReady: 'Demək olar hazırdır — kuryer təyin olunur',
+    trackStatusDispatched: 'Yoldadır!',
+    trackStatusCompleted: 'Çatdırıldı — nuş olsun!',
+
+    combosScreenTitle: 'Kombo təkliflər',
+    combosScreenDescription: 'Onlayn menyu üçün paket təkliflər yaradın.',
+    combosScreenGroupsHint:
+      'Kombo yaratdıqdan sonra qruplar və məhsulları Supabase Table Editor-də əlavə edin (combo_groups / combo_group_items).',
+    combosName: 'Kombo adı',
+    combosEmpty: 'Hələ kombo yoxdur — yuxarıdan yaradın.',
   },
 
   ru: {
@@ -2047,6 +2234,14 @@ export const translations: Record<Language, Translations> = {
     prepTime: 'Время готовки',
     connected: 'Подключено',
     reconnecting: 'Переподключение',
+    kdsConnectionLostBanner:
+      'СОЕДИНЕНИЕ ПОТЕРЯНО — заказы могут не отображаться. Нажмите, чтобы переподключиться.',
+    kdsPaymentPendingOnline: 'ОПЛАТА ОЖИДАЕТСЯ — не готовьте',
+    kdsPaymentCashCod: 'НАЛИЧНЫЕ / ПРИ ПОЛУЧЕНИИ',
+    kdsPaymentConfirmed: '✓ Оплата подтверждена',
+    kdsPrepTimeLabel: 'Время приготовления (мин)',
+    kdsBusyKitchenHint: 'Загруженная кухня? Рекомендуем 20 мин.',
+    kdsCourierNoteLabel: 'Курьер',
 
     kioskOrders: 'Заказы с Киоска',
     confirmPayment: 'Подтвердить оплату',
@@ -2059,6 +2254,7 @@ export const translations: Record<Language, Translations> = {
     orderDetails: 'Детали Заказа',
     preparing: 'Готовится',
     ready: 'Готов',
+    dispatched: 'В пути',
     completed: 'Завершён',
     cancelled: 'Отменён',
     unpaid: 'Не оплачен',
@@ -2066,6 +2262,23 @@ export const translations: Record<Language, Translations> = {
     filterByStatus: 'Фильтр по статусу',
     noKioskOrders: 'Заказов с киоска пока нет',
     viewKiosk: 'Открыть Киоск',
+    kioskPaymentPendingBadge: 'Ожидается онлайн-оплата',
+    kioskPaymentCashCodBadge: 'НАЛИЧНЫЕ / ПРИ ПОЛУЧЕНИИ',
+    kioskPaymentPaidBadge: '✓ Оплачено',
+    woltTrackingLink: 'Отслеживание Wolt',
+    woltOpenPortal: 'Открыть портал Wolt',
+    woltDispatchLocked: 'Бронирование… ({seconds} с)',
+    woltCopyAll: 'Копировать всё для Wolt',
+    woltCopiedAll: 'Скопировано!',
+    woltTrackingUrlLabel: 'Ссылка отслеживания',
+    woltSaveDispatched: 'Сохранить и отправить',
+    woltCopyCustomer: 'Клиент',
+    woltCopyPhone: 'Телефон',
+    woltCopyAddress: 'Адрес',
+    woltCopyNotes: 'Примечания',
+    woltCopyFailed: 'Не удалось скопировать.',
+    woltSaveFailed: 'Не удалось сохранить ссылку.',
+    saving: 'Сохранение…',
 
     kioskVisible: 'Показать на киоске',
     onlineVisible: 'Показать в веб-заказе',
@@ -2246,5 +2459,41 @@ export const translations: Record<Language, Translations> = {
     orderSearchNoResults: 'Ничего не найдено.',
     orderDeliveryDisabledInSettings:
       'Доставка отключена в базе. Включите online_settings.delivery_enabled = true в Supabase или выберите самовывоз.',
+    orderCombosSection: 'Комбо',
+    orderComboCustomize: 'Настроить',
+    orderComboBadge: 'Комбо',
+    orderPhoneFormatHint: 'Формат Азербайджана: +994 и 9 цифр.',
+    orderDeliveryNotesLabel: 'Квартира / примечания для курьера',
+    orderDeliveryNotesPlaceholder: 'Квартира, этаж, код домофона или примечания',
+    orderUpsellTitle: 'Сделать «{name}» комбо?',
+    orderUpsellYes: 'Да, улучшить',
+    orderUpsellNo: 'Нет',
+    comboBuilderHeader: 'Собрать комбо',
+    comboBuilderStepOf: 'Шаг {n} из {t}',
+    comboBuilderAddToCart: 'Добавить комбо в корзину',
+    comboBuilderNext: 'Далее',
+    comboBuilderPickOne: 'Выберите один вариант',
+
+    trackingPageTitle: 'Статус заказа',
+    trackingOrderLabel: 'Заказ',
+    trackingKitchenStatus: 'Статус кухни',
+    trackingPayment: 'Оплата',
+    trackingTotal: 'Итого',
+    trackingLoading: 'Загрузка…',
+    trackingNotFound: 'Заказ не найден',
+    trackingMissingToken: 'Нет ссылки отслеживания',
+    trackOnWolt: 'Отследить в Wolt',
+    trackStatusPending: 'Мы получили ваш заказ!',
+    trackStatusPreparing: 'Ваш заказ готовится',
+    trackStatusReady: 'Почти готово — назначаем курьера',
+    trackStatusDispatched: 'В пути!',
+    trackStatusCompleted: 'Доставлено — приятного аппетита!',
+
+    combosScreenTitle: 'Комбо-предложения',
+    combosScreenDescription: 'Создавайте пакетные предложения для онлайн-меню.',
+    combosScreenGroupsHint:
+      'После создания комбо добавьте группы и позиции в Supabase (таблицы combo_groups / combo_group_items).',
+    combosName: 'Название комбо',
+    combosEmpty: 'Комбо пока нет — создайте выше.',
   },
 };

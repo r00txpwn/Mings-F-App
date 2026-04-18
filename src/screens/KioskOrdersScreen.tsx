@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Monitor, RefreshCw, ExternalLink } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
 import { KioskOrdersBoard, type KioskOrder, type KioskOrderStatus } from '../components/kiosk';
@@ -8,6 +9,7 @@ import { DateRangePicker } from '../components/DateRangePicker';
 
 export function KioskOrdersScreen() {
   const { t } = useLanguage();
+  const { session } = useAuth();
   const [orders, setOrders] = useState<KioskOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState(() => {
@@ -29,7 +31,7 @@ export function KioskOrdersScreen() {
       const ids = data.map((s) => s.id);
       const { data: dels } = await supabase
         .from('delivery_orders')
-        .select('sale_id, status, tracking_url, wolt_delivery_id')
+        .select('sale_id, status, tracking_url, wolt_delivery_id, manually_dispatched')
         .in('sale_id', ids);
       const map = new Map((dels ?? []).map((d) => [d.sale_id as string, d]));
       const merged = data.map((s) => ({
@@ -130,6 +132,8 @@ export function KioskOrdersScreen() {
         emptyMessage={t.noKioskOrders}
         onStatusChange={handleUpdateStatus}
         onConfirmPayment={handleConfirmPayment}
+        staffAccessToken={session?.access_token ?? null}
+        onReload={loadOrders}
       />
     </div>
   );

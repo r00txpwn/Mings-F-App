@@ -2,14 +2,19 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsPreflightResponse, jsonResponse } from '../_shared/cors.ts';
 import { pointInGeoJsonPolygon } from '../_shared/geo.ts';
 
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+
 type FulfillmentType = 'takeaway' | 'delivery';
 type PaymentMethod = 'cash' | 'cod' | 'epoint';
 
 interface CartLine {
-  productId: string;
+  productId?: string;
   quantity: number;
   notes?: string;
   modifierOptionIds?: string[];
+  isCombo?: boolean;
+  comboId?: string;
+  comboSelections?: Array<{ groupId: string; itemId: string; modifierOptionIds?: string[] }>;
 }
 
 interface Body {
@@ -21,6 +26,8 @@ interface Body {
   deliveryAddress?: string;
   deliveryLat?: number;
   deliveryLng?: number;
+  /** Apartment / buzzer / courier instructions — stored on `sales.delivery_notes`. */
+  deliveryNotes?: string;
   /** QR/table context (e.g. `?table=` or `?ref=`) — stored on the sale `notes` field for kitchen. */
   tableLabel?: string;
 }
@@ -95,6 +102,7 @@ async function handleRequest(req: Request): Promise<Response> {
     deliveryLat,
     deliveryLng,
     tableLabel,
+    deliveryNotes,
   } = body;
 
   if (!Array.isArray(cart) || cart.length === 0) {
@@ -164,22 +172,33 @@ async function handleRequest(req: Request): Promise<Response> {
     zoneId = matched.id;
   }
 
-  const productIds = [...new Set(cart.map((l) => l.productId))];
-  const { data: products, error: prodErr } = await supabase
-    .from('products')
-    .select(
-      'id, name, selling_price, online_visible, product_modifier_groups(modifier_groups(id, name, modifier_options(id, name, price_adjustment, is_available)))'
-    )
-    .in('id', productIds);
+  const productIds = [
+    ...new Set(
+      cart.filter((l) => !l.isCombo && l.productId).map((l) => l.productId as string)
+    ),
+  ];
+  const hasProductLines = cart.some((l) => !l.isCombo && l.productId);
 
-  if (prodErr || !products?.length) {
+  let productMap = new Map<string, Record<string, unknown>>();
+  if (productIds.length > 0) {
+    const { data: products, error: prodErr } = await supabase
+      .from('products')
+      .select(
+        'id, name, selling_price, online_visible, product_modifier_groups(modifier_groups(id, name, modifier_options(id, name, price_adjustment, is_available)))'
+      )
+      .in('id', productIds);
+
+    if (prodErr || !products?.length) {
+      return jsonResponse({ error: 'Could not load products' }, 400);
+    }
+    productMap = new Map(products.map((p) => [p.id as string, p as Record<string, unknown>]));
+  } else if (hasProductLines) {
     return jsonResponse({ error: 'Could not load products' }, 400);
   }
 
-  const productMap = new Map(products.map((p) => [p.id as string, p]));
-
   let subtotal = 0;
-  const resolvedLines: Array<{
+  type ResolvedProductLine = {
+    kind: 'product';
     product: Record<string, unknown>;
     quantity: number;
     notes: string;
@@ -190,10 +209,103 @@ async function handleRequest(req: Request): Promise<Response> {
       optionName: string;
       priceAdjustment: number;
     }>;
-  }> = [];
+  };
+  type ResolvedComboLine = {
+    kind: 'combo';
+    comboName: string;
+    comboId: string;
+    quantity: number;
+    unitPrice: number;
+    lineNotes: string;
+    comboSelectionsJson: Record<string, unknown>;
+  };
+  const resolvedLines: Array<ResolvedProductLine | ResolvedComboLine> = [];
 
   for (const line of cart) {
     const qty = Math.max(1, Math.floor(Number(line.quantity) || 0));
+
+    if (line.isCombo && line.comboId) {
+      const { data: deal, error: dealErr } = await supabase
+        .from('combo_deals')
+        .select('id, name, base_price, is_active')
+        .eq('id', line.comboId)
+        .maybeSingle();
+
+      if (dealErr || !deal || !(deal as { is_active?: boolean }).is_active) {
+        return jsonResponse({ error: 'Invalid combo deal' }, 400);
+      }
+
+      const { data: groups, error: gErr } = await supabase
+        .from('combo_groups')
+        .select('id, name, required, sort_order')
+        .eq('combo_id', line.comboId)
+        .order('sort_order', { ascending: true });
+
+      if (gErr || !groups?.length) {
+        return jsonResponse({ error: 'Combo has no groups' }, 400);
+      }
+
+      const selections = line.comboSelections ?? [];
+      const itemsPayload: Array<{ group: string; item: string; itemId: string }> = [];
+
+      for (const g of groups) {
+        const gid = (g as { id: string }).id;
+        const gname = (g as { name: string }).name;
+        const required = (g as { required?: boolean }).required !== false;
+        const pick = selections.find((s) => s.groupId === gid);
+        if (!pick) {
+          if (required) {
+            return jsonResponse({ error: `Combo: choose an item for "${gname}"` }, 400);
+          }
+          continue;
+        }
+        const { data: link } = await supabase
+          .from('combo_group_items')
+          .select('id')
+          .eq('group_id', gid)
+          .eq('menu_item_id', pick.itemId)
+          .maybeSingle();
+        if (!link) {
+          return jsonResponse({ error: `Invalid combo choice for "${gname}"` }, 400);
+        }
+        const { data: pname } = await supabase
+          .from('products')
+          .select('name, online_visible')
+          .eq('id', pick.itemId)
+          .maybeSingle();
+        if (!pname || (pname as { online_visible?: boolean }).online_visible === false) {
+          return jsonResponse({ error: 'Combo item unavailable' }, 400);
+        }
+        itemsPayload.push({
+          group: gname,
+          item: (pname as { name: string }).name,
+          itemId: pick.itemId,
+        });
+      }
+
+      const base = Number((deal as { base_price: number }).base_price);
+      const comboName = String((deal as { name: string }).name);
+      subtotal += base * qty;
+
+      resolvedLines.push({
+        kind: 'combo',
+        comboName,
+        comboId: line.comboId,
+        quantity: qty,
+        unitPrice: base,
+        lineNotes: line.notes?.trim() ?? '',
+        comboSelectionsJson: {
+          combo: comboName,
+          items: itemsPayload,
+        },
+      });
+      continue;
+    }
+
+    if (!line.productId) {
+      return jsonResponse({ error: 'Invalid cart line' }, 400);
+    }
+
     const p = productMap.get(line.productId);
     if (!p || p.online_visible === false) {
       return jsonResponse({ error: `Invalid product: ${line.productId}` }, 400);
@@ -244,6 +356,7 @@ async function handleRequest(req: Request): Promise<Response> {
     const noteParts = [line.notes, modSummary].filter(Boolean).join(' | ');
 
     resolvedLines.push({
+      kind: 'product',
       product: p,
       quantity: qty,
       notes: noteParts,
@@ -275,6 +388,12 @@ async function handleRequest(req: Request): Promise<Response> {
 
   const itemCount = resolvedLines.reduce((s, l) => s + l.quantity, 0);
 
+  const tableNote = tableLabel?.trim() ? `Table/ref: ${tableLabel.trim()}` : '';
+  const courierNote =
+    fulfillmentType === 'delivery' && deliveryNotes?.trim()
+      ? deliveryNotes.trim()
+      : '';
+
   const { data: saleRow, error: saleErr } = await supabase
     .from('sales')
     .insert({
@@ -289,7 +408,9 @@ async function handleRequest(req: Request): Promise<Response> {
       display_number: displayNumber,
       track_token: trackToken,
       sale_date: new Date().toISOString(),
-      notes: tableLabel?.trim() ? `Table/ref: ${tableLabel.trim()}` : '',
+      notes: [tableNote, courierNote ? `Courier: ${courierNote}` : ''].filter(Boolean).join(' | '),
+      delivery_notes: courierNote || null,
+      online_payment_method: paymentMethod,
       customer_name: customerName?.trim() || null,
       customer_phone: customerPhone.trim(),
       delivery_address: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,
@@ -309,6 +430,31 @@ async function handleRequest(req: Request): Promise<Response> {
   const saleId = saleRow.id as string;
 
   for (const line of resolvedLines) {
+    if (line.kind === 'combo') {
+      const { data: saleItem, error: siErr } = await supabase
+        .from('sale_items')
+        .insert({
+          sale_id: saleId,
+          product_id: null,
+          product_name: line.comboName,
+          quantity: line.quantity,
+          unit_price: line.unitPrice,
+          total_price: line.unitPrice * line.quantity,
+          notes: line.lineNotes || null,
+          is_combo: true,
+          combo_id: line.comboId,
+          combo_selections: line.comboSelectionsJson,
+        })
+        .select('id')
+        .single();
+
+      if (siErr || !saleItem) {
+        await supabase.from('sales').delete().eq('id', saleId);
+        return jsonResponse({ error: siErr?.message ?? 'Failed to create combo line' }, 500);
+      }
+      continue;
+    }
+
     const p = line.product as { id: string; name: string };
     const { data: saleItem, error: siErr } = await supabase
       .from('sale_items')
@@ -342,6 +488,19 @@ async function handleRequest(req: Request): Promise<Response> {
         return jsonResponse({ error: modErr.message }, 500);
       }
     }
+  }
+
+  if (fulfillmentType === 'delivery' && Deno.env.get('WOLT_API_TOKEN')) {
+    EdgeRuntime.waitUntil(
+      fetch(`${supabaseUrl}/functions/v1/wolt-drive-create`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ saleId }),
+      }).catch(() => void 0)
+    );
   }
 
   return jsonResponse({

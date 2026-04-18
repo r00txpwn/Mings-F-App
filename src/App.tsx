@@ -18,6 +18,7 @@ import {
   Moon,
   Sun,
   Activity,
+  Flame,
 } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -35,6 +36,7 @@ import { LoginScreen } from './screens/LoginScreen';
 import { StaffAccessDeniedScreen } from './screens/StaffAccessDeniedScreen';
 import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 import { MenuScreen } from './screens/MenuScreen';
+import { CombosScreen } from './screens/CombosScreen';
 import { PayoutsScreen } from './screens/PayoutsScreen';
 import { MingsWordmark } from './components/MingsWordmark';
 
@@ -43,6 +45,7 @@ type Screen =
   | 'sales'
   | 'kiosk-orders'
   | 'menu-builder'
+  | 'combos'
   | 'money'
   | 'reports'
   | 'products'
@@ -59,6 +62,7 @@ const ALL_SCREENS: Screen[] = [
   'sales',
   'kiosk-orders',
   'menu-builder',
+  'combos',
   'money',
   'reports',
   'products',
@@ -148,6 +152,8 @@ function AppContent() {
         return <KioskOrdersScreen />;
       case 'menu-builder':
         return <MenuScreen />;
+      case 'combos':
+        return <CombosScreen />;
       case 'money':
         return <MoneyScreen />;
       case 'reports':
@@ -179,6 +185,7 @@ function AppContent() {
     { id: 'sales', icon: <ShoppingCart className="h-5 w-5 shrink-0" />, label: t.sales },
     { id: 'kiosk-orders', icon: <Monitor className="h-5 w-5 shrink-0" />, label: t.kioskOrders },
     { id: 'menu-builder', icon: <UtensilsCrossed className="h-5 w-5 shrink-0" />, label: t.menuBuilder },
+    { id: 'combos', icon: <Flame className="h-5 w-5 shrink-0" />, label: t.combosScreenTitle },
     { id: 'products', icon: <Package className="h-5 w-5 shrink-0" />, label: t.products },
     { id: 'suppliers', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.suppliers },
     { id: 'expenses', icon: <DollarSign className="h-5 w-5 shrink-0" />, label: t.expenses },

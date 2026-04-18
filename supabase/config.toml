@@ -9,3 +9,6 @@ verify_jwt = false
 
 [functions."epoint-create-payment"]
 verify_jwt = false
+
+[functions."wolt-drive-manual-dispatch"]
+verify_jwt = false

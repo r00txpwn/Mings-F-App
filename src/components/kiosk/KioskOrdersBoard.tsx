@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -16,13 +16,15 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   ChevronDown,
   ChevronRight,
+  ClipboardCopy,
   ExternalLink,
   GripVertical,
   Loader2,
   Package,
 } from 'lucide-react';
+import { invokeEdgeFunction } from '../../order/invokeEdge';
 import { useLanguage } from '../../contexts/LanguageContext';
-import type { Sale, SaleItem, SaleItemModifier } from '../../lib/supabase';
+import { supabase, type Sale, type SaleItem, type SaleItemModifier } from '../../lib/supabase';
 
 export interface KioskOrder extends Sale {
   sale_items: SaleItem[];
@@ -30,10 +32,11 @@ export interface KioskOrder extends Sale {
     tracking_url?: string | null;
     status?: string | null;
     wolt_delivery_id?: string | null;
+    manually_dispatched?: boolean | null;
   } | null;
 }
 
-const COLUMN_ORDER = ['pending', 'preparing', 'ready', 'completed', 'cancelled'] as const;
+const COLUMN_ORDER = ['pending', 'preparing', 'ready', 'dispatched', 'completed', 'cancelled'] as const;
 export type KioskOrderStatus = (typeof COLUMN_ORDER)[number];
 
 function resolveDropStatus(orders: KioskOrder[], overId: string): KioskOrderStatus | null {
@@ -45,9 +48,12 @@ function resolveDropStatus(orders: KioskOrder[], overId: string): KioskOrderStat
   return COLUMN_ORDER.includes(s as KioskOrderStatus) ? (s as KioskOrderStatus) : null;
 }
 
-function isPaymentConfirmedForPrep(pay: string | undefined): boolean {
-  const p = pay || 'paid';
+function isPaymentConfirmedForPrep(order: KioskOrder): boolean {
+  const p = order.payment_status || 'paid';
   if (p === 'paid' || p === 'completed') return true;
+  const method = order.online_payment_method || '';
+  const online = order.source === 'online_delivery' || order.source === 'online_takeaway';
+  if (online && (method === 'cod' || method === 'cash')) return true;
   return false;
 }
 
@@ -58,8 +64,7 @@ function canMoveToStatus(order: KioskOrder, next: KioskOrderStatus): { ok: boole
   if (current === 'completed' && next !== 'completed') {
     return { ok: false, reason: 'Completed orders stay in Done.' };
   }
-  const pay = order.payment_status || 'paid';
-  if (!isPaymentConfirmedForPrep(pay) && ['preparing', 'ready', 'completed'].includes(next)) {
+  if (!isPaymentConfirmedForPrep(order) && ['preparing', 'ready', 'dispatched', 'completed'].includes(next)) {
     return { ok: false, reason: 'Confirm payment before moving past New.' };
   }
   if (next === 'cancelled' && !['pending', 'preparing'].includes(current)) {
@@ -109,10 +114,30 @@ function OrderCard({
   order,
   expanded,
   onToggleExpand,
+  staffAccessToken,
+  dispatchLockUntil,
+  nowMs,
+  trackingDraft,
+  onTrackingDraft,
+  onBookWolt,
+  onCopyAllForWolt,
+  copyFlash,
+  onSaveTracking,
+  savingTracking,
 }: {
   order: KioskOrder;
   expanded: boolean;
   onToggleExpand: () => void;
+  staffAccessToken: string | null;
+  dispatchLockUntil: number;
+  nowMs: number;
+  trackingDraft: string;
+  onTrackingDraft: (v: string) => void;
+  onBookWolt: () => void;
+  onCopyAllForWolt: () => void;
+  copyFlash: boolean;
+  onSaveTracking: () => void;
+  savingTracking: boolean;
 }) {
   const { t } = useLanguage();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -121,6 +146,13 @@ function OrderCard({
   const status = order.order_status || 'pending';
   const payRaw = order.payment_status || 'paid';
   const payStatus = payRaw === 'completed' || payRaw === 'paid' ? 'paid' : payRaw;
+  const online = order.source === 'online_delivery' || order.source === 'online_takeaway';
+  const method = order.online_payment_method || '';
+  const showDispatch = Boolean(
+    status === 'ready' && order.source === 'online_delivery' && staffAccessToken
+  );
+  const lockRemain = Math.max(0, Math.ceil((dispatchLockUntil - nowMs) / 1000));
+  const dispatchLocked = showDispatch && lockRemain > 0;
 
   const style = transform
     ? { transform: CSS.Translate.toString(transform) }
@@ -170,7 +202,22 @@ function OrderCard({
                   ? 'Online · Takeaway'
                   : 'Kiosk'}
             </span>
-            {(payStatus === 'unpaid' || payStatus === 'pending') && status !== 'cancelled' && (
+            {online && method === 'epoint' && payStatus !== 'paid' && (
+              <span className="rounded-md border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300">
+                {t.kioskPaymentPendingBadge}
+              </span>
+            )}
+            {online && (method === 'cod' || method === 'cash') && (
+              <span className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
+                {t.kioskPaymentCashCodBadge}
+              </span>
+            )}
+            {online && payStatus === 'paid' && (
+              <span className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
+                {t.kioskPaymentPaidBadge}
+              </span>
+            )}
+            {(payStatus === 'unpaid' || payStatus === 'pending') && status !== 'cancelled' && !online && (
               <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-200">
                 {payStatus === 'pending' ? 'Awaiting card' : t.confirmPayment}
               </span>
@@ -191,8 +238,51 @@ function OrderCard({
               className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-cockpit-600 hover:text-cockpit-500 dark:text-cockpit-400"
             >
               <ExternalLink className="h-3 w-3" />
-              Wolt tracking
+              {t.woltTrackingLink}
             </a>
+          ) : null}
+
+          {showDispatch ? (
+            <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 dark:border-white/10">
+              <button
+                type="button"
+                disabled={dispatchLocked || savingTracking}
+                onClick={onBookWolt}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                {dispatchLocked
+                  ? t.woltDispatchLocked.replace('{seconds}', String(lockRemain))
+                  : t.woltOpenPortal}
+              </button>
+              <button
+                type="button"
+                disabled={dispatchLocked}
+                onClick={onCopyAllForWolt}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-cockpit-600 py-2 text-xs font-semibold text-white hover:bg-cockpit-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <ClipboardCopy className="h-3.5 w-3.5" />
+                {copyFlash ? t.woltCopiedAll : t.woltCopyAll}
+              </button>
+              <label className="block text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {t.woltTrackingUrlLabel}
+                <input
+                  type="url"
+                  value={trackingDraft}
+                  onChange={(e) => onTrackingDraft(e.target.value)}
+                  placeholder="https://"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={savingTracking || !trackingDraft.trim()}
+                onClick={onSaveTracking}
+                className="w-full rounded-lg bg-emerald-600 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {savingTracking ? t.saving : t.woltSaveDispatched}
+              </button>
+            </div>
           ) : null}
 
           {order.sale_items && order.sale_items.length > 0 && (
@@ -210,6 +300,25 @@ function OrderCard({
             <ul className="mt-2 space-y-1 border-t border-slate-100 pt-2 text-xs dark:border-white/10">
               {order.sale_items.map((item) => {
                 const mods = (item as SaleItem & { sale_item_modifiers?: SaleItemModifier[] }).sale_item_modifiers;
+                if (item.is_combo && item.combo_selections) {
+                  const cs = item.combo_selections as {
+                    combo?: string;
+                    items?: Array<{ group: string; item: string }>;
+                  };
+                  return (
+                    <li key={item.id} className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2">
+                      <p className="text-[11px] font-bold uppercase text-amber-800 dark:text-amber-200">
+                        {cs.combo ?? item.product_name}
+                      </p>
+                      {cs.items?.map((row, i) => (
+                        <p key={i} className="ml-1 text-xs text-slate-700 dark:text-slate-300">
+                          {item.quantity}× {row.item}{' '}
+                          <span className="text-[10px] text-slate-500">({row.group})</span>
+                        </p>
+                      ))}
+                    </li>
+                  );
+                }
                 return (
                   <li key={item.id}>
                     <div className="flex justify-between gap-2 text-slate-700 dark:text-slate-300">
@@ -250,7 +359,11 @@ interface KioskOrdersBoardProps {
   emptyMessage: string;
   onStatusChange: (orderId: string, newStatus: KioskOrderStatus) => Promise<void>;
   onConfirmPayment: (orderId: string) => Promise<void>;
+  staffAccessToken: string | null;
+  onReload: () => Promise<void>;
 }
+
+const WOLT_BROADCAST_CH = 'wolt-dispatch-broadcast';
 
 export function KioskOrdersBoard({
   orders,
@@ -258,11 +371,42 @@ export function KioskOrdersBoard({
   emptyMessage,
   onStatusChange,
   onConfirmPayment,
+  staffAccessToken,
+  onReload,
 }: KioskOrdersBoardProps) {
   const { t } = useLanguage();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [dispatchLocks, setDispatchLocks] = useState<Record<string, number>>({});
+  const [trackingDrafts, setTrackingDrafts] = useState<Record<string, string>>({});
+  const [savingSaleId, setSavingSaleId] = useState<string | null>(null);
+  const [copyFlashId, setCopyFlashId] = useState<string | null>(null);
+  const broadcastRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const ch = supabase.channel(WOLT_BROADCAST_CH, {
+      config: { broadcast: { ack: false, self: true } },
+    });
+    broadcastRef.current = ch;
+    ch.on('broadcast', { event: 'lock' }, (payload: { payload?: { saleId?: string } }) => {
+      const saleId = payload.payload?.saleId;
+      if (saleId) {
+        setDispatchLocks((prev) => ({ ...prev, [saleId]: Date.now() + 60_000 }));
+      }
+    });
+    ch.subscribe();
+    return () => {
+      broadcastRef.current = null;
+      void supabase.removeChannel(ch);
+    };
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
@@ -325,6 +469,8 @@ export function KioskOrdersBoard({
         return t.preparing;
       case 'ready':
         return t.ready;
+      case 'dispatched':
+        return t.dispatched;
       case 'completed':
         return t.completed;
       case 'cancelled':
@@ -338,8 +484,30 @@ export function KioskOrdersBoard({
     pending: 'text-slate-600 dark:text-slate-300',
     preparing: 'text-cockpit-700 dark:text-cockpit-300',
     ready: 'text-emerald-700 dark:text-emerald-300',
+    dispatched: 'text-sky-700 dark:text-sky-300',
     completed: 'text-slate-600 dark:text-slate-300',
     cancelled: 'text-rose-700 dark:text-rose-300',
+  };
+
+  const woltPortalBase =
+    (import.meta.env.VITE_WOLT_PORTAL_URL as string | undefined)?.replace(/\/$/, '') || 'https://portal.wolt.com';
+
+  const setLock = (saleId: string) => {
+    const until = Date.now() + 60_000;
+    setDispatchLocks((prev) => ({ ...prev, [saleId]: until }));
+    void broadcastRef.current?.send({
+      type: 'broadcast',
+      event: 'lock',
+      payload: { saleId },
+    });
+  };
+
+  const copyAllPayload = (order: KioskOrder) => {
+    const name = order.customer_name?.trim() || '—';
+    const phone = order.customer_phone?.trim() || '—';
+    const addr = order.delivery_address?.trim() || '—';
+    const notes = order.delivery_notes?.trim() || '—';
+    return `${t.woltCopyCustomer}: ${name}\n${t.woltCopyPhone}: ${phone}\n${t.woltCopyAddress}: ${addr}\n${t.woltCopyNotes}: ${notes}`;
   };
 
   if (loading) {
@@ -392,6 +560,56 @@ export function KioskOrdersBoard({
                     order={order}
                     expanded={expanded.has(order.id)}
                     onToggleExpand={() => toggleExpand(order.id)}
+                    staffAccessToken={staffAccessToken}
+                    dispatchLockUntil={dispatchLocks[order.id] ?? 0}
+                    nowMs={nowMs}
+                    trackingDraft={trackingDrafts[order.id] ?? ''}
+                    onTrackingDraft={(v) =>
+                      setTrackingDrafts((prev) => ({
+                        ...prev,
+                        [order.id]: v,
+                      }))
+                    }
+                    onBookWolt={() => {
+                      setLock(order.id);
+                      const phone = order.customer_phone?.trim() || '';
+                      const sep = woltPortalBase.includes('?') ? '&' : '?';
+                      const url = `${woltPortalBase}${sep}search=${encodeURIComponent(phone)}`;
+                      window.open(url, '_blank', 'noopener,noreferrer');
+                    }}
+                    onCopyAllForWolt={async () => {
+                      try {
+                        await navigator.clipboard.writeText(copyAllPayload(order));
+                        setCopyFlashId(order.id);
+                        window.setTimeout(() => setCopyFlashId((id) => (id === order.id ? null : id)), 2000);
+                      } catch {
+                        setError(t.woltCopyFailed);
+                      }
+                    }}
+                    copyFlash={copyFlashId === order.id}
+                    onSaveTracking={async () => {
+                      const url = trackingDrafts[order.id]?.trim();
+                      if (!url || !staffAccessToken) return;
+                      setSavingSaleId(order.id);
+                      setError(null);
+                      const res = await invokeEdgeFunction<{ saleId: string; trackingUrl: string }, { ok?: boolean }>(
+                        'wolt-drive-manual-dispatch',
+                        { saleId: order.id, trackingUrl: url },
+                        staffAccessToken
+                      );
+                      setSavingSaleId(null);
+                      if (!res.ok) {
+                        setError(res.error ?? t.woltSaveFailed);
+                        return;
+                      }
+                      setTrackingDrafts((prev) => {
+                        const next = { ...prev };
+                        delete next[order.id];
+                        return next;
+                      });
+                      await onReload();
+                    }}
+                    savingTracking={savingSaleId === order.id}
                   />
                   {order.payment_status === 'unpaid' && order.order_status !== 'cancelled' && (
                     <button
