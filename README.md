@@ -14,4 +14,12 @@ Runs `npm run build` then `vite preview` on **127.0.0.1**. Default port is **417
 
 See **[DEPLOY.md](DEPLOY.md)** for Vercel/Netlify/Supabase CLI steps. Production build: `npm run build` → `dist/`.
 
+## Feature docs
+
+- Combo deals: **[docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)**
+
+Domain-rooted routing:
+- `order.mings.az` uses `VITE_APP_SURFACE=order` (`/` for customer ordering, `/track` for tracking).
+- `sp.mings.az` uses `VITE_APP_SURFACE=sp` (`/` for staff cockpit, plus `/kiosk` and `/kds`).
+
 _Deploy trigger note: this commit contains no functional app changes._

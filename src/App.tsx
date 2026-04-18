@@ -18,6 +18,7 @@ import {
   Moon,
   Sun,
   Activity,
+  Flame,
 } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -35,54 +36,44 @@ import { LoginScreen } from './screens/LoginScreen';
 import { StaffAccessDeniedScreen } from './screens/StaffAccessDeniedScreen';
 import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 import { MenuScreen } from './screens/MenuScreen';
+import { CombosScreen } from './screens/CombosScreen';
 import { PayoutsScreen } from './screens/PayoutsScreen';
 import { MingsWordmark } from './components/MingsWordmark';
+import {
+  DEFAULT_STAFF_SCREEN,
+  getPathForStaffScreen,
+  normalizePathname,
+  readStaffScreenFromPath,
+  type StaffScreen,
+} from './lib/surfaceRouting';
 
-type Screen =
-  | 'home'
-  | 'sales'
-  | 'kiosk-orders'
-  | 'menu-builder'
-  | 'money'
-  | 'reports'
-  | 'products'
-  | 'suppliers'
-  | 'expenses'
-  | 'payouts'
-  | 'users'
-  | 'settings';
+type Screen = StaffScreen;
 
 const SCREEN_QUERY_KEY = 'screen';
-const DEFAULT_SCREEN: Screen = 'home';
-const ALL_SCREENS: Screen[] = [
-  'home',
-  'sales',
-  'kiosk-orders',
-  'menu-builder',
-  'money',
-  'reports',
-  'products',
-  'suppliers',
-  'expenses',
-  'payouts',
-  'users',
-  'settings',
-];
+const DEFAULT_SCREEN: Screen = DEFAULT_STAFF_SCREEN;
 
 function isScreen(value: string | null): value is Screen {
-  return Boolean(value) && ALL_SCREENS.includes(value as Screen);
+  return Boolean(value) && !!getPathForStaffScreen(value as Screen);
 }
 
-function readScreenFromUrl(): Screen {
+function readScreenFromLocation(): Screen {
+  const fromPath = readStaffScreenFromPath(window.location.pathname);
+  if (fromPath) return fromPath;
+
   const params = new URLSearchParams(window.location.search);
   const raw = params.get(SCREEN_QUERY_KEY);
   return isScreen(raw) ? raw : DEFAULT_SCREEN;
 }
 
-function writeScreenToUrl(screen: Screen) {
+function writeScreenToLocation(screen: Screen) {
+  const targetPath = getPathForStaffScreen(screen);
+  const currentPath = normalizePathname(window.location.pathname);
   const params = new URLSearchParams(window.location.search);
-  params.set(SCREEN_QUERY_KEY, screen);
-  const next = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+  params.delete(SCREEN_QUERY_KEY);
+  const query = params.toString();
+  const next = `${targetPath}${query ? `?${query}` : ''}${window.location.hash}`;
+
+  if (currentPath === targetPath && !window.location.search.includes(`${SCREEN_QUERY_KEY}=`)) return;
   window.history.pushState({}, '', next);
 }
 
@@ -90,22 +81,22 @@ function AppContent() {
   const { t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const { user, loading, signOut, isStaff } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState<Screen>(() => readScreenFromUrl());
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() => readScreenFromLocation());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isDark = theme === 'dark';
 
   useEffect(() => {
     const onPopState = () => {
-      setCurrentScreen(readScreenFromUrl());
+      setCurrentScreen(readScreenFromLocation());
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
   useEffect(() => {
-    const inUrl = readScreenFromUrl();
+    const inUrl = readScreenFromLocation();
     if (inUrl !== currentScreen) {
-      writeScreenToUrl(currentScreen);
+      writeScreenToLocation(currentScreen);
     }
   }, [currentScreen]);
 
@@ -148,6 +139,8 @@ function AppContent() {
         return <KioskOrdersScreen />;
       case 'menu-builder':
         return <MenuScreen />;
+      case 'combos':
+        return <CombosScreen />;
       case 'money':
         return <MoneyScreen />;
       case 'reports':
@@ -179,6 +172,7 @@ function AppContent() {
     { id: 'sales', icon: <ShoppingCart className="h-5 w-5 shrink-0" />, label: t.sales },
     { id: 'kiosk-orders', icon: <Monitor className="h-5 w-5 shrink-0" />, label: t.kioskOrders },
     { id: 'menu-builder', icon: <UtensilsCrossed className="h-5 w-5 shrink-0" />, label: t.menuBuilder },
+    { id: 'combos', icon: <Flame className="h-5 w-5 shrink-0" />, label: t.combosScreenTitle },
     { id: 'products', icon: <Package className="h-5 w-5 shrink-0" />, label: t.products },
     { id: 'suppliers', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.suppliers },
     { id: 'expenses', icon: <DollarSign className="h-5 w-5 shrink-0" />, label: t.expenses },

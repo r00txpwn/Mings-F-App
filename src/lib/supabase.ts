@@ -99,6 +99,9 @@ export interface SaleItem {
   total_price: number;
   notes: string | null;
   created_at: string;
+  is_combo?: boolean;
+  combo_id?: string | null;
+  combo_selections?: Record<string, unknown> | null;
   sale_item_modifiers?: SaleItemModifier[];
 }
 
@@ -120,6 +123,9 @@ export interface Sale {
   display_number?: string | null;
   prep_started_at?: string | null;
   ready_at?: string | null;
+  estimated_ready_at?: string | null;
+  online_payment_method?: string | null;
+  delivery_notes?: string | null;
   customer_name?: string | null;
   customer_phone?: string | null;
   delivery_address?: string | null;
@@ -173,6 +179,10 @@ export interface Product {
   online_visible?: boolean;
   image_url?: string | null;
   display_order?: number;
+  /** When true, adding this item alone may show “make it a combo” upsell (online order). */
+  combo_upsell_eligible?: boolean;
+  /** Optional explicit combo to offer in upsell popup. */
+  upsell_combo_id?: string | null;
   suppliers?: Supplier;
   categories?: Category;
   modifier_groups?: ModifierGroup[];

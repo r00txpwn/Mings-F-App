@@ -1,0 +1,56 @@
+---
+description: Always keep documentation in sync with code, routing, env, and deployment changes
+alwaysApply: true
+---
+
+# Docs stay updated
+
+Any change that affects how the app runs, deploys, routes, authenticates, or is configured MUST be reflected in the project docs in the same task. Code changes without corresponding doc updates are incomplete.
+
+## When this rule applies
+
+Update relevant docs whenever you change:
+
+- **Routes / surfaces** — URL paths, subdomain surfaces, redirects, rewrites.
+- **Env vars** — new, renamed, or removed `VITE_*` / Supabase / integration vars.
+- **Deployment** — Vercel/Netlify settings, domains, build commands, edge-function deploys.
+- **Supabase** — new migrations, RPCs, RLS, edge functions.
+- **Security gates** — kiosk/KDS secrets, auth flows, staff access.
+- **Customer or staff flows** — new screens, removed screens, changed entry points.
+- **Developer commands** — `package.json` scripts (build, preview, deploy, lint, typecheck).
+- **Integrations** — Wolt, payment providers, Twilio, Google Maps, etc.
+
+## Docs to touch (check each touched change against these)
+
+- [`README.md`](README.md) — high-level overview, quick start, link to deploy.
+- [`DEPLOY.md`](DEPLOY.md) — Vercel/Netlify/Supabase steps, env vars per surface, smoke tests.
+- [`docs/URL_ROUTING_AUDIT.md`](docs/URL_ROUTING_AUDIT.md) — route map per surface, redirects, staff screen paths.
+- [`docs/DELIVERY_JOURNEY.md`](docs/DELIVERY_JOURNEY.md) — when delivery/dispatch/tracking behavior changes.
+- [`docs/MIGRATION_HISTORY.md`](docs/MIGRATION_HISTORY.md) — when Supabase migration history changes.
+- [`APP_STRUCTURE.md`](APP_STRUCTURE.md) — when folder structure, surfaces, or top-level entry points change.
+- [`.env.example`](.env.example) — any new/changed env var MUST appear here with a short comment.
+- Other files in `docs/` — update the topic-specific doc when that topic changes.
+
+## Required workflow
+
+1. Make the code/config/migration change.
+2. Identify which docs above are affected (often more than one).
+3. Update all affected docs in the same commit / task.
+4. If a new concept doesn't fit existing docs, add a new file under `docs/` (short, focused), and reference it from [`README.md`](README.md) or the relevant doc.
+5. Update stale phrasing you notice while editing, even if out of strict scope — don't leave contradictions.
+
+## Must-fix anti-patterns
+
+- Updating `vercel.json` / `main.tsx` / routing and leaving [`docs/URL_ROUTING_AUDIT.md`](docs/URL_ROUTING_AUDIT.md) stale.
+- Adding a `VITE_*` var in code without adding it to [`.env.example`](.env.example) and, if relevant, [`DEPLOY.md`](DEPLOY.md).
+- Adding a new edge function without adding it to [`DEPLOY.md`](DEPLOY.md).
+- Removing a feature while its docs still describe it.
+- Changing domain behavior (`order.mings.az`, `sp.mings.az`) without updating the routing / deploy docs.
+
+## Quick self-check before finishing a task
+
+- Did routes, env, deploy, or Supabase change? If yes, open the matching docs and update them.
+- Run `rg` for the old string (old path, old env var, old script) and replace or annotate every stale hit.
+- For user-facing copy, also apply `translation-check-on-changes.mdc`.
+
+If the change is purely internal refactoring with **no** user-facing, deploy, or config impact, a doc update may be unnecessary — but prefer a short note in the relevant doc if the refactor changes how future contributors reason about the system.

@@ -1,11 +1,16 @@
+import { useState } from 'react';
 import { Clock } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Sale, SaleItem, SaleItemModifier } from '../lib/supabase';
+import { getUrgencyColor, remainingMinutes } from '../utils/urgency';
+
+const PREP_MINUTES = [3, 5, 7, 10, 12, 15, 18, 20, 25] as const;
 
 interface OrderCardProps {
   order: Sale & { sale_items: SaleItem[] };
   now: number;
-  onUpdateStatus: (orderId: string, newStatus: string) => void;
+  ordersInPrepCount: number;
+  onUpdateStatus: (orderId: string, newStatus: string, opts?: { prepMinutes?: number }) => void;
 }
 
 function formatElapsed(ms: number): string {
@@ -15,52 +20,161 @@ function formatElapsed(ms: number): string {
   return `${min}:${String(sec).padStart(2, '0')}`;
 }
 
-export function OrderCard({ order, now, onUpdateStatus }: OrderCardProps) {
-  const { t } = useLanguage();
-  const status = order.order_status || 'pending';
-  const isPaid = order.payment_status === 'paid';
+function formatCountdown(msRemaining: number): string {
+  const abs = Math.abs(msRemaining);
+  const totalSec = Math.floor(abs / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  const sign = msRemaining < 0 ? '−' : '';
+  return `${sign}${min}:${String(sec).padStart(2, '0')}`;
+}
 
-  const referenceTime = status === 'preparing' && order.prep_started_at
-    ? new Date(order.prep_started_at).getTime()
-    : new Date(order.created_at).getTime();
+function isOnlineOrder(source: string | undefined): boolean {
+  return source === 'online_delivery' || source === 'online_takeaway';
+}
+
+export function OrderCard({ order, now, ordersInPrepCount, onUpdateStatus }: OrderCardProps) {
+  const { t } = useLanguage();
+  const [prepPickerOpen, setPrepPickerOpen] = useState(false);
+  const status = order.order_status || 'pending';
+  const pay = order.payment_status || 'paid';
+  const isPaid = pay === 'paid';
+  const online = isOnlineOrder(order.source);
+  const method = order.online_payment_method || '';
+  const epointUnpaid = online && method === 'epoint' && pay !== 'paid';
+  const codFlow = online && (method === 'cod' || method === 'cash');
+  const canStartPrepPending =
+    isPaid || (codFlow && (pay === 'unpaid' || pay === 'pending'));
+
+  const referenceTime =
+    status === 'preparing' && order.prep_started_at
+      ? new Date(order.prep_started_at).getTime()
+      : new Date(order.created_at).getTime();
   const elapsedMs = now - referenceTime;
   const elapsedMin = elapsedMs / 60000;
 
+  const estRem = remainingMinutes(order.estimated_ready_at ?? null, now);
+  const estMs =
+    order.estimated_ready_at != null
+      ? new Date(order.estimated_ready_at).getTime() - now
+      : null;
+
   let borderColor = 'border-gray-600';
   let bgColor = 'bg-gray-800';
+  let pulse = false;
 
   if (status === 'pending') {
     borderColor = 'border-gray-600';
     bgColor = 'bg-gray-800';
   } else if (status === 'preparing') {
-    if (elapsedMin > 12) {
-      borderColor = 'border-red-500';
-      bgColor = 'bg-red-900/20';
-    } else if (elapsedMin > 8) {
-      borderColor = 'border-orange-500';
-      bgColor = 'bg-orange-900/20';
+    if (estRem != null) {
+      const u = getUrgencyColor(estRem);
+      borderColor = u.border;
+      bgColor = u.bg;
+      pulse = u.pulse;
     } else {
-      borderColor = 'border-blue-500';
-      bgColor = 'bg-blue-900/20';
+      if (elapsedMin > 12) {
+        borderColor = 'border-red-500';
+        bgColor = 'bg-red-900/20';
+      } else if (elapsedMin > 8) {
+        borderColor = 'border-orange-500';
+        bgColor = 'bg-orange-900/20';
+      } else {
+        borderColor = 'border-blue-500';
+        bgColor = 'bg-blue-900/20';
+      }
     }
   } else if (status === 'ready') {
     borderColor = 'border-emerald-500';
     bgColor = 'bg-emerald-900/20';
   }
 
-  const renderAction = () => {
-    if (status === 'pending' && !isPaid) {
+  const paymentBadge = () => {
+    if (!online) return null;
+    if (method === 'epoint' && pay !== 'paid') {
       return (
-        <div className="px-3 py-2 bg-gray-700 text-gray-400 rounded-lg text-xs font-medium text-center">
+        <div className="mb-2 rounded border border-red-500/50 bg-red-950/40 px-2 py-1 text-center text-xs font-semibold text-red-300">
+          {t.kdsPaymentPendingOnline}
+        </div>
+      );
+    }
+    if (method === 'cod' || method === 'cash') {
+      return (
+        <div className="mb-2 rounded border border-emerald-500/60 bg-emerald-950/30 px-2 py-1 text-center text-xs font-semibold text-emerald-300">
+          {t.kdsPaymentCashCod}
+        </div>
+      );
+    }
+    if (pay === 'paid') {
+      return (
+        <div className="mb-2 rounded border border-emerald-500/60 bg-emerald-950/30 px-2 py-1 text-center text-xs font-semibold text-emerald-300">
+          {t.kdsPaymentConfirmed}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderAction = () => {
+    if (status === 'pending' && !isPaid && !online) {
+      return (
+        <div className="rounded-lg bg-gray-700 px-3 py-2 text-center text-xs font-medium text-gray-400">
           {t.awaitingPayment}
         </div>
       );
     }
-    if (status === 'pending' && isPaid) {
+    if (status === 'pending' && epointUnpaid) {
+      return (
+        <div className="rounded-lg bg-gray-700 px-3 py-2 text-center text-xs font-medium text-gray-400">
+          {t.awaitingPayment}
+        </div>
+      );
+    }
+    if (status === 'pending' && canStartPrepPending) {
+      if (prepPickerOpen) {
+        const suggest20 = ordersInPrepCount >= 5;
+        return (
+          <div className="space-y-2">
+            <p className="text-center text-[10px] font-medium uppercase tracking-wide text-gray-400">
+              {t.kdsPrepTimeLabel}
+            </p>
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {PREP_MINUTES.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    onUpdateStatus(order.id, 'preparing', { prepMinutes: m });
+                    setPrepPickerOpen(false);
+                  }}
+                  className={`min-h-[44px] min-w-[56px] rounded-lg text-lg font-semibold transition-colors ${
+                    suggest20 && m === 20
+                      ? 'bg-cockpit-600 ring-2 ring-amber-400 ring-offset-2 ring-offset-gray-900 text-white'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            {suggest20 ? (
+              <p className="text-center text-[10px] text-amber-300/90">{t.kdsBusyKitchenHint}</p>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setPrepPickerOpen(false)}
+              className="w-full text-xs text-gray-500 hover:text-gray-300"
+            >
+              {t.cancel}
+            </button>
+          </div>
+        );
+      }
       return (
         <button
-          onClick={() => onUpdateStatus(order.id, 'preparing')}
-          className="w-full px-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+          type="button"
+          onClick={() => setPrepPickerOpen(true)}
+          className="w-full rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
         >
           {t.startPreparing}
         </button>
@@ -69,8 +183,9 @@ export function OrderCard({ order, now, onUpdateStatus }: OrderCardProps) {
     if (status === 'preparing') {
       return (
         <button
+          type="button"
           onClick={() => onUpdateStatus(order.id, 'ready')}
-          className="w-full px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+          className="w-full rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
         >
           {t.markReady}
         </button>
@@ -79,8 +194,9 @@ export function OrderCard({ order, now, onUpdateStatus }: OrderCardProps) {
     if (status === 'ready') {
       return (
         <button
+          type="button"
           onClick={() => onUpdateStatus(order.id, 'completed')}
-          className="w-full px-3 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition-colors"
+          className="w-full rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700"
         >
           {t.markCompleted}
         </button>
@@ -89,37 +205,74 @@ export function OrderCard({ order, now, onUpdateStatus }: OrderCardProps) {
     return null;
   };
 
+  const timerLabel =
+    status === 'preparing' && estMs != null && !Number.isNaN(estMs)
+      ? formatCountdown(estMs)
+      : formatElapsed(elapsedMs);
+
+  const pulseClass = pulse ? ' animate-pulse' : '';
+
   return (
-    <div className={`${bgColor} border-2 ${borderColor} rounded-xl p-4 flex flex-col transition-all`}>
-      <div className="flex items-center justify-between mb-3">
+    <div className={`${bgColor} border-2 ${borderColor}${pulseClass} flex flex-col rounded-xl p-4 transition-all`}>
+      <div className="mb-3 flex items-center justify-between">
         <span className="text-2xl font-bold text-white">{order.display_number}</span>
         <div className="flex items-center gap-1.5 text-gray-400">
-          <Clock className="w-3.5 h-3.5" />
-          <span className="text-xs font-mono">{formatElapsed(elapsedMs)}</span>
+          <Clock className="h-3.5 w-3.5" />
+          <span className="font-mono text-xs">{timerLabel}</span>
         </div>
       </div>
 
-      <div className="flex-1 space-y-1.5 mb-3">
+      {paymentBadge()}
+
+      <div className="mb-3 flex-1 space-y-1.5">
         {order.sale_items?.map((item) => {
           const mods = (item as SaleItem & { sale_item_modifiers?: SaleItemModifier[] }).sale_item_modifiers;
+          if (item.is_combo && item.combo_selections) {
+            const cs = item.combo_selections as {
+              combo?: string;
+              items?: Array<{ group: string; item: string; modifiers?: string[] }>;
+            };
+            return (
+              <div key={item.id} className="rounded-lg border border-amber-600/40 bg-black/20 p-2">
+                <p className="text-sm font-bold uppercase tracking-wide text-amber-200">
+                  {cs.combo ?? item.product_name}
+                </p>
+                {cs.items?.map((row, i) => (
+                  <div key={i} className="ml-1">
+                    <p className="text-sm text-gray-200">
+                      <span className="text-emerald-400">{item.quantity}×</span> {row.item}{' '}
+                      <span className="text-xs text-gray-500">({row.group})</span>
+                    </p>
+                    {row.modifiers && row.modifiers.length > 0 ? (
+                      <p className="ml-4 text-xs text-gray-500">{row.modifiers.join(', ')}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            );
+          }
           return (
             <div key={item.id}>
               <div className="flex items-start gap-2">
-                <span className="text-emerald-400 font-bold text-sm shrink-0">{item.quantity}x</span>
-                <span className="text-gray-200 text-sm">{item.product_name}</span>
+                <span className="shrink-0 text-sm font-bold text-emerald-400">{item.quantity}×</span>
+                <span className="text-sm text-gray-200">{item.product_name}</span>
               </div>
               {mods && mods.length > 0 && (
-                <p className="text-gray-500 text-xs ml-7">
-                  {mods.map(m => m.modifier_option_name).join(', ')}
-                </p>
+                <p className="ml-7 text-xs text-gray-500">{mods.map((m) => m.modifier_option_name).join(', ')}</p>
               )}
             </div>
           );
         })}
       </div>
 
-      {!isPaid && status === 'pending' && (
-        <div className="mb-2 px-2 py-1 bg-yellow-900/30 border border-yellow-600/30 rounded text-yellow-400 text-xs text-center">
+      {order.delivery_notes ? (
+        <p className="mb-2 text-xs text-amber-200/90">
+          <span className="font-semibold">{t.kdsCourierNoteLabel}:</span> {order.delivery_notes}
+        </p>
+      ) : null}
+
+      {!isPaid && status === 'pending' && !online && (
+        <div className="mb-2 rounded border border-yellow-600/30 bg-yellow-900/30 px-2 py-1 text-center text-xs text-yellow-400">
           {t.unpaid}
         </div>
       )}

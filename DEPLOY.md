@@ -15,9 +15,12 @@ Pick **one** of:
 3. In the Vercel project **Settings → Environment Variables**, add:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-   - Optional: `VITE_GOOGLE_MAPS_API_KEY` (delivery map on `/order`), `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`
+   - `VITE_APP_SURFACE` (`order` on `order.mings.az`, `sp` on `sp.mings.az`)
+   - Optional: `VITE_ORDER_APP_ORIGIN` (for staff links to customer app), `VITE_GOOGLE_MAPS_API_KEY`, `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`
 
-`vercel.json` in this repo configures SPA rewrites so `/order`, `/track`, `/kiosk`, `/kds` work.
+`vercel.json` in this repo configures SPA rewrites. It also includes temporary legacy redirects:
+- `order.mings.az/order` → `/`
+- `sp.mings.az/spec-ops` → `/`
 
 ### Netlify
 
@@ -48,6 +51,11 @@ supabase link --project-ref YOUR_PROJECT_REF
 ```bash
 supabase db push
 ```
+
+Recent combo-related migrations to ensure are applied:
+
+- `20260418140100_combo_deals.sql`
+- `20260418153000_add_products_upsell_combo_id.sql`
 
 **From this repo (uses `npx`, no global CLI required):**
 
@@ -90,14 +98,14 @@ Set at least: `APP_BASE_URL` (your live site URL). Add E-point / Wolt secrets wh
 
 ## 3. Smoke test after deploy
 
-1. Open `https://YOUR_DOMAIN/order` — menu loads.
+1. Open `https://order.mings.az/` — menu loads.
 2. Place a test order (takeaway + COD).
-3. Admin → Kiosk orders — order appears with online source.
+3. Open `https://sp.mings.az/` and log in — order appears in Kiosk Orders.
 4. `/track?token=...` from the success screen.
 
 ---
 
-## Troubleshooting: CORS / “Failed to fetch” on `/order` checkout
+## Troubleshooting: CORS / “Failed to fetch” on order checkout
 
 Browsers send an **OPTIONS** preflight **before** `POST` to Edge Functions. The Supabase gateway can reject that preflight if **`verify_jwt` is enabled** (default), because the preflight often has **no** `Authorization` JWT — so you see *“blocked by CORS”* / *“preflight doesn’t have HTTP ok status”* even though the real issue is **401/403 on OPTIONS**.
 

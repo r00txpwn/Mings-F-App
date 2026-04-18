@@ -15,7 +15,9 @@ function KdsContent() {
   const [orders, setOrders] = useState<KioskOrder[]>([]);
   const [now, setNow] = useState(Date.now());
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'reconnecting'>('reconnecting');
+  const [channelHealth, setChannelHealth] = useState<string>('CONNECTING');
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const playBeep = useCallback(() => {
     try {
@@ -54,6 +56,7 @@ function KdsContent() {
     loadOrders();
 
     const channel = supabase.channel('kds-orders');
+    channelRef.current = channel;
     for (const src of ['kiosk', 'online_delivery', 'online_takeaway'] as const) {
       channel.on(
         'postgres_changes',
@@ -72,10 +75,12 @@ function KdsContent() {
       );
     }
     channel.subscribe((status) => {
+      setChannelHealth(status);
       setRealtimeStatus(status === 'SUBSCRIBED' ? 'connected' : 'reconnecting');
     });
 
     return () => {
+      channelRef.current = null;
       supabase.removeChannel(channel);
     };
   }, [loadOrders, playBeep]);
@@ -85,21 +90,53 @@ function KdsContent() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+  const handleUpdateStatus = async (
+    orderId: string,
+    newStatus: string,
+    opts?: { prepMinutes?: number }
+  ) => {
     const updates: Record<string, unknown> = { order_status: newStatus };
-    if (newStatus === 'preparing') updates.prep_started_at = new Date().toISOString();
-    if (newStatus === 'ready') updates.ready_at = new Date().toISOString();
+    if (newStatus === 'preparing') {
+      updates.prep_started_at = new Date().toISOString();
+      if (opts?.prepMinutes != null) {
+        updates.estimated_ready_at = new Date(Date.now() + opts.prepMinutes * 60_000).toISOString();
+      }
+    }
+    if (newStatus === 'ready') {
+      updates.ready_at = new Date().toISOString();
+    }
 
     await supabase.from('sales').update(updates).eq('id', orderId);
     loadOrders();
   };
 
-  const pendingCount = orders.filter(o => o.order_status === 'pending').length;
-  const preparingCount = orders.filter(o => o.order_status === 'preparing').length;
-  const readyCount = orders.filter(o => o.order_status === 'ready').length;
+  const reconnectRealtime = () => {
+    const ch = channelRef.current;
+    if (ch) {
+      ch.subscribe();
+    } else {
+      void loadOrders();
+    }
+  };
+
+  const pendingCount = orders.filter((o) => o.order_status === 'pending').length;
+  const preparingCount = orders.filter((o) => o.order_status === 'preparing').length;
+  const readyCount = orders.filter((o) => o.order_status === 'ready').length;
+
+  const showOfflineBanner = channelHealth !== 'SUBSCRIBED';
 
   return (
     <div className="neon-shell fixed inset-0 flex flex-col overflow-hidden">
+      {showOfflineBanner ? (
+        <button
+          type="button"
+          onClick={() => reconnectRealtime()}
+          className="flex h-12 w-full shrink-0 items-center justify-center gap-2 bg-red-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+        >
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-white" aria-hidden />
+          {t.kdsConnectionLostBanner}
+        </button>
+      ) : null}
       <KdsHeader
         pendingCount={pendingCount}
         preparingCount={preparingCount}
@@ -113,12 +150,13 @@ function KdsContent() {
             <p className="text-xl text-slate-400">{t.noKioskOrders}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {orders.map((order) => (
               <OrderCard
                 key={order.id}
                 order={order}
                 now={now}
+                ordersInPrepCount={preparingCount}
                 onUpdateStatus={handleUpdateStatus}
               />
             ))}
