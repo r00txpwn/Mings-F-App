@@ -75,6 +75,8 @@ jobs:
 
       - name: QA Orchestrator — Claude analysis & doc update
         env:
+          # Optional: set this secret for full AI analysis.
+          # If absent, the orchestrator writes a plain test-results report.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TYPECHECK_FAILED: ${{ env.TYPECHECK_FAILED }}
           LINT_FAILED: ${{ env.LINT_FAILED }}
