@@ -18,6 +18,10 @@ Pick **one** of:
    - `VITE_APP_SURFACE` (`order` on `order.mings.az`, `sp` on `sp.mings.az`)
    - Optional: `VITE_ORDER_APP_ORIGIN` (for staff links to customer app), `VITE_GOOGLE_MAPS_API_KEY`, `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`
 
+Hostnames are also mapped at runtime as a safety net:
+- `order.*` always resolves to customer surface
+- `sp.*` always resolves to staff surface
+
 `vercel.json` in this repo configures SPA rewrites. It also includes temporary legacy redirects:
 - `order.mings.az/order` → `/`
 - `sp.mings.az/spec-ops` → `/`

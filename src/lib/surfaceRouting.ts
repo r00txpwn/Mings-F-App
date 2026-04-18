@@ -47,6 +47,10 @@ export function normalizePathname(pathname: string): string {
 }
 
 export function getAppSurface(): AppSurface {
+  const host = window.location.hostname.toLowerCase();
+  if (host.startsWith('order.')) return 'order';
+  if (host.startsWith('sp.')) return 'sp';
+
   const raw = (import.meta.env.VITE_APP_SURFACE ?? '').trim().toLowerCase();
   return raw === 'order' ? 'order' : 'sp';
 }
