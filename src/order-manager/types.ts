@@ -22,3 +22,18 @@ export function isPendingOnlinePayment(order: OrderManagerOrder): boolean {
   const status = String(order.payment_status ?? '');
   return status !== 'paid' && status !== 'completed';
 }
+
+export function getCustomerDisplayName(order: OrderManagerOrder): string | null {
+  const direct = String(order.customer_name ?? '').trim();
+  if (direct) return direct;
+
+  const noteNameMatch = String(order.notes ?? '').match(/(?:^|\|)\s*Customer:\s*([^|]+)/i);
+  if (noteNameMatch && noteNameMatch[1]) {
+    const fromNotes = noteNameMatch[1].trim();
+    if (fromNotes) return fromNotes;
+  }
+
+  const phone = String(order.customer_phone ?? '').trim();
+  if (phone) return phone;
+  return null;
+}

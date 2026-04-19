@@ -109,6 +109,34 @@ async function renderApp() {
     return;
   }
 
+  if (pathNorm === '/order') {
+    const { OrderApp } = await import('./order/OrderApp');
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <OrderApp />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+    return;
+  }
+
+  if (pathNorm === '/track') {
+    const { TrackingApp } = await import('./order/TrackingApp');
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <TrackingApp />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+    return;
+  }
+
   if (pathNorm === '/order-manager') {
     const { OrderManagerApp } = await import('./order-manager/OrderManagerApp');
     root.render(

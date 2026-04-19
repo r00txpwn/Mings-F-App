@@ -1,7 +1,8 @@
-import { CalendarClock } from 'lucide-react';
+import { CalendarClock, User } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import type { OrderManagerOrder } from './types';
+import { getCustomerDisplayName, type OrderManagerOrder } from './types';
+import { OrderItemSummary } from './OrderItemSummary';
 
 const REMINDER_OPTIONS = [5, 10, 15, 20, 30] as const;
 
@@ -22,6 +23,7 @@ export function ScheduledOrderCard({ order, onAccept, disabled }: ScheduledOrder
     if (!order.reminder_at) return null;
     return new Date(order.reminder_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }, [order.reminder_at]);
+  const customerDisplay = getCustomerDisplayName(order);
 
   return (
     <article className="neon-card rounded-xl border border-cockpit-500/25 p-3">
@@ -36,13 +38,17 @@ export function ScheduledOrderCard({ order, onAccept, disabled }: ScheduledOrder
         <span className="text-xs text-slate-400">₼{Number(order.total_price ?? 0).toFixed(2)}</span>
       </div>
 
-      <ul className="mt-2 space-y-0.5 text-xs text-slate-300">
-        {(order.sale_items ?? []).slice(0, 3).map((item) => (
-          <li key={item.id}>
-            {item.quantity}x {item.product_name}
-          </li>
-        ))}
-      </ul>
+      {customerDisplay ? (
+        <p className="mt-2 inline-flex items-center gap-1 text-xs text-slate-300">
+          <User className="h-3 w-3" />
+          {t.woltCopyCustomer}: {customerDisplay}
+        </p>
+      ) : null}
+
+      <div className="mt-2 space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.orderDetails}</p>
+        <OrderItemSummary items={order.sale_items} compact />
+      </div>
 
       {reminderLabel ? (
         <p className="text-[11px] text-cockpit-300">

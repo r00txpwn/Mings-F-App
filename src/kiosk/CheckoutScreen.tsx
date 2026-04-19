@@ -26,9 +26,15 @@ function getItemUnitPrice(item: CartItem): number {
 }
 
 function getModifierSummary(item: CartItem): string {
-  return Object.values(item.selectedModifiers)
+  const names = Object.values(item.selectedModifiers)
     .flat()
-    .map(opt => opt.name)
+    .map(opt => opt.name);
+  const counts = new Map<string, number>();
+  for (const name of names) {
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([name, count]) => (count > 1 ? `${name} x${count}` : name))
     .join(', ');
 }
 

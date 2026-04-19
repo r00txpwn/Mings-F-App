@@ -71,7 +71,7 @@ function KioskContent() {
     const [productsRes, categoriesRes, channelRes] = await Promise.all([
       supabase
         .from('products')
-        .select('*, product_modifier_groups(id, modifier_group_id, display_order, modifier_groups(*, modifier_options(*)))')
+        .select('*, product_modifier_groups(id, modifier_group_id, display_order, modifier_groups(id, name, min_select, max_select, is_required, display_order, modifier_options(*)))')
         .eq('kiosk_visible', true)
         .gt('selling_price', 0)
         .order('display_order')

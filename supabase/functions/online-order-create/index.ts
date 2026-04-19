@@ -42,6 +42,20 @@ function getGroupNameForOption(
   return '';
 }
 
+/** Mirrors `src/lib/modifierGroupConstraints.ts` — spice/heat-style groups must behave as single choice even if max_select in DB is > 1. */
+const EXCLUSIVE_MODIFIER_GROUP_NAME =
+  /(?:^|[\s,])(?:spice|spicy|spiciness|acılı|остр(?:ота|оты)?|is[ıi]dl[ıi]|chili\s*level|heat\s*level|dərəc[əe]|s[əe]viyy[əe])(?:$|[\s,])/iu;
+
+function effectiveMaxSelectForValidation(g: { name: string; max_select?: number }): number {
+  let maxSel = Number(g.max_select);
+  if (!Number.isFinite(maxSel) || maxSel < 1) maxSel = 1;
+  maxSel = Math.floor(maxSel);
+  if (maxSel > 1 && EXCLUSIVE_MODIFIER_GROUP_NAME.test(String(g.name ?? ''))) {
+    return 1;
+  }
+  return maxSel;
+}
+
 Deno.serve(async (req: Request) => {
   try {
     return await handleRequest(req);
@@ -184,7 +198,7 @@ async function handleRequest(req: Request): Promise<Response> {
     const { data: products, error: prodErr } = await supabase
       .from('products')
       .select(
-        'id, name, selling_price, online_visible, product_modifier_groups(modifier_groups(id, name, modifier_options(id, name, price_adjustment, is_available)))'
+        'id, name, selling_price, online_visible, product_modifier_groups(modifier_groups(id, name, min_select, max_select, modifier_options(id, name, price_adjustment, is_available)))'
       )
       .in('id', productIds);
 
@@ -363,6 +377,8 @@ async function handleRequest(req: Request): Promise<Response> {
       .filter(Boolean) as Array<{
       id: string;
       name: string;
+      min_select?: number;
+      max_select?: number;
       modifier_options?: Array<{
         id: string;
         name: string;
@@ -372,6 +388,23 @@ async function handleRequest(req: Request): Promise<Response> {
     }>;
 
     const optionIds = line.modifierOptionIds ?? [];
+
+    for (const g of groups) {
+      const opts = g.modifier_options ?? [];
+      const idSet = new Set(opts.map((o) => o.id));
+      const minSel = Math.max(0, Math.floor(Number(g.min_select ?? 0)));
+      const maxSel = effectiveMaxSelectForValidation(g);
+      const minClamped = Math.min(minSel, maxSel);
+
+      const count = optionIds.filter((id) => idSet.has(id)).length;
+      if (count > maxSel) {
+        return jsonResponse({ error: `Too many modifiers selected for "${g.name}"` }, 400);
+      }
+      if (count < minClamped) {
+        return jsonResponse({ error: `Not enough modifiers selected for "${g.name}"` }, 400);
+      }
+    }
+
     const allOptions = groups.flatMap((g) => g.modifier_options ?? []);
     let modAdjust = 0;
     const modifierRows: Array<{

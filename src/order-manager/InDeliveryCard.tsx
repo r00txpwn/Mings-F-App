@@ -1,6 +1,7 @@
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, User } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import type { OrderManagerOrder } from './types';
+import { getCustomerDisplayName, type OrderManagerOrder } from './types';
+import { OrderItemSummary } from './OrderItemSummary';
 
 interface InDeliveryCardProps {
   order: OrderManagerOrder;
@@ -10,6 +11,7 @@ interface InDeliveryCardProps {
 export function InDeliveryCard({ order, onDelivered }: InDeliveryCardProps) {
   const { t } = useLanguage();
   const trackingUrl = order.delivery_order?.tracking_url ?? '';
+  const customerDisplay = getCustomerDisplayName(order);
 
   return (
     <article className="neon-card rounded-xl border border-sky-500/35 p-3">
@@ -18,13 +20,17 @@ export function InDeliveryCard({ order, onDelivered }: InDeliveryCardProps) {
         <span className="text-xs text-slate-300">₼{Number(order.total_price ?? 0).toFixed(2)}</span>
       </div>
 
-      <ul className="mt-2 space-y-0.5 text-xs text-slate-300">
-        {(order.sale_items ?? []).slice(0, 3).map((item) => (
-          <li key={item.id}>
-            {item.quantity}x {item.product_name}
-          </li>
-        ))}
-      </ul>
+      {customerDisplay ? (
+        <p className="mt-2 inline-flex items-center gap-1 text-xs text-slate-300">
+          <User className="h-3 w-3" />
+          {t.woltCopyCustomer}: {customerDisplay}
+        </p>
+      ) : null}
+
+      <div className="mt-2 space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.orderDetails}</p>
+        <OrderItemSummary items={order.sale_items} compact />
+      </div>
 
       {trackingUrl ? (
         <a

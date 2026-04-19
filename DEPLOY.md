@@ -73,6 +73,8 @@ If you see **“Remote migration versions not found in local migrations director
 
 ### Edge Functions (deploy each)
 
+`online-order-create` loads each product’s modifier groups (`min_select` / `max_select`) and rejects carts that violate those limits (HTTP 400). Redeploy after changing validation logic.
+
 ```bash
 supabase functions deploy online-order-create
 supabase functions deploy epoint-create-payment

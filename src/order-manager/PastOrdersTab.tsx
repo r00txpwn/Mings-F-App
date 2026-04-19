@@ -2,7 +2,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
-import type { OrderManagerOrder } from './types';
+import { getCustomerDisplayName, type OrderManagerOrder } from './types';
 
 type PastPreset = 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'lastMonth';
 
@@ -125,6 +125,7 @@ export function PastOrdersTab() {
       <div className="space-y-2">
         {orders.map((order) => {
           const status = String(order.order_status ?? 'pending');
+          const customerDisplay = getCustomerDisplayName(order);
           const source =
             order.source === 'online_delivery'
               ? t.omSourceDelivery
@@ -166,6 +167,11 @@ export function PastOrdersTab() {
                       </li>
                     ))}
                   </ul>
+                  {customerDisplay ? (
+                    <p>
+                      {t.woltCopyCustomer}: {customerDisplay}
+                    </p>
+                  ) : null}
                   {order.customer_phone ? <p>{order.customer_phone}</p> : null}
                   {order.delivery_address ? <p>{order.delivery_address}</p> : null}
                   {order.delivery_notes ? <p>{order.delivery_notes}</p> : null}
