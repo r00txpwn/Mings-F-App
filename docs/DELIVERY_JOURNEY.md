@@ -33,6 +33,7 @@ Staff completes → Customer sees status on /track
 ### Stage 1–2 — Browse / cart
 
 - **Today:** Cart is managed in the order UI; persistence may use `localStorage` for refresh survival.
+- **Same product, different modifiers:** Cart lines are keyed by **product + selected modifier option IDs**, so the same dish with different modifier sets (e.g. two guests wanting different spice levels) appears as **separate lines**. Add the item once per modifier configuration.
 - **Fail:** Cart lost on refresh → **Fix:** persist cart key (e.g. `mings_cart_v1`).
 - **Fail:** Item unavailable after add → **Fix:** `online-order-create` re-validates products and modifiers (reject with 400).
 
