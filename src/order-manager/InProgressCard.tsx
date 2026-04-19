@@ -1,8 +1,9 @@
-import { Clock3 } from 'lucide-react';
+import { Clock3, User } from 'lucide-react';
 import { useMemo } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getUrgencyColor, remainingMinutes } from '../utils/urgency';
-import type { OrderManagerOrder } from './types';
+import { getCustomerDisplayName, type OrderManagerOrder } from './types';
+import { OrderItemSummary } from './OrderItemSummary';
 
 interface InProgressCardProps {
   order: OrderManagerOrder;
@@ -27,6 +28,7 @@ export function InProgressCard({ order, nowMs, onReady, disabled }: InProgressCa
     if (!order.estimated_ready_at) return null;
     return new Date(order.estimated_ready_at).getTime() - nowMs;
   }, [order.estimated_ready_at, nowMs]);
+  const customerDisplay = getCustomerDisplayName(order);
 
   return (
     <article
@@ -44,13 +46,17 @@ export function InProgressCard({ order, nowMs, onReady, disabled }: InProgressCa
         {msLeft == null ? '—' : formatCountdown(msLeft)}
       </div>
 
-      <ul className="mt-2 space-y-0.5 text-xs text-slate-300">
-        {(order.sale_items ?? []).slice(0, 3).map((item) => (
-          <li key={item.id}>
-            {item.quantity}x {item.product_name}
-          </li>
-        ))}
-      </ul>
+      {customerDisplay ? (
+        <p className="mt-2 inline-flex items-center gap-1 text-xs text-slate-300">
+          <User className="h-3 w-3" />
+          {t.woltCopyCustomer}: {customerDisplay}
+        </p>
+      ) : null}
+
+      <div className="mt-2 space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.orderDetails}</p>
+        <OrderItemSummary items={order.sale_items} compact />
+      </div>
 
       <button
         type="button"

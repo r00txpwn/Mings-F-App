@@ -1,8 +1,9 @@
-import { ClipboardCopy, ExternalLink, Loader2, Phone } from 'lucide-react';
+import { ClipboardCopy, ExternalLink, Loader2, Phone, User } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { invokeEdgeFunction } from '../order/invokeEdge';
-import type { OrderManagerOrder } from './types';
+import { getCustomerDisplayName, type OrderManagerOrder } from './types';
+import { OrderItemSummary } from './OrderItemSummary';
 
 interface ReadyCardProps {
   order: OrderManagerOrder;
@@ -26,6 +27,7 @@ export function ReadyCard({ order, accessToken, woltPortalBase, onPickedUp, onDi
     if (order.source === 'online_takeaway') return t.omSourceTakeaway;
     return t.omSourceKiosk;
   }, [order.source, t]);
+  const customerDisplay = getCustomerDisplayName(order);
 
   const openWolt = () => {
     const phone = encodeURIComponent((order.customer_phone ?? '').trim());
@@ -74,13 +76,17 @@ export function ReadyCard({ order, accessToken, woltPortalBase, onPickedUp, onDi
         <p className="font-mono text-base font-bold text-white">#{order.display_number ?? '—'}</p>
         <span className="text-xs text-emerald-200">{sourceLabel}</span>
       </div>
-      <ul className="mt-2 space-y-0.5 text-xs text-slate-300">
-        {(order.sale_items ?? []).slice(0, 3).map((item) => (
-          <li key={item.id}>
-            {item.quantity}x {item.product_name}
-          </li>
-        ))}
-      </ul>
+      {customerDisplay ? (
+        <p className="mt-2 inline-flex items-center gap-1 text-xs text-slate-300">
+          <User className="h-3 w-3" />
+          {t.woltCopyCustomer}: {customerDisplay}
+        </p>
+      ) : null}
+
+      <div className="mt-2 space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.orderDetails}</p>
+        <OrderItemSummary items={order.sale_items} compact />
+      </div>
 
       {!isDelivery ? (
         <button

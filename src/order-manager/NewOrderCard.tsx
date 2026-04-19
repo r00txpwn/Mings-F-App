@@ -1,7 +1,8 @@
-import { Phone, MapPin } from 'lucide-react';
+import { Phone, MapPin, User } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import type { OrderManagerOrder } from './types';
+import { getCustomerDisplayName, type OrderManagerOrder } from './types';
+import { OrderItemSummary } from './OrderItemSummary';
 
 const PREP_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
 
@@ -26,6 +27,7 @@ export function NewOrderCard({ order, onAccept, onMarkPaid, disabled }: NewOrder
     if (order.source === 'online_takeaway') return t.omSourceTakeaway;
     return t.omSourceKiosk;
   }, [order.source, t]);
+  const customerDisplay = getCustomerDisplayName(order);
 
   return (
     <article className="neon-card flex flex-col gap-2 rounded-xl border border-white/10 p-3">
@@ -41,16 +43,17 @@ export function NewOrderCard({ order, onAccept, onMarkPaid, disabled }: NewOrder
         </div>
       </div>
 
-      <ul className="space-y-0.5 text-xs text-slate-300">
-        {(order.sale_items ?? []).slice(0, 3).map((item) => (
-          <li key={item.id}>
-            {item.quantity}x {item.product_name}
-          </li>
-        ))}
-        {(order.sale_items ?? []).length > 3 ? (
-          <li className="text-slate-500">+{(order.sale_items ?? []).length - 3} {t.items}</li>
-        ) : null}
-      </ul>
+      {customerDisplay ? (
+        <p className="inline-flex items-center gap-1 text-xs text-slate-300">
+          <User className="h-3 w-3" />
+          {t.woltCopyCustomer}: {customerDisplay}
+        </p>
+      ) : null}
+
+      <div className="space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.orderDetails}</p>
+        <OrderItemSummary items={order.sale_items} compact />
+      </div>
 
       {order.customer_phone ? (
         <p className="inline-flex items-center gap-1 text-xs text-slate-400">
@@ -73,7 +76,7 @@ export function NewOrderCard({ order, onAccept, onMarkPaid, disabled }: NewOrder
               key={v}
               type="button"
               onClick={() => setPrepMinutes(v)}
-              className={`rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
+              className={`min-h-[40px] min-w-[44px] rounded-md px-2 py-1.5 text-sm font-semibold transition-colors ${
                 prepMinutes === v
                   ? 'bg-cockpit-500 text-white'
                   : 'bg-white/5 text-slate-300 hover:bg-white/10'

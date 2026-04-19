@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw, WifiOff } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
@@ -33,6 +33,40 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
   const [channelHealth, setChannelHealth] = useState('CONNECTING');
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [channelRef, setChannelRef] = useState<ReturnType<typeof supabase.channel> | null>(null);
+  const ringtoneCtxRef = useRef<AudioContext | null>(null);
+  const ringtoneIntervalRef = useRef<number | null>(null);
+
+  const playNewOrderRingtone = useCallback(() => {
+    try {
+      if (!ringtoneCtxRef.current) {
+        ringtoneCtxRef.current = new AudioContext();
+      }
+      const ctx = ringtoneCtxRef.current;
+      if (ctx.state === 'suspended') {
+        void ctx.resume();
+      }
+      const scheduleTone = (frequency: number, startOffset: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = frequency;
+        gain.gain.value = 0.0001;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        const startAt = ctx.currentTime + startOffset;
+        const endAt = startAt + duration;
+        gain.gain.exponentialRampToValueAtTime(0.22, startAt + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, endAt);
+        osc.start(startAt);
+        osc.stop(endAt + 0.02);
+      };
+      scheduleTone(880, 0, 0.25);
+      scheduleTone(988, 0.3, 0.25);
+    } catch {
+      // audio can fail on restricted browsers until user interacts
+    }
+  }, []);
 
   const loadOrders = useCallback(async () => {
     if (!initialLoadDone) setLoading(true);
@@ -121,6 +155,7 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
   useEffect(() => {
     void loadOrders();
     const channel = supabase.channel('order-manager-active');
+    setChannelRef(channel);
     for (const src of ['kiosk', 'online_delivery', 'online_takeaway'] as const) {
       channel.on(
         'postgres_changes',
@@ -132,9 +167,20 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
       setChannelHealth(status);
     });
     return () => {
+      setChannelRef(null);
       supabase.removeChannel(channel);
     };
   }, [loadOrders]);
+
+  const reconnectRealtime = useCallback(() => {
+    if (channelRef) {
+      channelRef.subscribe((status) => {
+        setChannelHealth(status);
+      });
+      return;
+    }
+    void loadOrders();
+  }, [channelRef, loadOrders]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -157,6 +203,35 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
     return { newOrders, scheduledOrders, preparingOrders, readyOrders, deliveryOrders };
   }, [orders]);
 
+  useEffect(() => {
+    if (grouped.newOrders.length > 0) {
+      playNewOrderRingtone();
+      if (ringtoneIntervalRef.current == null) {
+        ringtoneIntervalRef.current = window.setInterval(() => {
+          playNewOrderRingtone();
+        }, 10_000);
+      }
+      return;
+    }
+    if (ringtoneIntervalRef.current != null) {
+      window.clearInterval(ringtoneIntervalRef.current);
+      ringtoneIntervalRef.current = null;
+    }
+  }, [grouped.newOrders.length, playNewOrderRingtone]);
+
+  useEffect(() => {
+    return () => {
+      if (ringtoneIntervalRef.current != null) {
+        window.clearInterval(ringtoneIntervalRef.current);
+        ringtoneIntervalRef.current = null;
+      }
+      if (ringtoneCtxRef.current) {
+        void ringtoneCtxRef.current.close();
+        ringtoneCtxRef.current = null;
+      }
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="flex min-h-[280px] items-center justify-center">
@@ -168,10 +243,14 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
   return (
     <div className="space-y-4">
       {channelHealth !== 'SUBSCRIBED' ? (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200">
+        <button
+          type="button"
+          onClick={reconnectRealtime}
+          className="flex w-full items-center gap-2 rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-2 text-left text-xs font-semibold text-red-200 hover:bg-red-500/20"
+        >
           <WifiOff className="h-4 w-4" />
           {t.kdsConnectionLostBanner}
-        </div>
+        </button>
       ) : null}
 
       <div className="grid gap-3 xl:grid-cols-3">

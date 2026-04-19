@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ClipboardList, History, Loader2, UtensilsCrossed } from 'lucide-react';
+import { ClipboardList, History, Loader2, LogOut, UtensilsCrossed } from 'lucide-react';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
@@ -13,7 +13,7 @@ type OrderManagerTab = 'active' | 'past' | 'menu';
 
 function OrderManagerShell() {
   const { t } = useLanguage();
-  const { user, isStaff, loading, session } = useAuth();
+  const { user, isStaff, loading, session, signOut } = useAuth();
   const [tab, setTab] = useState<OrderManagerTab>('active');
 
   if (loading) {
@@ -29,7 +29,17 @@ function OrderManagerShell() {
   return (
     <div className="neon-shell flex min-h-screen flex-col text-slate-100">
       <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/90 px-4 py-3 backdrop-blur">
-        <h1 className="text-base font-bold tracking-wide text-cockpit-200">{t.omTitle}</h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-base font-bold tracking-wide text-cockpit-200">{t.omTitle}</h1>
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs font-semibold text-slate-200 hover:bg-white/10"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            {t.staffSignOut}
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto p-3 pb-20">
