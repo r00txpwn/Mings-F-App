@@ -34,6 +34,7 @@ import { UsersScreen } from './screens/UsersScreen';
 import { ExpensesScreen } from './screens/ExpensesScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { StaffAccessDeniedScreen } from './screens/StaffAccessDeniedScreen';
+import { AdminAccessDeniedScreen } from './screens/AdminAccessDeniedScreen';
 import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 import { MenuScreen } from './screens/MenuScreen';
 import { CombosScreen } from './screens/CombosScreen';
@@ -80,7 +81,7 @@ function writeScreenToLocation(screen: Screen) {
 function AppContent() {
   const { t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  const { user, loading, signOut, isStaff } = useAuth();
+  const { user, loading, signOut, isStaff, role } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>(() => readScreenFromLocation());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isDark = theme === 'dark';
@@ -127,6 +128,10 @@ function AppContent() {
 
   if (!isStaff) {
     return <StaffAccessDeniedScreen />;
+  }
+
+  if (isStaff && role === 'staff') {
+    return <AdminAccessDeniedScreen />;
   }
 
   const renderScreen = () => {

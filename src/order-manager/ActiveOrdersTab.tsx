@@ -16,15 +16,13 @@ interface ActiveOrdersTabProps {
 type NewSubTab = 'new' | 'scheduled';
 type ReadySubTab = 'ready' | 'delivery';
 
-const WOLT_PORTAL_BASE =
-  (import.meta.env.VITE_WOLT_PORTAL_URL as string | undefined)?.replace(/\/$/, '') || 'https://portal.wolt.com';
-
 function emptyState(label: string) {
   return <p className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-400">{label}</p>;
 }
 
 export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
   const { t } = useLanguage();
+  void accessToken;
   const [orders, setOrders] = useState<OrderManagerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [newSubTab, setNewSubTab] = useState<NewSubTab>('new');
@@ -121,6 +119,49 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
     [updateSale]
   );
 
+  const rejectOrder = useCallback(
+    async (orderId: string, reason: string, note?: string) => {
+      setBusyOrderId(orderId);
+
+      const reasonLabels: Record<string, string> = {
+        item_unavailable: 'Item unavailable',
+        too_busy: 'Kitchen is too busy right now',
+        zone_issue: 'Outside our delivery zone',
+        customer_request: 'Cancelled by customer request',
+        other: note?.trim() || 'Order cancelled',
+      };
+      const cancellationReason = reasonLabels[reason] ?? 'Order cancelled';
+
+      await supabase
+        .from('sales')
+        .update({
+          order_status: 'cancelled',
+          cancellation_reason: cancellationReason,
+        })
+        .eq('id', orderId);
+
+      setBusyOrderId(null);
+      await loadOrders();
+    },
+    [loadOrders]
+  );
+
+  const selfDispatch = useCallback(
+    async (orderId: string) => {
+      setBusyOrderId(orderId);
+      await supabase
+        .from('sales')
+        .update({
+          order_status: 'dispatched',
+          dispatched_at: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+      setBusyOrderId(null);
+      await loadOrders();
+    },
+    [loadOrders]
+  );
+
   const acceptScheduled = useCallback(
     async (order: OrderManagerOrder, reminderMinutes: number) => {
       if (!order.scheduled_for) return;
@@ -156,20 +197,38 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
     void loadOrders();
     const channel = supabase.channel('order-manager-active');
     setChannelRef(channel);
-    for (const src of ['kiosk', 'online_delivery', 'online_takeaway'] as const) {
-      channel.on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'sales', filter: `source=eq.${src}` },
-        () => void loadOrders()
-      );
-    }
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'sales' },
+      (payload) => {
+        const next = payload.new as Record<string, unknown> | null;
+        const prev = payload.old as Record<string, unknown> | null;
+        const source = next?.source ?? prev?.source;
+        if (source === 'kiosk' || source === 'online_delivery' || source === 'online_takeaway') {
+          void loadOrders();
+        }
+      }
+    );
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_orders' }, () =>
+      void loadOrders()
+    );
     channel.subscribe((status) => {
       setChannelHealth(status);
+      if (status === 'SUBSCRIBED') {
+        void loadOrders();
+      }
     });
     return () => {
       setChannelRef(null);
       supabase.removeChannel(channel);
     };
+  }, [loadOrders]);
+
+  useEffect(() => {
+    const poll = window.setInterval(() => {
+      void loadOrders();
+    }, 8_000);
+    return () => window.clearInterval(poll);
   }, [loadOrders]);
 
   const reconnectRealtime = useCallback(() => {
@@ -285,6 +344,7 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
                     disabled={busyOrderId === order.id}
                     onMarkPaid={() => void updateSale(order.id, { payment_status: 'paid' })}
                     onAccept={(minutes) => void acceptNew(order.id, minutes)}
+                    onReject={(reason, note) => void rejectOrder(order.id, reason, note)}
                   />
                 ))
               : grouped.scheduledOrders.map((order) => (
@@ -347,17 +407,26 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
                   <ReadyCard
                     key={order.id}
                     order={order}
-                    accessToken={accessToken}
-                    woltPortalBase={WOLT_PORTAL_BASE}
-                    onPickedUp={() => void updateSale(order.id, { order_status: 'completed' })}
+                    onPickedUp={() =>
+                      void updateSale(order.id, {
+                        order_status: 'completed',
+                        completed_at: new Date().toISOString(),
+                      })
+                    }
                     onDispatched={() => void loadOrders()}
+                    onSelfDispatch={(orderId) => void selfDispatch(orderId)}
                   />
                 ))
               : grouped.deliveryOrders.map((order) => (
                   <InDeliveryCard
                     key={order.id}
                     order={order}
-                    onDelivered={() => void updateSale(order.id, { order_status: 'completed' })}
+                    onDelivered={() =>
+                      void updateSale(order.id, {
+                        order_status: 'completed',
+                        completed_at: new Date().toISOString(),
+                      })
+                    }
                   />
                 ))}
             {(readySubTab === 'ready' && grouped.readyOrders.length === 0 && emptyState(t.omNoActiveOrders)) ||

@@ -8,7 +8,17 @@ const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
 // ConfigCheck handles the user-facing error screen in that scenario.
 export const supabase = createClient(
   hasSupabaseConfig ? supabaseUrl : 'http://127.0.0.1:54321',
-  hasSupabaseConfig ? supabaseAnonKey : 'dev-placeholder-anon-key'
+  hasSupabaseConfig ? supabaseAnonKey : 'dev-placeholder-anon-key',
+  {
+    auth: {
+      persistSession: true,
+      storageKey: 'mings-auth-token',
+      storage: window.localStorage,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      // Dashboard setting should be 604800s (7 days) in Supabase Auth -> Settings -> JWT expiry.
+    },
+  }
 );
 
 export interface Category {

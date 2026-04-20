@@ -16,15 +16,16 @@ Pick **one** of:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - `VITE_APP_SURFACE` (`order` on `order.mings.az`, `sp` on `sp.mings.az`)
-   - Optional: `VITE_ORDER_APP_ORIGIN` (for staff links to customer app), `VITE_GOOGLE_MAPS_API_KEY`, `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`, `VITE_ENABLE_COMBOS`, `VITE_WOLT_PORTAL_URL`
+   - Optional: `VITE_ORDER_APP_ORIGIN` (for staff links to customer app), `VITE_ADMIN_APP_PATH` (custom admin entry path, default `/spec-ops`), `VITE_GOOGLE_MAPS_API_KEY`, `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`, `VITE_ENABLE_COMBOS`, `VITE_WOLT_PORTAL_URL`
 
 Hostnames are also mapped at runtime as a safety net:
 - `order.*` always resolves to customer surface
 - `sp.*` always resolves to staff surface
 
-`vercel.json` in this repo configures SPA rewrites. It also includes temporary legacy redirects:
+`vercel.json` in this repo configures SPA rewrites. It currently includes a temporary legacy redirect:
 - `order.mings.az/order` → `/`
-- `sp.mings.az/spec-ops` → `/`
+
+If you deploy with a custom `VITE_ADMIN_APP_PATH`, ensure that path is handled by SPA rewrite (`index.html`) and is **not** redirected away.
 
 ### Netlify
 

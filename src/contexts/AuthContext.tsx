@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   /** True when a row exists in `public.users` (staff/admin). False for customer-only auth.users. */
   isStaff: boolean;
+  role: 'admin' | 'manager' | 'staff' | null;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   /** SMS OTP via Supabase Auth (Twilio configured in project dashboard). */
@@ -21,15 +22,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function fetchIsStaff(userId: string): Promise<boolean> {
-  const { data, error } = await supabase.from('users').select('id').eq('id', userId).maybeSingle();
+type StaffInfo = { isStaff: boolean; role: 'admin' | 'manager' | 'staff' | null };
+
+async function fetchStaffInfo(userId: string): Promise<StaffInfo> {
+  const { data, error } = await supabase.from('users').select('id, role').eq('id', userId).maybeSingle();
   if (error) {
     if (import.meta.env.DEV) {
-      console.warn('[auth] fetchIsStaff failed:', error.message);
+      console.warn('[auth] fetchStaffInfo failed:', error.message);
     }
-    return false;
+    return { isStaff: false, role: null };
   }
-  return Boolean(data);
+  if (!data) return { isStaff: false, role: null };
+  return {
+    isStaff: true,
+    role: (data.role as 'admin' | 'manager' | 'staff') ?? null,
+  };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -37,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isStaff, setIsStaff] = useState(false);
+  const [role, setRole] = useState<'admin' | 'manager' | 'staff' | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,10 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const nextUser = nextSession?.user ?? null;
       setUser(nextUser);
       if (nextUser) {
-        const staff = await fetchIsStaff(nextUser.id);
-        if (!cancelled) setIsStaff(staff);
+        const { isStaff: staff, role: nextRole } = await fetchStaffInfo(nextUser.id);
+        if (!cancelled) {
+          setIsStaff(staff);
+          setRole(nextRole);
+        }
       } else if (!cancelled) {
         setIsStaff(false);
+        setRole(null);
       }
       if (!cancelled) setLoading(false);
     };
@@ -126,10 +138,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const uid = s?.user?.id;
     if (!uid) {
       setIsStaff(false);
+      setRole(null);
       return;
     }
-    const staff = await fetchIsStaff(uid);
+    const { isStaff: staff, role: nextRole } = await fetchStaffInfo(uid);
     setIsStaff(staff);
+    setRole(nextRole);
   }, []);
 
   return (
@@ -139,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         loading,
         isStaff,
+        role,
         signIn,
         signUp,
         sendPhoneOtp,

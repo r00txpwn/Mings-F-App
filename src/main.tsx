@@ -4,6 +4,7 @@ import App from './App.tsx';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ConfigCheck } from './ConfigCheck';
 import { PublicNotFound } from './PublicNotFound';
+import { isAdminPath } from './lib/adminPath';
 import { getAppSurface, isStaffRoutePath, normalizePathname } from './lib/surfaceRouting';
 import './index.css';
 
@@ -76,8 +77,16 @@ async function renderApp() {
     return;
   }
 
-  if (pathNorm === '/spec-ops') {
-    window.location.replace('/');
+  if (isAdminPath(pathNorm)) {
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
     return;
   }
 

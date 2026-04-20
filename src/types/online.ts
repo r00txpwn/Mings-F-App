@@ -31,6 +31,8 @@ export interface OnlineSettingsRow {
   id: string;
   takeaway_enabled: boolean;
   delivery_enabled: boolean;
+  /** When false or null, checkout should treat the kitchen as closed (see OrderApp). */
+  is_open?: boolean | null;
   hours_json: Record<string, unknown>;
   min_order_amount: number;
   tagline?: string | null;

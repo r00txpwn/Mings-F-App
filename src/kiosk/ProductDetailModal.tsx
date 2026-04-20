@@ -34,9 +34,22 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
     const defaults: SelectedModifiers = {};
     groups.forEach(group => {
       const maxSel = effectiveModifierGroupMaxSelect(group);
+      const minSel = Math.max(0, Number(group.min_select ?? 0));
+      const isSingleSelect = isSingleSelectModifierGroup(group);
       const defaultOptions = group.modifier_options.filter(o => o.is_default);
-      if (defaultOptions.length > 0) {
-        defaults[group.id] = defaultOptions.slice(0, maxSel);
+      if (defaultOptions.length === 0) return;
+
+      // Keep optional multi-select groups explicit: do not silently pre-add extras.
+      if (isSingleSelect) {
+        defaults[group.id] = [defaultOptions[0]];
+        return;
+      }
+
+      if (group.is_required && minSel > 0) {
+        const count = Math.min(maxSel, minSel, defaultOptions.length);
+        if (count > 0) {
+          defaults[group.id] = defaultOptions.slice(0, count);
+        }
       }
     });
     setSelections(defaults);
@@ -302,7 +315,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
                           );
                         }
 
-                        const atMax = selectedCount >= maxSel && !selected;
+                        const atMax = !isSingle && selectedCount >= maxSel && !selected;
                         return (
                           <button
                             key={option.id}

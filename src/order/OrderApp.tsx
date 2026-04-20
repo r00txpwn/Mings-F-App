@@ -59,6 +59,123 @@ function generateComboCartKey(
     .join('|')}`;
 }
 
+function isKitchenClosedSettings(settings: OnlineSettingsRow | null): boolean {
+  if (!settings) return false;
+  const v = settings.is_open;
+  return v === false || v === null;
+}
+
+type ProductVisibilityRow = { id: string; online_visible: boolean | null; name?: string | null };
+
+/** Product IDs backing cart lines (menu products for combos use `selections[].itemId`). */
+function collectCartProductIds(cart: OrderCartLine[]): string[] {
+  const ids = new Set<string>();
+  for (const item of cart) {
+    if (item.kind === 'product') {
+      ids.add(item.product.id);
+    } else {
+      for (const s of item.selections) {
+        ids.add(s.itemId);
+      }
+    }
+  }
+  return [...ids];
+}
+
+const UUID_IN_TEXT_RE =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi;
+
+function humanizeProductIdsInMessage(
+  message: string,
+  products: Product[],
+  freshRows: ProductVisibilityRow[]
+): string {
+  const nameById = new Map<string, string>();
+  for (const p of products) nameById.set(p.id.toLowerCase(), p.name);
+  for (const r of freshRows) {
+    const n = r.name?.trim();
+    if (n) nameById.set(r.id.toLowerCase(), n);
+  }
+  return message.replace(UUID_IN_TEXT_RE, (uuid) => {
+    const resolved = nameById.get(uuid.toLowerCase());
+    return resolved ?? uuid;
+  });
+}
+
+function collectUnavailableCartItems(
+  cart: OrderCartLine[],
+  products: Product[],
+  freshRows?: ProductVisibilityRow[] | null
+): { cartItemKey: string; label: string }[] {
+  const out: { cartItemKey: string; label: string }[] = [];
+  const freshMap = freshRows
+    ? new Map<string, ProductVisibilityRow>(freshRows.map((r) => [r.id, r]))
+    : null;
+
+  const isProductOnline = (productId: string) => {
+    if (freshMap) {
+      const row = freshMap.get(productId);
+      if (!row) return false;
+      return row.online_visible !== false;
+    }
+    const p = products.find((x) => x.id === productId);
+    if (!p) return false;
+    return p.online_visible !== false;
+  };
+
+  const labelForProduct = (productId: string, fallbackName: string) => {
+    const row = freshMap?.get(productId);
+    const n = row?.name?.trim();
+    if (n) return n;
+    return fallbackName;
+  };
+
+  for (const item of cart) {
+    if (item.kind === 'product') {
+      if (!isProductOnline(item.product.id)) {
+        out.push({
+          cartItemKey: item.cartItemKey,
+          label: labelForProduct(item.product.id, item.product.name),
+        });
+      }
+    } else {
+      const bad = item.selections.filter((s) => !isProductOnline(s.itemId));
+      if (bad.length > 0) {
+        out.push({
+          cartItemKey: item.cartItemKey,
+          label: `${item.comboName}: ${bad.map((s) => labelForProduct(s.itemId, s.itemName)).join(', ')}`,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+function fallbackInventoryErrorItems(
+  cart: OrderCartLine[],
+  products: Product[],
+  freshRows: ProductVisibilityRow[],
+  genericLabel: string
+): { cartItemKey: string; label: string }[] {
+  const resolveName = (productId: string, fallback: string) => {
+    const fromFresh = freshRows.find((r) => r.id === productId)?.name?.trim();
+    if (fromFresh) return fromFresh;
+    const fromMenu = products.find((p) => p.id === productId)?.name?.trim();
+    if (fromMenu) return fromMenu;
+    return fallback.trim() || genericLabel;
+  };
+
+  return cart.map((it) => {
+    if (it.kind === 'combo') {
+      return { cartItemKey: it.cartItemKey, label: it.comboName };
+    }
+    return {
+      cartItemKey: it.cartItemKey,
+      label: resolveName(it.product.id, it.product.name),
+    };
+  });
+}
+
 const ORDER_CART_STORAGE_KEY = 'mings_order_cart_v1';
 
 type Flow = 'browse' | 'checkout' | 'done';
@@ -84,6 +201,10 @@ function OrderContent() {
   const [zones, setZones] = useState<DeliveryZoneRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [cartAvailabilityBlocked, setCartAvailabilityBlocked] = useState<{
+    items: { cartItemKey: string; label: string }[];
+    serverMessage?: string;
+  } | null>(null);
 
   const [fulfillment, setFulfillment] = useState<OnlineFulfillmentType>('takeaway');
   const [paymentMethod, setPaymentMethod] = useState<OnlinePaymentMethod>('cod');
@@ -243,6 +364,10 @@ function OrderContent() {
     if (lat == null || lng == null) return null;
     return findZoneForPoint(lng, lat, zones);
   }, [lat, lng, zones]);
+
+  const kitchenClosed = useMemo(() => isKitchenClosedSettings(settings), [settings]);
+  const deliveryOutsideZone =
+    fulfillment === 'delivery' && lat != null && lng != null && zoneMatch === null;
 
   const cartTotal = useMemo(() => {
     return cart.reduce((sum, item) => {
@@ -477,7 +602,21 @@ function OrderContent() {
 
   const removeLine = (cartItemKey: string) => {
     setCart((c) => c.filter((x) => x.cartItemKey !== cartItemKey));
+    setCartAvailabilityBlocked((prev) => {
+      if (!prev) return null;
+      const nextItems = prev.items.filter((i) => i.cartItemKey !== cartItemKey);
+      return nextItems.length ? { ...prev, items: nextItems } : null;
+    });
   };
+
+  const removeAllUnavailableCartLines = useCallback(() => {
+    setCartAvailabilityBlocked((prev) => {
+      if (!prev?.items.length) return prev;
+      const keys = new Set(prev.items.map((i) => i.cartItemKey));
+      setCart((c) => c.filter((line) => !keys.has(line.cartItemKey)));
+      return null;
+    });
+  }, []);
 
   const handleLocate = () => {
     setGeoStatus(t.orderGeoLocating);
@@ -498,6 +637,30 @@ function OrderContent() {
 
   const handleSubmitOrder = async () => {
     if (cart.length === 0) return;
+    if (kitchenClosed) return;
+
+    const cartProductIds = collectCartProductIds(cart);
+    let freshVisibility: ProductVisibilityRow[] = [];
+    if (cartProductIds.length > 0) {
+      const { data: visData, error: visErr } = await supabase
+        .from('products')
+        .select('id, online_visible, name')
+        .in('id', cartProductIds);
+      if (visErr) {
+        setSubmitError(visErr.message);
+        return;
+      }
+      freshVisibility = (visData ?? []) as ProductVisibilityRow[];
+    }
+
+    const precheck = collectUnavailableCartItems(cart, products, freshVisibility);
+    if (precheck.length > 0) {
+      setCartAvailabilityBlocked({ items: precheck });
+      setSubmitError(null);
+      return;
+    }
+    setCartAvailabilityBlocked(null);
+
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -544,7 +707,24 @@ function OrderContent() {
         accessToken
       );
       if (!res.ok || !res.data) {
-        setSubmitError(res.error ?? 'Order failed');
+        const errText = (res.error ?? '').toString();
+        const isUnavailableError = /unavailable|out of stock|invalid product|not available/i.test(
+          errText
+        );
+        if (isUnavailableError) {
+          setSubmitError(null);
+          const again = collectUnavailableCartItems(cart, products, freshVisibility);
+          const items =
+            again.length > 0
+              ? again
+              : fallbackInventoryErrorItems(cart, products, freshVisibility, t.cartUnavailableGenericItemLabel);
+          setCartAvailabilityBlocked({
+            items,
+            serverMessage: humanizeProductIdsInMessage(errText, products, freshVisibility),
+          });
+        } else {
+          setSubmitError(errText || 'Order failed');
+        }
         setSubmitting(false);
         return;
       }
@@ -767,20 +947,6 @@ function OrderContent() {
         </>
       )}
 
-      {flow === 'checkout' && (
-        <header className="neon-topbar sticky top-0 z-10 flex items-center gap-2 px-3 py-3">
-          <button
-            type="button"
-            className="rounded-lg p-2 hover:bg-white/5"
-            onClick={() => setFlow('browse')}
-            aria-label={t.back}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <span className="font-semibold">{t.orderCheckout}</span>
-        </header>
-      )}
-
       {flow === 'browse' && navTab === 'menu' && combosEnabled && combos.length > 0 ? (
         <div className="border-b border-white/10 px-3 pb-3 pt-2">
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-amber-400">{t.orderCombosSection}</h2>
@@ -976,183 +1142,289 @@ function OrderContent() {
       )}
 
       {flow === 'checkout' && (
-        <div className="flex flex-1 flex-col gap-4 p-4 pb-12">
-          {settings && !settings.takeaway_enabled && settings.delivery_enabled ? (
-            <p className="text-sm text-amber-400">{t.orderFulfillmentTakeawayDisabled}</p>
-          ) : null}
-          <div className="space-y-2">
-            <OrderFulfillmentPicker
-              fulfillment={fulfillment}
-              onChange={setFulfillment}
-              showTakeaway={showTakeaway}
-              showDelivery={showDelivery}
-              label={t.orderChooseFulfillmentTitle}
-              takeawayLabel={t.orderFulfillmentTakeaway}
-              deliveryLabel={t.orderFulfillmentDelivery}
-            />
-            {!showTakeaway && !showDelivery ? (
-              <p className="text-sm text-rose-400">{t.orderOnlineDisabled}</p>
-            ) : null}
-          </div>
+        <>
+          <header className="neon-topbar sticky top-0 z-10 flex items-center gap-2 px-3 py-3">
+            <button
+              type="button"
+              className="rounded-lg p-2 hover:bg-white/5"
+              onClick={() => setFlow('browse')}
+              aria-label={t.back}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="font-semibold">{t.orderCheckout}</span>
+          </header>
 
-          {fulfillment === 'delivery' && !serverAllowsDelivery ? (
-            <p className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-3 text-sm text-amber-100/95">
-              {t.orderDeliveryDisabledInSettings}
-            </p>
-          ) : null}
-
-          <div className="space-y-2">
-            <label className="text-xs text-slate-500">{t.orderPhone} *</label>
-            <input
-              className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              placeholder="+994 50 123 45 67"
-              autoComplete="tel"
-            />
-            {customerPhone.trim().length > 4 &&
-            !/^\+?994[\s-]?\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}$/.test(customerPhone.replace(/\s/g, '')) ? (
-              <p className="text-xs text-amber-400">{t.orderPhoneFormatHint}</p>
-            ) : null}
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs text-slate-500">{t.orderNameOptional}</label>
-            <input
-              className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-            />
-          </div>
-
-          {fulfillment === 'delivery' && user && addresses.length > 0 ? (
-            <div className="space-y-2">
-              <label className="text-xs text-slate-500">{t.orderSelectSavedAddress}</label>
-              <select
-                className="cockpit-select"
-                value={selectedSavedAddressId ?? ''}
-                onChange={(e) => setSelectedSavedAddressId(e.target.value || null)}
-              >
-                <option value="">{t.cancel}</option>
-                {addresses.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.label}: {a.line1}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
-
-          {fulfillment === 'delivery' && (
-            <>
-              <OrderAddressMap
-                apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-                lat={lat}
-                lng={lng}
-                address={deliveryAddress}
-                onLocationChange={({ lat: nextLat, lng: nextLng, address: nextAddr }) => {
-                  setLat(nextLat);
-                  setLng(nextLng);
-                  setDeliveryAddress(nextAddr);
-                }}
-                onAddressChange={setDeliveryAddress}
-                searchPlaceholder={t.orderMapSearchPlaceholder}
-                pinHint={t.orderMapPinHint}
-                loadingLabel={t.orderMapLoading}
-                unavailableLabel={t.orderMapUnavailable}
-                addressLabel={`${t.orderDeliveryAddress} *`}
-              />
-              <div className="flex flex-wrap items-center gap-2">
+          {settings && kitchenClosed ? (
+            <div className="flex min-h-[55vh] flex-1 flex-col items-center justify-center gap-4 px-4 pb-12 pt-2">
+              <div className="w-full max-w-lg rounded-2xl border border-amber-500/35 bg-amber-500/10 p-6 text-center text-amber-100">
+                <div className="mb-2 text-4xl" aria-hidden>
+                  🔴
+                </div>
+                <h2 className="text-xl font-bold text-white">{t.kitchenClosedTitle}</h2>
+                <p className="mt-3 text-sm leading-relaxed text-amber-100/95">{t.kitchenClosedMessage}</p>
+                {hoursLine ? (
+                  <p className="mt-4 text-sm text-amber-200/90">
+                    {t.kitchenClosedReopenHint} {hoursLine}
+                  </p>
+                ) : null}
                 <button
                   type="button"
-                  onClick={handleLocate}
-                  className="neon-btn-secondary inline-flex items-center gap-2 px-3 py-2 text-sm"
+                  className="neon-btn-primary mt-6 w-full py-4"
+                  onClick={() => setFlow('browse')}
                 >
-                  <Navigation className="h-4 w-4" />
-                  {t.orderUseLocation}
+                  {t.kitchenClosedBackToMenu}
                 </button>
-                {geoStatus ? <span className="text-xs text-slate-500">{geoStatus}</span> : null}
               </div>
-              {lat != null && lng != null ? (
-                <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                  <MapPin className="h-4 w-4 shrink-0" />
-                  {zoneMatch ? (
-                    <>
-                      {t.orderInZonePrefix}: {zoneMatch.name} · {t.orderDeliveryFeeRow} ₼
-                      {Number(zoneMatch.delivery_fee).toFixed(2)}
-                    </>
-                  ) : (
-                    <span className="text-amber-400">{t.orderOutsideZone}</span>
-                  )}
-                </p>
-              ) : null}
-              {user ? (
-                <label className="flex items-center gap-2 text-sm text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={saveAddressForNext}
-                    onChange={(e) => setSaveAddressForNext(e.target.checked)}
-                  />
-                  {t.orderSaveAddressForNext}
-                </label>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col gap-4 p-4 pb-12">
+              {settings && !settings.takeaway_enabled && settings.delivery_enabled ? (
+                <p className="text-sm text-amber-400">{t.orderFulfillmentTakeawayDisabled}</p>
               ) : null}
               <div className="space-y-2">
-                <label className="text-xs text-slate-500">{t.orderDeliveryNotesLabel}</label>
-                <textarea
-                  className="min-h-[5rem] w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm text-white placeholder:text-slate-600"
-                  value={deliveryNotes}
-                  onChange={(e) => setDeliveryNotes(e.target.value)}
-                  placeholder={t.orderDeliveryNotesPlaceholder}
+                <OrderFulfillmentPicker
+                  fulfillment={fulfillment}
+                  onChange={setFulfillment}
+                  showTakeaway={showTakeaway}
+                  showDelivery={showDelivery}
+                  label={t.orderChooseFulfillmentTitle}
+                  takeawayLabel={t.orderFulfillmentTakeaway}
+                  deliveryLabel={t.orderFulfillmentDelivery}
+                />
+                {!showTakeaway && !showDelivery ? (
+                  <p className="text-sm text-rose-400">{t.orderOnlineDisabled}</p>
+                ) : null}
+              </div>
+
+              {fulfillment === 'delivery' && !serverAllowsDelivery ? (
+                <p className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-3 text-sm text-amber-100/95">
+                  {t.orderDeliveryDisabledInSettings}
+                </p>
+              ) : null}
+
+              <div className="space-y-2">
+                <label className="text-xs text-slate-500">{t.orderPhone} *</label>
+                <input
+                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="+994 50 123 45 67"
+                  autoComplete="tel"
+                />
+                {customerPhone.trim().length > 4 &&
+                !/^\+?994[\s-]?\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}$/.test(
+                  customerPhone.replace(/\s/g, '')
+                ) ? (
+                  <p className="text-xs text-amber-400">{t.orderPhoneFormatHint}</p>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs text-slate-500">{t.orderNameOptional}</label>
+                <input
+                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
                 />
               </div>
-            </>
-          )}
 
-          <div className="space-y-2">
-            <label className="text-xs text-slate-500">{t.orderPayment}</label>
-            <select
-              className="cockpit-select"
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as OnlinePaymentMethod)}
-            >
-              <option value="cod">{t.orderPayCod}</option>
-              <option value="cash">{t.orderPayCash}</option>
-              <option value="epoint">{t.orderPayEpoint}</option>
-            </select>
-          </div>
+              {fulfillment === 'delivery' && user && addresses.length > 0 ? (
+                <div className="space-y-2">
+                  <label className="text-xs text-slate-500">{t.orderSelectSavedAddress}</label>
+                  <select
+                    className="cockpit-select"
+                    value={selectedSavedAddressId ?? ''}
+                    onChange={(e) => setSelectedSavedAddressId(e.target.value || null)}
+                  >
+                    <option value="">{t.cancel}</option>
+                    {addresses.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.label}: {a.line1}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
 
-          {submitError ? <p className="text-sm text-rose-400">{submitError}</p> : null}
+              {fulfillment === 'delivery' && (
+                <>
+                  <OrderAddressMap
+                    apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
+                    lat={lat}
+                    lng={lng}
+                    address={deliveryAddress}
+                    onLocationChange={({ lat: nextLat, lng: nextLng, address: nextAddr }) => {
+                      setLat(nextLat);
+                      setLng(nextLng);
+                      setDeliveryAddress(nextAddr);
+                    }}
+                    onAddressChange={setDeliveryAddress}
+                    searchPlaceholder={t.orderMapSearchPlaceholder}
+                    pinHint={t.orderMapPinHint}
+                    loadingLabel={t.orderMapLoading}
+                    unavailableLabel={t.orderMapUnavailable}
+                    addressLabel={`${t.orderDeliveryAddress} *`}
+                  />
+                  {deliveryOutsideZone ? (
+                    <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-rose-100">
+                      <div className="flex gap-3">
+                        <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-rose-300" aria-hidden />
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <p className="font-semibold text-rose-50">{t.zoneErrorTitle}</p>
+                          <p className="text-sm text-rose-100/90">{t.zoneErrorMessage}</p>
+                          <button
+                            type="button"
+                            className="text-left text-sm font-semibold text-cockpit-400 underline underline-offset-2 hover:text-cockpit-300"
+                            onClick={() => setFulfillment('takeaway')}
+                          >
+                            {t.zoneSwitchTakeaway}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleLocate}
+                      className="neon-btn-secondary inline-flex items-center gap-2 px-3 py-2 text-sm"
+                    >
+                      <Navigation className="h-4 w-4" />
+                      {t.orderUseLocation}
+                    </button>
+                    {geoStatus ? <span className="text-xs text-slate-500">{geoStatus}</span> : null}
+                  </div>
+                  {lat != null && lng != null && zoneMatch ? (
+                    <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                      <MapPin className="h-4 w-4 shrink-0" />
+                      {t.orderInZonePrefix}: {zoneMatch.name} · {t.orderDeliveryFeeRow} ₼
+                      {Number(zoneMatch.delivery_fee).toFixed(2)}
+                    </p>
+                  ) : null}
+                  {user ? (
+                    <label className="flex items-center gap-2 text-sm text-slate-400">
+                      <input
+                        type="checkbox"
+                        checked={saveAddressForNext}
+                        onChange={(e) => setSaveAddressForNext(e.target.checked)}
+                      />
+                      {t.orderSaveAddressForNext}
+                    </label>
+                  ) : null}
+                  <div className="space-y-2">
+                    <label className="text-xs text-slate-500">{t.orderDeliveryNotesLabel}</label>
+                    <textarea
+                      className="min-h-[5rem] w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm text-white placeholder:text-slate-600"
+                      value={deliveryNotes}
+                      onChange={(e) => setDeliveryNotes(e.target.value)}
+                      placeholder={t.orderDeliveryNotesPlaceholder}
+                    />
+                  </div>
+                </>
+              )}
 
-          <div className="neon-card p-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400">{t.orderSubtotal}</span>
-              <span className="font-mono">₼{cartTotal.toFixed(2)}</span>
-            </div>
-            {fulfillment === 'delivery' ? (
-              <div className="mt-2 flex justify-between text-sm">
-                <span className="text-slate-400">{t.orderDeliveryFeeRow}</span>
-                <span className="font-mono">₼{deliveryFee.toFixed(2)}</span>
+              <div className="space-y-2">
+                <label className="text-xs text-slate-500">{t.orderPayment}</label>
+                <select
+                  className="cockpit-select"
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as OnlinePaymentMethod)}
+                >
+                  <option value="cod">{t.orderPayCod}</option>
+                  <option value="cash">{t.orderPayCash}</option>
+                  <option value="epoint">{t.orderPayEpoint}</option>
+                </select>
               </div>
-            ) : null}
-            <div className="mt-2 flex justify-between border-t border-white/10 pt-2 text-base font-semibold">
-              <span>{t.orderTotal}</span>
-              <span className="font-mono text-cockpit-400">₼{grandTotal.toFixed(2)}</span>
-            </div>
-          </div>
 
-          <button
-            type="button"
-            disabled={
-              submitting ||
-              cart.length === 0 ||
-              (fulfillment === 'delivery' && !serverAllowsDelivery) ||
-              (fulfillment === 'delivery' && (!zoneMatch || !deliveryAddress.trim()))
-            }
-            className="neon-btn-primary w-full py-4 disabled:opacity-40"
-            onClick={() => void handleSubmitOrder()}
-          >
-            {submitting ? <Loader2 className="mx-auto h-6 w-6 animate-spin" /> : t.placeOrder}
-          </button>
-        </div>
+              {submitError && !cartAvailabilityBlocked ? (
+                <p className="text-sm text-rose-400">{submitError}</p>
+              ) : null}
+
+              {cartAvailabilityBlocked && cartAvailabilityBlocked.items.length > 0 ? (
+                <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-rose-100">
+                  <p className="font-semibold text-rose-50">{t.cartUnavailableTitle}</p>
+                  <p className="mt-1 text-sm text-rose-100/90">{t.cartUnavailableIntro}</p>
+                  {cartAvailabilityBlocked.serverMessage ? (
+                    <p className="mt-2 text-xs text-rose-200/80">{t.cartUnavailableServerHint}</p>
+                  ) : null}
+                  <ul className="mt-3 space-y-2">
+                    {cartAvailabilityBlocked.items.map((row) => (
+                      <li
+                        key={row.cartItemKey}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-rose-500/25 bg-rose-500/5 px-3 py-2 text-sm"
+                      >
+                        <span className="min-w-0 flex-1 text-rose-50">{row.label}</span>
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-lg border border-rose-500/40 px-2 py-1 text-xs font-semibold text-rose-100 hover:bg-rose-500/20"
+                          onClick={() => removeLine(row.cartItemKey)}
+                        >
+                          {t.cartUnavailableRemoveLine}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      className="flex-1 rounded-xl border border-rose-500/35 bg-rose-500/15 py-3 text-sm font-semibold text-rose-50 hover:bg-rose-500/25"
+                      onClick={() => removeAllUnavailableCartLines()}
+                    >
+                      {t.cartUnavailableContinueWithout}
+                    </button>
+                    <button
+                      type="button"
+                      className="flex-1 rounded-xl border border-white/10 py-3 text-sm font-semibold text-slate-200 hover:bg-white/5"
+                      onClick={() => {
+                        setCartAvailabilityBlocked(null);
+                        setFlow('browse');
+                      }}
+                    >
+                      {t.cartUnavailableBackMenu}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="neon-card p-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">{t.orderSubtotal}</span>
+                  <span className="font-mono">₼{cartTotal.toFixed(2)}</span>
+                </div>
+                {fulfillment === 'delivery' ? (
+                  <div className="mt-2 flex justify-between text-sm">
+                    <span className="text-slate-400">{t.orderDeliveryFeeRow}</span>
+                    <span className="font-mono">₼{deliveryFee.toFixed(2)}</span>
+                  </div>
+                ) : null}
+                <div className="mt-2 flex justify-between border-t border-white/10 pt-2 text-base font-semibold">
+                  <span>{t.orderTotal}</span>
+                  <span className="font-mono text-cockpit-400">₼{grandTotal.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                title={deliveryOutsideZone ? t.orderSubmitDisabledOutsideZone : undefined}
+                disabled={
+                  submitting ||
+                  cart.length === 0 ||
+                  (cartAvailabilityBlocked != null && cartAvailabilityBlocked.items.length > 0) ||
+                  (fulfillment === 'delivery' && !serverAllowsDelivery) ||
+                  (fulfillment === 'delivery' &&
+                    (!deliveryAddress.trim() || lat == null || lng == null || !zoneMatch))
+                }
+                className="neon-btn-primary w-full py-4 disabled:opacity-40"
+                onClick={() => void handleSubmitOrder()}
+              >
+                {submitting ? <Loader2 className="mx-auto h-6 w-6 animate-spin" /> : t.placeOrder}
+              </button>
+              {deliveryOutsideZone ? (
+                <p className="text-center text-xs text-rose-300/90">{t.orderSubmitDisabledOutsideZone}</p>
+              ) : null}
+            </div>
+          )}
+        </>
       )}
 
       {showStickyCart && (

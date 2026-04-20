@@ -28,7 +28,7 @@ Routing is now selected by `VITE_APP_SURFACE`:
 | `/kiosk` | `KioskApp` | Separate operational surface. |
 | `/kds` | `KitchenDisplay` | Separate operational surface. |
 | `/order-manager` | `OrderManagerApp` | Also available on staff surface for operational access. |
-| `/spec-ops` | Redirect to `/` | Legacy compatibility route. |
+| `VITE_ADMIN_APP_PATH` (default `/spec-ops`) | `App` (staff cockpit) | Supports custom admin entry path; default remains `/spec-ops`. |
 | **Anything else** | `PublicNotFound` | Unknown path denied. |
 
 ## 2. Staff route mapping (`src/App.tsx`)
@@ -54,9 +54,8 @@ Staff navigation moved from query-param state (`?screen=...`) to real paths:
 ## 3. Hosting rewrites and redirects (`vercel.json`)
 
 - SPA fallback remains: `/(.*)` → `/index.html`
-- Legacy redirects:
+- Legacy redirect:
   - `order.mings.az/order` → `/`
-  - `sp.mings.az/spec-ops` → `/`
 
 ## 4. Cross-surface links
 
@@ -76,6 +75,6 @@ Staff navigation moved from query-param state (`?screen=...`) to real paths:
 ## 6. Risks and checks
 
 1. Ensure each Vercel project/domain sets the correct `VITE_APP_SURFACE`.
-2. Validate legacy redirects only trigger on the intended hostnames.
+2. If you use a custom `VITE_ADMIN_APP_PATH`, ensure host rewrites route that path to `index.html` (do not redirect it to `/`).
 3. Keep `/kiosk` and `/kds` behind secrets in production (`VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`).
 4. `/order-manager` uses staff auth (same guard as cockpit); verify non-staff users see access denied.

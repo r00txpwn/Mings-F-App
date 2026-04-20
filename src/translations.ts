@@ -264,6 +264,9 @@ export interface Translations {
   staffAccessRetry: string;
   staffGoToOrder: string;
   staffSignOut: string;
+  adminAccessDeniedTitle: string;
+  adminAccessDeniedBody: string;
+  adminAccessGoToOrderManager: string;
   newUserRole: string;
   userRoleStaff: string;
   userRoleManager: string;
@@ -564,6 +567,27 @@ export interface Translations {
   orderGeoFailed: string;
   orderGeoUpdated: string;
   orderOutsideZone: string;
+  /** Delivery address is outside all zones — inline error (checkout). */
+  zoneErrorTitle: string;
+  zoneErrorMessage: string;
+  zoneSwitchTakeaway: string;
+  /** Shown when Place Order is disabled because address is outside delivery zone. */
+  orderSubmitDisabledOutsideZone: string;
+  /** Kitchen is not accepting online orders (checkout banner). */
+  kitchenClosedTitle: string;
+  kitchenClosedMessage: string;
+  /** Shown before hours line when reopening info exists */
+  kitchenClosedReopenHint: string;
+  kitchenClosedBackToMenu: string;
+  /** Cart contains items no longer available for online order */
+  cartUnavailableTitle: string;
+  cartUnavailableIntro: string;
+  cartUnavailableRemoveLine: string;
+  cartUnavailableContinueWithout: string;
+  cartUnavailableBackMenu: string;
+  cartUnavailableServerHint: string;
+  /** Fallback line label when an item can no longer be resolved by name */
+  cartUnavailableGenericItemLabel: string;
   orderInZonePrefix: string;
   orderPayment: string;
   orderPayCod: string;
@@ -637,6 +661,24 @@ export interface Translations {
   trackStatusReady: string;
   trackStatusDispatched: string;
   trackStatusCompleted: string;
+  /** Cancelled with staff reason */
+  orderCancelledTitle: string;
+  orderCancelledReason: string;
+  orderCancelledRefundNote: string;
+  orderCancelledGeneric: string;
+  trackingOrderAgain: string;
+  trackingCancelledContact: string;
+  trackStageOrderPlaced: string;
+  trackStagePreparing: string;
+  trackStageReady: string;
+  trackStageReadyForPickup: string;
+  trackStageOutForDelivery: string;
+  trackStageDelivered: string;
+  trackStageCollected: string;
+  trackStageEtaMinutes: string;
+  trackStageArrivingAround: string;
+  trackEtaLabel: string;
+  trackTimelineTitle: string;
 
   // Combos admin
   combosScreenTitle: string;
@@ -687,6 +729,24 @@ export interface Translations {
   omSourceDelivery: string;
   omTitle: string;
   omReminderSet: string;
+  omSelfDelivery: string;
+  omWoltDrive: string;
+  omWoltDriveComingSoon: string;
+  omConfirmSelfDispatch: string;
+  omDispatchedSelfDelivery: string;
+  omNoLocationData: string;
+  omDistanceAway: string;
+  omRecommended: string;
+  omRejectOrder: string;
+  omRejectReasonItemUnavailable: string;
+  omRejectReasonTooBusy: string;
+  omRejectReasonZoneIssue: string;
+  omRejectReasonCustomerRequest: string;
+  omRejectReasonOther: string;
+  omRejectNotePlaceholder: string;
+  omRejectConfirm: string;
+  omRejectCancel: string;
+  omRejectSelectReason: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -941,6 +1001,10 @@ export const translations: Record<Language, Translations> = {
     staffAccessRetry: 'Check again',
     staffGoToOrder: 'Order online',
     staffSignOut: 'Sign out',
+    adminAccessDeniedTitle: 'Access Restricted',
+    adminAccessDeniedBody:
+      'You do not have permission to access the admin panel. Please use the Order Manager instead.',
+    adminAccessGoToOrderManager: 'Go to Order Manager',
     newUserRole: 'Role',
     userRoleStaff: 'Staff',
     userRoleManager: 'Manager',
@@ -1227,6 +1291,23 @@ export const translations: Record<Language, Translations> = {
     orderGeoFailed: 'Could not get location',
     orderGeoUpdated: 'Location updated',
     orderOutsideZone: 'Outside delivery zones — adjust location.',
+    zoneErrorTitle: "We don't deliver to this address yet",
+    zoneErrorMessage: 'Try a different address or choose Takeaway.',
+    zoneSwitchTakeaway: 'Switch to Takeaway',
+    orderSubmitDisabledOutsideZone:
+      'Delivery is unavailable for this address. Switch to Takeaway or move the pin.',
+    kitchenClosedTitle: "We're closed right now",
+    kitchenClosedMessage: 'Online ordering is paused. Please check back when we reopen.',
+    kitchenClosedReopenHint: 'Opening hours:',
+    kitchenClosedBackToMenu: 'Back to menu',
+    cartUnavailableTitle: 'Some items are no longer available',
+    cartUnavailableIntro: 'Remove unavailable items to continue.',
+    cartUnavailableRemoveLine: 'Remove',
+    cartUnavailableContinueWithout: 'Continue without these items',
+    cartUnavailableBackMenu: 'Go back to menu',
+    cartUnavailableServerHint:
+      'The menu changed while your cart was open. Update your cart and try again.',
+    cartUnavailableGenericItemLabel: 'One or more items in your cart are no longer available',
     orderInZonePrefix: 'In zone',
     orderPayment: 'Payment',
     orderPayCod: 'Cash on pickup / delivery',
@@ -1301,6 +1382,24 @@ export const translations: Record<Language, Translations> = {
     trackStatusReady: 'Almost there — courier is being assigned',
     trackStatusDispatched: 'On the way!',
     trackStatusCompleted: 'Delivered — enjoy your meal!',
+    orderCancelledTitle: 'Your order was cancelled',
+    orderCancelledReason: 'Reason: {reason}',
+    orderCancelledRefundNote:
+      'A refund will be processed. Contact us at +994518962446 if you have questions.',
+    orderCancelledGeneric: 'Your order was cancelled. Contact us if you have questions.',
+    trackingOrderAgain: 'Order again',
+    trackingCancelledContact: 'Questions? Call +994518962446',
+    trackStageOrderPlaced: 'Order placed',
+    trackStagePreparing: 'Being prepared',
+    trackStageReady: 'Ready',
+    trackStageReadyForPickup: 'Ready for pickup',
+    trackStageOutForDelivery: 'Out for delivery',
+    trackStageDelivered: 'Delivered',
+    trackStageCollected: 'Collected',
+    trackStageEtaMinutes: 'Est. {min} min',
+    trackStageArrivingAround: 'Arriving around {time}',
+    trackEtaLabel: 'ETA',
+    trackTimelineTitle: 'Order status',
 
     combosScreenTitle: 'Combo deals',
     combosScreenDescription: 'Create bundled offers for the online menu.',
@@ -1350,6 +1449,24 @@ export const translations: Record<Language, Translations> = {
     omSourceDelivery: 'Online · Delivery',
     omTitle: 'Order Manager',
     omReminderSet: 'Reminder set',
+    omSelfDelivery: 'Self Delivery',
+    omWoltDrive: 'Wolt Drive',
+    omWoltDriveComingSoon: 'Coming soon',
+    omConfirmSelfDispatch: 'Confirm — Self Delivery',
+    omDispatchedSelfDelivery: 'Dispatched — Self Delivery',
+    omNoLocationData: 'No location data — assign manually',
+    omDistanceAway: 'away',
+    omRecommended: 'recommended',
+    omRejectOrder: 'Reject order',
+    omRejectReasonItemUnavailable: 'Item unavailable',
+    omRejectReasonTooBusy: 'Kitchen too busy',
+    omRejectReasonZoneIssue: 'Outside delivery zone',
+    omRejectReasonCustomerRequest: 'Customer request',
+    omRejectReasonOther: 'Other reason',
+    omRejectNotePlaceholder: 'Add a note for the customer...',
+    omRejectConfirm: 'Confirm Reject',
+    omRejectCancel: 'Cancel',
+    omRejectSelectReason: 'Select a reason...',
   },
 
   az: {
@@ -1603,6 +1720,10 @@ export const translations: Record<Language, Translations> = {
     staffAccessRetry: 'Yenidən yoxla',
     staffGoToOrder: 'Onlayn sifariş',
     staffSignOut: 'Çıxış',
+    adminAccessDeniedTitle: 'Giriş məhduddur',
+    adminAccessDeniedBody:
+      'Admin panelinə giriş icazəniz yoxdur. Zəhmət olmasa Sifariş Menecerindən istifadə edin.',
+    adminAccessGoToOrderManager: 'Sifariş menecerinə keç',
     newUserRole: 'Rol',
     userRoleStaff: 'Personal',
     userRoleManager: 'Menecer',
@@ -1889,6 +2010,24 @@ export const translations: Record<Language, Translations> = {
     orderGeoFailed: 'Məkan alına bilmədi',
     orderGeoUpdated: 'Məkan yeniləndi',
     orderOutsideZone: 'Çatdırılma zonasından kənar — məkanı düzəldin.',
+    zoneErrorTitle: 'Bu ünvana hələ çatdırmırıq',
+    zoneErrorMessage: 'Başqa ünvan sınayın və ya Götürmə seçin.',
+    zoneSwitchTakeaway: 'Götürməyə keç',
+    orderSubmitDisabledOutsideZone:
+      'Bu ünvan üçün çatdırılma yoxdur. Götürməyə keçin və ya işarəni dəyişin.',
+    kitchenClosedTitle: 'Hal-hazırda bağıyıq',
+    kitchenClosedMessage: 'Onlayn sifariş müvəqqəti dayandırılıb. Yenidən açılanda yoxlayın.',
+    kitchenClosedReopenHint: 'İş saatları:',
+    kitchenClosedBackToMenu: 'Menyuya qayıt',
+    cartUnavailableTitle: 'Bəzi məhsullar artıq mövcud deyil',
+    cartUnavailableIntro: 'Davam etmək üçün əlçatan olmayanları silin.',
+    cartUnavailableRemoveLine: 'Sil',
+    cartUnavailableContinueWithout: 'Bu məhsullarsız davam et',
+    cartUnavailableBackMenu: 'Menyuya qayıt',
+    cartUnavailableServerHint:
+      'Səbətiniz açıq olanda menyu dəyişdi. Səbəti yeniləyib yenidən cəhd edin.',
+    cartUnavailableGenericItemLabel:
+      'Səbətinizdəki bəzi məhsullar artıq mövcud deyil',
     orderInZonePrefix: 'Zona',
     orderPayment: 'Ödəniş',
     orderPayCod: 'Nağd (götürmə/çatdırılma)',
@@ -1962,6 +2101,24 @@ export const translations: Record<Language, Translations> = {
     trackStatusReady: 'Demək olar hazırdır — kuryer təyin olunur',
     trackStatusDispatched: 'Yoldadır!',
     trackStatusCompleted: 'Çatdırıldı — nuş olsun!',
+    orderCancelledTitle: 'Sifarişiniz ləğv edildi',
+    orderCancelledReason: 'Səbəb: {reason}',
+    orderCancelledRefundNote:
+      'Geri ödəmə həyata keçiriləcək. Suallar üçün +994518962446 nömrəsi ilə əlaqə saxlayın.',
+    orderCancelledGeneric: 'Sifarişiniz ləğv edildi. Suallar üçün bizimlə əlaqə saxlayın.',
+    trackingOrderAgain: 'Yenidən sifariş',
+    trackingCancelledContact: 'Suallar? +994518962446',
+    trackStageOrderPlaced: 'Sifariş verildi',
+    trackStagePreparing: 'Hazırlanır',
+    trackStageReady: 'Hazırdır',
+    trackStageReadyForPickup: 'Götürməyə hazırdır',
+    trackStageOutForDelivery: 'Çatdırma yoldadır',
+    trackStageDelivered: 'Çatdırıldı',
+    trackStageCollected: 'Götürüldü',
+    trackStageEtaMinutes: 'Təxminən {min} dəq',
+    trackStageArrivingAround: 'Təxminən {time} çatacaq',
+    trackEtaLabel: 'Çatdırılma vaxtı',
+    trackTimelineTitle: 'Sifariş vəziyyəti',
 
     combosScreenTitle: 'Kombo təkliflər',
     combosScreenDescription: 'Onlayn menyu üçün paket təkliflər yaradın.',
@@ -2011,6 +2168,24 @@ export const translations: Record<Language, Translations> = {
     omSourceDelivery: 'Onlayn · Çatdırılma',
     omTitle: 'Sifariş meneceri',
     omReminderSet: 'Xatırlatma quruldu',
+    omSelfDelivery: 'Öz çatdırılma',
+    omWoltDrive: 'Wolt Drive',
+    omWoltDriveComingSoon: 'Tezliklə',
+    omConfirmSelfDispatch: 'Təsdiqlə — Öz çatdırılma',
+    omDispatchedSelfDelivery: 'Yola salındı — Öz çatdırılma',
+    omNoLocationData: 'Lokasiya məlumatı yoxdur — əl ilə təyin edin',
+    omDistanceAway: 'uzaqda',
+    omRecommended: 'tövsiyə olunur',
+    omRejectOrder: 'Sifarişi rədd et',
+    omRejectReasonItemUnavailable: 'Məhsul yoxdur',
+    omRejectReasonTooBusy: 'Mətbəx çox yüklüdür',
+    omRejectReasonZoneIssue: 'Çatdırılma zonasından kənar',
+    omRejectReasonCustomerRequest: 'Müştəri istəyi',
+    omRejectReasonOther: 'Başqa səbəb',
+    omRejectNotePlaceholder: 'Müştəri üçün qeyd əlavə edin...',
+    omRejectConfirm: 'Rədd etməni təsdiqlə',
+    omRejectCancel: 'Ləğv et',
+    omRejectSelectReason: 'Səbəb seçin...',
   },
 
   ru: {
@@ -2264,6 +2439,10 @@ export const translations: Record<Language, Translations> = {
     staffAccessRetry: 'Проверить снова',
     staffGoToOrder: 'Заказать онлайн',
     staffSignOut: 'Выйти',
+    adminAccessDeniedTitle: 'Доступ ограничен',
+    adminAccessDeniedBody:
+      'У вас нет доступа к панели администратора. Пожалуйста, используйте Менеджер заказов.',
+    adminAccessGoToOrderManager: 'Перейти в Менеджер заказов',
     newUserRole: 'Роль',
     userRoleStaff: 'Сотрудник',
     userRoleManager: 'Менеджер',
@@ -2550,6 +2729,24 @@ export const translations: Record<Language, Translations> = {
     orderGeoFailed: 'Не удалось получить местоположение',
     orderGeoUpdated: 'Местоположение обновлено',
     orderOutsideZone: 'Вне зоны доставки — уточните точку.',
+    zoneErrorTitle: 'Пока не доставляем по этому адресу',
+    zoneErrorMessage: 'Попробуйте другой адрес или выберите самовывоз.',
+    zoneSwitchTakeaway: 'Перейти к самовывозу',
+    orderSubmitDisabledOutsideZone:
+      'Доставка недоступна для этого адреса. Переключитесь на самовывоз или переместите метку.',
+    kitchenClosedTitle: 'Сейчас мы закрыты',
+    kitchenClosedMessage: 'Онлайн-заказы временно недоступны. Загляните позже.',
+    kitchenClosedReopenHint: 'Часы работы:',
+    kitchenClosedBackToMenu: 'В меню',
+    cartUnavailableTitle: 'Некоторые позиции больше недоступны',
+    cartUnavailableIntro: 'Удалите недоступные позиции, чтобы продолжить.',
+    cartUnavailableRemoveLine: 'Убрать',
+    cartUnavailableContinueWithout: 'Продолжить без этих позиций',
+    cartUnavailableBackMenu: 'В меню',
+    cartUnavailableServerHint:
+      'Меню изменилось, пока корзина была открыта. Обновите корзину и попробуйте снова.',
+    cartUnavailableGenericItemLabel:
+      'Некоторых позиций в корзине больше нет в наличии',
     orderInZonePrefix: 'Зона',
     orderPayment: 'Оплата',
     orderPayCod: 'Наличные при получении',
@@ -2623,6 +2820,24 @@ export const translations: Record<Language, Translations> = {
     trackStatusReady: 'Почти готово — назначаем курьера',
     trackStatusDispatched: 'В пути!',
     trackStatusCompleted: 'Доставлено — приятного аппетита!',
+    orderCancelledTitle: 'Заказ отменён',
+    orderCancelledReason: 'Причина: {reason}',
+    orderCancelledRefundNote:
+      'Возврат будет обработан. Вопросы: +994518962446',
+    orderCancelledGeneric: 'Заказ отменён. Свяжитесь с нами, если есть вопросы.',
+    trackingOrderAgain: 'Заказать снова',
+    trackingCancelledContact: 'Вопросы? Звоните +994518962446',
+    trackStageOrderPlaced: 'Заказ оформлен',
+    trackStagePreparing: 'Готовится',
+    trackStageReady: 'Готово',
+    trackStageReadyForPickup: 'Готов к выдаче',
+    trackStageOutForDelivery: 'В пути к вам',
+    trackStageDelivered: 'Доставлено',
+    trackStageCollected: 'Получен',
+    trackStageEtaMinutes: 'Около {min} мин',
+    trackStageArrivingAround: 'Ожидается около {time}',
+    trackEtaLabel: 'Прибытие',
+    trackTimelineTitle: 'Статус заказа',
 
     combosScreenTitle: 'Комбо-предложения',
     combosScreenDescription: 'Создавайте пакетные предложения для онлайн-меню.',
@@ -2671,5 +2886,23 @@ export const translations: Record<Language, Translations> = {
     omSourceDelivery: 'Онлайн · Доставка',
     omTitle: 'Менеджер заказов',
     omReminderSet: 'Напоминание установлено',
+    omSelfDelivery: 'Своя доставка',
+    omWoltDrive: 'Wolt Drive',
+    omWoltDriveComingSoon: 'Скоро',
+    omConfirmSelfDispatch: 'Подтвердить — Своя доставка',
+    omDispatchedSelfDelivery: 'Отправлено — Своя доставка',
+    omNoLocationData: 'Нет данных о локации — назначьте вручную',
+    omDistanceAway: 'от кухни',
+    omRecommended: 'рекомендуется',
+    omRejectOrder: 'Отклонить заказ',
+    omRejectReasonItemUnavailable: 'Товар недоступен',
+    omRejectReasonTooBusy: 'Кухня перегружена',
+    omRejectReasonZoneIssue: 'Вне зоны доставки',
+    omRejectReasonCustomerRequest: 'По просьбе клиента',
+    omRejectReasonOther: 'Другая причина',
+    omRejectNotePlaceholder: 'Добавьте комментарий для клиента...',
+    omRejectConfirm: 'Подтвердить отказ',
+    omRejectCancel: 'Отмена',
+    omRejectSelectReason: 'Выберите причину...',
   },
 };
