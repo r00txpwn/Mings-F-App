@@ -12,7 +12,7 @@ import {
   Users,
   LogOut,
   DollarSign,
-  Monitor,
+  ClipboardList,
   UtensilsCrossed,
   Banknote,
   Moon,
@@ -175,7 +175,7 @@ function AppContent() {
   const navItems: { id: Screen; icon: React.ReactNode; label: string }[] = [
     { id: 'home', icon: <Home className="h-5 w-5 shrink-0" />, label: t.home },
     { id: 'sales', icon: <ShoppingCart className="h-5 w-5 shrink-0" />, label: t.sales },
-    { id: 'kiosk-orders', icon: <Monitor className="h-5 w-5 shrink-0" />, label: t.kioskOrders },
+    { id: 'kiosk-orders', icon: <ClipboardList className="h-5 w-5 shrink-0" />, label: t.orderSupport },
     { id: 'menu-builder', icon: <UtensilsCrossed className="h-5 w-5 shrink-0" />, label: t.menuBuilder },
     { id: 'combos', icon: <Flame className="h-5 w-5 shrink-0" />, label: t.combosScreenTitle },
     { id: 'products', icon: <Package className="h-5 w-5 shrink-0" />, label: t.products },
