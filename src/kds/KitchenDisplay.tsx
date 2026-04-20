@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { SecretGate } from '../components/SecretGate';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
@@ -176,6 +177,7 @@ export function KitchenDisplay() {
         <SecretGate secretKey={secret}>
           <KdsContent />
         </SecretGate>
+        <Analytics />
       </LanguageProvider>
     </ThemeProvider>
   );

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ClipboardList, History, Loader2, LogOut, UtensilsCrossed } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
@@ -92,6 +93,7 @@ export function OrderManagerApp() {
       <LanguageProvider>
         <AuthProvider>
           <OrderManagerShell />
+          <Analytics />
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>

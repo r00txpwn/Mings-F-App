@@ -32,7 +32,7 @@ Mings Financial Automation is a business management system for small to medium-s
 | `/spec-ops` | Staff cockpit ([`App.tsx`](src/App.tsx)) — default URL (`/spec-ops/` works). Override with `VITE_ADMIN_APP_PATH` in `.env` if needed. |
 | `/kiosk`  | [`KioskApp`](src/kiosk/KioskApp.tsx) — customer kiosk |
 | `/kds`    | [`KitchenDisplay`](src/kds/KitchenDisplay.tsx) — kitchen screen |
-| `/order`  | [`OrderApp`](src/order/OrderApp.tsx) — public online ordering (no `SecretGate`). Delivery checkout can use **Google Maps** (search + draggable pin + tap) when `VITE_GOOGLE_MAPS_API_KEY` is set — see `.env.example`. |
+| `/order`  | [`OrderApp`](src/order/OrderApp.tsx) — public online ordering (no `SecretGate`). Delivery checkout uses a premium **Google Maps** address flow (Places API (New) autocomplete + draggable pin + reverse-geocode + zone polygons) when `VITE_GOOGLE_MAPS_API_KEY` is set — see [`src/order/AddressAutocomplete.tsx`](src/order/AddressAutocomplete.tsx), [`src/order/OrderAddressMap.tsx`](src/order/OrderAddressMap.tsx), [`src/order/googleMapsLoader.ts`](src/order/googleMapsLoader.ts), `.env.example`, and [`DEPLOY.md`](DEPLOY.md#google-maps-setup-required-for-the-customer-delivery-flow) for the APIs to enable. |
 | `/track`  | [`TrackingApp`](src/order/TrackingApp.tsx) — public order status via `track_token` |
 | *other*   | [`PublicNotFound`](src/PublicNotFound.tsx) — generic denied/404 (no admin hint, no `/order` push). |
 
@@ -118,8 +118,18 @@ Mings Financial Automation is a business management system for small to medium-s
 │   │   ├── PayoutsScreen.tsx     # Platform payouts + reconciliation
 │   │   ├── MenuScreen.tsx        # Kiosk menu builder, modifiers
 │   │   ├── KioskOrdersScreen.tsx # Kanban board for kiosk fulfillment
+│   │   ├── DeliveryScreen.tsx    # Delivery Control Center shell (Zones / Settings / Dispatch tabs)
 │   │   ├── SettingsScreen.tsx
 │   │   └── UsersScreen.tsx
+│   │
+│   ├── /screens/delivery         # Delivery Control Center parts
+│   │   ├── ZonesTab.tsx          # List + CRUD of delivery_zones rows
+│   │   ├── ZoneEditorDialog.tsx  # Visual polygon draw/edit dialog + save form
+│   │   ├── ZonePreviewMap.tsx    # Read-only polygon preview map
+│   │   ├── SettingsTab.tsx       # online_settings: kitchen open, hours, prep time, dispatch mode
+│   │   ├── DispatchTab.tsx       # Live delivery orders + Wolt actions
+│   │   ├── useDeliveryAdmin.ts   # Realtime-backed data hook
+│   │   └── validateZoneGeoJson.ts # Tolerant Polygon / Feature / FeatureCollection parser
 │   │
 │   ├── /screens/expenses
 │   │   ├── ExpensesSummaryBar.tsx
@@ -226,7 +236,7 @@ Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
 | Table | Purpose |
 |-------|---------|
 | sales_channels | Channel definitions (logos, icons, active flag) |
-| sales | Sales rows (`source`: manual, kiosk, `online_delivery`, `online_takeaway`; `order_status`; `track_token` for public tracking) |
+| sales | Sales rows (`source`: manual, kiosk, `online_delivery`, `online_takeaway`; `order_status`; `track_token`; delivery fields: `delivery_address`, `delivery_apartment`, `delivery_floor`, `delivery_notes`, `delivery_lat`/`delivery_lng`, `delivery_fee`, `delivery_zone_id`) |
 | products | Catalog, stock, `kiosk_visible`, `online_visible`, combo upsell flags |
 | combo_deals / combo_groups / combo_group_items | Combo catalog and group-item mapping |
 | online_settings | Takeaway/delivery toggles, hours JSON, min order |

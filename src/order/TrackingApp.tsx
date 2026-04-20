@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { CheckCircle2, Circle, Clock, Loader2, Package, Truck, XCircle } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
@@ -413,6 +414,7 @@ export function TrackingApp() {
     <ThemeProvider>
       <LanguageProvider>
         <TrackingContent />
+        <Analytics />
       </LanguageProvider>
     </ThemeProvider>
   );
