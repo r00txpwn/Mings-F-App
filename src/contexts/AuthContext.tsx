@@ -15,6 +15,14 @@ interface AuthContextType {
   /** SMS OTP via Supabase Auth (Twilio configured in project dashboard). */
   sendPhoneOtp: (phone: string) => Promise<{ error: AuthError | null | Error }>;
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: AuthError | null | Error }>;
+  /**
+   * Google OAuth via Supabase Auth (provider configured in project dashboard).
+   * `redirectTo` defaults to the current surface's origin + pathname so users
+   * land back where they started the sign-in.
+   */
+  signInWithGoogle: (
+    redirectTo?: string,
+  ) => Promise<{ error: AuthError | null | Error }>;
   signOut: () => Promise<void>;
   /** Re-check whether current user is present in `public.users`. */
   refetchIsStaff: () => Promise<void>;
@@ -129,6 +137,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  const signInWithGoogle = async (redirectTo?: string) => {
+    const target =
+      redirectTo ?? `${window.location.origin}${window.location.pathname}`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: target },
+    });
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -158,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         sendPhoneOtp,
         verifyPhoneOtp,
+        signInWithGoogle,
         signOut,
         refetchIsStaff,
       }}

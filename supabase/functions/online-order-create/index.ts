@@ -26,7 +26,11 @@ interface Body {
   deliveryAddress?: string;
   deliveryLat?: number;
   deliveryLng?: number;
-  /** Apartment / buzzer / courier instructions — stored on `sales.delivery_notes`. */
+  /** Apartment / flat / unit number — stored on `sales.delivery_apartment`. */
+  deliveryApartment?: string;
+  /** Floor number — stored on `sales.delivery_floor`. */
+  deliveryFloor?: string;
+  /** Buzzer / courier-visible instructions — stored on `sales.delivery_notes`. */
   deliveryNotes?: string;
   /** QR/table context (e.g. `?table=` or `?ref=`) — stored on the sale `notes` field for kitchen. */
   tableLabel?: string;
@@ -115,6 +119,8 @@ async function handleRequest(req: Request): Promise<Response> {
     deliveryAddress,
     deliveryLat,
     deliveryLng,
+    deliveryApartment,
+    deliveryFloor,
     tableLabel,
     deliveryNotes,
   } = body;
@@ -494,6 +500,9 @@ async function handleRequest(req: Request): Promise<Response> {
       customer_name: customerName?.trim() || null,
       customer_phone: customerPhone.trim(),
       delivery_address: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,
+      delivery_apartment:
+        fulfillmentType === 'delivery' ? deliveryApartment?.trim() || null : null,
+      delivery_floor: fulfillmentType === 'delivery' ? deliveryFloor?.trim() || null : null,
       delivery_lat: fulfillmentType === 'delivery' ? deliveryLat ?? null : null,
       delivery_lng: fulfillmentType === 'delivery' ? deliveryLng ?? null : null,
       delivery_fee: deliveryFee,

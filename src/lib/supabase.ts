@@ -141,6 +141,8 @@ export interface Sale {
   customer_name?: string | null;
   customer_phone?: string | null;
   delivery_address?: string | null;
+  delivery_apartment?: string | null;
+  delivery_floor?: string | null;
   delivery_lat?: number | null;
   delivery_lng?: number | null;
   delivery_fee?: number | null;

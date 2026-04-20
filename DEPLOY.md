@@ -16,7 +16,20 @@ Pick **one** of:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - `VITE_APP_SURFACE` (`order` on `order.mings.az`, `sp` on `sp.mings.az`)
-   - Optional: `VITE_ORDER_APP_ORIGIN` (for staff links to customer app), `VITE_ADMIN_APP_PATH` (custom admin entry path, default `/spec-ops`), `VITE_GOOGLE_MAPS_API_KEY`, `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`, `VITE_ENABLE_COMBOS`, `VITE_WOLT_PORTAL_URL`
+   - Optional: `VITE_ORDER_APP_ORIGIN` (for staff links to customer app), `VITE_ADMIN_APP_PATH` (custom admin entry path, default `/spec-ops`), `VITE_GOOGLE_MAPS_API_KEY` (see Google Maps setup below), `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`, `VITE_ENABLE_COMBOS`, `VITE_WOLT_PORTAL_URL`
+
+### Google Maps setup (required for the customer delivery flow)
+
+The customer order surface uses Google Maps for its address picker. The autocomplete is built on the **Places API (New)** (`AutocompleteSuggestion` / `Place.fetchFields`) and requires a correctly configured key in **Google Cloud Console**:
+
+1. Enable these APIs on the project the key belongs to:
+   - **Maps JavaScript API**
+   - **Places API (New)** — *not* the legacy "Places API"
+   - **Geocoding API** (used for the draggable-pin reverse geocode)
+2. Put the key in `VITE_GOOGLE_MAPS_API_KEY` and redeploy.
+3. Restrict the key (Cloud Console → Credentials → key → Application restrictions): allow the production origins you deploy to (`https://order.mings.az/*`, `https://sp.mings.az/*`, any preview hosts, and `http://localhost:*` for dev).
+4. Make sure **billing is active** on the Cloud project — Places API (New) refuses all requests otherwise.
+5. If the key is missing, the address picker falls back to a plain textarea so the app still builds and runs, but delivery zone validation becomes weaker.
 
 Hostnames are also mapped at runtime as a safety net:
 - `order.*` always resolves to customer surface

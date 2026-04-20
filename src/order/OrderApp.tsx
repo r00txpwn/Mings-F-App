@@ -24,6 +24,7 @@ import { OrderBottomNav, type OrderNavTab } from './OrderBottomNav';
 import { OrderBrandHeader } from './OrderBrandHeader';
 import { OrderAccountPanel } from './OrderAccountPanel';
 import { OrderAddressMap } from './OrderAddressMap';
+import { reverseGeocode } from './googleMapsLoader';
 import { OrderFulfillmentPicker } from './OrderFulfillmentPicker';
 import { OrderMenuBrowseView, ORDER_MENU_ALL_CATEGORY_ID } from './OrderMenuBrowseView';
 import { OrderOnlineTopBar } from './OrderOnlineTopBar';
@@ -182,8 +183,17 @@ type Flow = 'browse' | 'checkout' | 'done';
 
 function OrderContent() {
   const { t, language, setLanguage } = useLanguage();
-  const { user, session, loading: authLoading, signIn, signUp, sendPhoneOtp, verifyPhoneOtp, signOut } =
-    useAuth();
+  const {
+    user,
+    session,
+    loading: authLoading,
+    signIn,
+    signUp,
+    sendPhoneOtp,
+    verifyPhoneOtp,
+    signInWithGoogle,
+    signOut,
+  } = useAuth();
   const accessToken = session?.access_token ?? null;
 
   const { products, categories, loading, error } = useOnlineMenu();
@@ -211,6 +221,8 @@ function OrderContent() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryApartment, setDeliveryApartment] = useState('');
+  const [deliveryFloor, setDeliveryFloor] = useState('');
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [geoStatus, setGeoStatus] = useState<string | null>(null);
@@ -354,6 +366,8 @@ function OrderContent() {
     const a = addresses.find((x) => x.id === selectedSavedAddressId);
     if (!a) return;
     setDeliveryAddress(a.line1);
+    setDeliveryApartment(a.apartment ?? '');
+    setDeliveryFloor(a.floor ?? '');
     if (a.lat != null && a.lng != null) {
       setLat(a.lat);
       setLng(a.lng);
@@ -626,9 +640,19 @@ function OrderContent() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
+        const nextLat = pos.coords.latitude;
+        const nextLng = pos.coords.longitude;
+        setLat(nextLat);
+        setLng(nextLng);
         setGeoStatus(t.orderGeoUpdated);
+        // Best-effort reverse geocode so the address textarea is pre-filled.
+        // Missing key / offline / quota → silently skip; pin + lat/lng still work.
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+        if (apiKey?.trim()) {
+          void reverseGeocode(apiKey, { lat: nextLat, lng: nextLng }).then((addr) => {
+            if (addr) setDeliveryAddress(addr);
+          });
+        }
       },
       () => setGeoStatus(t.orderGeoFailed),
       { enableHighAccuracy: true, timeout: 15000 }
@@ -697,6 +721,14 @@ function OrderContent() {
         deliveryAddress: fulfillment === 'delivery' ? deliveryAddress.trim() : undefined,
         deliveryLat: fulfillment === 'delivery' ? lat ?? undefined : undefined,
         deliveryLng: fulfillment === 'delivery' ? lng ?? undefined : undefined,
+        deliveryApartment:
+          fulfillment === 'delivery' && deliveryApartment.trim()
+            ? deliveryApartment.trim()
+            : undefined,
+        deliveryFloor:
+          fulfillment === 'delivery' && deliveryFloor.trim()
+            ? deliveryFloor.trim()
+            : undefined,
         deliveryNotes: fulfillment === 'delivery' ? deliveryNotes.trim() : undefined,
         tableLabel: tableLabel.trim() || undefined,
       };
@@ -760,6 +792,8 @@ function OrderContent() {
           await saveAddress({
             label: addresses.length === 0 ? 'Home' : 'Address',
             line1: deliveryAddress.trim(),
+            apartment: deliveryApartment.trim() || null,
+            floor: deliveryFloor.trim() || null,
             lat,
             lng,
             is_default: addresses.length === 0,
@@ -813,7 +847,14 @@ function OrderContent() {
       orderMapPinHint: t.orderMapPinHint,
       orderMapLoading: t.orderMapLoading,
       orderMapUnavailable: t.orderMapUnavailable,
+      orderMapNoResults: t.orderMapNoResults,
       orderDeliveryAddress: t.orderDeliveryAddress,
+      orderApartmentLabel: t.orderApartmentLabel,
+      orderApartmentPlaceholder: t.orderApartmentPlaceholder,
+      orderFloorLabel: t.orderFloorLabel,
+      orderFloorPlaceholder: t.orderFloorPlaceholder,
+      orderSignInGoogle: t.orderSignInGoogle,
+      orderSignInGoogleRedirecting: t.orderSignInGoogleRedirecting,
     }),
     [t]
   );
@@ -1127,6 +1168,7 @@ function OrderContent() {
           signUp={signUp}
           sendPhoneOtp={sendPhoneOtp}
           verifyPhoneOtp={verifyPhoneOtp}
+          signInWithGoogle={signInWithGoogle}
           signOut={signOut}
           profile={profile}
           addresses={addresses}
@@ -1263,7 +1305,24 @@ function OrderContent() {
                     pinHint={t.orderMapPinHint}
                     loadingLabel={t.orderMapLoading}
                     unavailableLabel={t.orderMapUnavailable}
+                    noResultsLabel={t.orderMapNoResults}
                     addressLabel={`${t.orderDeliveryAddress} *`}
+                    zones={zones}
+                    zoneStatus={
+                      lat == null || lng == null
+                        ? { kind: 'idle' }
+                        : zoneMatch
+                        ? {
+                            kind: 'in',
+                            zoneId: zoneMatch.id,
+                            zoneName: zoneMatch.name,
+                            fee: Number(zoneMatch.delivery_fee ?? 0),
+                          }
+                        : { kind: 'out' }
+                    }
+                    zonePillIn={t.orderZonePillIn}
+                    zonePillOut={t.orderZonePillOut}
+                    zonePillChecking={t.orderZonePillChecking}
                   />
                   {deliveryOutsideZone ? (
                     <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-rose-100">
@@ -1294,13 +1353,6 @@ function OrderContent() {
                     </button>
                     {geoStatus ? <span className="text-xs text-slate-500">{geoStatus}</span> : null}
                   </div>
-                  {lat != null && lng != null && zoneMatch ? (
-                    <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                      <MapPin className="h-4 w-4 shrink-0" />
-                      {t.orderInZonePrefix}: {zoneMatch.name} · {t.orderDeliveryFeeRow} ₼
-                      {Number(zoneMatch.delivery_fee).toFixed(2)}
-                    </p>
-                  ) : null}
                   {user ? (
                     <label className="flex items-center gap-2 text-sm text-slate-400">
                       <input
@@ -1311,6 +1363,29 @@ function OrderContent() {
                       {t.orderSaveAddressForNext}
                     </label>
                   ) : null}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-500">{t.orderApartmentLabel}</label>
+                      <input
+                        className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white placeholder:text-slate-600"
+                        value={deliveryApartment}
+                        onChange={(e) => setDeliveryApartment(e.target.value)}
+                        placeholder={t.orderApartmentPlaceholder}
+                        inputMode="text"
+                        autoComplete="address-line2"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-500">{t.orderFloorLabel}</label>
+                      <input
+                        className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white placeholder:text-slate-600"
+                        value={deliveryFloor}
+                        onChange={(e) => setDeliveryFloor(e.target.value)}
+                        placeholder={t.orderFloorPlaceholder}
+                        inputMode="text"
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <label className="text-xs text-slate-500">{t.orderDeliveryNotesLabel}</label>
                     <textarea

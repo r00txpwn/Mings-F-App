@@ -40,9 +40,14 @@ Staff completes → Customer sees status on /track
 ### Stage 3 — Checkout
 
 - **Today:** Name, phone, address (delivery), map picker (AZ), zone + fee preview, payment method.
-- **Fail:** Outside zone → UI shows outside-zone message before submit.
+  - **Address picker:** Places API (New) autocomplete restricted to Baku bounds, draggable pin for fine-tune, reverse-geocode on pin drag or geolocation (see `src/order/AddressAutocomplete.tsx`, `OrderAddressMap.tsx`, `googleMapsLoader.ts`).
+  - **Apartment + floor** captured as separate fields (`sales.delivery_apartment`, `sales.delivery_floor`; mirrored on `customer_addresses` for logged-in reuse — migration `20260420140000_delivery_address_details.sql`).
+  - **Courier notes** — free-text buzzer / entry-code / gate instructions captured in `sales.delivery_notes` (existing column).
+  - **Live zone pill** under the search input — teal when inside an active zone (shows zone name + fee), red when outside.
+  - **Zone polygons** rendered on the map; the matched zone is highlighted in the cockpit accent color.
+- **Fail:** Outside zone → UI shows outside-zone pill + full error card with "switch to takeaway" CTA before submit.
 - **Fail:** Wrong phone → add `+994` hint and format guidance; backend requires minimum phone length.
-- **Fail:** Missing flat/buzzer → **courier notes** field (apartment, entry code) stored on the sale `notes` or dedicated column.
+- **Fail:** Missing flat/buzzer → dedicated apartment + floor fields plus the courier-notes textarea below them.
 
 ### Stage 4 — Submission
 

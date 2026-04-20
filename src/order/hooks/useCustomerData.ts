@@ -27,14 +27,25 @@ export function useCustomerData(userId: string | undefined) {
     let profileRow = p.data ? (p.data as CustomerProfileRow) : null;
     if (!profileRow) {
       const { data: authData } = await supabase.auth.getUser();
-      const phone = authData.user?.phone;
-      if (phone) {
+      const authUser = authData.user;
+      // Phone OTP users expose `phone` at the top level; Google/email users
+      // expose display name under `user_metadata.full_name` (or `name`).
+      const phone = authUser?.phone ?? null;
+      const meta = (authUser?.user_metadata ?? {}) as {
+        full_name?: string;
+        name?: string;
+      };
+      const fullName = meta.full_name ?? meta.name ?? null;
+      // Only create the row once we have something useful to store, otherwise
+      // a completely empty profile is pointless (email sign-ups still land
+      // here and can fill in name+phone via the account panel later).
+      if (phone || fullName) {
         const now = new Date().toISOString();
         await supabase.from('customer_profiles').upsert(
           {
             id: userId,
             phone,
-            full_name: null,
+            full_name: fullName,
             created_at: now,
             updated_at: now,
           },
@@ -73,6 +84,8 @@ export function useCustomerData(userId: string | undefined) {
   const saveAddress = async (input: {
     label: string;
     line1: string;
+    apartment?: string | null;
+    floor?: string | null;
     lat?: number | null;
     lng?: number | null;
     is_default?: boolean;
@@ -82,12 +95,17 @@ export function useCustomerData(userId: string | undefined) {
     if (input.is_default) {
       await supabase.from('customer_addresses').update({ is_default: false }).eq('user_id', userId);
     }
+    // Normalize empty strings → null so DB stays clean.
+    const apartment = input.apartment?.trim() ? input.apartment.trim() : null;
+    const floor = input.floor?.trim() ? input.floor.trim() : null;
     if (input.id) {
       await supabase
         .from('customer_addresses')
         .update({
           label: input.label,
           line1: input.line1,
+          apartment,
+          floor,
           lat: input.lat ?? null,
           lng: input.lng ?? null,
           is_default: input.is_default ?? false,
@@ -100,6 +118,8 @@ export function useCustomerData(userId: string | undefined) {
         user_id: userId,
         label: input.label,
         line1: input.line1,
+        apartment,
+        floor,
         lat: input.lat ?? null,
         lng: input.lng ?? null,
         is_default: input.is_default ?? false,

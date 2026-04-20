@@ -541,6 +541,8 @@ export interface Translations {
   orderNavAccount: string;
   orderSignIn: string;
   orderSignUp: string;
+  orderSignInGoogle: string;
+  orderSignInGoogleRedirecting: string;
   orderSignOut: string;
   orderMyOrders: string;
   orderNoOrders: string;
@@ -620,6 +622,14 @@ export interface Translations {
   orderMapPinHint: string;
   orderMapLoading: string;
   orderMapUnavailable: string;
+  orderMapNoResults: string;
+  orderApartmentLabel: string;
+  orderApartmentPlaceholder: string;
+  orderFloorLabel: string;
+  orderFloorPlaceholder: string;
+  orderZonePillIn: string;
+  orderZonePillOut: string;
+  orderZonePillChecking: string;
   orderChooseFulfillmentTitle: string;
   orderSearchMenu: string;
   orderVenueInfoTitle: string;
@@ -747,6 +757,26 @@ export interface Translations {
   omRejectConfirm: string;
   omRejectCancel: string;
   omRejectSelectReason: string;
+
+  // Admin Order Support
+  orderSupport: string;
+  orderSupportDescription: string;
+  orderSupportOpenOrderPage: string;
+  orderSupportSearch: string;
+  orderSupportOrdersFound: string;
+  orderSupportNoOrders: string;
+  orderSupportFilter_all: string;
+  orderSupportFilter_active: string;
+  orderSupportFilter_dispatched: string;
+  orderSupportFilter_completed: string;
+  orderSupportFilter_cancelled: string;
+  orderSupportSourceAll: string;
+  orderSupportColTime: string;
+  orderSupportColCustomer: string;
+  orderSupportColItems: string;
+  orderSupportColTotal: string;
+  orderSupportColStatus: string;
+  orderSupportDrawerComingSoon: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -1265,6 +1295,8 @@ export const translations: Record<Language, Translations> = {
     orderNavAccount: 'Account',
     orderSignIn: 'Sign in',
     orderSignUp: 'Sign up',
+    orderSignInGoogle: 'Continue with Google',
+    orderSignInGoogleRedirecting: 'Redirecting to Google…',
     orderSignOut: 'Sign out',
     orderMyOrders: 'My orders',
     orderNoOrders: 'No orders yet',
@@ -1340,6 +1372,14 @@ export const translations: Record<Language, Translations> = {
     orderMapPinHint: 'Drag the pin or search — we use the pin location for delivery.',
     orderMapLoading: 'Loading map…',
     orderMapUnavailable: 'Map preview unavailable. Type your address or use device location.',
+    orderMapNoResults: 'No matches in Baku. Try a different street or landmark.',
+    orderApartmentLabel: 'Apartment / unit',
+    orderApartmentPlaceholder: 'e.g. 14A',
+    orderFloorLabel: 'Floor',
+    orderFloorPlaceholder: 'e.g. 3',
+    orderZonePillIn: 'Delivering to {zone} · ₼{fee}',
+    orderZonePillOut: 'Outside delivery area',
+    orderZonePillChecking: 'Checking delivery zone…',
     orderChooseFulfillmentTitle: 'Pickup or delivery?',
     orderSearchMenu: 'Search menu…',
     orderVenueInfoTitle: 'Restaurant',
@@ -1467,6 +1507,25 @@ export const translations: Record<Language, Translations> = {
     omRejectConfirm: 'Confirm Reject',
     omRejectCancel: 'Cancel',
     omRejectSelectReason: 'Select a reason...',
+
+    orderSupport: 'Order Support',
+    orderSupportDescription: 'Manage and support all customer orders',
+    orderSupportOpenOrderPage: 'Open order page',
+    orderSupportSearch: 'Search by order #, phone, name...',
+    orderSupportOrdersFound: 'orders found',
+    orderSupportNoOrders: 'No orders match your filters',
+    orderSupportFilter_all: 'All',
+    orderSupportFilter_active: 'Active',
+    orderSupportFilter_dispatched: 'Dispatched',
+    orderSupportFilter_completed: 'Completed',
+    orderSupportFilter_cancelled: 'Cancelled',
+    orderSupportSourceAll: 'All sources',
+    orderSupportColTime: 'Time',
+    orderSupportColCustomer: 'Customer',
+    orderSupportColItems: 'Items',
+    orderSupportColTotal: 'Total',
+    orderSupportColStatus: 'Status',
+    orderSupportDrawerComingSoon: 'Order details coming in next update',
   },
 
   az: {
@@ -1984,6 +2043,8 @@ export const translations: Record<Language, Translations> = {
     orderNavAccount: 'Hesab',
     orderSignIn: 'Daxil ol',
     orderSignUp: 'Qeydiyyat',
+    orderSignInGoogle: 'Google ilə davam et',
+    orderSignInGoogleRedirecting: 'Google-a yönləndirilir…',
     orderSignOut: 'Çıxış',
     orderMyOrders: 'Sifarişlərim',
     orderNoOrders: 'Hələ sifariş yoxdur',
@@ -2060,6 +2121,14 @@ export const translations: Record<Language, Translations> = {
     orderMapPinHint: 'İşarəni sürüyün və ya axtarın — çatdırılma üçün məkan işarədən götürülür.',
     orderMapLoading: 'Xəritə yüklənir…',
     orderMapUnavailable: 'Xəritə əlçatan deyil. Ünvanı yazın və ya cihaz məkanından istifadə edin.',
+    orderMapNoResults: 'Bakıda uyğun nəticə yoxdur. Başqa küçə və ya yer yazın.',
+    orderApartmentLabel: 'Mənzil / nömrə',
+    orderApartmentPlaceholder: 'məs. 14A',
+    orderFloorLabel: 'Mərtəbə',
+    orderFloorPlaceholder: 'məs. 3',
+    orderZonePillIn: 'Çatdırılma: {zone} · ₼{fee}',
+    orderZonePillOut: 'Çatdırılma ərazisindən kənar',
+    orderZonePillChecking: 'Çatdırılma zonası yoxlanılır…',
     orderChooseFulfillmentTitle: 'Götürmə və ya çatdırılma?',
     orderSearchMenu: 'Menyu axtar…',
     orderVenueInfoTitle: 'Restoran',
@@ -2186,6 +2255,25 @@ export const translations: Record<Language, Translations> = {
     omRejectConfirm: 'Rədd etməni təsdiqlə',
     omRejectCancel: 'Ləğv et',
     omRejectSelectReason: 'Səbəb seçin...',
+
+    orderSupport: 'Sifariş Dəstəyi',
+    orderSupportDescription: 'Bütün müştəri sifarişlərini idarə edin və dəstəkləyin',
+    orderSupportOpenOrderPage: 'Sifariş səhifəsini aç',
+    orderSupportSearch: 'Sifariş №, telefon, ad ilə axtar...',
+    orderSupportOrdersFound: 'sifariş tapıldı',
+    orderSupportNoOrders: 'Filtrlərə uyğun sifariş yoxdur',
+    orderSupportFilter_all: 'Hamısı',
+    orderSupportFilter_active: 'Aktiv',
+    orderSupportFilter_dispatched: 'Göndərilib',
+    orderSupportFilter_completed: 'Tamamlanıb',
+    orderSupportFilter_cancelled: 'Ləğv edilib',
+    orderSupportSourceAll: 'Bütün mənbələr',
+    orderSupportColTime: 'Vaxt',
+    orderSupportColCustomer: 'Müştəri',
+    orderSupportColItems: 'Məhsullar',
+    orderSupportColTotal: 'Cəmi',
+    orderSupportColStatus: 'Status',
+    orderSupportDrawerComingSoon: 'Sifariş detalları növbəti yeniləmədə olacaq',
   },
 
   ru: {
@@ -2703,6 +2791,8 @@ export const translations: Record<Language, Translations> = {
     orderNavAccount: 'Аккаунт',
     orderSignIn: 'Войти',
     orderSignUp: 'Регистрация',
+    orderSignInGoogle: 'Продолжить через Google',
+    orderSignInGoogleRedirecting: 'Переход в Google…',
     orderSignOut: 'Выйти',
     orderMyOrders: 'Мои заказы',
     orderNoOrders: 'Пока нет заказов',
@@ -2779,6 +2869,14 @@ export const translations: Record<Language, Translations> = {
     orderMapPinHint: 'Перетащите метку или найдите адрес — доставка по положению метки.',
     orderMapLoading: 'Загрузка карты…',
     orderMapUnavailable: 'Карта недоступна. Введите адрес или используйте геолокацию.',
+    orderMapNoResults: 'Нет совпадений в Баку. Попробуйте другую улицу или ориентир.',
+    orderApartmentLabel: 'Квартира / номер',
+    orderApartmentPlaceholder: 'напр. 14A',
+    orderFloorLabel: 'Этаж',
+    orderFloorPlaceholder: 'напр. 3',
+    orderZonePillIn: 'Доставка в {zone} · ₼{fee}',
+    orderZonePillOut: 'Вне зоны доставки',
+    orderZonePillChecking: 'Проверка зоны доставки…',
     orderChooseFulfillmentTitle: 'Самовывоз или доставка?',
     orderSearchMenu: 'Поиск в меню…',
     orderVenueInfoTitle: 'Ресторан',
@@ -2904,5 +3002,24 @@ export const translations: Record<Language, Translations> = {
     omRejectConfirm: 'Подтвердить отказ',
     omRejectCancel: 'Отмена',
     omRejectSelectReason: 'Выберите причину...',
+
+    orderSupport: 'Поддержка заказов',
+    orderSupportDescription: 'Управляйте и поддерживайте все заказы клиентов',
+    orderSupportOpenOrderPage: 'Открыть страницу заказа',
+    orderSupportSearch: 'Поиск по №, телефону, имени...',
+    orderSupportOrdersFound: 'заказов найдено',
+    orderSupportNoOrders: 'Нет заказов по вашим фильтрам',
+    orderSupportFilter_all: 'Все',
+    orderSupportFilter_active: 'Активные',
+    orderSupportFilter_dispatched: 'Отправлены',
+    orderSupportFilter_completed: 'Завершены',
+    orderSupportFilter_cancelled: 'Отменены',
+    orderSupportSourceAll: 'Все источники',
+    orderSupportColTime: 'Время',
+    orderSupportColCustomer: 'Клиент',
+    orderSupportColItems: 'Позиции',
+    orderSupportColTotal: 'Итого',
+    orderSupportColStatus: 'Статус',
+    orderSupportDrawerComingSoon: 'Детали заказа появятся в следующем обновлении',
   },
 };

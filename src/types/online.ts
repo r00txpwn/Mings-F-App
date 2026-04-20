@@ -52,6 +52,10 @@ export interface CustomerAddressRow {
   user_id: string;
   label: string;
   line1: string;
+  /** Apartment / flat / unit number. Optional — added in 20260420 migration. */
+  apartment?: string | null;
+  /** Floor number. Optional — added in 20260420 migration. */
+  floor?: string | null;
   lat: number | null;
   lng: number | null;
   is_default: boolean;

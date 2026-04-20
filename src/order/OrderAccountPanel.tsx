@@ -4,6 +4,7 @@ import type { User } from '@supabase/supabase-js';
 import type { CustomerAddressRow, CustomerProfileRow } from '../types/online';
 import type { Sale } from '../lib/supabase';
 import { OrderAddressMap } from './OrderAddressMap';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 interface OrderAccountPanelProps {
   user: User | null;
@@ -11,6 +12,7 @@ interface OrderAccountPanelProps {
   signUp: (email: string, password: string) => Promise<{ error: unknown }>;
   sendPhoneOtp: (phone: string) => Promise<{ error: unknown }>;
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: unknown }>;
+  signInWithGoogle: (redirectTo?: string) => Promise<{ error: unknown }>;
   signOut: () => Promise<void>;
   profile: CustomerProfileRow | null;
   addresses: CustomerAddressRow[];
@@ -19,6 +21,8 @@ interface OrderAccountPanelProps {
   onSaveAddress: (input: {
     label: string;
     line1: string;
+    apartment?: string | null;
+    floor?: string | null;
     lat?: number | null;
     lng?: number | null;
     is_default?: boolean;
@@ -57,7 +61,14 @@ interface OrderAccountPanelProps {
     orderMapPinHint: string;
     orderMapLoading: string;
     orderMapUnavailable: string;
+    orderMapNoResults: string;
     orderDeliveryAddress: string;
+    orderApartmentLabel: string;
+    orderApartmentPlaceholder: string;
+    orderFloorLabel: string;
+    orderFloorPlaceholder: string;
+    orderSignInGoogle: string;
+    orderSignInGoogleRedirecting: string;
   };
 }
 
@@ -71,6 +82,7 @@ export function OrderAccountPanel({
   signUp,
   sendPhoneOtp,
   verifyPhoneOtp,
+  signInWithGoogle,
   signOut,
   profile,
   addresses,
@@ -95,6 +107,8 @@ export function OrderAccountPanel({
   const [phoneEdit, setPhoneEdit] = useState('');
   const [addrLabel, setAddrLabel] = useState('Home');
   const [addrLine, setAddrLine] = useState('');
+  const [addrApartment, setAddrApartment] = useState('');
+  const [addrFloor, setAddrFloor] = useState('');
   const [addrLat, setAddrLat] = useState<number | null>(null);
   const [addrLng, setAddrLng] = useState<number | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -162,6 +176,21 @@ export function OrderAccountPanel({
     return (
       <div className="space-y-4 p-4">
         <p className="text-sm text-slate-400">{t.orderCreateAccountHint}</p>
+
+        <GoogleSignInButton
+          onClick={() => signInWithGoogle()}
+          label={t.orderSignInGoogle}
+          redirectingLabel={t.orderSignInGoogleRedirecting}
+          onError={(msg) => setAuthErr(msg)}
+        />
+
+        <div className="relative flex items-center">
+          <div className="flex-1 border-t border-white/10" />
+          <span className="px-3 text-[10px] uppercase tracking-wider text-slate-500">
+            {t.orderAuthEmail} / {t.orderAuthSms}
+          </span>
+          <div className="flex-1 border-t border-white/10" />
+        </div>
 
         <div className="flex rounded-xl border border-white/10 p-0.5">
           <button
@@ -345,12 +374,21 @@ export function OrderAccountPanel({
               {t.orderSavedAddresses}
             </h3>
             <ul className="mb-3 space-y-2">
-              {addresses.map((a) => (
-                <li key={a.id} className="rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm">
-                  <span className="font-medium text-cockpit-300">{a.label}</span>
-                  <p className="text-slate-300">{a.line1}</p>
-                </li>
-              ))}
+              {addresses.map((a) => {
+                const detail = [
+                  a.apartment ? `${t.orderApartmentLabel} ${a.apartment}` : null,
+                  a.floor ? `${t.orderFloorLabel} ${a.floor}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ');
+                return (
+                  <li key={a.id} className="rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm">
+                    <span className="font-medium text-cockpit-300">{a.label}</span>
+                    <p className="text-slate-300">{a.line1}</p>
+                    {detail ? <p className="text-xs text-slate-500">{detail}</p> : null}
+                  </li>
+                );
+              })}
             </ul>
             <div className="space-y-2 rounded-xl border border-dashed border-white/15 p-3">
               <input
@@ -375,6 +413,7 @@ export function OrderAccountPanel({
                   pinHint={t.orderMapPinHint}
                   loadingLabel={t.orderMapLoading}
                   unavailableLabel={t.orderMapUnavailable}
+                  noResultsLabel={t.orderMapNoResults}
                   addressLabel={`${t.orderDeliveryAddress} *`}
                 />
               ) : (
@@ -385,6 +424,21 @@ export function OrderAccountPanel({
                   onChange={(e) => setAddrLine(e.target.value)}
                 />
               )}
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  className="w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-2 text-sm text-white placeholder:text-slate-600"
+                  placeholder={`${t.orderApartmentLabel} (${t.orderApartmentPlaceholder})`}
+                  value={addrApartment}
+                  onChange={(e) => setAddrApartment(e.target.value)}
+                  autoComplete="address-line2"
+                />
+                <input
+                  className="w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-2 text-sm text-white placeholder:text-slate-600"
+                  placeholder={`${t.orderFloorLabel} (${t.orderFloorPlaceholder})`}
+                  value={addrFloor}
+                  onChange={(e) => setAddrFloor(e.target.value)}
+                />
+              </div>
               <button
                 type="button"
                 disabled={savingAddr || !addrLine.trim()}
@@ -393,11 +447,15 @@ export function OrderAccountPanel({
                   await onSaveAddress({
                     label: addrLabel.trim() || 'Home',
                     line1: addrLine.trim(),
+                    apartment: addrApartment.trim() || null,
+                    floor: addrFloor.trim() || null,
                     lat: addrLat,
                     lng: addrLng,
                     is_default: addresses.length === 0,
                   });
                   setAddrLine('');
+                  setAddrApartment('');
+                  setAddrFloor('');
                   setAddrLat(null);
                   setAddrLng(null);
                   setSavingAddr(false);
