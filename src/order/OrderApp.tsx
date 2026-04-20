@@ -8,6 +8,7 @@ import {
   Navigation,
   Minus,
   Plus,
+  LogOut,
 } from 'lucide-react';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
@@ -25,6 +26,7 @@ import { OrderBrandHeader } from './OrderBrandHeader';
 import { OrderAccountPanel } from './OrderAccountPanel';
 import { OrderAddressMap } from './OrderAddressMap';
 import { reverseGeocode } from './googleMapsLoader';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { OrderFulfillmentPicker } from './OrderFulfillmentPicker';
 import { OrderMenuBrowseView, ORDER_MENU_ALL_CATEGORY_ID } from './OrderMenuBrowseView';
 import { OrderOnlineTopBar } from './OrderOnlineTopBar';
@@ -203,6 +205,7 @@ function OrderContent() {
   const { orders, loading: ordersLoading, reload: reloadOrders } = useOrderHistory(user?.id);
 
   const [cart, setCart] = useState<OrderCartLine[]>([]);
+  const [cartStorageReady, setCartStorageReady] = useState(false);
   const [flow, setFlow] = useState<Flow>('browse');
   const [navTab, setNavTab] = useState<OrderNavTab>('menu');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(ORDER_MENU_ALL_CATEGORY_ID);
@@ -239,6 +242,7 @@ function OrderContent() {
   const combosEnabled = (import.meta.env.VITE_ENABLE_COMBOS as string | undefined)?.toLowerCase() !== 'false';
 
   const [result, setResult] = useState<OnlineOrderCreateResponse | null>(null);
+  const [checkoutAuthErr, setCheckoutAuthErr] = useState<string | null>(null);
 
   const tableLabel = useMemo(() => {
     const q = new URLSearchParams(window.location.search);
@@ -405,92 +409,117 @@ function OrderContent() {
   const cartCount = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
 
   useEffect(() => {
-    if (loading || products.length === 0 || cart.length > 0) return;
+    if (cartStorageReady || loading || products.length === 0) return;
+    let parsed: Array<
+      | {
+          kind: 'product';
+          productId: string;
+          quantity: number;
+          notes?: string;
+          selectedModifierIdsByGroup?: Record<string, string[]>;
+          cartItemKey: string;
+        }
+      | {
+          kind: 'combo';
+          comboId: string;
+          comboName: string;
+          basePrice: number;
+          quantity: number;
+          selections: Array<{
+            groupId: string;
+            itemId: string;
+            groupName: string;
+            itemName: string;
+            modifierOptionIds?: string[];
+            modifierNames?: string[];
+          }>;
+          cartItemKey: string;
+        }
+    > | null = null;
     try {
       const raw = localStorage.getItem(ORDER_CART_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Array<
-        | {
-            kind: 'product';
-            productId: string;
-            quantity: number;
-            notes?: string;
-            cartItemKey: string;
-          }
-        | {
-            kind: 'combo';
-            comboId: string;
-            comboName: string;
-            basePrice: number;
-            quantity: number;
-            selections: Array<{
-              groupId: string;
-              itemId: string;
-              groupName: string;
-              itemName: string;
-              modifierOptionIds?: string[];
-              modifierNames?: string[];
-            }>;
-            cartItemKey: string;
-          }
-      >;
-      const next: OrderCartLine[] = [];
-      for (const row of parsed) {
-        if (row.kind === 'product') {
-          const p = products.find((x) => x.id === row.productId);
-          if (!p) continue;
-          next.push({
-            kind: 'product',
-            product: p,
-            quantity: row.quantity,
-            notes: row.notes ?? '',
-            selectedModifiers: {},
-            cartItemKey: row.cartItemKey,
-          });
-          continue;
-        }
-        if (row.kind === 'combo') {
-          const deal = combos.find((c) => c.id === row.comboId);
-          if (!deal) continue;
-          next.push({
-            kind: 'combo',
-            comboId: row.comboId,
-            comboName: row.comboName,
-            basePrice: Number(row.basePrice),
-            quantity: Math.max(1, Number(row.quantity || 1)),
-            selections: (row.selections ?? []).map((sel) => {
-              // Rebuild modifier names from live combo data to drop stale/deleted options
-              const group = deal.combo_groups.find((g) => g.id === sel.groupId);
-              const item = group?.combo_group_items.find((i) => i.id === sel.itemId);
-              const allOptions = (item?.products?.modifier_groups ?? []).flatMap(
-                (mg) => mg.modifier_options ?? []
-              );
-              const validIds = (sel.modifierOptionIds ?? []).filter((id) =>
-                allOptions.some((o) => o.id === id && o.is_available !== false)
-              );
-              const validNames = validIds.map(
-                (id) => allOptions.find((o) => o.id === id)?.name ?? ''
-              ).filter(Boolean);
-              return {
-                groupId: sel.groupId,
-                itemId: sel.itemId,
-                groupName: sel.groupName,
-                itemName: sel.itemName,
-                modifierOptionIds: validIds,
-                modifierNames: validNames,
-              };
-            }),
-            cartItemKey: row.cartItemKey,
-          });
-        }
+      if (!raw) {
+        setCartStorageReady(true);
+        return;
       }
-      if (next.length) setCart(next);
+      parsed = JSON.parse(raw);
     } catch {
-      /* ignore */
+      setCartStorageReady(true);
+      return;
     }
-  }, [loading, products, combos, cart.length]);
+    if (!parsed) {
+      setCartStorageReady(true);
+      return;
+    }
+    const hasComboLines = parsed.some((row) => row.kind === 'combo');
+    if (hasComboLines && combosEnabled && combos.length === 0) return;
+
+    const next: OrderCartLine[] = [];
+    for (const row of parsed) {
+      if (row.kind === 'product') {
+        const p = products.find((x) => x.id === row.productId);
+        if (!p) continue;
+        const selectedModifiers: SelectedModifiers = {};
+        for (const [groupId, optionIds] of Object.entries(row.selectedModifierIdsByGroup ?? {})) {
+          if (!Array.isArray(optionIds) || optionIds.length === 0) continue;
+          const group = p.modifier_groups?.find((g) => g.id === groupId);
+          if (!group) continue;
+          const chosen = (group.modifier_options ?? []).filter(
+            (opt) => optionIds.includes(opt.id) && opt.is_available !== false
+          );
+          if (chosen.length > 0) selectedModifiers[groupId] = chosen;
+        }
+        next.push({
+          kind: 'product',
+          product: p,
+          quantity: row.quantity,
+          notes: row.notes ?? '',
+          selectedModifiers,
+          cartItemKey: row.cartItemKey,
+        });
+        continue;
+      }
+      if (row.kind === 'combo') {
+        const deal = combos.find((c) => c.id === row.comboId);
+        if (!deal) continue;
+        next.push({
+          kind: 'combo',
+          comboId: row.comboId,
+          comboName: row.comboName,
+          basePrice: Number(row.basePrice),
+          quantity: Math.max(1, Number(row.quantity || 1)),
+          selections: (row.selections ?? []).map((sel) => {
+            // Rebuild modifier names from live combo data to drop stale/deleted options
+            const group = deal.combo_groups.find((g) => g.id === sel.groupId);
+            const item = group?.combo_group_items.find((i) => i.id === sel.itemId);
+            const allOptions = (item?.products?.modifier_groups ?? []).flatMap(
+              (mg) => mg.modifier_options ?? []
+            );
+            const validIds = (sel.modifierOptionIds ?? []).filter((id) =>
+              allOptions.some((o) => o.id === id && o.is_available !== false)
+            );
+            const validNames = validIds
+              .map((id) => allOptions.find((o) => o.id === id)?.name ?? '')
+              .filter(Boolean);
+            return {
+              groupId: sel.groupId,
+              itemId: sel.itemId,
+              groupName: sel.groupName,
+              itemName: sel.itemName,
+              modifierOptionIds: validIds,
+              modifierNames: validNames,
+            };
+          }),
+          cartItemKey: row.cartItemKey,
+        });
+      }
+    }
+    if (next.length > 0) setCart(next);
+    setCartStorageReady(true);
+  }, [cartStorageReady, loading, products, combos, combosEnabled]);
 
   useEffect(() => {
+    if (!cartStorageReady) return;
     if (cart.length === 0) {
       localStorage.removeItem(ORDER_CART_STORAGE_KEY);
       return;
@@ -503,6 +532,12 @@ function OrderContent() {
             productId: c.product.id,
             quantity: c.quantity,
             notes: c.notes,
+            selectedModifierIdsByGroup: Object.fromEntries(
+              Object.entries(c.selectedModifiers).map(([groupId, opts]) => [
+                groupId,
+                opts.map((opt) => opt.id),
+              ])
+            ),
             cartItemKey: c.cartItemKey,
           };
         }
@@ -527,7 +562,7 @@ function OrderContent() {
     } catch {
       /* ignore */
     }
-  }, [cart]);
+  }, [cart, cartStorageReady]);
 
   const maybeUpsell = (product: Product) => {
     if (!combosEnabled) return;
@@ -787,7 +822,21 @@ function OrderContent() {
         lat != null &&
         lng != null
       ) {
-        const exists = addresses.some((a) => a.line1.trim() === deliveryAddress.trim());
+        const normalizeText = (value: string | null | undefined) =>
+          (value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+        const sameCoord = (aVal: number | null | undefined, bVal: number | null | undefined) =>
+          aVal == null || bVal == null ? aVal == null && bVal == null : Math.abs(aVal - bVal) < 0.000001;
+        const targetLine = normalizeText(deliveryAddress);
+        const targetApartment = normalizeText(deliveryApartment);
+        const targetFloor = normalizeText(deliveryFloor);
+        const exists = addresses.some(
+          (a) =>
+            normalizeText(a.line1) === targetLine &&
+            normalizeText(a.apartment ?? '') === targetApartment &&
+            normalizeText(a.floor ?? '') === targetFloor &&
+            sameCoord(a.lat, lat) &&
+            sameCoord(a.lng, lng)
+        );
         if (!exists) {
           await saveAddress({
             label: addresses.length === 0 ? 'Home' : 'Address',
@@ -814,6 +863,7 @@ function OrderContent() {
   };
 
   const openCheckout = () => {
+    setCheckoutAuthErr(null);
     setFlow('checkout');
   };
 
@@ -840,6 +890,12 @@ function OrderContent() {
       orderSmsCode: t.orderSmsCode,
       orderVerifySms: t.orderVerifySms,
       orderSmsSentHint: t.orderSmsSentHint,
+      orderResendSmsCode: t.orderResendSmsCode,
+      orderResendSmsIn: t.orderResendSmsIn,
+      orderResendSmsSent: t.orderResendSmsSent,
+      orderOtpRateLimit: t.orderOtpRateLimit,
+      orderOtpDeliveryFailed: t.orderOtpDeliveryFailed,
+      orderOtpInvalidOrExpired: t.orderOtpInvalidOrExpired,
       orderChangePhone: t.orderChangePhone,
       orderInvalidPhone: t.orderInvalidPhone,
       orderAccountPhone: t.orderAccountPhone,
@@ -1185,17 +1241,41 @@ function OrderContent() {
 
       {flow === 'checkout' && (
         <>
-          <header className="neon-topbar sticky top-0 z-10 flex items-center gap-2 px-3 py-3">
-            <button
-              type="button"
-              className="rounded-lg p-2 hover:bg-white/5"
-              onClick={() => setFlow('browse')}
-              aria-label={t.back}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <span className="font-semibold">{t.orderCheckout}</span>
+          <header className="neon-topbar sticky top-0 z-10 flex items-center justify-between gap-2 px-3 py-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="rounded-lg p-2 hover:bg-white/5"
+                onClick={() => setFlow('browse')}
+                aria-label={t.back}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <span className="font-semibold">{t.orderCheckout}</span>
+            </div>
+            {user ? (
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-rose-400 hover:bg-rose-500/10"
+              >
+                <LogOut className="h-4 w-4" />
+                {t.orderSignOut}
+              </button>
+            ) : null}
           </header>
+          {!user ? (
+            <div className="px-4 pt-3">
+              <GoogleSignInButton
+                onClick={() => signInWithGoogle()}
+                label={t.orderSignInGoogle}
+                redirectingLabel={t.orderSignInGoogleRedirecting}
+                className="!w-full"
+                onError={(msg) => setCheckoutAuthErr(msg)}
+              />
+              {checkoutAuthErr ? <p className="mt-2 text-sm text-rose-400">{checkoutAuthErr}</p> : null}
+            </div>
+          ) : null}
 
           {settings && kitchenClosed ? (
             <div className="flex min-h-[55vh] flex-1 flex-col items-center justify-center gap-4 px-4 pb-12 pt-2">

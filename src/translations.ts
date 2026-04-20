@@ -615,6 +615,12 @@ export interface Translations {
   orderSmsCode: string;
   orderVerifySms: string;
   orderSmsSentHint: string;
+  orderResendSmsCode: string;
+  orderResendSmsIn: string;
+  orderResendSmsSent: string;
+  orderOtpRateLimit: string;
+  orderOtpDeliveryFailed: string;
+  orderOtpInvalidOrExpired: string;
   orderChangePhone: string;
   orderInvalidPhone: string;
   orderAccountPhone: string;
@@ -1468,6 +1474,12 @@ export const translations: Record<Language, Translations> = {
     orderSmsCode: 'SMS code',
     orderVerifySms: 'Verify & sign in',
     orderSmsSentHint: 'We sent a code to your phone. Enter it below.',
+    orderResendSmsCode: 'Resend code',
+    orderResendSmsIn: 'Resend in {seconds}s',
+    orderResendSmsSent: 'Code sent. If it does not arrive, use resend after the timer.',
+    orderOtpRateLimit: 'Too many attempts. Please wait before requesting another code.',
+    orderOtpDeliveryFailed: 'SMS delivery failed. Please try again shortly.',
+    orderOtpInvalidOrExpired: 'Code is invalid or expired. Request a new code.',
     orderChangePhone: 'Use a different number',
     orderInvalidPhone: 'Enter a valid number with country code (e.g. +994…).',
     orderAccountPhone: 'Phone',
@@ -2319,6 +2331,12 @@ export const translations: Record<Language, Translations> = {
     orderSmsCode: 'SMS kodu',
     orderVerifySms: 'Təsdiqlə və daxil ol',
     orderSmsSentHint: 'Telefonunuza kod göndərildi. Aşağıya daxil edin.',
+    orderResendSmsCode: 'Kodu yenidən göndər',
+    orderResendSmsIn: '{seconds} san sonra yenidən göndər',
+    orderResendSmsSent: 'Kod göndərildi. Gəlməsə, taymer bitəndən sonra yenidən göndərin.',
+    orderOtpRateLimit: 'Çox cəhd etdiniz. Yeni kod üçün bir az gözləyin.',
+    orderOtpDeliveryFailed: 'SMS çatdırılmadı. Az sonra yenidən cəhd edin.',
+    orderOtpInvalidOrExpired: 'Kod yanlışdır və ya vaxtı bitib. Yeni kod istəyin.',
     orderChangePhone: 'Başqa nömrə',
     orderInvalidPhone: 'Ölkə kodu ilə düzgün nömrə daxil edin (məs. +994…).',
     orderAccountPhone: 'Telefon',
@@ -3169,6 +3187,12 @@ export const translations: Record<Language, Translations> = {
     orderSmsCode: 'Код из SMS',
     orderVerifySms: 'Подтвердить и войти',
     orderSmsSentHint: 'Мы отправили код на ваш телефон. Введите его ниже.',
+    orderResendSmsCode: 'Отправить код повторно',
+    orderResendSmsIn: 'Повтор через {seconds}с',
+    orderResendSmsSent: 'Код отправлен. Если не пришёл, используйте повтор после таймера.',
+    orderOtpRateLimit: 'Слишком много попыток. Подождите перед новым запросом кода.',
+    orderOtpDeliveryFailed: 'Не удалось доставить SMS. Попробуйте ещё раз чуть позже.',
+    orderOtpInvalidOrExpired: 'Код неверный или истёк. Запросите новый код.',
     orderChangePhone: 'Другой номер',
     orderInvalidPhone: 'Укажите номер с кодом страны (например +994…).',
     orderAccountPhone: 'Телефон',
