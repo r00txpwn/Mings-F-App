@@ -10,6 +10,7 @@ import {
   Plus,
   LogOut,
 } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
@@ -1659,6 +1660,7 @@ export function OrderApp() {
       <LanguageProvider>
         <AuthProvider>
           <OrderContent />
+          <Analytics />
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>

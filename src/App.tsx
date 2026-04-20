@@ -20,6 +20,7 @@ import {
   Activity,
   Flame,
 } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -370,6 +371,7 @@ function App() {
       <LanguageProvider>
         <AuthProvider>
           <AppContent />
+          <Analytics />
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>

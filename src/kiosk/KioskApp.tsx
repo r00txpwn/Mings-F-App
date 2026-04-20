@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { SecretGate } from '../components/SecretGate';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider } from '../contexts/LanguageContext';
@@ -297,6 +298,7 @@ export function KioskApp() {
         <SecretGate secretKey={secret}>
           <KioskContent />
         </SecretGate>
+        <Analytics />
       </LanguageProvider>
     </ThemeProvider>
   );
