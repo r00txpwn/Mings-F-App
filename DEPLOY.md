@@ -18,6 +18,10 @@ Pick **one** of:
    - `VITE_APP_SURFACE` (`order` on `order.mings.az`, `sp` on `sp.mings.az`)
    - Optional: `VITE_ORDER_APP_ORIGIN` (for staff links to customer app), `VITE_ADMIN_APP_PATH` (custom admin entry path, default `/spec-ops`), `VITE_GOOGLE_MAPS_API_KEY` (see Google Maps setup below), `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`, `VITE_ENABLE_COMBOS`, `VITE_WOLT_PORTAL_URL`
 
+### Delivery zones + online settings (Delivery Control Center)
+
+Zones, kitchen/online settings, and live dispatch are all edited from `/delivery` in the staff cockpit (admin role only). The [`20260420160000_delivery_control_center.sql`](supabase/migrations/20260420160000_delivery_control_center.sql) migration formalises the schema and applies staff-only RLS. After deploying, seed at least one active polygon for your service area — otherwise the customer site will reject every address as "outside delivery area".
+
 ### Google Maps setup (required for the customer delivery flow)
 
 The customer order surface uses Google Maps for its address picker. The autocomplete is built on the **Places API (New)** (`AutocompleteSuggestion` / `Place.fetchFields`) and requires a correctly configured key in **Google Cloud Console**:

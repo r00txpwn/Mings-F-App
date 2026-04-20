@@ -39,6 +39,7 @@ import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 import { MenuScreen } from './screens/MenuScreen';
 import { CombosScreen } from './screens/CombosScreen';
 import { PayoutsScreen } from './screens/PayoutsScreen';
+import { DeliveryScreen } from './screens/DeliveryScreen';
 import { MingsWordmark } from './components/MingsWordmark';
 import {
   DEFAULT_STAFF_SCREEN,
@@ -160,6 +161,8 @@ function AppContent() {
         return <PayoutsScreen />;
       case 'users':
         return <UsersScreen />;
+      case 'delivery':
+        return <DeliveryScreen />;
       case 'settings':
         return <SettingsScreen />;
       default:
@@ -176,6 +179,7 @@ function AppContent() {
     { id: 'home', icon: <Home className="h-5 w-5 shrink-0" />, label: t.home },
     { id: 'sales', icon: <ShoppingCart className="h-5 w-5 shrink-0" />, label: t.sales },
     { id: 'kiosk-orders', icon: <ClipboardList className="h-5 w-5 shrink-0" />, label: t.orderSupport },
+    { id: 'delivery', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.deliveryNav },
     { id: 'menu-builder', icon: <UtensilsCrossed className="h-5 w-5 shrink-0" />, label: t.menuBuilder },
     { id: 'combos', icon: <Flame className="h-5 w-5 shrink-0" />, label: t.combosScreenTitle },
     { id: 'products', icon: <Package className="h-5 w-5 shrink-0" />, label: t.products },

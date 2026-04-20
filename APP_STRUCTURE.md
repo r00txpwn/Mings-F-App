@@ -118,8 +118,18 @@ Mings Financial Automation is a business management system for small to medium-s
 │   │   ├── PayoutsScreen.tsx     # Platform payouts + reconciliation
 │   │   ├── MenuScreen.tsx        # Kiosk menu builder, modifiers
 │   │   ├── KioskOrdersScreen.tsx # Kanban board for kiosk fulfillment
+│   │   ├── DeliveryScreen.tsx    # Delivery Control Center shell (Zones / Settings / Dispatch tabs)
 │   │   ├── SettingsScreen.tsx
 │   │   └── UsersScreen.tsx
+│   │
+│   ├── /screens/delivery         # Delivery Control Center parts
+│   │   ├── ZonesTab.tsx          # List + CRUD of delivery_zones rows
+│   │   ├── ZoneEditorDialog.tsx  # GeoJSON paste editor + map preview
+│   │   ├── ZonePreviewMap.tsx    # Read-only polygon preview map
+│   │   ├── SettingsTab.tsx       # online_settings: kitchen open, hours, prep time, dispatch mode
+│   │   ├── DispatchTab.tsx       # Live delivery orders + Wolt actions
+│   │   ├── useDeliveryAdmin.ts   # Realtime-backed data hook
+│   │   └── validateZoneGeoJson.ts # Tolerant Polygon / Feature / FeatureCollection parser
 │   │
 │   ├── /screens/expenses
 │   │   ├── ExpensesSummaryBar.tsx

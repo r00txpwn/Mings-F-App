@@ -1,6 +1,6 @@
 # URL & path audit (domain-rooted routing)
 
-Last reviewed: 2026-04-18
+Last reviewed: 2026-04-20
 
 ## 1. Surface model (`src/main.tsx`)
 
@@ -47,6 +47,7 @@ Staff navigation moved from query-param state (`?screen=...`) to real paths:
 - `/money`
 - `/reports`
 - `/users`
+- `/delivery` — Delivery Control Center (zones / settings / dispatch tabs; `?tab=zones|settings|dispatch`)
 - `/settings`
 
 `?screen=...` is still accepted as a fallback for old links, but path routing is now primary.

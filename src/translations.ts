@@ -777,6 +777,107 @@ export interface Translations {
   orderSupportColTotal: string;
   orderSupportColStatus: string;
   orderSupportDrawerComingSoon: string;
+
+  // Delivery control center
+  deliveryNav: string;
+  deliveryRefresh: string;
+  deliveryScreenTitle: string;
+  deliveryScreenDescription: string;
+  deliveryTabZones: string;
+  deliveryTabSettings: string;
+  deliveryTabDispatch: string;
+
+  deliveryZonesTitle: string;
+  deliveryZonesDescription: string;
+  deliveryZonesNew: string;
+  deliveryZonesEmptyTitle: string;
+  deliveryZonesEmptyHint: string;
+  deliveryZonesColName: string;
+  deliveryZonesColVertices: string;
+  deliveryZonesColFee: string;
+  deliveryZonesColMinOrder: string;
+  deliveryZonesColActive: string;
+  deliveryZonesColActions: string;
+
+  deliveryZoneNewTitle: string;
+  deliveryZoneEditTitle: string;
+  deliveryZoneFieldName: string;
+  deliveryZoneFieldFee: string;
+  deliveryZoneFieldMinOrder: string;
+  deliveryZoneFieldFreeThreshold: string;
+  deliveryZoneFieldSortOrder: string;
+  deliveryZoneFieldActive: string;
+  deliveryZoneFieldPolygon: string;
+  deliveryZonePolygonHint: string;
+  deliveryZoneOpenGeoJsonIo: string;
+  deliveryZoneExport: string;
+  deliveryZoneCopied: string;
+  deliveryZonePreview: string;
+  deliveryZonePreviewLoading: string;
+  deliveryZonePreviewUnavailable: string;
+  deliveryZonePreviewEmpty: string;
+  deliveryZoneErrorEmpty: string;
+  deliveryZoneErrorJson: string;
+  deliveryZoneErrorPolygon: string;
+  deliveryZoneErrorPoints: string;
+  deliveryZoneErrorTooFew: string;
+  deliveryZoneAutoClosed: string;
+  deliveryZoneVertices: string;
+  deliveryZoneSave: string;
+  deliveryZoneSaving: string;
+  deliveryZoneSaveError: string;
+  deliveryZoneDeleteConfirm: string;
+  deliveryZoneDeleteError: string;
+  deliveryZoneToggleError: string;
+
+  deliverySettingsTitle: string;
+  deliverySettingsDescription: string;
+  deliverySettingsKitchenOpen: string;
+  deliverySettingsKitchenOpenHint: string;
+  deliverySettingsDeliveryEnabled: string;
+  deliverySettingsTakeawayEnabled: string;
+  deliverySettingsGlobalMinOrder: string;
+  deliverySettingsDefaultPrep: string;
+  deliverySettingsDefaultPrepHint: string;
+  deliverySettingsGlobalFreeThreshold: string;
+  deliverySettingsDispatchMode: string;
+  deliverySettingsDispatchAuto: string;
+  deliverySettingsDispatchManual: string;
+  deliverySettingsHours: string;
+  deliverySettingsHoursHint: string;
+  deliverySettingsClosed: string;
+  deliverySettingsOpenAt: string;
+  deliverySettingsCloseAt: string;
+  deliverySettingsSave: string;
+  deliverySettingsSaving: string;
+  deliverySettingsSaved: string;
+  deliverySettingsSaveError: string;
+  deliverySettingsDayMon: string;
+  deliverySettingsDayTue: string;
+  deliverySettingsDayWed: string;
+  deliverySettingsDayThu: string;
+  deliverySettingsDayFri: string;
+  deliverySettingsDaySat: string;
+  deliverySettingsDaySun: string;
+
+  deliveryDispatchTitle: string;
+  deliveryDispatchDescription: string;
+  deliveryDispatchEmpty: string;
+  deliveryDispatchColOrder: string;
+  deliveryDispatchColCustomer: string;
+  deliveryDispatchColAddress: string;
+  deliveryDispatchColStatus: string;
+  deliveryDispatchColActions: string;
+  deliveryDispatchNoWolt: string;
+  deliveryDispatchManuallyDispatched: string;
+  deliveryDispatchTrackOpen: string;
+  deliveryDispatchTrackCopy: string;
+  deliveryDispatchTrackCopied: string;
+  deliveryDispatchActionDispatch: string;
+  deliveryDispatchActionMarkManual: string;
+  deliveryDispatchActionCancel: string;
+  deliveryDispatchInvokeError: string;
+  deliveryDispatchInvokeOk: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -1526,6 +1627,106 @@ export const translations: Record<Language, Translations> = {
     orderSupportColTotal: 'Total',
     orderSupportColStatus: 'Status',
     orderSupportDrawerComingSoon: 'Order details coming in next update',
+
+    deliveryNav: 'Delivery',
+    deliveryRefresh: 'Refresh',
+    deliveryScreenTitle: 'Delivery control center',
+    deliveryScreenDescription: 'Manage delivery zones, kitchen settings, and live dispatch in one place.',
+    deliveryTabZones: 'Zones',
+    deliveryTabSettings: 'Settings',
+    deliveryTabDispatch: 'Dispatch',
+
+    deliveryZonesTitle: 'Delivery zones',
+    deliveryZonesDescription: 'Polygons that decide where customers can order delivery and what they pay.',
+    deliveryZonesNew: 'New zone',
+    deliveryZonesEmptyTitle: 'No zones yet',
+    deliveryZonesEmptyHint: 'Create your first zone to enable delivery on the customer site.',
+    deliveryZonesColName: 'Name',
+    deliveryZonesColVertices: 'Points',
+    deliveryZonesColFee: 'Fee',
+    deliveryZonesColMinOrder: 'Min',
+    deliveryZonesColActive: 'On',
+    deliveryZonesColActions: '',
+
+    deliveryZoneNewTitle: 'New delivery zone',
+    deliveryZoneEditTitle: 'Edit delivery zone',
+    deliveryZoneFieldName: 'Zone name',
+    deliveryZoneFieldFee: 'Delivery fee',
+    deliveryZoneFieldMinOrder: 'Minimum order',
+    deliveryZoneFieldFreeThreshold: 'Free above',
+    deliveryZoneFieldSortOrder: 'Sort order',
+    deliveryZoneFieldActive: 'Active',
+    deliveryZoneFieldPolygon: 'Polygon (GeoJSON)',
+    deliveryZonePolygonHint: 'Draw the polygon at geojson.io and paste the geometry here. We accept Polygon, Feature, or FeatureCollection.',
+    deliveryZoneOpenGeoJsonIo: 'Open geojson.io',
+    deliveryZoneExport: 'Copy GeoJSON',
+    deliveryZoneCopied: 'Copied',
+    deliveryZonePreview: 'Preview',
+    deliveryZonePreviewLoading: 'Loading map…',
+    deliveryZonePreviewUnavailable: 'Set VITE_GOOGLE_MAPS_API_KEY to preview the polygon.',
+    deliveryZonePreviewEmpty: 'Paste a polygon above to see it on the map.',
+    deliveryZoneErrorEmpty: 'Polygon is empty.',
+    deliveryZoneErrorJson: 'Polygon is not valid JSON.',
+    deliveryZoneErrorPolygon: 'GeoJSON does not contain a Polygon geometry.',
+    deliveryZoneErrorPoints: 'Polygon contains an invalid lng/lat point.',
+    deliveryZoneErrorTooFew: 'A polygon needs at least 3 distinct points.',
+    deliveryZoneAutoClosed: 'Ring auto-closed.',
+    deliveryZoneVertices: 'points',
+    deliveryZoneSave: 'Save zone',
+    deliveryZoneSaving: 'Saving…',
+    deliveryZoneSaveError: 'Could not save zone',
+    deliveryZoneDeleteConfirm: 'Delete zone "{name}"? This cannot be undone.',
+    deliveryZoneDeleteError: 'Could not delete zone',
+    deliveryZoneToggleError: 'Could not toggle zone',
+
+    deliverySettingsTitle: 'Delivery settings',
+    deliverySettingsDescription: 'Global rules that apply to every online order.',
+    deliverySettingsKitchenOpen: 'Kitchen is open',
+    deliverySettingsKitchenOpenHint: 'When off, the customer site refuses new orders.',
+    deliverySettingsDeliveryEnabled: 'Delivery enabled',
+    deliverySettingsTakeawayEnabled: 'Pickup enabled',
+    deliverySettingsGlobalMinOrder: 'Global minimum order',
+    deliverySettingsDefaultPrep: 'Default prep time (min)',
+    deliverySettingsDefaultPrepHint: 'Used to estimate ready time on new orders.',
+    deliverySettingsGlobalFreeThreshold: 'Free delivery above',
+    deliverySettingsDispatchMode: 'Dispatch mode',
+    deliverySettingsDispatchAuto: 'Auto — call Wolt on every delivery',
+    deliverySettingsDispatchManual: 'Manual — staff dispatches from the cockpit',
+    deliverySettingsHours: 'Opening hours',
+    deliverySettingsHoursHint: 'Used by the customer site to display when you are open.',
+    deliverySettingsClosed: 'Closed',
+    deliverySettingsOpenAt: 'Open',
+    deliverySettingsCloseAt: 'Close',
+    deliverySettingsSave: 'Save settings',
+    deliverySettingsSaving: 'Saving…',
+    deliverySettingsSaved: 'Settings saved',
+    deliverySettingsSaveError: 'Could not save settings',
+    deliverySettingsDayMon: 'Mon',
+    deliverySettingsDayTue: 'Tue',
+    deliverySettingsDayWed: 'Wed',
+    deliverySettingsDayThu: 'Thu',
+    deliverySettingsDayFri: 'Fri',
+    deliverySettingsDaySat: 'Sat',
+    deliverySettingsDaySun: 'Sun',
+
+    deliveryDispatchTitle: 'Live dispatch',
+    deliveryDispatchDescription: 'Delivery orders from the last 24 hours, updated in real time.',
+    deliveryDispatchEmpty: 'No active delivery orders.',
+    deliveryDispatchColOrder: 'Order',
+    deliveryDispatchColCustomer: 'Customer',
+    deliveryDispatchColAddress: 'Address',
+    deliveryDispatchColStatus: 'Status',
+    deliveryDispatchColActions: '',
+    deliveryDispatchNoWolt: 'no wolt',
+    deliveryDispatchManuallyDispatched: 'manual',
+    deliveryDispatchTrackOpen: 'Open tracking',
+    deliveryDispatchTrackCopy: 'Copy tracking link',
+    deliveryDispatchTrackCopied: 'Copied',
+    deliveryDispatchActionDispatch: 'Dispatch',
+    deliveryDispatchActionMarkManual: 'Manual',
+    deliveryDispatchActionCancel: 'Cancel',
+    deliveryDispatchInvokeError: 'Action failed',
+    deliveryDispatchInvokeOk: 'Done',
   },
 
   az: {
@@ -2274,6 +2475,106 @@ export const translations: Record<Language, Translations> = {
     orderSupportColTotal: 'Cəmi',
     orderSupportColStatus: 'Status',
     orderSupportDrawerComingSoon: 'Sifariş detalları növbəti yeniləmədə olacaq',
+
+    deliveryNav: 'Çatdırılma',
+    deliveryRefresh: 'Yenilə',
+    deliveryScreenTitle: 'Çatdırılma idarə paneli',
+    deliveryScreenDescription: 'Zonalar, mətbəx parametrləri və canlı dispetçer — hamısı bir yerdə.',
+    deliveryTabZones: 'Zonalar',
+    deliveryTabSettings: 'Parametrlər',
+    deliveryTabDispatch: 'Dispetçer',
+
+    deliveryZonesTitle: 'Çatdırılma zonaları',
+    deliveryZonesDescription: 'Müştərilərin çatdırılma sifariş edə biləcəyi və qiymətləri müəyyən edən poliqonlar.',
+    deliveryZonesNew: 'Yeni zona',
+    deliveryZonesEmptyTitle: 'Hələ zona yoxdur',
+    deliveryZonesEmptyHint: 'Müştəri saytında çatdırılmanı aktiv etmək üçün ilk zonanı yaradın.',
+    deliveryZonesColName: 'Ad',
+    deliveryZonesColVertices: 'Nöqtə',
+    deliveryZonesColFee: 'Haqq',
+    deliveryZonesColMinOrder: 'Min',
+    deliveryZonesColActive: 'Aktiv',
+    deliveryZonesColActions: '',
+
+    deliveryZoneNewTitle: 'Yeni çatdırılma zonası',
+    deliveryZoneEditTitle: 'Çatdırılma zonasını redaktə et',
+    deliveryZoneFieldName: 'Zona adı',
+    deliveryZoneFieldFee: 'Çatdırılma haqqı',
+    deliveryZoneFieldMinOrder: 'Minimum sifariş',
+    deliveryZoneFieldFreeThreshold: 'Pulsuz hədd',
+    deliveryZoneFieldSortOrder: 'Sıra',
+    deliveryZoneFieldActive: 'Aktiv',
+    deliveryZoneFieldPolygon: 'Poliqon (GeoJSON)',
+    deliveryZonePolygonHint: 'Poliqonu geojson.io üzərində çəkin və geometriyanı bura yapışdırın. Polygon, Feature və ya FeatureCollection qəbul edilir.',
+    deliveryZoneOpenGeoJsonIo: 'geojson.io aç',
+    deliveryZoneExport: 'GeoJSON kopyala',
+    deliveryZoneCopied: 'Kopyalandı',
+    deliveryZonePreview: 'Önizləmə',
+    deliveryZonePreviewLoading: 'Xəritə yüklənir…',
+    deliveryZonePreviewUnavailable: 'Önizləmə üçün VITE_GOOGLE_MAPS_API_KEY təyin edin.',
+    deliveryZonePreviewEmpty: 'Xəritədə görmək üçün yuxarıya poliqon yapışdırın.',
+    deliveryZoneErrorEmpty: 'Poliqon boşdur.',
+    deliveryZoneErrorJson: 'Poliqon düzgün JSON deyil.',
+    deliveryZoneErrorPolygon: 'GeoJSON-da Polygon geometriya yoxdur.',
+    deliveryZoneErrorPoints: 'Poliqonda yanlış lng/lat nöqtəsi var.',
+    deliveryZoneErrorTooFew: 'Poliqon ən azı 3 fərqli nöqtə tələb edir.',
+    deliveryZoneAutoClosed: 'Halqa avtomatik bağlandı.',
+    deliveryZoneVertices: 'nöqtə',
+    deliveryZoneSave: 'Zonanı yadda saxla',
+    deliveryZoneSaving: 'Yadda saxlanılır…',
+    deliveryZoneSaveError: 'Zona yadda saxlanılmadı',
+    deliveryZoneDeleteConfirm: '"{name}" zonası silinsin? Geri qaytarıla bilməz.',
+    deliveryZoneDeleteError: 'Zona silinmədi',
+    deliveryZoneToggleError: 'Zona dəyişdirilmədi',
+
+    deliverySettingsTitle: 'Çatdırılma parametrləri',
+    deliverySettingsDescription: 'Bütün onlayn sifarişlərə tətbiq olunan qaydalar.',
+    deliverySettingsKitchenOpen: 'Mətbəx açıqdır',
+    deliverySettingsKitchenOpenHint: 'Söndürüldükdə müştəri saytı yeni sifarişləri qəbul etməz.',
+    deliverySettingsDeliveryEnabled: 'Çatdırılma aktivdir',
+    deliverySettingsTakeawayEnabled: 'Götürmə aktivdir',
+    deliverySettingsGlobalMinOrder: 'Ümumi minimum sifariş',
+    deliverySettingsDefaultPrep: 'Standart hazırlıq vaxtı (dəq)',
+    deliverySettingsDefaultPrepHint: 'Yeni sifarişlərdə hazır olma vaxtını təxmin etmək üçün istifadə olunur.',
+    deliverySettingsGlobalFreeThreshold: 'Pulsuz çatdırılma həddi',
+    deliverySettingsDispatchMode: 'Dispetçer rejimi',
+    deliverySettingsDispatchAuto: 'Avtomatik — hər çatdırılma üçün Wolt çağır',
+    deliverySettingsDispatchManual: 'Manual — heyət kokpitdən göndərir',
+    deliverySettingsHours: 'İş saatları',
+    deliverySettingsHoursHint: 'Müştəri saytında nə vaxt açıq olduğunuzu göstərmək üçün istifadə olunur.',
+    deliverySettingsClosed: 'Bağlı',
+    deliverySettingsOpenAt: 'Açılış',
+    deliverySettingsCloseAt: 'Bağlanış',
+    deliverySettingsSave: 'Parametrləri yadda saxla',
+    deliverySettingsSaving: 'Yadda saxlanılır…',
+    deliverySettingsSaved: 'Parametrlər yadda saxlandı',
+    deliverySettingsSaveError: 'Parametrlər yadda saxlanılmadı',
+    deliverySettingsDayMon: 'B.e',
+    deliverySettingsDayTue: 'Ç.a',
+    deliverySettingsDayWed: 'Çər',
+    deliverySettingsDayThu: 'C.a',
+    deliverySettingsDayFri: 'Cüm',
+    deliverySettingsDaySat: 'Şən',
+    deliverySettingsDaySun: 'Baz',
+
+    deliveryDispatchTitle: 'Canlı dispetçer',
+    deliveryDispatchDescription: 'Son 24 saatdakı çatdırılma sifarişləri, real vaxt rejimində.',
+    deliveryDispatchEmpty: 'Aktiv çatdırılma sifarişi yoxdur.',
+    deliveryDispatchColOrder: 'Sifariş',
+    deliveryDispatchColCustomer: 'Müştəri',
+    deliveryDispatchColAddress: 'Ünvan',
+    deliveryDispatchColStatus: 'Status',
+    deliveryDispatchColActions: '',
+    deliveryDispatchNoWolt: 'wolt yox',
+    deliveryDispatchManuallyDispatched: 'manual',
+    deliveryDispatchTrackOpen: 'İzləməni aç',
+    deliveryDispatchTrackCopy: 'İzləmə linkini kopyala',
+    deliveryDispatchTrackCopied: 'Kopyalandı',
+    deliveryDispatchActionDispatch: 'Göndər',
+    deliveryDispatchActionMarkManual: 'Manual',
+    deliveryDispatchActionCancel: 'Ləğv',
+    deliveryDispatchInvokeError: 'Əməliyyat alınmadı',
+    deliveryDispatchInvokeOk: 'Tamam',
   },
 
   ru: {
@@ -3021,5 +3322,105 @@ export const translations: Record<Language, Translations> = {
     orderSupportColTotal: 'Итого',
     orderSupportColStatus: 'Статус',
     orderSupportDrawerComingSoon: 'Детали заказа появятся в следующем обновлении',
+
+    deliveryNav: 'Доставка',
+    deliveryRefresh: 'Обновить',
+    deliveryScreenTitle: 'Центр управления доставкой',
+    deliveryScreenDescription: 'Зоны, настройки кухни и онлайн-диспетчер — всё в одном месте.',
+    deliveryTabZones: 'Зоны',
+    deliveryTabSettings: 'Настройки',
+    deliveryTabDispatch: 'Диспетчер',
+
+    deliveryZonesTitle: 'Зоны доставки',
+    deliveryZonesDescription: 'Полигоны, определяющие где доступна доставка и сколько она стоит.',
+    deliveryZonesNew: 'Новая зона',
+    deliveryZonesEmptyTitle: 'Пока нет зон',
+    deliveryZonesEmptyHint: 'Создайте первую зону, чтобы включить доставку на сайте клиента.',
+    deliveryZonesColName: 'Название',
+    deliveryZonesColVertices: 'Точки',
+    deliveryZonesColFee: 'Стоимость',
+    deliveryZonesColMinOrder: 'Мин',
+    deliveryZonesColActive: 'Вкл',
+    deliveryZonesColActions: '',
+
+    deliveryZoneNewTitle: 'Новая зона доставки',
+    deliveryZoneEditTitle: 'Редактировать зону доставки',
+    deliveryZoneFieldName: 'Название зоны',
+    deliveryZoneFieldFee: 'Стоимость доставки',
+    deliveryZoneFieldMinOrder: 'Мин. сумма',
+    deliveryZoneFieldFreeThreshold: 'Бесплатно от',
+    deliveryZoneFieldSortOrder: 'Порядок',
+    deliveryZoneFieldActive: 'Активна',
+    deliveryZoneFieldPolygon: 'Полигон (GeoJSON)',
+    deliveryZonePolygonHint: 'Нарисуйте полигон на geojson.io и вставьте geometry сюда. Поддерживаются Polygon, Feature и FeatureCollection.',
+    deliveryZoneOpenGeoJsonIo: 'Открыть geojson.io',
+    deliveryZoneExport: 'Скопировать GeoJSON',
+    deliveryZoneCopied: 'Скопировано',
+    deliveryZonePreview: 'Предпросмотр',
+    deliveryZonePreviewLoading: 'Загрузка карты…',
+    deliveryZonePreviewUnavailable: 'Задайте VITE_GOOGLE_MAPS_API_KEY для предпросмотра.',
+    deliveryZonePreviewEmpty: 'Вставьте полигон выше, чтобы увидеть его на карте.',
+    deliveryZoneErrorEmpty: 'Полигон пуст.',
+    deliveryZoneErrorJson: 'Полигон не является валидным JSON.',
+    deliveryZoneErrorPolygon: 'В GeoJSON нет геометрии Polygon.',
+    deliveryZoneErrorPoints: 'В полигоне есть некорректная точка lng/lat.',
+    deliveryZoneErrorTooFew: 'Полигон должен содержать минимум 3 точки.',
+    deliveryZoneAutoClosed: 'Кольцо закрыто автоматически.',
+    deliveryZoneVertices: 'точек',
+    deliveryZoneSave: 'Сохранить зону',
+    deliveryZoneSaving: 'Сохранение…',
+    deliveryZoneSaveError: 'Не удалось сохранить зону',
+    deliveryZoneDeleteConfirm: 'Удалить зону «{name}»? Действие необратимо.',
+    deliveryZoneDeleteError: 'Не удалось удалить зону',
+    deliveryZoneToggleError: 'Не удалось переключить зону',
+
+    deliverySettingsTitle: 'Настройки доставки',
+    deliverySettingsDescription: 'Глобальные правила для всех онлайн-заказов.',
+    deliverySettingsKitchenOpen: 'Кухня открыта',
+    deliverySettingsKitchenOpenHint: 'Когда выключено, сайт не принимает новые заказы.',
+    deliverySettingsDeliveryEnabled: 'Доставка включена',
+    deliverySettingsTakeawayEnabled: 'Самовывоз включён',
+    deliverySettingsGlobalMinOrder: 'Глобальная минимальная сумма',
+    deliverySettingsDefaultPrep: 'Время приготовления (мин)',
+    deliverySettingsDefaultPrepHint: 'Используется для оценки времени готовности новых заказов.',
+    deliverySettingsGlobalFreeThreshold: 'Бесплатная доставка от',
+    deliverySettingsDispatchMode: 'Режим диспетчера',
+    deliverySettingsDispatchAuto: 'Авто — вызов Wolt при каждой доставке',
+    deliverySettingsDispatchManual: 'Ручной — диспетчер из кокпита',
+    deliverySettingsHours: 'Часы работы',
+    deliverySettingsHoursHint: 'Используется на сайте клиента для отображения расписания.',
+    deliverySettingsClosed: 'Закрыто',
+    deliverySettingsOpenAt: 'Открытие',
+    deliverySettingsCloseAt: 'Закрытие',
+    deliverySettingsSave: 'Сохранить настройки',
+    deliverySettingsSaving: 'Сохранение…',
+    deliverySettingsSaved: 'Настройки сохранены',
+    deliverySettingsSaveError: 'Не удалось сохранить настройки',
+    deliverySettingsDayMon: 'Пн',
+    deliverySettingsDayTue: 'Вт',
+    deliverySettingsDayWed: 'Ср',
+    deliverySettingsDayThu: 'Чт',
+    deliverySettingsDayFri: 'Пт',
+    deliverySettingsDaySat: 'Сб',
+    deliverySettingsDaySun: 'Вс',
+
+    deliveryDispatchTitle: 'Онлайн-диспетчер',
+    deliveryDispatchDescription: 'Заказы на доставку за последние 24 часа, в реальном времени.',
+    deliveryDispatchEmpty: 'Нет активных заказов на доставку.',
+    deliveryDispatchColOrder: 'Заказ',
+    deliveryDispatchColCustomer: 'Клиент',
+    deliveryDispatchColAddress: 'Адрес',
+    deliveryDispatchColStatus: 'Статус',
+    deliveryDispatchColActions: '',
+    deliveryDispatchNoWolt: 'без wolt',
+    deliveryDispatchManuallyDispatched: 'вручную',
+    deliveryDispatchTrackOpen: 'Открыть отслеживание',
+    deliveryDispatchTrackCopy: 'Скопировать ссылку',
+    deliveryDispatchTrackCopied: 'Скопировано',
+    deliveryDispatchActionDispatch: 'Отправить',
+    deliveryDispatchActionMarkManual: 'Вручную',
+    deliveryDispatchActionCancel: 'Отмена',
+    deliveryDispatchInvokeError: 'Не удалось выполнить действие',
+    deliveryDispatchInvokeOk: 'Готово',
   },
 };

@@ -24,8 +24,16 @@ export interface DeliveryZoneRow {
   polygon: { type: string; coordinates: number[][][] };
   delivery_fee: number;
   min_order_amount: number;
+  /** Optional per-zone free-delivery threshold — added in 20260420 migration. */
+  free_delivery_threshold?: number | null;
+  /** Sort key for the cockpit list (asc) — added in 20260420 migration. */
+  sort_order?: number | null;
   is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
+
+export type DispatchMode = 'auto' | 'manual';
 
 export interface OnlineSettingsRow {
   id: string;
@@ -37,6 +45,12 @@ export interface OnlineSettingsRow {
   min_order_amount: number;
   tagline?: string | null;
   hero_image_url?: string | null;
+  /** Default kitchen prep time in minutes — added in 20260420 migration. */
+  default_prep_time_minutes?: number | null;
+  /** Global free-delivery threshold (zones may override) — added in 20260420 migration. */
+  free_delivery_threshold?: number | null;
+  /** Auto = call Wolt on order; manual = staff dispatches from the cockpit. */
+  dispatch_mode?: DispatchMode | null;
 }
 
 export interface CustomerProfileRow {
