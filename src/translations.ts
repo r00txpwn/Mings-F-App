@@ -809,6 +809,8 @@ export interface Translations {
   deliveryZoneFieldActive: string;
   deliveryZoneFieldPolygon: string;
   deliveryZonePolygonHint: string;
+  deliveryZoneClearShape: string;
+  deliveryZonePolygonRequired: string;
   deliveryZoneOpenGeoJsonIo: string;
   deliveryZoneExport: string;
   deliveryZoneCopied: string;
@@ -1656,8 +1658,10 @@ export const translations: Record<Language, Translations> = {
     deliveryZoneFieldFreeThreshold: 'Free above',
     deliveryZoneFieldSortOrder: 'Sort order',
     deliveryZoneFieldActive: 'Active',
-    deliveryZoneFieldPolygon: 'Polygon (GeoJSON)',
-    deliveryZonePolygonHint: 'Draw the polygon at geojson.io and paste the geometry here. We accept Polygon, Feature, or FeatureCollection.',
+    deliveryZoneFieldPolygon: 'Delivery area',
+    deliveryZonePolygonHint: 'Use the polygon tool on the map, then drag points to fine-tune the zone.',
+    deliveryZoneClearShape: 'Clear shape',
+    deliveryZonePolygonRequired: 'Draw a delivery area polygon before saving.',
     deliveryZoneOpenGeoJsonIo: 'Open geojson.io',
     deliveryZoneExport: 'Copy GeoJSON',
     deliveryZoneCopied: 'Copied',
@@ -2504,8 +2508,10 @@ export const translations: Record<Language, Translations> = {
     deliveryZoneFieldFreeThreshold: 'Pulsuz hədd',
     deliveryZoneFieldSortOrder: 'Sıra',
     deliveryZoneFieldActive: 'Aktiv',
-    deliveryZoneFieldPolygon: 'Poliqon (GeoJSON)',
-    deliveryZonePolygonHint: 'Poliqonu geojson.io üzərində çəkin və geometriyanı bura yapışdırın. Polygon, Feature və ya FeatureCollection qəbul edilir.',
+    deliveryZoneFieldPolygon: 'Çatdırılma sahəsi',
+    deliveryZonePolygonHint: 'Xəritədə poliqon alətindən istifadə edin, sonra zonanı dəqiqləşdirmək üçün nöqtələri sürüşdürün.',
+    deliveryZoneClearShape: 'Sahəni təmizlə',
+    deliveryZonePolygonRequired: 'Yadda saxlamazdan əvvəl çatdırılma poliqonu çəkin.',
     deliveryZoneOpenGeoJsonIo: 'geojson.io aç',
     deliveryZoneExport: 'GeoJSON kopyala',
     deliveryZoneCopied: 'Kopyalandı',
@@ -3351,8 +3357,10 @@ export const translations: Record<Language, Translations> = {
     deliveryZoneFieldFreeThreshold: 'Бесплатно от',
     deliveryZoneFieldSortOrder: 'Порядок',
     deliveryZoneFieldActive: 'Активна',
-    deliveryZoneFieldPolygon: 'Полигон (GeoJSON)',
-    deliveryZonePolygonHint: 'Нарисуйте полигон на geojson.io и вставьте geometry сюда. Поддерживаются Polygon, Feature и FeatureCollection.',
+    deliveryZoneFieldPolygon: 'Зона доставки',
+    deliveryZonePolygonHint: 'Используйте инструмент полигона на карте, затем перетаскивайте точки для точной настройки.',
+    deliveryZoneClearShape: 'Очистить контур',
+    deliveryZonePolygonRequired: 'Перед сохранением нарисуйте полигон зоны доставки.',
     deliveryZoneOpenGeoJsonIo: 'Открыть geojson.io',
     deliveryZoneExport: 'Скопировать GeoJSON',
     deliveryZoneCopied: 'Скопировано',

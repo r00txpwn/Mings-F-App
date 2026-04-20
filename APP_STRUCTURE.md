@@ -124,7 +124,7 @@ Mings Financial Automation is a business management system for small to medium-s
 │   │
 │   ├── /screens/delivery         # Delivery Control Center parts
 │   │   ├── ZonesTab.tsx          # List + CRUD of delivery_zones rows
-│   │   ├── ZoneEditorDialog.tsx  # GeoJSON paste editor + map preview
+│   │   ├── ZoneEditorDialog.tsx  # Visual polygon draw/edit dialog + save form
 │   │   ├── ZonePreviewMap.tsx    # Read-only polygon preview map
 │   │   ├── SettingsTab.tsx       # online_settings: kitchen open, hours, prep time, dispatch mode
 │   │   ├── DispatchTab.tsx       # Live delivery orders + Wolt actions

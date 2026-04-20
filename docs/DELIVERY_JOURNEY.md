@@ -2,7 +2,7 @@
 
 This document describes the end-to-end **customer-to-doorstep** flow for Mings-F-App, failure modes, lightweight mitigations, the **manual Wolt Drive** staff playbook, a prioritized feature roadmap, and when to adopt the **Wolt Drive API**.
 
-> **Admin surface:** delivery zones, kitchen/online settings, and live dispatch are all managed from the **Delivery Control Center** in the staff cockpit at `/delivery` (tabs: Zones, Settings, Dispatch). Polygons are edited by pasting GeoJSON — draw the shape at [geojson.io](https://geojson.io), copy the `geometry`, paste it in the zone editor, and a live map preview confirms the shape before saving. See [`src/screens/DeliveryScreen.tsx`](../src/screens/DeliveryScreen.tsx) and the `delivery_zones` / `online_settings` tables.
+> **Admin surface:** delivery zones, kitchen/online settings, and live dispatch are all managed from the **Delivery Control Center** in the staff cockpit at `/delivery` (tabs: Zones, Settings, Dispatch). Polygons are now drawn visually on the map in the zone editor (click to draw, drag vertices to refine), so no raw GeoJSON editing is required for day-to-day operations. See [`src/screens/DeliveryScreen.tsx`](../src/screens/DeliveryScreen.tsx) and the `delivery_zones` / `online_settings` tables.
 
 ---
 

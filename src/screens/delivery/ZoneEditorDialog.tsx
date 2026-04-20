@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Copy, ExternalLink, Loader2, X } from 'lucide-react';
+import { CheckCircle2, Loader2, RotateCcw, X } from 'lucide-react';
 import type { DeliveryZoneRow } from '../../types/online';
-import {
-  validateZoneGeoJson,
-  type NormalisedPolygon,
-} from './validateZoneGeoJson';
-import { ZonePreviewMap } from './ZonePreviewMap';
+import { type NormalisedPolygon, validateZoneGeoJson } from './validateZoneGeoJson';
+import { ZoneDrawingMap } from './ZoneDrawingMap';
 
 export interface ZoneEditorTranslations {
   newZoneTitle: string;
@@ -18,19 +15,12 @@ export interface ZoneEditorTranslations {
   fieldActive: string;
   fieldPolygon: string;
   polygonHint: string;
-  openGeoJsonIo: string;
-  exportGeoJson: string;
-  copied: string;
+  clearShape: string;
+  polygonRequired: string;
   preview: string;
   previewLoading: string;
   previewUnavailable: string;
   previewEmpty: string;
-  errorEmpty: string;
-  errorJson: string;
-  errorPolygon: string;
-  errorPoints: string;
-  errorTooFew: string;
-  autoClosed: string;
   vertices: string;
   cancel: string;
   save: string;
@@ -65,6 +55,12 @@ function formatPolygonText(polygon: DeliveryZoneRow['polygon'] | null): string {
   }
 }
 
+function asNormalisedPolygon(polygon: DeliveryZoneRow['polygon'] | null): NormalisedPolygon | null {
+  if (!polygon) return null;
+  const parsed = validateZoneGeoJson(formatPolygonText(polygon));
+  return parsed.ok ? parsed.polygon : null;
+}
+
 export function ZoneEditorDialog({
   apiKey,
   zone,
@@ -80,8 +76,8 @@ export function ZoneEditorDialog({
   const [freeThreshold, setFreeThreshold] = useState('');
   const [sortOrder, setSortOrder] = useState('0');
   const [active, setActive] = useState(true);
-  const [polygonText, setPolygonText] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [polygon, setPolygon] = useState<NormalisedPolygon | null>(null);
+  const [touchedPolygon, setTouchedPolygon] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -91,51 +87,26 @@ export function ZoneEditorDialog({
     setFreeThreshold(zone?.free_delivery_threshold != null ? String(zone.free_delivery_threshold) : '');
     setSortOrder(String(zone?.sort_order ?? 0));
     setActive(zone?.is_active ?? true);
-    setPolygonText(formatPolygonText(zone?.polygon ?? null));
-    setCopied(false);
+    setPolygon(asNormalisedPolygon(zone?.polygon ?? null));
+    setTouchedPolygon(false);
   }, [open, zone]);
 
-  const validation = useMemo(() => validateZoneGeoJson(polygonText), [polygonText]);
-
-  const errorMessage = useMemo(() => {
-    if (!polygonText.trim()) return null;
-    if (validation.ok) return null;
-    switch (validation.error) {
-      case 'invalid_json':
-        return t.errorJson;
-      case 'not_polygon':
-      case 'no_ring':
-        return t.errorPolygon;
-      case 'invalid_point':
-        return t.errorPoints;
-      case 'too_few_points':
-        return t.errorTooFew;
-      default:
-        return t.errorJson;
-    }
-  }, [validation, polygonText, t]);
-
-  const polygonForPreview: NormalisedPolygon | null = validation.ok ? validation.polygon : null;
-
-  const canSave = !saving && name.trim().length > 0 && validation.ok;
-
-  const handleCopy = async () => {
-    if (!validation.ok) return;
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(validation.polygon, null, 2));
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard unavailable */
-    }
-  };
+  const canSave = !saving && name.trim().length > 0 && Boolean(polygon);
+  const vertices = useMemo(() => {
+    const ring = polygon?.coordinates?.[0];
+    if (!ring?.length) return 0;
+    return Math.max(0, ring.length - 1);
+  }, [polygon]);
 
   const handleSubmit = () => {
-    if (!validation.ok) return;
+    if (!polygon) {
+      setTouchedPolygon(true);
+      return;
+    }
     onSave({
       id: zone?.id,
       name: name.trim(),
-      polygon: validation.polygon,
+      polygon,
       delivery_fee: Number(fee) || 0,
       min_order_amount: Number(minOrder) || 0,
       free_delivery_threshold: freeThreshold.trim() === '' ? null : Number(freeThreshold) || 0,
@@ -235,60 +206,42 @@ export function ZoneEditorDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-slate-400">{t.fieldPolygon}</span>
-              <div className="flex items-center gap-1">
-                <a
-                  href="https://geojson.io"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[11px] text-slate-300 hover:bg-white/5"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  {t.openGeoJsonIo}
-                </a>
-                <button
-                  type="button"
-                  onClick={() => void handleCopy()}
-                  disabled={!validation.ok}
-                  className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[11px] text-slate-300 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Copy className="h-3 w-3" />
-                  {copied ? t.copied : t.exportGeoJson}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPolygon(null);
+                  setTouchedPolygon(true);
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[11px] text-slate-300 hover:bg-white/5"
+              >
+                <RotateCcw className="h-3 w-3" />
+                {t.clearShape}
+              </button>
             </div>
-            <textarea
-              value={polygonText}
-              onChange={(e) => setPolygonText(e.target.value)}
-              spellCheck={false}
-              rows={8}
-              placeholder='{"type":"Polygon","coordinates":[[[49.84,40.38],[49.92,40.38],[49.92,40.42],[49.84,40.42],[49.84,40.38]]]}'
-              className="w-full rounded-xl border border-white/10 bg-slate-950/60 p-3 font-mono text-[11px] leading-snug text-slate-100 focus:border-cockpit-500 focus:outline-none"
-            />
-            <p className="text-[11px] text-slate-500">{t.polygonHint}</p>
-
-            {polygonText.trim() && validation.ok ? (
-              <p className="inline-flex items-center gap-1 text-[11px] text-emerald-400">
-                <CheckCircle2 className="h-3 w-3" />
-                {validation.vertices} {t.vertices}
-                {validation.autoClosed ? ` · ${t.autoClosed}` : ''}
-              </p>
-            ) : null}
-            {errorMessage ? (
-              <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-200">
-                {errorMessage}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-slate-400">{t.preview}</span>
-            <ZonePreviewMap
+            <ZoneDrawingMap
               apiKey={apiKey}
-              polygon={polygonForPreview}
+              polygon={polygon}
+              onPolygonChange={(next) => {
+                setPolygon(next);
+                setTouchedPolygon(true);
+              }}
               loadingLabel={t.previewLoading}
               unavailableLabel={t.previewUnavailable}
               emptyLabel={t.previewEmpty}
+              hintLabel={t.polygonHint}
             />
+
+            {polygon ? (
+              <p className="inline-flex items-center gap-1 text-[11px] text-emerald-400">
+                <CheckCircle2 className="h-3 w-3" />
+                {vertices} {t.vertices}
+              </p>
+            ) : null}
+            {touchedPolygon && !polygon ? (
+              <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-200">
+                {t.polygonRequired}
+              </p>
+            ) : null}
           </div>
         </div>
 

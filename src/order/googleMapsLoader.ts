@@ -4,8 +4,9 @@ let mapsLoadPromise: Promise<void> | null = null;
 let sharedGeocoder: google.maps.Geocoder | null = null;
 
 /**
- * Loads the Google Maps JavaScript SDK (with Places library on the weekly
- * channel — required for Places API (New) classes like AutocompleteSuggestion).
+ * Loads the Google Maps JavaScript SDK (with Places + Drawing libraries on
+ * the weekly channel). Places is required for customer autocomplete and
+ * Drawing powers the staff delivery-zone editor.
  * Subsequent calls reuse the same promise, so the `<script>` is only injected once.
  */
 export function loadGoogleMapsScript(apiKey: string): Promise<void> {
@@ -32,7 +33,7 @@ export function loadGoogleMapsScript(apiKey: string): Promise<void> {
     s.id = id;
     s.async = true;
     s.defer = true;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&v=weekly`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places,drawing&v=weekly`;
     s.onload = () => resolve();
     s.onerror = () => reject(new Error('Failed to load Google Maps'));
     document.head.appendChild(s);
