@@ -1,0 +1,28 @@
+---
+description: Enforce single local deploy port and single preview instance
+alwaysApply: true
+---
+
+# Local Deploy: Single Port + Single Instance
+
+When running local production preview, use only port `4175` and do not create multiple preview servers.
+
+## Required behavior
+
+- Always use `http://127.0.0.1:4175/` for local deploy preview.
+- Do not use auto-port fallback (`--strictPort false`).
+- Before starting a new preview server, check for an existing running preview and reuse it, or stop it first.
+- Never leave multiple `vite preview` instances running in parallel.
+
+## Command standard
+
+```bash
+# ✅ Required
+npm run build && vite preview --host 127.0.0.1 --port 4175 --strictPort
+```
+
+```bash
+# ❌ Not allowed for local deploy
+npm run deploy:local
+vite preview --host 127.0.0.1 --strictPort false
+```

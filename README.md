@@ -8,7 +8,8 @@ Mings-F-App
 npm run deploy:local
 ```
 
-Runs `npm run build` then `vite preview` on **127.0.0.1**. Default port is **4173**; if it’s busy, Vite picks the next free port (check the terminal for `Local: http://127.0.0.1:…`).
+Runs `npm run build` then `vite preview` on **127.0.0.1:4175** with strict port enforcement.
+If `4175` is busy, stop the existing preview process first (do not start a second instance on another port).
 
 ## Deploy
 

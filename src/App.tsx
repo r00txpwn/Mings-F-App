@@ -18,6 +18,8 @@ import {
   Moon,
   Sun,
   Activity,
+  ClipboardList,
+  Flame,
 } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -36,6 +38,9 @@ import { StaffAccessDeniedScreen } from './screens/StaffAccessDeniedScreen';
 import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 import { MenuScreen } from './screens/MenuScreen';
 import { PayoutsScreen } from './screens/PayoutsScreen';
+import { DeliveryScreen } from './screens/DeliveryScreen';
+import { CombosScreen } from './screens/CombosScreen';
+import { AdminOrderSupportScreen } from './screens/AdminOrderSupportScreen';
 import { MingsWordmark } from './components/MingsWordmark';
 import { normalizePathname } from './lib/adminPath';
 
@@ -43,7 +48,10 @@ type Screen =
   | 'home'
   | 'sales'
   | 'kiosk-orders'
+  | 'order-support'
+  | 'delivery'
   | 'menu-builder'
+  | 'combos'
   | 'money'
   | 'reports'
   | 'products'
@@ -60,7 +68,10 @@ const ALL_SCREENS: Screen[] = [
   'home',
   'sales',
   'kiosk-orders',
+  'order-support',
+  'delivery',
   'menu-builder',
+  'combos',
   'money',
   'reports',
   'products',
@@ -149,8 +160,14 @@ function AppContent() {
         return <SalesScreen />;
       case 'kiosk-orders':
         return <KioskOrdersScreen />;
+      case 'order-support':
+        return <AdminOrderSupportScreen />;
+      case 'delivery':
+        return <DeliveryScreen />;
       case 'menu-builder':
         return <MenuScreen />;
+      case 'combos':
+        return <CombosScreen />;
       case 'money':
         return <MoneyScreen />;
       case 'reports':
@@ -181,7 +198,10 @@ function AppContent() {
     { id: 'home', icon: <Home className="h-5 w-5 shrink-0" />, label: t.home },
     { id: 'sales', icon: <ShoppingCart className="h-5 w-5 shrink-0" />, label: t.sales },
     { id: 'kiosk-orders', icon: <Monitor className="h-5 w-5 shrink-0" />, label: t.kioskOrders },
+    { id: 'order-support', icon: <ClipboardList className="h-5 w-5 shrink-0" />, label: t.orderSupport },
+    { id: 'delivery', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.deliveryScreenTitle },
     { id: 'menu-builder', icon: <UtensilsCrossed className="h-5 w-5 shrink-0" />, label: t.menuBuilder },
+    { id: 'combos', icon: <Flame className="h-5 w-5 shrink-0" />, label: t.combosScreenTitle },
     { id: 'products', icon: <Package className="h-5 w-5 shrink-0" />, label: t.products },
     { id: 'suppliers', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.suppliers },
     { id: 'expenses', icon: <DollarSign className="h-5 w-5 shrink-0" />, label: t.expenses },

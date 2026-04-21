@@ -1,21 +1,21 @@
 ---
-description: Local production preview URL — port can change each time you build and run deploy:local
+description: Local production preview URL is fixed to 127.0.0.1:4175 for deploy:local
 alwaysApply: true
 ---
 
-# Local build + preview — check the port every time
+# Local build + preview — fixed port 4175
 
-When you **build and serve the production bundle locally**, the URL (including **TCP port**) is only known after the server starts.
+When you **build and serve the production bundle locally**, use a single fixed URL: **http://127.0.0.1:4175/**.
 
 ## Commands
 
-- **`npm run deploy:local`** runs `npm run build` then `vite preview --host 127.0.0.1 --strictPort false`. The **`--strictPort false` CLI flag overrides** `vite.config.ts` (`preview.strictPort: true`), so Vite may bind to **4173** or the **next free port** if `4173` is in use. The port **can change between runs** (different terminals, leftover processes, multiple previews).
-- **`npm run preview`** (without those flags) follows `vite.config.ts`: prefers **4173** and **fails** if that port is busy.
+- **`npm run deploy:local`** runs `npm run build` then `vite preview --host 127.0.0.1 --port 4175 --strictPort`.
+- This command must stay single-port and single-instance (no automatic fallback to other ports).
 
 ## What to do
 
-1. After the preview starts, read the terminal for **`Local: http://127.0.0.1:<port>/`** and treat that as the **source of truth**.
-2. Do **not** assume `4173` for `deploy:local` without checking the log line.
-3. When documenting URLs, testing “app reachable”, or giving the user a link after a local deploy, **use the port from the current run’s output** (update if you restart the server).
+1. Start or reuse preview at **`http://127.0.0.1:4175/`** only.
+2. If port `4175` is occupied, stop the running preview instead of launching another instance.
+3. When sharing a local deploy link, always use **`http://127.0.0.1:4175/`**.
 
 See also `README.md` → **Local production preview**.

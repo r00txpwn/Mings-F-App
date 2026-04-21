@@ -1,0 +1,33 @@
+---
+description: Prevent arbitrary route removal or rerouting
+alwaysApply: true
+---
+
+# Route Integrity Guardrail
+
+Do not remove, rename, repoint, or silently change behavior of existing routes unless the user explicitly asks for that specific route change.
+
+## Required behavior before route edits
+
+- Treat route behavior as backward-compatibility sensitive.
+- If a change could affect existing paths, preserve old paths with compatibility handling whenever possible.
+- If route removal is requested, confirm exactly which paths are affected and what replacement behavior is expected.
+
+## What counts as route changes
+
+- Entry/surface resolution logic (`src/main.tsx`, hostname/path routing, redirects)
+- Navigation paths and deep links
+- Route constants, helpers, rewrite/redirect config
+
+## Safe default pattern
+
+```ts
+// ✅ Keep legacy path behavior while adding new behavior
+if (path === '/order-manager') return renderStaffApp();
+if (path === '/order') return renderOrderApp();
+```
+
+```ts
+// ❌ Do not collapse staff/public routes without explicit request
+if (hostSurface === 'order') return renderOrderApp();
+```
