@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, CreditCard, Loader2, MapPin, Navigation, Wallet } from 'lucide-react';
+import { ChevronLeft, CreditCard, Loader2, MapPin, Wallet } from 'lucide-react';
 import type { CustomerAddressRow, DeliveryZoneRow, OnlineFulfillmentType, OnlinePaymentMethod } from '../types/online';
 import { OrderAddressMap } from './OrderAddressMap';
 
@@ -561,19 +561,11 @@ export function OrderCheckoutView({
                   loadingLabel={labels.mapLoading}
                   unavailableLabel={labels.mapUnavailable}
                   addressLabel={`${labels.deliveryAddress} *`}
+                  onUseLocation={onUseLocation}
+                  useLocationLabel={labels.useLocation}
                 />
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={onUseLocation}
-                    className="ming-btn-ghost text-[13px]"
-                  >
-                    <Navigation className="h-4 w-4" />
-                    {labels.useLocation}
-                  </button>
-                  {geoStatus ? <span className="text-[12px] text-ming-ash">{geoStatus}</span> : null}
-                </div>
+                {geoStatus ? <span className="text-[12px] text-ming-ash">{geoStatus}</span> : null}
 
                 {lat != null && lng != null ? (
                   <p

@@ -20,6 +20,31 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
   const [quantity, setQuantity] = useState(1);
   const [closing, setClosing] = useState(false);
   const isOrderTheme = theme === 'order';
+  const palette = isOrderTheme
+    ? {
+        panelBg: '#1f1f24',
+        heroBg: '#2a2a31',
+        text: '#EEECEF',
+        muted: '#B5B3BD',
+        accent: '#E11D48',
+        border: 'rgba(255,255,255,0.08)',
+        tileBg: 'rgba(255,255,255,0.03)',
+        selectedTileBg: 'rgba(225,29,72,0.14)',
+        controlBg: '#23232a',
+        footerBg: 'rgba(23,23,28,0.96)',
+      }
+    : {
+        panelBg: 'var(--kiosk-card)',
+        heroBg: '#383838',
+        text: 'var(--kiosk-white)',
+        muted: 'var(--kiosk-smoke)',
+        accent: 'var(--kiosk-primary)',
+        border: 'var(--kiosk-border)',
+        tileBg: 'rgba(255,255,255,0.04)',
+        selectedTileBg: 'rgba(214,87,69,0.12)',
+        controlBg: '#383838',
+        footerBg: 'rgba(42, 42, 43, 0.97)',
+      };
 
   const groups = useMemo(() => {
     return (product.modifier_groups || [])
@@ -160,7 +185,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
               aria-modal="true"
               aria-label={product.name}
         style={{
-          backgroundColor: isOrderTheme ? '#1f1f24' : 'var(--kiosk-card)',
+          backgroundColor: palette.panelBg,
           borderRadius: isOrderTheme ? '20px' : '22px',
         }}
       >
@@ -169,16 +194,16 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
           {product.image_url ? (
             <div
               className="w-full h-56 sm:h-64 overflow-hidden"
-              style={{ borderRadius: '22px 22px 0 0', backgroundColor: '#383838' }}
+              style={{ borderRadius: '22px 22px 0 0', backgroundColor: palette.heroBg }}
             >
               <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
             </div>
           ) : (
             <div
               className="w-full h-40 flex items-center justify-center"
-              style={{ borderRadius: '22px 22px 0 0', backgroundColor: '#383838' }}
+              style={{ borderRadius: '22px 22px 0 0', backgroundColor: palette.heroBg }}
             >
-              <Package className="w-16 h-16" style={{ color: 'var(--kiosk-smoke)' }} />
+              <Package className="w-16 h-16" style={{ color: palette.muted }} />
             </div>
           )}
           {/* Close button */}
@@ -187,7 +212,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
             className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
             style={{
               backgroundColor: isOrderTheme ? 'rgba(11,11,13,0.62)' : 'rgba(0,0,0,0.5)',
-              color: 'var(--kiosk-white)',
+              color: palette.text,
             }}
             onMouseEnter={e => (e.currentTarget.style.backgroundColor = isOrderTheme ? 'rgba(11,11,13,0.82)' : 'rgba(0,0,0,0.7)')}
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = isOrderTheme ? 'rgba(11,11,13,0.62)' : 'rgba(0,0,0,0.5)')}
@@ -202,7 +227,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
           <div className="p-5">
             <h2
               className="text-2xl font-bold mb-1"
-              style={{ color: 'var(--kiosk-white)' }}
+              style={{ color: palette.text }}
             >
               {product.name}
             </h2>
@@ -212,11 +237,11 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
               </span>
             ) : null}
             {product.description && (
-              <p className="text-sm mb-3" style={{ color: 'var(--kiosk-smoke)' }}>{product.description}</p>
+              <p className="text-sm mb-3" style={{ color: palette.muted }}>{product.description}</p>
             )}
             <p
               className="text-xl font-bold"
-              style={{ color: 'var(--kiosk-primary)' }}
+              style={{ color: palette.accent }}
             >
               ₼{Number(product.selling_price).toFixed(2)}
             </p>
@@ -233,25 +258,25 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
                   <div
                     key={group.id}
                     className="px-5 py-4"
-                    style={{ borderTop: '1px solid var(--kiosk-border)' }}
+                    style={{ borderTop: `1px solid ${palette.border}` }}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <h3
                           className="font-semibold"
-                          style={{ color: 'var(--kiosk-white)' }}
+                          style={{ color: palette.text }}
                         >
                           {group.name}
                         </h3>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--kiosk-smoke)' }}>
+                        <p className="text-xs mt-0.5" style={{ color: palette.muted }}>
                           {isSingle ? t.chooseOne : `${t.chooseUpTo} ${maxSel}`}
                           {group.is_required && (
-                            <span className="ml-2" style={{ color: 'var(--kiosk-primary)' }}>({t.required})</span>
+                            <span className="ml-2" style={{ color: palette.accent }}>({t.required})</span>
                           )}
                         </p>
                       </div>
                       {!isSingle && maxSel > 1 && (
-                        <span className="text-xs" style={{ color: 'var(--kiosk-smoke)' }}>
+                        <span className="text-xs" style={{ color: palette.muted }}>
                           {selectedCount}/{maxSel}
                         </span>
                       )}
@@ -270,14 +295,14 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
                               key={option.id}
                               className="w-full flex items-center gap-3 p-3.5 rounded-[18px] transition-all"
                               style={{
-                                backgroundColor: optionQty > 0 ? 'rgba(214,87,69,0.12)' : 'rgba(255,255,255,0.04)',
-                                outline: optionQty > 0 ? '2.5px solid var(--kiosk-primary)' : '2.5px solid transparent',
+                                backgroundColor: optionQty > 0 ? palette.selectedTileBg : palette.tileBg,
+                                outline: optionQty > 0 ? `2.5px solid ${palette.accent}` : '2.5px solid transparent',
                               }}
                             >
                               {option.image_url && (
                                 <div
                                   className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0"
-                                  style={{ backgroundColor: '#383838' }}
+                                  style={{ backgroundColor: palette.controlBg }}
                                 >
                                   <img src={option.image_url} alt={option.name} className="w-full h-full object-cover" />
                                 </div>
@@ -285,7 +310,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
 
                               <span
                                 className="flex-1 text-left text-sm font-medium"
-                                style={{ color: 'var(--kiosk-white)' }}
+                                style={{ color: palette.text }}
                               >
                                 {option.name}
                               </span>
@@ -293,28 +318,28 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
                                 className="text-sm flex-shrink-0 font-semibold"
                                 style={{
                                   color: Number(option.price_adjustment) > 0
-                                    ? 'var(--kiosk-primary)'
-                                    : 'var(--kiosk-smoke)',
+                                    ? palette.accent
+                                    : palette.muted,
                                 }}
                               >
                                 {formatPrice(Number(option.price_adjustment))}
                               </span>
                               <div
                                 className="flex items-center rounded-xl p-1 flex-shrink-0"
-                                style={{ backgroundColor: '#383838' }}
+                                style={{ backgroundColor: palette.controlBg }}
                               >
                                 <button
                                   type="button"
                                   disabled={!canDecrease}
                                   onClick={() => changeOptionQuantity(group, option, -1)}
                                   className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:opacity-40"
-                                  style={{ color: 'var(--kiosk-white)' }}
+                                  style={{ color: palette.text }}
                                 >
                                   <Minus className="w-4 h-4" />
                                 </button>
                                 <span
                                   className="w-7 text-center text-sm font-bold"
-                                  style={{ color: 'var(--kiosk-white)' }}
+                                  style={{ color: palette.text }}
                                 >
                                   {optionQty}
                                 </span>
@@ -323,7 +348,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
                                   disabled={!canIncrease}
                                   onClick={() => changeOptionQuantity(group, option, 1)}
                                   className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:opacity-40"
-                                  style={{ color: 'var(--kiosk-white)' }}
+                                  style={{ color: palette.text }}
                                 >
                                   <Plus className="w-4 h-4" />
                                 </button>
@@ -340,9 +365,9 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
                             disabled={atMax}
                             className="w-full flex items-center gap-3 p-3.5 rounded-[18px] transition-all"
                             style={{
-                              backgroundColor: selected ? 'rgba(214,87,69,0.12)' : 'rgba(255,255,255,0.04)',
+                              backgroundColor: selected ? palette.selectedTileBg : palette.tileBg,
                               outline: selected
-                                ? '2.5px solid var(--kiosk-primary)'
+                                ? `2.5px solid ${palette.accent}`
                                 : atMax
                                   ? '2.5px solid transparent'
                                   : '2.5px solid transparent',
@@ -353,8 +378,8 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
                             <div
                               className="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors"
                               style={{
-                                backgroundColor: selected ? 'var(--kiosk-primary)' : 'transparent',
-                                borderColor: selected ? 'var(--kiosk-primary)' : 'var(--kiosk-smoke)',
+                                backgroundColor: selected ? palette.accent : 'transparent',
+                                borderColor: selected ? palette.accent : palette.muted,
                               }}
                             >
                               {selected && <Check className="w-3.5 h-3.5 text-white" />}
@@ -364,7 +389,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
                             {option.image_url && (
                               <div
                                 className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0"
-                                style={{ backgroundColor: '#383838' }}
+                                style={{ backgroundColor: palette.controlBg }}
                               >
                                 <img src={option.image_url} alt={option.name} className="w-full h-full object-cover" />
                               </div>
@@ -372,7 +397,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
 
                             <span
                               className="flex-1 text-left text-sm font-medium"
-                              style={{ color: 'var(--kiosk-white)' }}
+                              style={{ color: palette.text }}
                             >
                               {option.name}
                             </span>
@@ -380,8 +405,8 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
                               className="text-sm flex-shrink-0 font-semibold"
                               style={{
                                 color: Number(option.price_adjustment) > 0
-                                  ? 'var(--kiosk-primary)'
-                                  : 'var(--kiosk-smoke)',
+                                  ? palette.accent
+                                  : palette.muted,
                               }}
                             >
                               {formatPrice(Number(option.price_adjustment))}
@@ -401,9 +426,9 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
         <div
           className="sticky bottom-0 z-10 flex-shrink-0 p-4"
           style={{
-            borderTop: '1px solid var(--kiosk-border)',
+            borderTop: `1px solid ${palette.border}`,
             borderRadius: '0 0 22px 22px',
-            backgroundColor: 'rgba(42, 42, 43, 0.97)',
+            backgroundColor: palette.footerBg,
             backdropFilter: 'blur(6px)',
           }}
         >
@@ -411,12 +436,12 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
             {/* Quantity stepper */}
             <div
               className="flex items-center rounded-[18px] p-1"
-              style={{ backgroundColor: '#383838' }}
+              style={{ backgroundColor: palette.controlBg }}
             >
               <button
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
                 className="w-12 h-12 flex items-center justify-center rounded-xl transition-colors"
-                style={{ color: 'var(--kiosk-white)' }}
+                style={{ color: palette.text }}
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
@@ -424,14 +449,14 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
               </button>
               <span
                 className="font-bold w-10 text-center text-lg"
-                style={{ color: 'var(--kiosk-white)' }}
+                style={{ color: palette.text }}
               >
                 {quantity}
               </span>
               <button
                 onClick={() => setQuantity(q => q + 1)}
                 className="w-12 h-12 flex items-center justify-center rounded-xl transition-colors"
-                style={{ color: 'var(--kiosk-white)' }}
+                style={{ color: palette.text }}
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
@@ -445,7 +470,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
               disabled={!allRequiredMet}
               className="flex-1 text-white py-4 rounded-[18px] font-bold text-lg transition-all flex items-center justify-center gap-2 min-h-[56px]"
               style={{
-                backgroundColor: allRequiredMet ? 'var(--kiosk-primary)' : 'var(--kiosk-smoke)',
+                backgroundColor: allRequiredMet ? palette.accent : palette.muted,
                 cursor: allRequiredMet ? 'pointer' : 'not-allowed',
               }}
               onMouseEnter={e => { if (allRequiredMet) e.currentTarget.style.filter = 'brightness(1.1)'; }}

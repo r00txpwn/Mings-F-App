@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Loader2, MapPin, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, MapPin, Navigation, XCircle } from 'lucide-react';
 import { loadGoogleMapsScript } from './googleMapsLoader';
 import { AddressAutocomplete, type AddressAutocompleteResult } from './AddressAutocomplete';
 import type { DeliveryZoneRow } from '../types/online';
@@ -48,6 +48,8 @@ export interface OrderAddressMapProps {
   zonePillIn?: string;
   zonePillOut?: string;
   zonePillChecking?: string;
+  onUseLocation?: () => void;
+  useLocationLabel?: string;
 }
 
 /**
@@ -78,6 +80,8 @@ export function OrderAddressMap({
   zonePillIn,
   zonePillOut,
   zonePillChecking,
+  onUseLocation,
+  useLocationLabel,
 }: OrderAddressMapProps) {
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -346,6 +350,17 @@ export function OrderAddressMap({
       {pill ? <div className="flex">{pill}</div> : null}
 
       <div className="relative overflow-hidden rounded-xl border border-white/10">
+        {onUseLocation ? (
+          <button
+            type="button"
+            onClick={onUseLocation}
+            aria-label={useLocationLabel ?? 'Use my location'}
+            title={useLocationLabel ?? 'Use my location'}
+            className="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-slate-950/70 text-white backdrop-blur transition-colors hover:bg-slate-900/85"
+          >
+            <Navigation className="h-4 w-4" />
+          </button>
+        ) : null}
         {loading ? (
           <div className="flex h-52 flex-col items-center justify-center gap-2 bg-slate-900/80">
             <Loader2 className="h-8 w-8 animate-spin text-cockpit-500" />

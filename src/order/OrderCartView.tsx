@@ -81,9 +81,26 @@ export function OrderCartView({
           .flat()
           .reduce((s, opt) => s + Number(opt.price_adjustment), 0);
         const linePrice = (Number(item.product.selling_price) + modTotal) * item.quantity;
-        const modNames = Object.values(item.selectedModifiers)
-          .flat()
-          .map((o) => o.name)
+        const groupOrder = new Map<string, number>(
+          (item.product.modifier_groups ?? []).map((group, index) => [group.id, index])
+        );
+        const modNames = Object.entries(item.selectedModifiers)
+          .sort(([groupA], [groupB]) => (groupOrder.get(groupA) ?? 999) - (groupOrder.get(groupB) ?? 999))
+          .map(([groupId, options]) => {
+            const groupName =
+              (item.product.modifier_groups ?? []).find((group) => group.id === groupId)?.name?.trim() ?? '';
+            const optionCounts = new Map<string, number>();
+            options.forEach((option) => {
+              const name = String(option.name ?? '').trim();
+              if (!name) return;
+              optionCounts.set(name, (optionCounts.get(name) ?? 0) + 1);
+            });
+            const optionSummary = Array.from(optionCounts.entries())
+              .map(([name, count]) => (count > 1 ? `${count} x ${name}` : name))
+              .join(', ');
+            if (!optionSummary) return '';
+            return groupName ? `${groupName}: ${optionSummary}` : optionSummary;
+          })
           .filter(Boolean)
           .join(' · ');
         return (
