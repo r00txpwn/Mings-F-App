@@ -1,62 +1,64 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Loader2, MapPin } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CheckCircle2, Loader2, MapPin, XCircle } from 'lucide-react';
+import { loadGoogleMapsScript } from './googleMapsLoader';
+import { AddressAutocomplete, type AddressAutocompleteResult } from './AddressAutocomplete';
+import type { DeliveryZoneRow } from '../types/online';
 
-/** Baku — default map center */
+/** Baku — default map center. */
 const DEFAULT_CENTER = { lat: 40.4093, lng: 49.8671 };
 
-let mapsLoadPromise: Promise<void> | null = null;
+/** Cockpit teal (matches tailwind `cockpit-500`). */
+const ZONE_ACTIVE_COLOR = '#14b8a6';
+/** Slate-400 — muted. */
+const ZONE_IDLE_COLOR = '#94a3b8';
 
-function loadGoogleMapsScript(apiKey: string): Promise<void> {
-  if (typeof window === 'undefined') return Promise.resolve();
-  const w = window as Window & { google?: { maps?: unknown } };
-  if (w.google?.maps) return Promise.resolve();
-
-  if (mapsLoadPromise) return mapsLoadPromise;
-
-  mapsLoadPromise = new Promise((resolve, reject) => {
-    const id = 'google-maps-js-sdk';
-    const existing = document.getElementById(id) as HTMLScriptElement | null;
-    if (existing) {
-      const done = () => {
-        if ((window as Window & { google?: { maps?: unknown } }).google?.maps) resolve();
-        else setTimeout(done, 50);
-      };
-      existing.addEventListener('load', done);
-      existing.addEventListener('error', () => reject(new Error('Google Maps script failed')));
-      done();
-      return;
-    }
-    const s = document.createElement('script');
-    s.id = id;
-    s.async = true;
-    s.defer = true;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&v=weekly`;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('Failed to load Google Maps'));
-    document.head.appendChild(s);
-  });
-
-  return mapsLoadPromise;
-}
+export type ZonePillStatus =
+  | { kind: 'idle' }
+  | { kind: 'in'; zoneId: string; zoneName: string; fee: number }
+  | { kind: 'out' };
 
 export interface OrderAddressMapProps {
   apiKey: string | undefined;
   lat: number | null;
   lng: number | null;
   address: string;
-  /** Pin / search / map tap — updates coordinates + usually formatted address */
+  /** Pin drag / map tap / autocomplete select — updates coordinates + formatted address. */
   onLocationChange: (next: { lat: number; lng: number; address: string }) => void;
-  /** Manual edits to the address text */
+  /** Manual edits to the raw address textarea (apartment / floor / free notes). */
   onAddressChange: (address: string) => void;
   searchPlaceholder: string;
   pinHint: string;
   loadingLabel: string;
   unavailableLabel: string;
   addressLabel: string;
+  /** Optional — shown as "no matches" state in the autocomplete dropdown. */
+  noResultsLabel?: string;
+  /**
+   * Optional — when provided, renders zone polygons on the map + a live status
+   * pill directly under the search input. The matched zone (if any) is
+   * highlighted in the cockpit accent color; other active zones are shown muted
+   * so customers can see the full coverage at a glance.
+   */
+  zones?: DeliveryZoneRow[];
+  zoneStatus?: ZonePillStatus;
+  /**
+   * i18n labels for the pill. Supports the same `{zone}` / `{fee}` placeholders
+   * used by `t.orderZonePillIn`.
+   */
+  zonePillIn?: string;
+  zonePillOut?: string;
+  zonePillChecking?: string;
 }
 
 /**
- * Places search + draggable pin + tap map. Keeps delivery lat/lng in sync for zones.
+ * Delivery address picker for Baku.
+ *
+ * Composition:
+ *  - Premium autocomplete (Places API New, session tokens, Baku bounds) on top.
+ *  - Map + draggable marker below, for post-selection "fine-tune" of the exact
+ *    building entrance — a common need in Baku because many addresses lack
+ *    reliable street-number data in Google's index.
+ *  - Free-text textarea for apartment / floor / courier-visible notes.
  */
 export function OrderAddressMap({
   apiKey,
@@ -70,15 +72,23 @@ export function OrderAddressMap({
   loadingLabel,
   unavailableLabel,
   addressLabel,
+  noResultsLabel,
+  zones,
+  zoneStatus,
+  zonePillIn,
+  zonePillOut,
+  zonePillChecking,
 }: OrderAddressMapProps) {
   const mapElRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const polygonsRef = useRef<Map<string, google.maps.Polygon>>(new Map());
   const skipNextExternalSync = useRef(false);
   const addressRef = useRef(address);
   addressRef.current = address;
+
+  const activeZoneId = zoneStatus?.kind === 'in' ? zoneStatus.zoneId : null;
 
   const [mapReady, setMapReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -89,9 +99,10 @@ export function OrderAddressMap({
       skipNextExternalSync.current = true;
       onLocationChange({ lat: position.lat, lng: position.lng, address: formattedAddress });
     },
-    [onLocationChange]
+    [onLocationChange],
   );
 
+  // Boot the map once the SDK is loaded.
   useEffect(() => {
     if (!apiKey?.trim()) {
       setMapReady(false);
@@ -105,7 +116,7 @@ export function OrderAddressMap({
     void (async () => {
       try {
         await loadGoogleMapsScript(apiKey.trim());
-        if (cancelled || !mapElRef.current || !searchInputRef.current) return;
+        if (cancelled || !mapElRef.current) return;
 
         const maps = google.maps;
 
@@ -128,7 +139,7 @@ export function OrderAddressMap({
           map,
           position: center,
           draggable: true,
-          animation: google.maps.Animation.DROP,
+          animation: maps.Animation.DROP,
         });
         markerRef.current = marker;
 
@@ -145,23 +156,6 @@ export function OrderAddressMap({
               applyLocation(p, addressRef.current);
             }
           });
-        });
-
-        const ac = new maps.places.Autocomplete(searchInputRef.current, {
-          fields: ['formatted_address', 'geometry', 'name'],
-          componentRestrictions: { country: 'az' },
-        });
-
-        ac.addListener('place_changed', () => {
-          const place = ac.getPlace();
-          const loc = place.geometry?.location;
-          if (!loc) return;
-          const p = loc.toJSON();
-          marker.setPosition(p);
-          map.panTo(p);
-          map.setZoom(17);
-          const line = place.formatted_address ?? place.name ?? addressRef.current;
-          applyLocation(p, line);
         });
 
         map.addListener('click', (e: google.maps.MapMouseEvent) => {
@@ -192,10 +186,71 @@ export function OrderAddressMap({
       geocoderRef.current = null;
       setMapReady(false);
     };
-    // Intentionally only when API key is set — do not recreate map when lat/lng change (sync effect handles that).
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- applyLocation stable enough; avoid remounting map
+    // Intentionally only when the API key changes — the sync effect below handles lat/lng updates without remounting the map.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey]);
 
+  // Draw delivery-zone polygons on the map. Re-run when zones change or when
+  // the matched zone id changes (so we can re-style the highlighted one).
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !zones) return;
+    const map = mapRef.current;
+    const polys = polygonsRef.current;
+
+    // Clear any polygon that's no longer in the incoming list.
+    for (const [id, poly] of polys) {
+      if (!zones.find((z) => z.id === id)) {
+        poly.setMap(null);
+        polys.delete(id);
+      }
+    }
+
+    for (const zone of zones) {
+      const ring = zone.polygon?.coordinates?.[0];
+      if (!ring || ring.length < 3) continue;
+      const path: google.maps.LatLngLiteral[] = ring.map(([lngP, latP]) => ({
+        lat: latP,
+        lng: lngP,
+      }));
+
+      const isActive = zone.id === activeZoneId;
+      const fillColor = isActive ? ZONE_ACTIVE_COLOR : ZONE_IDLE_COLOR;
+      const strokeColor = isActive ? ZONE_ACTIVE_COLOR : ZONE_IDLE_COLOR;
+      const fillOpacity = isActive ? 0.15 : 0.05;
+      const strokeOpacity = isActive ? 0.9 : 0.35;
+      const strokeWeight = isActive ? 2 : 1;
+
+      const existing = polys.get(zone.id);
+      if (existing) {
+        existing.setPath(path);
+        existing.setOptions({ fillColor, strokeColor, fillOpacity, strokeOpacity, strokeWeight });
+        existing.setMap(map);
+      } else {
+        const poly = new google.maps.Polygon({
+          paths: path,
+          fillColor,
+          strokeColor,
+          fillOpacity,
+          strokeOpacity,
+          strokeWeight,
+          clickable: false,
+          map,
+        });
+        polys.set(zone.id, poly);
+      }
+    }
+  }, [mapReady, zones, activeZoneId]);
+
+  // Detach polygons on unmount.
+  useEffect(() => {
+    const polys = polygonsRef.current;
+    return () => {
+      for (const poly of polys.values()) poly.setMap(null);
+      polys.clear();
+    };
+  }, []);
+
+  // External lat/lng changes (saved-address picker, "use my location") → pan the map.
   useEffect(() => {
     if (!mapReady || lat == null || lng == null) return;
     if (skipNextExternalSync.current) {
@@ -211,6 +266,54 @@ export function OrderAddressMap({
     map.setZoom(16);
   }, [lat, lng, mapReady]);
 
+  const handleAutocompleteSelect = useCallback(
+    (result: AddressAutocompleteResult) => {
+      const map = mapRef.current;
+      const marker = markerRef.current;
+      if (map && marker) {
+        const p = { lat: result.lat, lng: result.lng };
+        marker.setPosition(p);
+        map.panTo(p);
+        map.setZoom(17);
+      }
+      applyLocation({ lat: result.lat, lng: result.lng }, result.address);
+    },
+    [applyLocation],
+  );
+
+  const pill = useMemo(() => {
+    if (!zoneStatus) return null;
+    if (zoneStatus.kind === 'idle') {
+      if (!zonePillChecking) return null;
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-slate-800/80 px-2.5 py-1 text-xs text-slate-400">
+          <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+          {zonePillChecking}
+        </span>
+      );
+    }
+    if (zoneStatus.kind === 'in') {
+      const label =
+        (zonePillIn ?? 'Delivering to {zone} · ₼{fee}')
+          .replace('{zone}', zoneStatus.zoneName)
+          .replace('{fee}', Number(zoneStatus.fee).toFixed(2));
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-cockpit-500/40 bg-cockpit-500/10 px-2.5 py-1 text-xs font-medium text-cockpit-200">
+          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+          {label}
+        </span>
+      );
+    }
+    // out
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-200">
+        <XCircle className="h-3.5 w-3.5" aria-hidden />
+        {zonePillOut ?? 'Outside delivery area'}
+      </span>
+    );
+  }, [zoneStatus, zonePillIn, zonePillOut, zonePillChecking]);
+
+  // Fallback for environments without a Maps API key (local dev, preview without secrets).
   if (!apiKey?.trim()) {
     return (
       <div className="space-y-2">
@@ -232,14 +335,16 @@ export function OrderAddressMap({
 
   return (
     <div className="space-y-2">
-      <input
-        ref={searchInputRef}
-        type="text"
-        autoComplete="street-address"
+      <AddressAutocomplete
+        apiKey={apiKey}
+        initialQuery={address}
+        onSelect={handleAutocompleteSelect}
         placeholder={searchPlaceholder}
-        className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white placeholder:text-slate-500"
-        disabled={!mapReady && !loadError}
+        noResultsLabel={noResultsLabel}
       />
+
+      {pill ? <div className="flex">{pill}</div> : null}
+
       <div className="relative overflow-hidden rounded-xl border border-white/10">
         {loading ? (
           <div className="flex h-52 flex-col items-center justify-center gap-2 bg-slate-900/80">
@@ -253,10 +358,12 @@ export function OrderAddressMap({
         />
         {loadError ? <p className="p-3 text-xs text-rose-400">{loadError}</p> : null}
       </div>
+
       <p className="flex gap-2 text-xs text-slate-500">
         <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cockpit-500" />
         <span>{pinHint}</span>
       </p>
+
       <div className="space-y-2">
         <label className="text-xs text-slate-500">{addressLabel}</label>
         <textarea

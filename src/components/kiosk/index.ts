@@ -1,1 +1,2 @@
-export { KioskOrdersBoard, type KioskOrder, type KioskOrderStatus } from './KioskOrdersBoard';
+// Kiosk components (KioskOrdersBoard removed — see AdminOrderSupportScreen)
+export {};

@@ -18,7 +18,6 @@ import {
   Moon,
   Sun,
   Activity,
-  Flame,
 } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -36,44 +35,57 @@ import { LoginScreen } from './screens/LoginScreen';
 import { StaffAccessDeniedScreen } from './screens/StaffAccessDeniedScreen';
 import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 import { MenuScreen } from './screens/MenuScreen';
-import { CombosScreen } from './screens/CombosScreen';
 import { PayoutsScreen } from './screens/PayoutsScreen';
 import { MingsWordmark } from './components/MingsWordmark';
-import {
-  DEFAULT_STAFF_SCREEN,
-  getPathForStaffScreen,
-  normalizePathname,
-  readStaffScreenFromPath,
-  type StaffScreen,
-} from './lib/surfaceRouting';
+import { normalizePathname } from './lib/adminPath';
 
-type Screen = StaffScreen;
+type Screen =
+  | 'home'
+  | 'sales'
+  | 'kiosk-orders'
+  | 'menu-builder'
+  | 'money'
+  | 'reports'
+  | 'products'
+  | 'suppliers'
+  | 'expenses'
+  | 'payouts'
+  | 'users'
+  | 'settings';
 
 const SCREEN_QUERY_KEY = 'screen';
-const DEFAULT_SCREEN: Screen = DEFAULT_STAFF_SCREEN;
+const DEFAULT_SCREEN: Screen = 'home';
+const ORDER_MANAGER_PATH = '/order-manager';
+const ALL_SCREENS: Screen[] = [
+  'home',
+  'sales',
+  'kiosk-orders',
+  'menu-builder',
+  'money',
+  'reports',
+  'products',
+  'suppliers',
+  'expenses',
+  'payouts',
+  'users',
+  'settings',
+];
 
 function isScreen(value: string | null): value is Screen {
-  return Boolean(value) && !!getPathForStaffScreen(value as Screen);
+  return Boolean(value) && ALL_SCREENS.includes(value as Screen);
 }
 
-function readScreenFromLocation(): Screen {
-  const fromPath = readStaffScreenFromPath(window.location.pathname);
-  if (fromPath) return fromPath;
-
+function readScreenFromUrl(): Screen {
   const params = new URLSearchParams(window.location.search);
   const raw = params.get(SCREEN_QUERY_KEY);
-  return isScreen(raw) ? raw : DEFAULT_SCREEN;
+  if (isScreen(raw)) return raw;
+  return normalizePathname(window.location.pathname) === ORDER_MANAGER_PATH ? 'kiosk-orders' : DEFAULT_SCREEN;
 }
 
-function writeScreenToLocation(screen: Screen) {
-  const targetPath = getPathForStaffScreen(screen);
-  const currentPath = normalizePathname(window.location.pathname);
+function writeScreenToUrl(screen: Screen) {
   const params = new URLSearchParams(window.location.search);
-  params.delete(SCREEN_QUERY_KEY);
-  const query = params.toString();
-  const next = `${targetPath}${query ? `?${query}` : ''}${window.location.hash}`;
-
-  if (currentPath === targetPath && !window.location.search.includes(`${SCREEN_QUERY_KEY}=`)) return;
+  params.set(SCREEN_QUERY_KEY, screen);
+  const next = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
   window.history.pushState({}, '', next);
 }
 
@@ -81,22 +93,22 @@ function AppContent() {
   const { t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const { user, loading, signOut, isStaff } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState<Screen>(() => readScreenFromLocation());
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() => readScreenFromUrl());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isDark = theme === 'dark';
 
   useEffect(() => {
     const onPopState = () => {
-      setCurrentScreen(readScreenFromLocation());
+      setCurrentScreen(readScreenFromUrl());
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
   useEffect(() => {
-    const inUrl = readScreenFromLocation();
+    const inUrl = readScreenFromUrl();
     if (inUrl !== currentScreen) {
-      writeScreenToLocation(currentScreen);
+      writeScreenToUrl(currentScreen);
     }
   }, [currentScreen]);
 
@@ -139,8 +151,6 @@ function AppContent() {
         return <KioskOrdersScreen />;
       case 'menu-builder':
         return <MenuScreen />;
-      case 'combos':
-        return <CombosScreen />;
       case 'money':
         return <MoneyScreen />;
       case 'reports':
@@ -172,7 +182,6 @@ function AppContent() {
     { id: 'sales', icon: <ShoppingCart className="h-5 w-5 shrink-0" />, label: t.sales },
     { id: 'kiosk-orders', icon: <Monitor className="h-5 w-5 shrink-0" />, label: t.kioskOrders },
     { id: 'menu-builder', icon: <UtensilsCrossed className="h-5 w-5 shrink-0" />, label: t.menuBuilder },
-    { id: 'combos', icon: <Flame className="h-5 w-5 shrink-0" />, label: t.combosScreenTitle },
     { id: 'products', icon: <Package className="h-5 w-5 shrink-0" />, label: t.products },
     { id: 'suppliers', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.suppliers },
     { id: 'expenses', icon: <DollarSign className="h-5 w-5 shrink-0" />, label: t.expenses },

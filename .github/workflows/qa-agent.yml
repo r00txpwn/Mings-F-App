@@ -1,0 +1,125 @@
+name: QA Agent
+
+on:
+  schedule:
+    # 8:00 AM Baku time (UTC+4) = 04:00 UTC
+    - cron: '0 4 * * *'
+    # 8:00 PM Baku time (UTC+4) = 16:00 UTC
+    - cron: '0 16 * * *'
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+permissions:
+  contents: write   # to commit QA_STATUS.md
+  issues: write     # to open issues for critical failures
+
+jobs:
+  qa:
+    name: Full QA Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history for doc-diff analysis
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        id: typecheck
+        run: npm run typecheck 2>&1 | tee test-results/typecheck.txt || echo "TYPECHECK_FAILED=true" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: ESLint
+        id: lint
+        run: npm run lint 2>&1 | tee test-results/lint.txt || echo "LINT_FAILED=true" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: Production build
+        id: build
+        run: npm run build 2>&1 | tee test-results/build.txt || echo "BUILD_FAILED=true" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: Unit tests (Vitest)
+        id: unit
+        run: npm test 2>&1 | tee test-results/unit-console.txt || echo "UNIT_FAILED=true" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: Install Playwright browsers
+        if: env.BUILD_FAILED != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: E2E smoke tests (Playwright)
+        id: e2e
+        if: env.BUILD_FAILED != 'true'
+        run: |
+          npm run build
+          PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 \
+          CI=true \
+          npx vite preview --host 127.0.0.1 --port 4173 &
+          sleep 5
+          npm run test:e2e -- --reporter=json --output=test-results/e2e-results.json 2>&1 | tee test-results/e2e-console.txt || echo "E2E_FAILED=true" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: Create test-results directory
+        run: mkdir -p test-results
+
+      - name: QA Orchestrator — Claude analysis & doc update
+        env:
+          # Optional: set this secret for full AI analysis.
+          # If absent, the orchestrator writes a plain test-results report.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TYPECHECK_FAILED: ${{ env.TYPECHECK_FAILED }}
+          LINT_FAILED: ${{ env.LINT_FAILED }}
+          BUILD_FAILED: ${{ env.BUILD_FAILED }}
+          UNIT_FAILED: ${{ env.UNIT_FAILED }}
+          E2E_FAILED: ${{ env.E2E_FAILED }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/qa-orchestrator.mjs
+
+      - name: Commit updated QA_STATUS.md
+        run: |
+          git config user.name "QA Agent"
+          git config user.email "qa-agent@mings.az"
+          git add docs/QA_STATUS.md
+          git diff --staged --quiet || git commit -m "chore(qa): auto-update QA status [skip ci]"
+          git push origin HEAD
+
+      - name: Open GitHub Issue on critical failure
+        if: env.BUILD_FAILED == 'true' || env.UNIT_FAILED == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const failures = [];
+            if (process.env.BUILD_FAILED === 'true') failures.push('❌ Build');
+            if (process.env.UNIT_FAILED === 'true') failures.push('❌ Unit tests');
+            if (process.env.E2E_FAILED === 'true') failures.push('❌ E2E tests');
+            if (process.env.TYPECHECK_FAILED === 'true') failures.push('⚠️ TypeScript');
+            if (process.env.LINT_FAILED === 'true') failures.push('⚠️ ESLint');
+
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[QA Agent] Critical failures detected — ${new Date().toISOString().slice(0,10)}`,
+              body: `## QA Agent Report\n\n**Run:** ${runUrl}\n\n### Failures\n${failures.join('\n')}\n\nSee \`docs/QA_STATUS.md\` for full analysis.`,
+              labels: ['qa', 'bug'],
+            });
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-results-${{ github.run_number }}
+          path: test-results/
+          retention-days: 14

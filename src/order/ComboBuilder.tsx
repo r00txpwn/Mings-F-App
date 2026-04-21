@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import type { OrderCartLine } from '../types/orderCart';
+import {
+  effectiveModifierGroupMaxSelect,
+  isSingleSelectModifierGroup,
+} from '../lib/modifierGroupConstraints';
 
 export type ComboGroupRow = {
   id: string;
@@ -102,9 +106,10 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
     const modifierOptionIds: string[] = [];
     const modifierNames: string[] = [];
     for (const group of product?.modifier_groups ?? []) {
+      const cap = effectiveModifierGroupMaxSelect(group);
       const defaults = (group.modifier_options ?? [])
         .filter((opt) => opt.is_available !== false && opt.is_default)
-        .slice(0, Math.max(1, Number(group.max_select ?? 1)));
+        .slice(0, Math.max(0, cap));
       for (const opt of defaults) {
         modifierOptionIds.push(opt.id);
         modifierNames.push(opt.name);
@@ -158,9 +163,10 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
     return (g.combo_group_items ?? []).find((row) => row.menu_item_id === selectedItemId)?.products ?? null;
   }, [g, selectionState]);
 
-  const toggleModifier = (
+  const changeModifierQuantity = (
     modifierGroup: ComboModifierGroup,
-    option: ComboModifierOption
+    option: ComboModifierOption,
+    delta: 1 | -1
   ) => {
     if (!g || !selectedStepItem) return;
     const current = selectionState[g.id];
@@ -175,18 +181,21 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
     }
 
     const selectedForGroup = optionsByGroup.get(modifierGroup.id) ?? [];
-    const isSelected = selectedForGroup.includes(option.id);
-    const max = Math.max(1, Number(modifierGroup.max_select ?? 1));
+    const max = effectiveModifierGroupMaxSelect(modifierGroup);
     let nextForGroup = selectedForGroup;
 
-    if (max === 1) {
+    if (isSingleSelectModifierGroup(modifierGroup)) {
       nextForGroup = [option.id];
-    } else if (isSelected) {
-      nextForGroup = selectedForGroup.filter((id) => id !== option.id);
-    } else if (selectedForGroup.length < max) {
-      nextForGroup = [...selectedForGroup, option.id];
     } else {
-      return;
+      if (delta > 0) {
+        if (selectedForGroup.length >= max) return;
+        nextForGroup = [...selectedForGroup, option.id];
+      } else {
+        const removeAt = selectedForGroup.findIndex((id) => id === option.id);
+        if (removeAt < 0) return;
+        nextForGroup = [...selectedForGroup];
+        nextForGroup.splice(removeAt, 1);
+      }
     }
 
     optionsByGroup.set(modifierGroup.id, nextForGroup);
@@ -207,6 +216,15 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
         modifierNames: nextNames,
       },
     }));
+  };
+
+  const getModifierOptionQuantity = (modifierGroup: ComboModifierGroup, optionId: string): number => {
+    if (!g) return 0;
+    const selectedIds = selectionState[g.id]?.modifierOptionIds ?? [];
+    return selectedIds.filter(
+      (id) =>
+        id === optionId && (modifierGroup.modifier_options ?? []).some((option) => option.id === id)
+    ).length;
   };
 
   const handleNext = () => {
@@ -301,28 +319,75 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
                             .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
                             .map((opt) => {
                               const active = selectedIds.includes(opt.id);
-                              const atLimit = !active && max > 1 && selectedInGroup.length >= max;
+                              const optionQty = getModifierOptionQuantity(modifierGroup, opt.id);
+
+                              if (isSingleSelectModifierGroup(modifierGroup)) {
+                                return (
+                                  <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => changeModifierQuantity(modifierGroup, opt, 1)}
+                                    className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                                      active
+                                        ? 'border-cockpit-500 bg-cockpit-600/20 text-white'
+                                        : 'border-white/10 text-slate-300 hover:border-cockpit-500/40'
+                                    }`}
+                                  >
+                                    <span>{opt.name}</span>
+                                    <span className="font-mono text-xs text-slate-500">
+                                      {Number(opt.price_adjustment) > 0
+                                        ? `+₼${Number(opt.price_adjustment).toFixed(2)}`
+                                        : Number(opt.price_adjustment) < 0
+                                          ? `-₼${Math.abs(Number(opt.price_adjustment)).toFixed(2)}`
+                                          : '₼0.00'}
+                                    </span>
+                                  </button>
+                                );
+                              }
+
+                              const canIncrease = selectedInGroup.length < max;
+                              const canDecrease = optionQty > 0;
                               return (
-                                <button
+                                <div
                                   key={opt.id}
-                                  type="button"
-                                  disabled={atLimit}
-                                  onClick={() => toggleModifier(modifierGroup, opt)}
-                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
-                                    active
+                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm ${
+                                    optionQty > 0
                                       ? 'border-cockpit-500 bg-cockpit-600/20 text-white'
-                                      : 'border-white/10 text-slate-300 hover:border-cockpit-500/40'
-                                  } ${atLimit ? 'opacity-40' : ''}`}
+                                      : 'border-white/10 text-slate-300'
+                                  }`}
                                 >
                                   <span>{opt.name}</span>
-                                  <span className="font-mono text-xs text-slate-500">
-                                    {Number(opt.price_adjustment) > 0
-                                      ? `+₼${Number(opt.price_adjustment).toFixed(2)}`
-                                      : Number(opt.price_adjustment) < 0
-                                        ? `-₼${Math.abs(Number(opt.price_adjustment)).toFixed(2)}`
-                                        : '₼0.00'}
-                                  </span>
-                                </button>
+                                  <div className="flex items-center gap-3">
+                                    <span className="font-mono text-xs text-slate-500">
+                                      {Number(opt.price_adjustment) > 0
+                                        ? `+₼${Number(opt.price_adjustment).toFixed(2)}`
+                                        : Number(opt.price_adjustment) < 0
+                                          ? `-₼${Math.abs(Number(opt.price_adjustment)).toFixed(2)}`
+                                          : '₼0.00'}
+                                    </span>
+                                    <div className="flex items-center rounded-md border border-white/10 bg-slate-950/70 p-0.5">
+                                      <button
+                                        type="button"
+                                        disabled={!canDecrease}
+                                        onClick={() => changeModifierQuantity(modifierGroup, opt, -1)}
+                                        className="h-7 w-7 rounded text-slate-200 disabled:opacity-40"
+                                      >
+                                        -
+                                      </button>
+                                      <span className="w-6 text-center font-mono text-xs text-slate-200">
+                                        {optionQty}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        disabled={!canIncrease}
+                                        onClick={() => changeModifierQuantity(modifierGroup, opt, 1)}
+                                        className="h-7 w-7 rounded text-slate-200 disabled:opacity-40"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
                               );
                             })}
                         </div>

@@ -9,8 +9,16 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy:local": "npm run build && vite preview --host 127.0.0.1 --strictPort false",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "routes": "node scripts/generate-route-chart.js",
     "verify-env": "node scripts/verify-env.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "qa": "node scripts/qa-orchestrator.mjs",
     "supabase:push": "npx --yes supabase@latest db push",
     "supabase:deploy:order": "npx --yes supabase@latest functions deploy online-order-create --no-verify-jwt",
     "supabase:deploy:epoint": "npx --yes supabase@latest functions deploy epoint-create-payment --no-verify-jwt",
@@ -22,20 +30,21 @@
     "supabase:mark:applied:ps": "powershell -ExecutionPolicy Bypass -File scripts/supabase-mark-local-applied.ps1"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/utilities": "^3.2.2",
     "@supabase/supabase-js": "^2.57.4",
+    "@vercel/analytics": "^2.0.1",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
     "@eslint/js": "^9.9.1",
     "@playwright/test": "^1.58.2",
     "@types/google.maps": "^3.58.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/coverage-v8": "^3.2.0",
     "autoprefixer": "^10.4.18",
     "eslint": "^9.9.1",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
@@ -46,6 +55,7 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
-    "vite": "^5.4.2"
+    "vite": "^5.4.2",
+    "vitest": "^3.2.0"
   }
 }

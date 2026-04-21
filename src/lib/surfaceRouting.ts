@@ -13,6 +13,7 @@ export type StaffScreen =
   | 'expenses'
   | 'payouts'
   | 'users'
+  | 'delivery'
   | 'settings';
 
 export const DEFAULT_STAFF_SCREEN: StaffScreen = 'home';
@@ -30,6 +31,7 @@ export const STAFF_SCREEN_PATHS: Record<StaffScreen, string> = {
   expenses: '/expenses',
   payouts: '/payouts',
   users: '/users',
+  delivery: '/delivery',
   settings: '/settings',
 };
 

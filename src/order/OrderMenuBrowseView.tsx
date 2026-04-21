@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react';
-import { Package, Plus } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Package, Plus, Search, X } from 'lucide-react';
 import type { Category, Product } from '../lib/supabase';
 import type { OnlineFulfillmentType } from '../types/online';
-import { OrderFulfillmentHeroCard } from './OrderFulfillmentHeroCard';
-import { OrderVenueSidebar } from './OrderVenueSidebar';
+import { OrderVenueInfo } from './OrderVenueInfo';
 
 const ALL = '__all__';
 
@@ -38,9 +37,11 @@ interface OrderMenuBrowseViewProps {
   /** When false but user chose delivery, show admin hint (DB must enable delivery). */
   serverAllowsDelivery: boolean;
   deliveryDisabledHint: string;
+  /** Right-side slot reserved for persistent cart panel (desktop only). */
+  sideSlot?: React.ReactNode;
 }
 
-function ProductRow({
+function ProductCard({
   product,
   addLabel,
   onAdd,
@@ -49,38 +50,70 @@ function ProductRow({
   addLabel: string;
   onAdd: () => void;
 }) {
-  const modHint =
-    product.modifier_groups && product.modifier_groups.length > 0 ? ' · +' : '';
+  const hasMods = (product.modifier_groups?.length ?? 0) > 0;
   return (
-    <div className="group relative flex gap-4 rounded-2xl border border-white/[0.08] bg-gradient-to-r from-zinc-900/90 via-zinc-900/50 to-zinc-950/80 p-4 pb-12 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-amber-500/25 hover:shadow-lg hover:shadow-black/40">
-      <div className="min-w-0 flex-1">
-        <h3 className="text-[15px] font-semibold leading-snug text-white">{product.name}</h3>
-        <p className="mt-1 font-mono text-base font-semibold text-amber-400">
-          ₼{Number(product.selling_price).toFixed(2)}
-          {modHint ? <span className="text-xs font-normal text-slate-500">{modHint}</span> : null}
-        </p>
-        {product.description ? (
-          <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-slate-500">{product.description}</p>
-        ) : null}
-      </div>
-      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-zinc-800 shadow-inner sm:h-28 sm:w-28">
+    <article
+      className="ming-product group cursor-pointer"
+      onClick={onAdd}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onAdd();
+        }
+      }}
+    >
+      <div className="ming-product-image">
         {product.image_url ? (
-          <img src={product.image_url} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />
+          <img
+            src={product.image_url}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
+          />
         ) : (
-          <div className="flex h-full items-center justify-center">
-            <Package className="h-10 w-10 text-zinc-600" />
+          <div className="flex h-full w-full items-center justify-center text-ming-mute">
+            <Package className="h-10 w-10" />
           </div>
         )}
       </div>
-      <button
-        type="button"
-        onClick={onAdd}
-        className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-xl border border-amber-500/50 bg-black/50 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-amber-300 backdrop-blur-sm transition hover:border-amber-400 hover:bg-amber-500/15 hover:text-amber-200"
-      >
-        <Plus className="h-3.5 w-3.5" />
-        {addLabel}
-      </button>
-    </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <h3 className="ming-display text-[17px] leading-[1.15] text-ming-bone">{product.name}</h3>
+        {product.description ? (
+          <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-ming-ash">
+            {product.description}
+          </p>
+        ) : null}
+        <div className="mt-auto flex items-end justify-between gap-2 pt-3">
+          <div className="flex min-w-0 flex-col">
+            <div className="flex items-baseline gap-1">
+              <span className="ming-price">
+                {Number(product.selling_price).toFixed(2)}
+              </span>
+              <span className="text-sm font-semibold text-ming-red">₼</span>
+            </div>
+            {hasMods ? (
+              <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ming-mute">
+                +options
+              </span>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            aria-label={addLabel}
+            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-ming-red px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-ming transition-all hover:bg-ming-red-700 hover:shadow-ming-glow active:scale-95"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {addLabel}
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -89,28 +122,25 @@ export function OrderMenuBrowseView({
   products,
   selectedCategoryId,
   onSelectCategory,
-  fulfillment,
-  onFulfillmentChange,
-  showTakeaway,
-  showDelivery,
-  hoursLine,
-  venueAddress,
-  venuePhone,
   labels,
   onAddProduct,
   serverAllowsDelivery,
   deliveryDisabledHint,
+  fulfillment,
+  hoursLine,
+  venueAddress,
+  venuePhone,
+  sideSlot,
 }: OrderMenuBrowseViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const chipsRef = useRef<HTMLDivElement | null>(null);
 
   const searchFiltered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return products;
-    return products.filter((p) => {
-      const name = p.name.toLowerCase();
-      const desc = (p.description ?? '').toLowerCase();
-      return name.includes(q) || desc.includes(q);
-    });
+    return products.filter(
+      (p) => p.name.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q)
+    );
   }, [products, searchQuery]);
 
   const categoryNameById = useMemo(() => {
@@ -119,36 +149,61 @@ export function OrderMenuBrowseView({
     return m;
   }, [categories]);
 
-  const venueSidebar = (
-    <OrderVenueSidebar
-      searchQuery={searchQuery}
-      onSearchChange={setSearchQuery}
-      hoursLine={hoursLine}
-      address={venueAddress}
-      phone={venuePhone}
-      labels={{
-        search: labels.orderSearchMenu,
-        hours: labels.orderVenueHours,
-        address: labels.orderVenueAddress,
-        phone: labels.orderVenuePhone,
-        infoTitle: labels.orderVenueInfoTitle,
-      }}
-    />
-  );
+  useEffect(() => {
+    if (selectedCategoryId === ALL) return;
+    const host = chipsRef.current;
+    if (!host) return;
+    const active = host.querySelector<HTMLElement>(`[data-cat-id="${selectedCategoryId}"]`);
+    active?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, [selectedCategoryId]);
+
+  const handlePickCategory = (id: string) => {
+    onSelectCategory(id);
+    if (id !== ALL) {
+      const el = document.getElementById(`ming-cat-${id}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const chip = (id: string, label: string) => {
+    const active = selectedCategoryId === id;
+    return (
+      <button
+        key={id}
+        data-cat-id={id}
+        type="button"
+        onClick={() => handlePickCategory(id)}
+        className={`ming-chip snap-start ${active ? 'ming-chip-active' : ''}`}
+      >
+        {label}
+      </button>
+    );
+  };
 
   const renderProducts = () => {
     const searching = searchQuery.trim().length > 0;
 
     if (searching) {
+      if (searchFiltered.length === 0) {
+        return (
+          <div className="ming-card flex flex-col items-center gap-2 p-10 text-center">
+            <Search className="h-6 w-6 text-ming-mute" />
+            <p className="text-sm text-ming-ash">{labels.orderSearchNoResults}</p>
+          </div>
+        );
+      }
       return (
-        <div className="space-y-3">
-          {searchFiltered.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-500">{labels.orderSearchNoResults}</p>
-          ) : (
-            searchFiltered.map((p) => (
-              <ProductRow key={p.id} product={p} addLabel={labels.orderAddToCart} onAdd={() => onAddProduct(p)} />
-            ))
-          )}
+        <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
+          {searchFiltered.map((p) => (
+            <ProductCard
+              key={p.id}
+              product={p}
+              addLabel={labels.orderAddToCart}
+              onAdd={() => onAddProduct(p)}
+            />
+          ))}
         </div>
       );
     }
@@ -160,13 +215,25 @@ export function OrderMenuBrowseView({
             const list = searchFiltered.filter((p) => p.master_category_id === cat.id);
             if (list.length === 0) return null;
             return (
-              <section key={cat.id} id={`order-cat-${cat.id}`} className="scroll-mt-28">
-                <h2 className="mb-4 text-2xl font-bold tracking-tight text-amber-400/95 drop-shadow-sm">
-                  {cat.name}
-                </h2>
-                <div className="space-y-3">
+              <section
+                key={cat.id}
+                id={`ming-cat-${cat.id}`}
+                className="scroll-mt-[168px] lg:scroll-mt-24"
+              >
+                <div className="mb-4 flex items-end justify-between gap-3">
+                  <h2 className="ming-section-title">{cat.name}</h2>
+                  <span className="hidden text-[11px] font-bold uppercase tracking-[0.14em] text-ming-mute sm:block">
+                    {list.length} {list.length === 1 ? 'dish' : 'dishes'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
                   {list.map((p) => (
-                    <ProductRow key={p.id} product={p} addLabel={labels.orderAddToCart} onAdd={() => onAddProduct(p)} />
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      addLabel={labels.orderAddToCart}
+                      onAdd={() => onAddProduct(p)}
+                    />
                   ))}
                 </div>
               </section>
@@ -179,104 +246,147 @@ export function OrderMenuBrowseView({
     const list = searchFiltered.filter((p) => p.master_category_id === selectedCategoryId);
     const title = categoryNameById.get(selectedCategoryId) ?? labels.allCategories;
     return (
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight text-amber-400/95">{title}</h2>
+      <section>
+        <h2 className="ming-section-title mb-4">{title}</h2>
         {list.length === 0 ? (
-          <p className="text-sm text-slate-500">{labels.allCategories}</p>
+          <p className="rounded-2xl border border-white/[0.06] bg-ming-charcoal p-8 text-center text-sm text-ming-ash">
+            {labels.orderSearchNoResults}
+          </p>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
             {list.map((p) => (
-              <ProductRow key={p.id} product={p} addLabel={labels.orderAddToCart} onAdd={() => onAddProduct(p)} />
+              <ProductCard
+                key={p.id}
+                product={p}
+                addLabel={labels.orderAddToCart}
+                onAdd={() => onAddProduct(p)}
+              />
             ))}
           </div>
         )}
-      </div>
+      </section>
     );
   };
 
-  const railBtn = (id: string, label: string) => (
-    <button
-      key={id}
-      type="button"
-      onClick={() => {
-        onSelectCategory(id);
-        if (id !== ALL) {
-          const el = document.getElementById(`order-cat-${id}`);
-          el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }}
-      className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-        selectedCategoryId === id
-          ? 'bg-gradient-to-r from-amber-500/20 to-cockpit-600/20 text-white ring-1 ring-amber-500/30'
-          : 'text-slate-400 hover:bg-white/5 hover:text-white'
-      }`}
-    >
-      {label}
-    </button>
-  );
-
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 pb-32 lg:flex-row lg:gap-8 lg:pb-40 lg:pt-2">
-      <aside className="w-full shrink-0 space-y-4 px-4 lg:sticky lg:top-0 lg:w-64 lg:self-start lg:px-0 lg:pr-1">
-        <OrderFulfillmentHeroCard
-          fulfillment={fulfillment}
-          onChange={onFulfillmentChange}
-          showTakeaway={showTakeaway}
-          showDelivery={showDelivery}
-          label={labels.orderChooseFulfillmentTitle}
-          takeawayLabel={labels.orderFulfillmentTakeaway}
-          deliveryLabel={labels.orderFulfillmentDelivery}
-          hoursLine={hoursLine}
-        />
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-0 lg:flex-row lg:gap-8 lg:px-10">
+      {/* Sticky category chip rail — always visible */}
+      <div className="sticky top-[48px] z-20 -mx-0 border-b border-white/[0.04] bg-ming-ink/85 backdrop-blur-xl lg:static lg:top-0 lg:order-1 lg:hidden">
+        <div className="relative">
+          <div
+            ref={chipsRef}
+            className="no-scrollbar flex snap-x gap-2 overflow-x-auto px-4 py-3 sm:px-5"
+            aria-label="Categories"
+            role="tablist"
+          >
+            {chip(ALL, labels.allCategories)}
+            {categories.map((c) => chip(c.id, c.name))}
+          </div>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-ming-ink/90 to-transparent"
+          />
+        </div>
+      </div>
+
+      {/* Desktop left rail */}
+      <aside className="hidden shrink-0 pt-6 lg:block lg:w-60 lg:pt-8">
+        <div className="sticky top-20 space-y-2">
+          <p className="ming-eyebrow mb-3 px-2">Menu</p>
+          <nav aria-label="Categories" className="flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => handlePickCategory(ALL)}
+              className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                selectedCategoryId === ALL
+                  ? 'bg-white/[0.08] text-ming-bone'
+                  : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
+              }`}
+            >
+              {labels.allCategories}
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => handlePickCategory(c.id)}
+                className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                  selectedCategoryId === c.id
+                    ? 'bg-white/[0.08] text-ming-bone'
+                    : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
+                }`}
+              >
+                {c.name}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </aside>
+
+      {/* Main column */}
+      <main className="min-w-0 flex-1 px-4 pb-40 pt-5 sm:px-5 lg:order-2 lg:px-0 lg:pb-24 lg:pt-8">
+        {/* Search bar + delivery hint row */}
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search
+              aria-hidden
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ming-mute"
+            />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={labels.orderSearchMenu}
+              className="ming-input pl-10"
+              autoComplete="off"
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-ming-ash hover:text-ming-bone"
+                aria-label="Clear"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+        </div>
 
         {!serverAllowsDelivery && fulfillment === 'delivery' ? (
           <p
             role="status"
-            className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-xs leading-relaxed text-amber-100/95"
+            className="mb-5 rounded-xl border border-ming-gold/40 bg-ming-gold/10 px-4 py-3 text-[13px] leading-relaxed text-ming-gold"
           >
             {deliveryDisabledHint}
           </p>
         ) : null}
 
-        <nav className="hidden flex-col gap-1 lg:flex" aria-label="Categories">
-          {railBtn(ALL, labels.allCategories)}
-          {categories.map((c) => railBtn(c.id, c.name))}
-        </nav>
+        {renderProducts()}
 
-        <nav className="-mx-1 flex gap-2 overflow-x-auto pb-1 scrollbar-thin lg:hidden" aria-label="Categories">
-          <button
-            type="button"
-            onClick={() => onSelectCategory(ALL)}
-            className={`snap-start shrink-0 rounded-full px-4 py-2 text-sm font-medium ${
-              selectedCategoryId === ALL ? 'bg-cockpit-600 text-white' : 'bg-white/5 text-slate-300'
-            }`}
-          >
-            {labels.allCategories}
-          </button>
-          {categories.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => {
-                onSelectCategory(c.id);
-              }}
-              className={`snap-start shrink-0 rounded-full px-4 py-2 text-sm font-medium ${
-                selectedCategoryId === c.id ? 'bg-cockpit-600 text-white' : 'bg-white/5 text-slate-300'
-              }`}
-            >
-              {c.name}
-            </button>
-          ))}
-        </nav>
-      </aside>
+        {/* Venue info block (compact, bottom of page) */}
+        <div className="mt-12">
+          <OrderVenueInfo
+            hoursLine={hoursLine}
+            address={venueAddress}
+            phone={venuePhone}
+            labels={{
+              hours: labels.orderVenueHours,
+              address: labels.orderVenueAddress,
+              phone: labels.orderVenuePhone,
+              infoTitle: labels.orderVenueInfoTitle,
+            }}
+            compact
+          />
+        </div>
+      </main>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-8">
-        <div className="px-4 lg:hidden">{venueSidebar}</div>
-
-        <main className="min-w-0 flex-1 space-y-6 px-4 lg:px-0">{renderProducts()}</main>
-
-        <aside className="hidden w-full shrink-0 lg:block lg:w-72 lg:px-0">{venueSidebar}</aside>
-      </div>
+      {/* Desktop right side slot (persistent cart panel) */}
+      {sideSlot ? (
+        <aside className="hidden shrink-0 pt-8 lg:order-3 lg:block lg:w-[360px]">
+          <div className="sticky top-20">{sideSlot}</div>
+        </aside>
+      ) : null}
     </div>
   );
 }

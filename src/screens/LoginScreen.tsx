@@ -3,6 +3,7 @@ import { Lock, Mail, AlertCircle } from 'lucide-react';
 import { MingsWordmark } from '../components/MingsWordmark';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import {
   clearLoginFailures,
   formatLockout,
@@ -11,7 +12,7 @@ import {
 } from '../lib/loginRateLimit';
 
 export function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -136,6 +137,22 @@ export function LoginScreen() {
                 </p>
               </div>
             )}
+
+            <div className="mb-6 space-y-4">
+              <GoogleSignInButton
+                onClick={() => signInWithGoogle()}
+                label={t.orderSignInGoogle}
+                redirectingLabel={t.orderSignInGoogleRedirecting}
+                onError={(msg) => setError(msg)}
+              />
+              <div className="relative flex items-center">
+                <div className="flex-1 border-t border-white/10" />
+                <span className="px-3 text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                  {t.emailAddress}
+                </span>
+                <div className="flex-1 border-t border-white/10" />
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>

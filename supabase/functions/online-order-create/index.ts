@@ -26,10 +26,30 @@ interface Body {
   deliveryAddress?: string;
   deliveryLat?: number;
   deliveryLng?: number;
-  /** Apartment / buzzer / courier instructions — stored on `sales.delivery_notes`. */
+  /** Apartment / flat / unit number — stored on `sales.delivery_apartment`. */
+  deliveryApartment?: string;
+  /** Floor number — stored on `sales.delivery_floor`. */
+  deliveryFloor?: string;
+  /** Buzzer / courier-visible instructions — stored on `sales.delivery_notes`. */
   deliveryNotes?: string;
   /** QR/table context (e.g. `?table=` or `?ref=`) — stored on the sale `notes` field for kitchen. */
   tableLabel?: string;
+}
+
+function normalizePhoneE164(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return '';
+  const s = trimmed.replace(/[\s()-]/g, '');
+  if (s.startsWith('+')) {
+    const digits = s.slice(1).replace(/\D/g, '');
+    return digits ? `+${digits}` : '';
+  }
+  const digits = s.replace(/\D/g, '');
+  return digits ? `+${digits}` : '';
+}
+
+function isLikelyE164(phone: string): boolean {
+  return /^\+[1-9]\d{8,14}$/.test(phone);
 }
 
 function getGroupNameForOption(
@@ -40,6 +60,20 @@ function getGroupNameForOption(
     if (g.modifier_options?.some((o) => o.id === optionId)) return g.name;
   }
   return '';
+}
+
+/** Mirrors `src/lib/modifierGroupConstraints.ts` — spice/heat-style groups must behave as single choice even if max_select in DB is > 1. */
+const EXCLUSIVE_MODIFIER_GROUP_NAME =
+  /(?:^|[\s,])(?:spice|spicy|spiciness|acılı|остр(?:ота|оты)?|is[ıi]dl[ıi]|chili\s*level|heat\s*level|dərəc[əe]|s[əe]viyy[əe])(?:$|[\s,])/iu;
+
+function effectiveMaxSelectForValidation(g: { name: string; max_select?: number }): number {
+  let maxSel = Number(g.max_select);
+  if (!Number.isFinite(maxSel) || maxSel < 1) maxSel = 1;
+  maxSel = Math.floor(maxSel);
+  if (maxSel > 1 && EXCLUSIVE_MODIFIER_GROUP_NAME.test(String(g.name ?? ''))) {
+    return 1;
+  }
+  return maxSel;
 }
 
 Deno.serve(async (req: Request) => {
@@ -84,6 +118,9 @@ async function handleRequest(req: Request): Promise<Response> {
       }
     }
   }
+  if (!customerUserId) {
+    return jsonResponse({ error: 'Authentication required to place order' }, 401);
+  }
 
   let body: Body;
   try {
@@ -101,6 +138,8 @@ async function handleRequest(req: Request): Promise<Response> {
     deliveryAddress,
     deliveryLat,
     deliveryLng,
+    deliveryApartment,
+    deliveryFloor,
     tableLabel,
     deliveryNotes,
   } = body;
@@ -108,8 +147,12 @@ async function handleRequest(req: Request): Promise<Response> {
   if (!Array.isArray(cart) || cart.length === 0) {
     return jsonResponse({ error: 'Cart is empty' }, 400);
   }
-  if (!customerPhone || typeof customerPhone !== 'string' || customerPhone.trim().length < 5) {
+  if (!customerPhone || typeof customerPhone !== 'string') {
     return jsonResponse({ error: 'Valid phone number required' }, 400);
+  }
+  const normalizedPhone = normalizePhoneE164(customerPhone);
+  if (!isLikelyE164(normalizedPhone)) {
+    return jsonResponse({ error: 'Valid phone number required (E.164, e.g. +994...)' }, 400);
   }
 
   const { data: settings } = await supabase.from('online_settings').select('*').limit(1).maybeSingle();
@@ -149,6 +192,7 @@ async function handleRequest(req: Request): Promise<Response> {
   const dailyNumber = Number(orderNum);
   const displayNumber = 'O' + String(dailyNumber).padStart(3, '0');
   const trackToken = crypto.randomUUID();
+  const paymentInitToken = crypto.randomUUID();
 
   let deliveryFee = 0;
   let zoneId: string | null = null;
@@ -184,7 +228,7 @@ async function handleRequest(req: Request): Promise<Response> {
     const { data: products, error: prodErr } = await supabase
       .from('products')
       .select(
-        'id, name, selling_price, online_visible, product_modifier_groups(modifier_groups(id, name, modifier_options(id, name, price_adjustment, is_available)))'
+        'id, name, selling_price, online_visible, product_modifier_groups(modifier_groups(id, name, min_select, max_select, modifier_options(id, name, price_adjustment, is_available)))'
       )
       .in('id', productIds);
 
@@ -363,6 +407,8 @@ async function handleRequest(req: Request): Promise<Response> {
       .filter(Boolean) as Array<{
       id: string;
       name: string;
+      min_select?: number;
+      max_select?: number;
       modifier_options?: Array<{
         id: string;
         name: string;
@@ -372,6 +418,23 @@ async function handleRequest(req: Request): Promise<Response> {
     }>;
 
     const optionIds = line.modifierOptionIds ?? [];
+
+    for (const g of groups) {
+      const opts = g.modifier_options ?? [];
+      const idSet = new Set(opts.map((o) => o.id));
+      const minSel = Math.max(0, Math.floor(Number(g.min_select ?? 0)));
+      const maxSel = effectiveMaxSelectForValidation(g);
+      const minClamped = Math.min(minSel, maxSel);
+
+      const count = optionIds.filter((id) => idSet.has(id)).length;
+      if (count > maxSel) {
+        return jsonResponse({ error: `Too many modifiers selected for "${g.name}"` }, 400);
+      }
+      if (count < minClamped) {
+        return jsonResponse({ error: `Not enough modifiers selected for "${g.name}"` }, 400);
+      }
+    }
+
     const allOptions = groups.flatMap((g) => g.modifier_options ?? []);
     let modAdjust = 0;
     const modifierRows: Array<{
@@ -459,13 +522,17 @@ async function handleRequest(req: Request): Promise<Response> {
       delivery_notes: courierNote || null,
       online_payment_method: paymentMethod,
       customer_name: customerName?.trim() || null,
-      customer_phone: customerPhone.trim(),
+      customer_phone: normalizedPhone,
       delivery_address: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,
+      delivery_apartment:
+        fulfillmentType === 'delivery' ? deliveryApartment?.trim() || null : null,
+      delivery_floor: fulfillmentType === 'delivery' ? deliveryFloor?.trim() || null : null,
       delivery_lat: fulfillmentType === 'delivery' ? deliveryLat ?? null : null,
       delivery_lng: fulfillmentType === 'delivery' ? deliveryLng ?? null : null,
       delivery_fee: deliveryFee,
       delivery_zone_id: zoneId,
       customer_user_id: customerUserId,
+      payment_init_token: paymentInitToken,
     })
     .select('id')
     .single();
@@ -570,6 +637,7 @@ async function handleRequest(req: Request): Promise<Response> {
     total,
     deliveryFee,
     paymentMethod,
+    paymentInitToken,
     nextStep: paymentMethod === 'epoint' ? 'epoint-create-payment' : 'track',
   });
 }

@@ -2,6 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { X, Package, Minus, Plus, Check } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Product, ModifierGroup, ModifierOption, SelectedModifiers } from '../lib/supabase';
+import {
+  effectiveModifierGroupMaxSelect,
+  isSingleSelectModifierGroup,
+} from '../lib/modifierGroupConstraints';
 
 interface ProductDetailModalProps {
   product: Product;
@@ -29,9 +33,23 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
   useEffect(() => {
     const defaults: SelectedModifiers = {};
     groups.forEach(group => {
+      const maxSel = effectiveModifierGroupMaxSelect(group);
+      const minSel = Math.max(0, Number(group.min_select ?? 0));
+      const isSingleSelect = isSingleSelectModifierGroup(group);
       const defaultOptions = group.modifier_options.filter(o => o.is_default);
-      if (defaultOptions.length > 0) {
-        defaults[group.id] = defaultOptions;
+      if (defaultOptions.length === 0) return;
+
+      // Keep optional multi-select groups explicit: do not silently pre-add extras.
+      if (isSingleSelect) {
+        defaults[group.id] = [defaultOptions[0]];
+        return;
+      }
+
+      if (group.is_required && minSel > 0) {
+        const count = Math.min(maxSel, minSel, defaultOptions.length);
+        if (count > 0) {
+          defaults[group.id] = defaultOptions.slice(0, count);
+        }
       }
     });
     setSelections(defaults);
@@ -40,7 +58,8 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
   const handleToggleOption = (group: ModifierGroup, option: ModifierOption) => {
     setSelections(prev => {
       const current = prev[group.id] || [];
-      const isSingleSelect = group.max_select === 1;
+      const maxSel = effectiveModifierGroupMaxSelect(group);
+      const isSingleSelect = isSingleSelectModifierGroup(group);
 
       if (isSingleSelect) {
         return { ...prev, [group.id]: [option] };
@@ -51,11 +70,35 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
         return { ...prev, [group.id]: current.filter(o => o.id !== option.id) };
       }
 
-      if (current.length >= group.max_select) {
+      if (current.length >= maxSel) {
         return prev;
       }
 
       return { ...prev, [group.id]: [...current, option] };
+    });
+  };
+
+  const getOptionQuantity = (groupId: string, optionId: string) => {
+    return (selections[groupId] || []).filter((o) => o.id === optionId).length;
+  };
+
+  const changeOptionQuantity = (group: ModifierGroup, option: ModifierOption, delta: 1 | -1) => {
+    setSelections((prev) => {
+      const current = prev[group.id] || [];
+      const maxSel = effectiveModifierGroupMaxSelect(group);
+      const isSingleSelect = isSingleSelectModifierGroup(group);
+      if (isSingleSelect) return prev;
+
+      if (delta > 0) {
+        if (current.length >= maxSel) return prev;
+        return { ...prev, [group.id]: [...current, option] };
+      }
+
+      const removeAt = current.findIndex((o) => o.id === option.id);
+      if (removeAt < 0) return prev;
+      const next = [...current];
+      next.splice(removeAt, 1);
+      return { ...prev, [group.id]: next };
     });
   };
 
@@ -167,7 +210,8 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
             <div className="space-y-1">
               {groups.map(group => {
                 const selectedCount = (selections[group.id] || []).length;
-                const isSingle = group.max_select === 1;
+                const maxSel = effectiveModifierGroupMaxSelect(group);
+                const isSingle = isSingleSelectModifierGroup(group);
                 return (
                   <div
                     key={group.id}
@@ -183,15 +227,15 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
                           {group.name}
                         </h3>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--kiosk-smoke)' }}>
-                          {isSingle ? t.chooseOne : `${t.chooseUpTo} ${group.max_select}`}
+                          {isSingle ? t.chooseOne : `${t.chooseUpTo} ${maxSel}`}
                           {group.is_required && (
                             <span className="ml-2" style={{ color: 'var(--kiosk-primary)' }}>({t.required})</span>
                           )}
                         </p>
                       </div>
-                      {!isSingle && group.max_select > 1 && (
+                      {!isSingle && maxSel > 1 && (
                         <span className="text-xs" style={{ color: 'var(--kiosk-smoke)' }}>
-                          {selectedCount}/{group.max_select}
+                          {selectedCount}/{maxSel}
                         </span>
                       )}
                     </div>
@@ -199,7 +243,79 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
                     <div className="space-y-2">
                       {group.modifier_options.map(option => {
                         const selected = isOptionSelected(group.id, option.id);
-                        const atMax = !isSingle && selectedCount >= group.max_select && !selected;
+                        const optionQty = getOptionQuantity(group.id, option.id);
+                        const canIncrease = !isSingle && selectedCount < maxSel;
+                        const canDecrease = !isSingle && optionQty > 0;
+
+                        if (!isSingle) {
+                          return (
+                            <div
+                              key={option.id}
+                              className="w-full flex items-center gap-3 p-3.5 rounded-[18px] transition-all"
+                              style={{
+                                backgroundColor: optionQty > 0 ? 'rgba(214,87,69,0.12)' : 'rgba(255,255,255,0.04)',
+                                outline: optionQty > 0 ? '2.5px solid var(--kiosk-primary)' : '2.5px solid transparent',
+                              }}
+                            >
+                              {option.image_url && (
+                                <div
+                                  className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0"
+                                  style={{ backgroundColor: '#383838' }}
+                                >
+                                  <img src={option.image_url} alt="" className="w-full h-full object-cover" />
+                                </div>
+                              )}
+
+                              <span
+                                className="flex-1 text-left text-sm font-medium"
+                                style={{ color: 'var(--kiosk-white)' }}
+                              >
+                                {option.name}
+                              </span>
+                              <span
+                                className="text-sm flex-shrink-0 font-semibold"
+                                style={{
+                                  color: Number(option.price_adjustment) > 0
+                                    ? 'var(--kiosk-primary)'
+                                    : 'var(--kiosk-smoke)',
+                                }}
+                              >
+                                {formatPrice(Number(option.price_adjustment))}
+                              </span>
+                              <div
+                                className="flex items-center rounded-xl p-1 flex-shrink-0"
+                                style={{ backgroundColor: '#383838' }}
+                              >
+                                <button
+                                  type="button"
+                                  disabled={!canDecrease}
+                                  onClick={() => changeOptionQuantity(group, option, -1)}
+                                  className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:opacity-40"
+                                  style={{ color: 'var(--kiosk-white)' }}
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </button>
+                                <span
+                                  className="w-7 text-center text-sm font-bold"
+                                  style={{ color: 'var(--kiosk-white)' }}
+                                >
+                                  {optionQty}
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={!canIncrease}
+                                  onClick={() => changeOptionQuantity(group, option, 1)}
+                                  className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:opacity-40"
+                                  style={{ color: 'var(--kiosk-white)' }}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        const atMax = !isSingle && selectedCount >= maxSel && !selected;
                         return (
                           <button
                             key={option.id}
