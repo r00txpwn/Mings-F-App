@@ -221,6 +221,8 @@ export function KioskOrdersScreen() {
         emptyMessage={t.noKioskOrders}
         onStatusChange={handleUpdateStatus}
         onConfirmPayment={handleConfirmPayment}
+        staffAccessToken={null}
+        onReload={loadOrders}
       />
     </div>
   );

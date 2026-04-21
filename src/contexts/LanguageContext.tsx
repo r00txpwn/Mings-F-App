@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { translations, Language, Translations } from '../translations';
 import { supabase } from '../lib/supabase';
 
@@ -12,6 +12,16 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en');
+  const translated = useMemo(
+    () =>
+      new Proxy(translations[language], {
+        get(target, prop: string) {
+          const value = target[prop];
+          return typeof value === 'string' ? value : prop;
+        },
+      }) as Translations,
+    [language]
+  );
 
   useEffect(() => {
     loadLanguagePreference();
@@ -75,7 +85,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t: translations[language] }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t: translated }}>
       {children}
     </LanguageContext.Provider>
   );
