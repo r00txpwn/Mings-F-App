@@ -4,35 +4,58 @@ interface OrderBrandHeaderProps {
   title: string;
 }
 
+/**
+ * Bold street-food brand strip.
+ * - With hero image: short cinematic band with legibility gradient + red accent stripe.
+ * - Without hero image: compact typographic banner with diagonal stripe detail.
+ */
 export function OrderBrandHeader({ tagline, heroImageUrl, title }: OrderBrandHeaderProps) {
-  return (
-    <div className="relative overflow-hidden border-b border-white/10">
-      {heroImageUrl ? (
-        <div className="relative h-44 w-full sm:h-52 lg:h-56">
-          <img src={heroImageUrl} alt="" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/55 to-zinc-950/20" />
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-transparent to-cockpit-600/10" />
+  if (heroImageUrl) {
+    return (
+      <header className="relative overflow-hidden">
+        <div className="relative h-36 w-full sm:h-44 lg:h-52">
+          <img
+            src={heroImageUrl}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-ming-ink via-ming-ink/70 to-ming-ink/20" />
+          <div className="absolute inset-0 bg-gradient-to-r from-ming-ink/60 via-transparent to-transparent" />
           <div className="absolute bottom-4 left-4 right-4 lg:bottom-6 lg:left-8">
-            <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-md sm:text-3xl">
+            <p className="ming-eyebrow mb-1.5">Ming&apos;s · Baku</p>
+            <h1 className="ming-display text-[26px] leading-[1.05] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] sm:text-3xl lg:text-4xl">
               {title}
             </h1>
             {tagline ? (
-              <p className="mt-2 max-w-xl text-sm font-medium text-zinc-200/95 drop-shadow sm:text-base">
+              <p className="mt-2 max-w-xl text-sm font-medium text-white/85 sm:text-base">
                 {tagline}
               </p>
             ) : null}
           </div>
         </div>
-      ) : (
-        <div className="relative overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-950 to-black px-4 py-10 sm:px-8">
-          <div className="pointer-events-none absolute -right-20 top-0 h-64 w-64 rounded-full bg-amber-500/15 blur-3xl" />
-          <div className="pointer-events-none absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-cockpit-600/20 blur-3xl" />
-          <h1 className="relative text-2xl font-bold tracking-tight text-white sm:text-3xl">{title}</h1>
+        <div className="ming-stripes h-1.5 w-full" aria-hidden />
+      </header>
+    );
+  }
+
+  return (
+    <header className="relative overflow-hidden">
+      <div className="relative flex items-center gap-4 px-4 py-5 sm:px-6 sm:py-6 lg:px-10 lg:py-8">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-ming-red text-white shadow-ming sm:h-14 sm:w-14">
+          <span className="ming-display text-2xl sm:text-3xl">M</span>
+        </div>
+        <div className="min-w-0">
+          <p className="ming-eyebrow mb-1">Ming&apos;s · Baku</p>
+          <h1 className="ming-display text-[22px] leading-[1.05] text-ming-bone sm:text-[26px] lg:text-3xl">
+            {title}
+          </h1>
           {tagline ? (
-            <p className="relative mt-2 max-w-xl text-sm text-zinc-300 sm:text-base">{tagline}</p>
+            <p className="mt-1 max-w-xl text-[13px] text-ming-ash sm:text-sm">{tagline}</p>
           ) : null}
         </div>
-      )}
-    </div>
+      </div>
+      <div className="ming-stripes h-1.5 w-full" aria-hidden />
+    </header>
   );
 }

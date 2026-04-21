@@ -36,6 +36,22 @@ interface Body {
   tableLabel?: string;
 }
 
+function normalizePhoneE164(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return '';
+  const s = trimmed.replace(/[\s()-]/g, '');
+  if (s.startsWith('+')) {
+    const digits = s.slice(1).replace(/\D/g, '');
+    return digits ? `+${digits}` : '';
+  }
+  const digits = s.replace(/\D/g, '');
+  return digits ? `+${digits}` : '';
+}
+
+function isLikelyE164(phone: string): boolean {
+  return /^\+[1-9]\d{8,14}$/.test(phone);
+}
+
 function getGroupNameForOption(
   groups: Array<{ id: string; name: string; modifier_options?: Array<{ id: string }> }>,
   optionId: string
@@ -102,6 +118,9 @@ async function handleRequest(req: Request): Promise<Response> {
       }
     }
   }
+  if (!customerUserId) {
+    return jsonResponse({ error: 'Authentication required to place order' }, 401);
+  }
 
   let body: Body;
   try {
@@ -128,8 +147,12 @@ async function handleRequest(req: Request): Promise<Response> {
   if (!Array.isArray(cart) || cart.length === 0) {
     return jsonResponse({ error: 'Cart is empty' }, 400);
   }
-  if (!customerPhone || typeof customerPhone !== 'string' || customerPhone.trim().length < 5) {
+  if (!customerPhone || typeof customerPhone !== 'string') {
     return jsonResponse({ error: 'Valid phone number required' }, 400);
+  }
+  const normalizedPhone = normalizePhoneE164(customerPhone);
+  if (!isLikelyE164(normalizedPhone)) {
+    return jsonResponse({ error: 'Valid phone number required (E.164, e.g. +994...)' }, 400);
   }
 
   const { data: settings } = await supabase.from('online_settings').select('*').limit(1).maybeSingle();
@@ -169,6 +192,7 @@ async function handleRequest(req: Request): Promise<Response> {
   const dailyNumber = Number(orderNum);
   const displayNumber = 'O' + String(dailyNumber).padStart(3, '0');
   const trackToken = crypto.randomUUID();
+  const paymentInitToken = crypto.randomUUID();
 
   let deliveryFee = 0;
   let zoneId: string | null = null;
@@ -498,7 +522,7 @@ async function handleRequest(req: Request): Promise<Response> {
       delivery_notes: courierNote || null,
       online_payment_method: paymentMethod,
       customer_name: customerName?.trim() || null,
-      customer_phone: customerPhone.trim(),
+      customer_phone: normalizedPhone,
       delivery_address: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,
       delivery_apartment:
         fulfillmentType === 'delivery' ? deliveryApartment?.trim() || null : null,
@@ -508,6 +532,7 @@ async function handleRequest(req: Request): Promise<Response> {
       delivery_fee: deliveryFee,
       delivery_zone_id: zoneId,
       customer_user_id: customerUserId,
+      payment_init_token: paymentInitToken,
     })
     .select('id')
     .single();
@@ -612,6 +637,7 @@ async function handleRequest(req: Request): Promise<Response> {
     total,
     deliveryFee,
     paymentMethod,
+    paymentInitToken,
     nextStep: paymentMethod === 'epoint' ? 'epoint-create-payment' : 'track',
   });
 }

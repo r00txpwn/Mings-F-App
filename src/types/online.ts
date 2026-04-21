@@ -15,6 +15,8 @@ export interface OnlineOrderCreateResponse {
   total: number;
   deliveryFee: number;
   paymentMethod: OnlinePaymentMethod;
+  /** One-time-like secret used to initialize Epoint payment for this sale. */
+  paymentInitToken?: string;
   nextStep: 'epoint-create-payment' | 'track';
 }
 

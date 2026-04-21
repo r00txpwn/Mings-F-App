@@ -23,4 +23,7 @@ dist-ssr
 .env
 supabase/.temp/
 .vercel
-test-results/
+.playwright-mcp/
+pw-*.png
+.cursor/skills/
+**/__pycache__/

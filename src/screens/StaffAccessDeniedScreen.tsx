@@ -2,7 +2,7 @@ import { AlertCircle, Loader2, LogOut, RefreshCw, ShoppingBag } from 'lucide-rea
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { getOrderAppUrl } from '../lib/surfaceRouting';
+import { getPublicOrderUrl } from '../lib/surfaceHost';
 
 export function StaffAccessDeniedScreen() {
   const { t } = useLanguage();
@@ -41,7 +41,7 @@ export function StaffAccessDeniedScreen() {
             {t.staffAccessRetry}
           </button>
           <a
-            href={getOrderAppUrl('/')}
+            href={getPublicOrderUrl()}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cockpit-600 py-3 text-sm font-semibold text-white transition hover:bg-cockpit-500"
           >
             <ShoppingBag className="h-4 w-4" />

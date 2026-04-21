@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Loader2, LogOut, MapPin, Plus } from 'lucide-react';
+import { Clock, Loader2, LogOut, Mail, MapPin, Phone, Plus, UserCircle2 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import type { CustomerAddressRow, CustomerProfileRow } from '../types/online';
 import type { Sale } from '../lib/supabase';
 import { OrderAddressMap } from './OrderAddressMap';
-import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 interface OrderAccountPanelProps {
   user: User | null;
@@ -12,7 +11,7 @@ interface OrderAccountPanelProps {
   signUp: (email: string, password: string) => Promise<{ error: unknown }>;
   sendPhoneOtp: (phone: string) => Promise<{ error: unknown }>;
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: unknown }>;
-  signInWithGoogle: (redirectTo?: string) => Promise<{ error: unknown }>;
+  signInWithGoogle: (redirectPath?: string) => Promise<{ error: unknown }>;
   signOut: () => Promise<void>;
   profile: CustomerProfileRow | null;
   addresses: CustomerAddressRow[];
@@ -21,8 +20,6 @@ interface OrderAccountPanelProps {
   onSaveAddress: (input: {
     label: string;
     line1: string;
-    apartment?: string | null;
-    floor?: string | null;
     lat?: number | null;
     lng?: number | null;
     is_default?: boolean;
@@ -50,16 +47,11 @@ interface OrderAccountPanelProps {
     orderAddressStreet: string;
     orderAuthEmail: string;
     orderAuthSms: string;
+    orderAuthGoogle: string;
     orderSendSmsCode: string;
     orderSmsCode: string;
     orderVerifySms: string;
     orderSmsSentHint: string;
-    orderResendSmsCode: string;
-    orderResendSmsIn: string;
-    orderResendSmsSent: string;
-    orderOtpRateLimit: string;
-    orderOtpDeliveryFailed: string;
-    orderOtpInvalidOrExpired: string;
     orderChangePhone: string;
     orderInvalidPhone: string;
     orderAccountPhone: string;
@@ -67,21 +59,20 @@ interface OrderAccountPanelProps {
     orderMapPinHint: string;
     orderMapLoading: string;
     orderMapUnavailable: string;
-    orderMapNoResults: string;
     orderDeliveryAddress: string;
-    orderApartmentLabel: string;
-    orderApartmentPlaceholder: string;
-    orderFloorLabel: string;
-    orderFloorPlaceholder: string;
-    orderSignInGoogle: string;
-    orderSignInGoogleRedirecting: string;
   };
 }
 
-const OTP_RESEND_COOLDOWN_SECONDS = 30;
-
 function accountLabel(user: User): string {
   return user.phone ?? user.email ?? user.user_metadata?.email ?? '';
+}
+
+function formatOrderStatus(status: string): { label: string; tone: 'pending' | 'active' | 'done' | 'muted' } {
+  const s = status.toLowerCase();
+  if (s.includes('complete') || s.includes('delivered')) return { label: status, tone: 'done' };
+  if (s.includes('cancel') || s.includes('fail')) return { label: status, tone: 'muted' };
+  if (s.includes('pending') || s.includes('await')) return { label: status, tone: 'pending' };
+  return { label: status, tone: 'active' };
 }
 
 export function OrderAccountPanel({
@@ -110,16 +101,11 @@ export function OrderAccountPanel({
   const [otp, setOtp] = useState('');
   const [otpStep, setOtpStep] = useState<'phone' | 'otp'>('phone');
   const [authErr, setAuthErr] = useState('');
-  const [accountErr, setAccountErr] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
-  const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0);
-  const [otpNotice, setOtpNotice] = useState('');
   const [nameEdit, setNameEdit] = useState('');
   const [phoneEdit, setPhoneEdit] = useState('');
   const [addrLabel, setAddrLabel] = useState('Home');
   const [addrLine, setAddrLine] = useState('');
-  const [addrApartment, setAddrApartment] = useState('');
-  const [addrFloor, setAddrFloor] = useState('');
   const [addrLat, setAddrLat] = useState<number | null>(null);
   const [addrLng, setAddrLng] = useState<number | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -139,48 +125,8 @@ export function OrderAccountPanel({
     if (!user) {
       setOtpStep('phone');
       setOtp('');
-      setOtpCooldownSeconds(0);
-      setOtpNotice('');
     }
   }, [user]);
-
-  useEffect(() => {
-    if (otpStep !== 'otp' || otpCooldownSeconds <= 0) return;
-    const id = window.setInterval(() => {
-      setOtpCooldownSeconds((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [otpStep, otpCooldownSeconds]);
-
-  const normalizeOtpError = (raw: string, phase: 'send' | 'verify'): string => {
-    const msg = raw.toLowerCase();
-    if (msg.includes('invalid phone')) return t.orderInvalidPhone;
-    if (
-      msg.includes('too many') ||
-      msg.includes('rate limit') ||
-      msg.includes('429') ||
-      msg.includes('over_sms_send_rate_limit')
-    ) {
-      return t.orderOtpRateLimit;
-    }
-    if (
-      phase === 'send' &&
-      (msg.includes('sms') || msg.includes('message') || msg.includes('twilio')) &&
-      (msg.includes('failed') || msg.includes('provider') || msg.includes('deliver'))
-    ) {
-      return t.orderOtpDeliveryFailed;
-    }
-    if (
-      phase === 'verify' &&
-      (msg.includes('expired') ||
-        msg.includes('invalid token') ||
-        msg.includes('invalid') ||
-        msg.includes('verification code'))
-    ) {
-      return t.orderOtpInvalidOrExpired;
-    }
-    return raw;
-  };
 
   const handleAuth = async (signup: boolean) => {
     setAuthErr('');
@@ -192,285 +138,294 @@ export function OrderAccountPanel({
     const res = signup ? await signUp(email.trim(), password) : await signIn(email.trim(), password);
     if (res.error) setAuthErr(String((res.error as { message?: string }).message ?? res.error));
     setAuthBusy(false);
-    if (!res.error) {
-      void onReloadOrders();
-    }
+    if (!res.error) void onReloadOrders();
   };
 
-  const handleSendSms = async (isResend = false) => {
+  const handleSendSms = async () => {
     setAuthErr('');
-    if (isResend && otpCooldownSeconds > 0) return;
     setAuthBusy(true);
     const res = await sendPhoneOtp(phoneInput);
     if (res.error) {
       const msg = String((res.error as { message?: string }).message ?? res.error);
-      setAuthErr(normalizeOtpError(msg, 'send'));
+      setAuthErr(msg.includes('Invalid phone') ? t.orderInvalidPhone : msg);
       setAuthBusy(false);
       return;
     }
     setAuthBusy(false);
     setOtpStep('otp');
     setOtp('');
-    setOtpNotice(t.orderResendSmsSent);
-    setOtpCooldownSeconds(OTP_RESEND_COOLDOWN_SECONDS);
   };
 
   const handleVerifySms = async () => {
     setAuthErr('');
     setAuthBusy(true);
     const res = await verifyPhoneOtp(phoneInput, otp);
-    if (res.error) {
-      const msg = String((res.error as { message?: string }).message ?? res.error);
-      setAuthErr(normalizeOtpError(msg, 'verify'));
-    }
+    if (res.error) setAuthErr(String((res.error as { message?: string }).message ?? res.error));
     setAuthBusy(false);
-    if (!res.error) {
-      void onReloadOrders();
-    }
+    if (!res.error) void onReloadOrders();
   };
 
   if (!user) {
     return (
-      <div className="space-y-4 p-4">
-        <p className="text-sm text-slate-400">{t.orderCreateAccountHint}</p>
+      <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6">
+        <div className="ming-card-raised relative overflow-hidden p-6">
+          <div aria-hidden className="pointer-events-none absolute -right-8 -top-12 h-28 w-28 rounded-full bg-ming-red/20 blur-3xl" />
 
-        <GoogleSignInButton
-          onClick={() => signInWithGoogle()}
-          label={t.orderSignInGoogle}
-          redirectingLabel={t.orderSignInGoogleRedirecting}
-          onError={(msg) => setAuthErr(msg)}
-        />
+          <p className="ming-eyebrow mb-2">Ming&apos;s · Sign in</p>
+          <h2 className="ming-display text-[26px] leading-tight text-ming-bone">
+            Welcome back
+          </h2>
+          <p className="mt-1.5 text-sm text-ming-ash">{t.orderCreateAccountHint}</p>
 
-        <div className="relative flex items-center">
-          <div className="flex-1 border-t border-white/10" />
-          <span className="px-3 text-[10px] uppercase tracking-wider text-slate-500">
-            {t.orderAuthEmail} / {t.orderAuthSms}
-          </span>
-          <div className="flex-1 border-t border-white/10" />
-        </div>
-
-        <div className="flex rounded-xl border border-white/10 p-0.5">
-          <button
-            type="button"
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold ${
-              authChannel === 'phone' ? 'bg-cockpit-600 text-white' : 'text-slate-400'
-            }`}
-            onClick={() => {
-              setAuthChannel('phone');
-              setAuthErr('');
-              setOtpNotice('');
-            }}
-          >
-            {t.orderAuthSms}
-          </button>
-          <button
-            type="button"
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold ${
-              authChannel === 'email' ? 'bg-cockpit-600 text-white' : 'text-slate-400'
-            }`}
-            onClick={() => {
-              setAuthChannel('email');
-              setAuthErr('');
-              setOtpNotice('');
-            }}
-          >
-            {t.orderAuthEmail}
-          </button>
-        </div>
-
-        {authErr ? <p className="text-sm text-rose-400">{authErr}</p> : null}
-
-        {authChannel === 'email' ? (
-          <>
-            <input
-              type="email"
-              className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
-              placeholder={t.orderEmail}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-            />
-            <input
-              type="password"
-              className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
-              placeholder={t.orderPassword}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={authBusy}
-                onClick={() => void handleAuth(false)}
-                className="flex-1 rounded-xl bg-cockpit-600 py-3 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {authBusy ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : t.orderSignIn}
-              </button>
-              <button
-                type="button"
-                disabled={authBusy}
-                onClick={() => void handleAuth(true)}
-                className="flex-1 rounded-xl border border-white/15 py-3 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {t.orderSignUp}
-              </button>
-            </div>
-          </>
-        ) : otpStep === 'phone' ? (
-          <>
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
-              placeholder="+994501234567"
-              value={phoneInput}
-              onChange={(e) => setPhoneInput(e.target.value)}
-            />
-            <p className="text-xs text-slate-500">{t.orderInvalidPhone}</p>
+          <div className="ming-segmented mt-5 w-full">
             <button
               type="button"
-              disabled={authBusy || !phoneInput.trim()}
-              onClick={() => void handleSendSms()}
-              className="w-full rounded-xl bg-cockpit-600 py-3 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              {authBusy ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : t.orderSendSmsCode}
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-slate-400">{t.orderSmsSentHint}</p>
-            {otpNotice ? <p className="text-xs text-emerald-400">{otpNotice}</p> : null}
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 font-mono text-lg tracking-widest text-white"
-              placeholder={t.orderSmsCode}
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
-            />
-            <button
-              type="button"
-              disabled={authBusy || otp.length < 4}
-              onClick={() => void handleVerifySms()}
-              className="w-full rounded-xl bg-cockpit-600 py-3 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              {authBusy ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : t.orderVerifySms}
-            </button>
-            <button
-              type="button"
-              disabled={authBusy || otpCooldownSeconds > 0}
-              className="w-full text-sm text-cockpit-400 underline disabled:cursor-not-allowed disabled:text-slate-500"
-              onClick={() => void handleSendSms(true)}
-            >
-              {otpCooldownSeconds > 0
-                ? t.orderResendSmsIn.replace('{seconds}', String(otpCooldownSeconds))
-                : t.orderResendSmsCode}
-            </button>
-            <button
-              type="button"
-              className="w-full text-sm text-cockpit-400 underline"
+              className={`ming-segmented-btn flex-1 justify-center ${
+                authChannel === 'phone' ? 'ming-segmented-btn-active' : ''
+              }`}
               onClick={() => {
-                setOtpStep('phone');
-                setOtp('');
+                setAuthChannel('phone');
                 setAuthErr('');
-                setOtpNotice('');
-                setOtpCooldownSeconds(0);
               }}
             >
-              {t.orderChangePhone}
+              <Phone className="h-4 w-4" />
+              {t.orderAuthSms}
             </button>
-          </>
-        )}
+            <button
+              type="button"
+              className={`ming-segmented-btn flex-1 justify-center ${
+                authChannel === 'email' ? 'ming-segmented-btn-active' : ''
+              }`}
+              onClick={() => {
+                setAuthChannel('email');
+                setAuthErr('');
+              }}
+            >
+              <Mail className="h-4 w-4" />
+              {t.orderAuthEmail}
+            </button>
+          </div>
+
+          {authErr ? (
+            <p className="mt-4 rounded-xl border border-ming-red/40 bg-ming-red/10 px-3 py-2 text-[13px] text-ming-red">
+              {authErr}
+            </p>
+          ) : null}
+
+          <div className="mt-5 space-y-3">
+            <button
+              type="button"
+              disabled={authBusy}
+              onClick={async () => {
+                setAuthErr('');
+                setAuthBusy(true);
+                const res = await signInWithGoogle('/order');
+                if (res.error) {
+                  setAuthErr(String((res.error as { message?: string }).message ?? res.error));
+                }
+                setAuthBusy(false);
+              }}
+              className="ming-btn-ghost w-full justify-center"
+            >
+              {t.orderAuthGoogle}
+            </button>
+
+            <div className="h-px w-full bg-white/10" />
+
+            {authChannel === 'email' ? (
+              <>
+                <input
+                  type="email"
+                  className="ming-input"
+                  placeholder={t.orderEmail}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+                <input
+                  type="password"
+                  className="ming-input"
+                  placeholder={t.orderPassword}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={authBusy}
+                    onClick={() => void handleAuth(false)}
+                    className="ming-btn-primary flex-1"
+                  >
+                    {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t.orderSignIn}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={authBusy}
+                    onClick={() => void handleAuth(true)}
+                    className="ming-btn-ghost flex-1"
+                  >
+                    {t.orderSignUp}
+                  </button>
+                </div>
+              </>
+            ) : otpStep === 'phone' ? (
+              <>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  className="ming-input"
+                  placeholder="+994 50 123 45 67"
+                  value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value)}
+                />
+                <p className="text-[12px] text-ming-mute">{t.orderInvalidPhone}</p>
+                <button
+                  type="button"
+                  disabled={authBusy || !phoneInput.trim()}
+                  onClick={() => void handleSendSms()}
+                  className="ming-btn-primary w-full"
+                >
+                  {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t.orderSendSmsCode}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-ming-ash">{t.orderSmsSentHint}</p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  className="ming-input ming-mono text-center text-xl tracking-[0.5em]"
+                  placeholder={t.orderSmsCode}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                />
+                <button
+                  type="button"
+                  disabled={authBusy || otp.length < 4}
+                  onClick={() => void handleVerifySms()}
+                  className="ming-btn-primary w-full"
+                >
+                  {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t.orderVerifySms}
+                </button>
+                <button
+                  type="button"
+                  className="ming-btn-link w-full justify-center"
+                  onClick={() => {
+                    setOtpStep('phone');
+                    setOtp('');
+                    setAuthErr('');
+                  }}
+                >
+                  {t.orderChangePhone}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-4 pb-28">
-      {accountErr ? <p className="rounded-lg bg-rose-500/10 p-2 text-sm text-rose-300">{accountErr}</p> : null}
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-slate-200">{accountLabel(user)}</p>
+    <div className="mx-auto w-full max-w-2xl px-4 py-6 pb-28 sm:px-6">
+      {/* Account header */}
+      <div className="ming-card mb-5 flex items-center gap-3 p-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ming-red/15 text-ming-red">
+          <UserCircle2 className="h-7 w-7" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-semibold text-ming-bone">{accountLabel(user)}</p>
           {user.phone && user.email ? (
-            <p className="truncate text-xs text-slate-500">{user.email}</p>
+            <p className="truncate text-[12px] text-ming-ash">{user.email}</p>
           ) : null}
         </div>
         <button
           type="button"
           onClick={() => void signOut()}
-          className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-rose-400 hover:bg-rose-500/10"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[12px] font-semibold text-ming-ash transition-colors hover:border-ming-red/40 hover:bg-ming-red/10 hover:text-ming-red"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-3.5 w-3.5" />
           {t.orderSignOut}
         </button>
       </div>
 
       {dataLoading ? (
-        <Loader2 className="h-8 w-8 animate-spin text-cockpit-500" />
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-ming-red" />
+        </div>
       ) : (
-        <>
-          <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.orderYourName}</h3>
-            <input
-              className="mb-2 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white"
-              value={nameEdit}
-              onChange={(e) => setNameEdit(e.target.value)}
-              placeholder={t.orderYourName}
-            />
-            <p className="mb-1 text-xs text-slate-500">{t.orderAccountPhone}</p>
-            <input
-              className="mb-2 w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white"
-              value={phoneEdit}
-              onChange={(e) => setPhoneEdit(e.target.value)}
-              placeholder={t.orderYourPhone}
-            />
-            <button
-              type="button"
-              disabled={savingProfile}
-              onClick={async () => {
-                setAccountErr('');
-                setSavingProfile(true);
-                try {
+        <div className="space-y-6">
+          {/* Profile */}
+          <section className="ming-card p-5">
+            <p className="ming-eyebrow mb-3">Profile</p>
+            <div className="space-y-3">
+              <div>
+                <label className="ming-label mb-1.5 block">{t.orderYourName}</label>
+                <input
+                  className="ming-input"
+                  value={nameEdit}
+                  onChange={(e) => setNameEdit(e.target.value)}
+                  placeholder={t.orderYourName}
+                />
+              </div>
+              <div>
+                <label className="ming-label mb-1.5 block">{t.orderAccountPhone}</label>
+                <input
+                  className="ming-input"
+                  value={phoneEdit}
+                  onChange={(e) => setPhoneEdit(e.target.value)}
+                  placeholder={t.orderYourPhone}
+                />
+              </div>
+              <button
+                type="button"
+                disabled={savingProfile}
+                onClick={async () => {
+                  setSavingProfile(true);
                   await onSaveProfile({ full_name: nameEdit.trim() || null, phone: phoneEdit.trim() || null });
-                } catch (err) {
-                  setAccountErr(err instanceof Error ? err.message : String(err));
-                }
-                setSavingProfile(false);
-              }}
-              className="rounded-xl bg-white/10 px-4 py-2 text-sm font-medium text-white"
-            >
-              {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : t.orderSaveProfile}
-            </button>
-          </div>
+                  setSavingProfile(false);
+                }}
+                className="ming-btn-ghost"
+              >
+                {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : t.orderSaveProfile}
+              </button>
+            </div>
+          </section>
 
-          <div>
-            <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <MapPin className="h-4 w-4" />
+          {/* Addresses */}
+          <section className="ming-card p-5">
+            <p className="ming-eyebrow mb-3 flex items-center gap-2">
+              <MapPin className="h-3 w-3" />
               {t.orderSavedAddresses}
-            </h3>
-            <ul className="mb-3 space-y-2">
-              {addresses.map((a) => {
-                const detail = [
-                  a.apartment ? `${t.orderApartmentLabel} ${a.apartment}` : null,
-                  a.floor ? `${t.orderFloorLabel} ${a.floor}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ');
-                return (
-                  <li key={a.id} className="rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm">
-                    <span className="font-medium text-cockpit-300">{a.label}</span>
-                    <p className="text-slate-300">{a.line1}</p>
-                    {detail ? <p className="text-xs text-slate-500">{detail}</p> : null}
+            </p>
+            {addresses.length > 0 ? (
+              <ul className="mb-4 space-y-2">
+                {addresses.map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3"
+                  >
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ming-red" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-ming-bone">{a.label}</p>
+                      <p className="mt-0.5 text-[13px] text-ming-ash">{a.line1}</p>
+                    </div>
+                    {a.is_default ? (
+                      <span className="shrink-0 rounded-full bg-ming-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ming-gold">
+                        Default
+                      </span>
+                    ) : null}
                   </li>
-                );
-              })}
-            </ul>
-            <div className="space-y-2 rounded-xl border border-dashed border-white/15 p-3">
+                ))}
+              </ul>
+            ) : null}
+
+            <div className="space-y-3 rounded-xl border border-dashed border-white/10 p-3">
               <input
-                className="w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-2 text-sm text-white"
+                className="ming-input"
                 placeholder={t.orderAddressLabel}
                 value={addrLabel}
                 onChange={(e) => setAddrLabel(e.target.value)}
@@ -491,88 +446,94 @@ export function OrderAccountPanel({
                   pinHint={t.orderMapPinHint}
                   loadingLabel={t.orderMapLoading}
                   unavailableLabel={t.orderMapUnavailable}
-                  noResultsLabel={t.orderMapNoResults}
                   addressLabel={`${t.orderDeliveryAddress} *`}
                 />
               ) : (
                 <input
-                  className="w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-2 text-sm text-white"
+                  className="ming-input"
                   placeholder={t.orderAddressStreet}
                   value={addrLine}
                   onChange={(e) => setAddrLine(e.target.value)}
                 />
               )}
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  className="w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-2 text-sm text-white placeholder:text-slate-600"
-                  placeholder={`${t.orderApartmentLabel} (${t.orderApartmentPlaceholder})`}
-                  value={addrApartment}
-                  onChange={(e) => setAddrApartment(e.target.value)}
-                  autoComplete="address-line2"
-                />
-                <input
-                  className="w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-2 text-sm text-white placeholder:text-slate-600"
-                  placeholder={`${t.orderFloorLabel} (${t.orderFloorPlaceholder})`}
-                  value={addrFloor}
-                  onChange={(e) => setAddrFloor(e.target.value)}
-                />
-              </div>
               <button
                 type="button"
                 disabled={savingAddr || !addrLine.trim()}
                 onClick={async () => {
-                  setAccountErr('');
                   setSavingAddr(true);
-                  try {
-                    await onSaveAddress({
-                      label: addrLabel.trim() || 'Home',
-                      line1: addrLine.trim(),
-                      apartment: addrApartment.trim() || null,
-                      floor: addrFloor.trim() || null,
-                      lat: addrLat,
-                      lng: addrLng,
-                      is_default: addresses.length === 0,
-                    });
-                    setAddrLine('');
-                    setAddrApartment('');
-                    setAddrFloor('');
-                    setAddrLat(null);
-                    setAddrLng(null);
-                  } catch (err) {
-                    setAccountErr(err instanceof Error ? err.message : String(err));
-                  }
+                  await onSaveAddress({
+                    label: addrLabel.trim() || 'Home',
+                    line1: addrLine.trim(),
+                    lat: addrLat,
+                    lng: addrLng,
+                    is_default: addresses.length === 0,
+                  });
+                  setAddrLine('');
+                  setAddrLat(null);
+                  setAddrLng(null);
                   setSavingAddr(false);
                 }}
-                className="inline-flex items-center gap-1 rounded-lg bg-cockpit-600/80 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40"
+                className="ming-btn-primary w-full"
               >
-                <Plus className="h-4 w-4" />
-                {t.orderAddAddress}
+                {savingAddr ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    {t.orderAddAddress}
+                  </>
+                )}
               </button>
             </div>
-          </div>
+          </section>
 
-          <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.orderMyOrders}</h3>
+          {/* Orders */}
+          <section className="ming-card p-5">
+            <p className="ming-eyebrow mb-3 flex items-center gap-2">
+              <Clock className="h-3 w-3" />
+              {t.orderMyOrders}
+            </p>
             {ordersLoading ? (
-              <Loader2 className="h-6 w-6 animate-spin text-cockpit-500" />
+              <Loader2 className="h-6 w-6 animate-spin text-ming-red" />
             ) : orders.length === 0 ? (
-              <p className="text-sm text-slate-500">{t.orderNoOrders}</p>
+              <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-ming-ash">
+                {t.orderNoOrders}
+              </p>
             ) : (
               <ul className="space-y-2">
-                {orders.map((o) => (
-                  <li
-                    key={o.id}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-900/50 px-3 py-2 text-sm"
-                  >
-                    <span className="font-mono font-semibold text-cockpit-400">#{o.display_number ?? '—'}</span>
-                    <span className="text-slate-400">{o.order_status}</span>
-                    <span className="font-mono text-slate-200">₼{Number(o.total_price).toFixed(2)}</span>
-                  </li>
-                ))}
+                {orders.map((o) => {
+                  const { label, tone } = formatOrderStatus(String(o.order_status ?? '—'));
+                  const toneClass =
+                    tone === 'done'
+                      ? 'bg-emerald-500/15 text-emerald-300'
+                      : tone === 'active'
+                      ? 'bg-ming-flame/15 text-ming-flame'
+                      : tone === 'pending'
+                      ? 'bg-ming-gold/15 text-ming-gold'
+                      : 'bg-white/[0.05] text-ming-ash';
+                  return (
+                    <li
+                      key={o.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3"
+                    >
+                      <span className="ming-mono text-[14px] font-bold text-ming-bone">
+                        #{o.display_number ?? '—'}
+                      </span>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${toneClass}`}
+                      >
+                        {label}
+                      </span>
+                      <span className="ming-mono text-[14px] font-semibold text-ming-bone">
+                        {Number(o.total_price).toFixed(2)} ₼
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
-          </div>
-        </>
+          </section>
+        </div>
       )}
     </div>
   );

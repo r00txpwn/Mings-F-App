@@ -15,34 +15,25 @@ Pick **one** of:
 3. In the Vercel project **Settings → Environment Variables**, add:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_APP_SURFACE` (`order` on `order.mings.az`, `sp` on `sp.mings.az`)
-   - Optional: `VITE_ORDER_APP_ORIGIN` (for staff links to customer app), `VITE_ADMIN_APP_PATH` (custom admin entry path, default `/spec-ops`), `VITE_GOOGLE_MAPS_API_KEY` (see Google Maps setup below), `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`, `VITE_ENABLE_COMBOS`, `VITE_WOLT_PORTAL_URL`
+   - Optional: `VITE_GOOGLE_MAPS_API_KEY` (delivery map on `/order`), `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`
+   - Optional subdomain split: `VITE_SURFACE_ADMIN_HOSTS`, `VITE_SURFACE_ORDER_HOSTS`, `VITE_SURFACE_KIOSK_HOSTS`, `VITE_SURFACE_KDS_HOSTS`, `VITE_SURFACE_TRACK_HOSTS` (comma-separated exact hostnames; see [.env.example](.env.example)).
+   - Optional public links from staff: `VITE_PUBLIC_ORDER_URL`, `VITE_PUBLIC_KIOSK_URL` (full URLs).
 
-### Delivery zones + online settings (Delivery Control Center)
+`vercel.json` in this repo configures SPA rewrites so `/order`, `/track`, `/kiosk`, `/kds` work.
 
-Zones, kitchen/online settings, and live dispatch are all edited from `/delivery` in the staff cockpit (admin role only). The [`20260420160000_delivery_control_center.sql`](supabase/migrations/20260420160000_delivery_control_center.sql) migration formalises the schema and applies staff-only RLS. After deploying, seed at least one active polygon for your service area — otherwise the customer site will reject every address as "outside delivery area".
+### Subdomains (optional, same build)
 
-### Google Maps setup (required for the customer delivery flow)
+1. **DNS:** Add `A`/`CNAME` records for e.g. `app.`, `order.`, `kiosk.` pointing at your static host (or Vercel as documented).
+2. **Vercel / Netlify:** Add each hostname to the project so TLS is issued for all of them (one deployment, multiple domains).
+3. **Env:** Set `VITE_SURFACE_*` lists so `order.yourdomain.com` loads the storefront at `/` without the `/order` path; `app.yourdomain.com` loads the staff cockpit at `/`.
+4. **Supabase Auth:** If staff and storefront use different registrable domains, add every auth redirect URL in Supabase **Authentication → URL configuration** (same parent domain usually works with defaults).
+5. **Edge `APP_BASE_URL`:** Set to the **canonical online storefront origin** (e.g. `https://order.yourdomain.com` when using an order subdomain) so Epoint return URLs and payment flows match where customers land. If the menu is served at `/` on that host, set Edge secret **`APP_STOREFRONT_PATH=/`** (see [.env.example](.env.example)).
 
-The customer order surface uses Google Maps for its address picker. The autocomplete is built on the **Places API (New)** (`AutocompleteSuggestion` / `Place.fetchFields`) and requires a correctly configured key in **Google Cloud Console**:
+**Subdomain smoke checks (after DNS + env propagate):**
 
-1. Enable these APIs on the project the key belongs to:
-   - **Maps JavaScript API**
-   - **Places API (New)** — *not* the legacy "Places API"
-   - **Geocoding API** (used for the draggable-pin reverse geocode)
-2. Put the key in `VITE_GOOGLE_MAPS_API_KEY` and redeploy.
-3. Restrict the key (Cloud Console → Credentials → key → Application restrictions): allow the production origins you deploy to (`https://order.mings.az/*`, `https://sp.mings.az/*`, any preview hosts, and `http://localhost:*` for dev).
-4. Make sure **billing is active** on the Cloud project — Places API (New) refuses all requests otherwise.
-5. If the key is missing, the address picker falls back to a plain textarea so the app still builds and runs, but delivery zone validation becomes weaker.
-
-Hostnames are also mapped at runtime as a safety net:
-- `order.*` always resolves to customer surface
-- `sp.*` always resolves to staff surface
-
-`vercel.json` in this repo configures SPA rewrites. It currently includes a temporary legacy redirect:
-- `order.mings.az/order` → `/`
-
-If you deploy with a custom `VITE_ADMIN_APP_PATH`, ensure that path is handled by SPA rewrite (`index.html`) and is **not** redirected away.
+- [ ] `https://app.yourdomain.com/` loads staff login / cockpit.
+- [ ] `https://order.yourdomain.com/` loads the online menu (same as `/order` on a single-host deploy).
+- [ ] `https://kiosk.yourdomain.com/` loads kiosk (if configured).
 
 ### Netlify
 
@@ -74,13 +65,6 @@ supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 ```
 
-Recent combo-related migrations to ensure are applied:
-
-- `20260418140100_combo_deals.sql`
-- `20260418153000_add_products_upsell_combo_id.sql`
-- `20260418191000_combo_discount_fields.sql`
-- `20260418200000_add_scheduled_orders.sql`
-
 **From this repo (uses `npx`, no global CLI required):**
 
 ```bash
@@ -90,8 +74,6 @@ npm run supabase:push
 If you see **“Remote migration versions not found in local migrations directory”**, fix history first: **[docs/MIGRATION_HISTORY.md](docs/MIGRATION_HISTORY.md)** (`npm run supabase:repair:remote` then push again).
 
 ### Edge Functions (deploy each)
-
-`online-order-create` loads each product’s modifier groups (`min_select` / `max_select`) and rejects carts that violate those limits (HTTP 400). Redeploy after changing validation logic.
 
 ```bash
 supabase functions deploy online-order-create
@@ -120,18 +102,38 @@ npm run supabase:sync
 
 Set at least: `APP_BASE_URL` (your live site URL). Add E-point / Wolt secrets when you enable them — see `.env.example`.
 
+### Epoint (card payments on `/order`)
+
+1. Run migrations (`npm run supabase:push`) so `online_payments` and `saved_cards` exist with Epoint columns.
+2. Edge Function secrets:
+   - **`EPOINT_PUBLIC_KEY`**, **`EPOINT_PRIVATE_KEY`** — from epoint.az (sandbox first).
+   - **`APP_BASE_URL`** — canonical **online order** site origin (must match where customers return after pay; used for Epoint success/error return URLs).
+   - Optional **`APP_STOREFRONT_PATH`** — default `/order`. Set to **`/`** when `APP_BASE_URL` is an order **subdomain** and the menu loads at `/` (not `/order`).
+   - Optional **`EPOINT_API_BASE`** if Epoint gives a different API base.
+3. In the **Epoint merchant dashboard**, set the **result / callback URL** to your deployed webhook:
+   - `https://<project-ref>.supabase.co/functions/v1/epoint-webhook`
+4. Deploy: `supabase functions deploy epoint-create-payment` and `supabase functions deploy epoint-webhook` (see [`supabase/config.toml`](supabase/config.toml): both skip JWT; webhook verifies `data` + `signature` with the private key).
+5. **`EPOINT_WEBHOOK_SECRET`** — only for legacy internal tests (JSON body + `X-Epoint-Signature` HMAC-SHA256). Production Epoint uses **SHA1 signature on `data`**; the private key must match the merchant account.
+
+**Sandbox checklist (after keys are set):**
+
+- [ ] Place online order with **Card (E-point)** → redirect to Epoint hosted page.
+- [ ] Complete test payment → return URL `?paid=1` → banner “Payment received”.
+- [ ] Confirm `online_payments.status` = `success` and `sales.payment_status` = `paid` in Supabase Table Editor.
+- [ ] Decline / cancel path → `?payment_error=1` if Epoint redirects with your error URL.
+
 ---
 
 ## 3. Smoke test after deploy
 
-1. Open `https://order.mings.az/` — menu loads.
+1. Open `https://YOUR_DOMAIN/order` — menu loads.
 2. Place a test order (takeaway + COD).
-3. Open `https://sp.mings.az/` and log in — order appears in Kiosk Orders.
+3. Admin → Kiosk orders — order appears with online source.
 4. `/track?token=...` from the success screen.
 
 ---
 
-## Troubleshooting: CORS / “Failed to fetch” on order checkout
+## Troubleshooting: CORS / “Failed to fetch” on `/order` checkout
 
 Browsers send an **OPTIONS** preflight **before** `POST` to Edge Functions. The Supabase gateway can reject that preflight if **`verify_jwt` is enabled** (default), because the preflight often has **no** `Authorization` JWT — so you see *“blocked by CORS”* / *“preflight doesn’t have HTTP ok status”* even though the real issue is **401/403 on OPTIONS**.
 

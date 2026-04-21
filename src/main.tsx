@@ -4,80 +4,23 @@ import App from './App.tsx';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ConfigCheck } from './ConfigCheck';
 import { PublicNotFound } from './PublicNotFound';
-import { isAdminPath } from './lib/adminPath';
-import { getAppSurface, isStaffRoutePath, normalizePathname } from './lib/surfaceRouting';
+import { assertAdminPathDoesNotCollide, isAdminPath, normalizePathname } from './lib/adminPath';
+import { resolveHostedSurface } from './lib/surfaceHost';
 import './index.css';
 
 const pathname = window.location.pathname;
 const pathNorm = normalizePathname(pathname);
-const appSurface = getAppSurface();
 
+/** Admin and storefront are separate: no implicit redirect from `/` to `/order`. */
 void renderApp();
 
 async function renderApp() {
+  assertAdminPathDoesNotCollide();
+
   const root = createRoot(document.getElementById('root')!);
+  const hostSurface = resolveHostedSurface(window.location.hostname);
 
-  if (appSurface === 'order') {
-    if (pathNorm === '/order') {
-      window.location.replace('/');
-      return;
-    }
-
-    if (pathNorm === '/') {
-      const { OrderApp } = await import('./order/OrderApp');
-      root.render(
-        <StrictMode>
-          <ConfigCheck>
-            <ErrorBoundary>
-              <OrderApp />
-            </ErrorBoundary>
-          </ConfigCheck>
-        </StrictMode>
-      );
-      return;
-    }
-
-    if (pathNorm === '/track') {
-      const { TrackingApp } = await import('./order/TrackingApp');
-      root.render(
-        <StrictMode>
-          <ConfigCheck>
-            <ErrorBoundary>
-              <TrackingApp />
-            </ErrorBoundary>
-          </ConfigCheck>
-        </StrictMode>
-      );
-      return;
-    }
-
-    if (pathNorm === '/order-manager') {
-      const { OrderManagerApp } = await import('./order-manager/OrderManagerApp');
-      root.render(
-        <StrictMode>
-          <ConfigCheck>
-            <ErrorBoundary>
-              <OrderManagerApp />
-            </ErrorBoundary>
-          </ConfigCheck>
-        </StrictMode>
-      );
-      return;
-    }
-
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <PublicNotFound />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
-    return;
-  }
-
-  if (isAdminPath(pathNorm)) {
+  if (hostSurface === 'admin') {
     root.render(
       <StrictMode>
         <ConfigCheck>
@@ -90,7 +33,34 @@ async function renderApp() {
     return;
   }
 
-  if (pathNorm === '/kiosk') {
+  if (hostSurface === 'order') {
+    if (pathNorm === '/track') {
+      const { TrackingApp } = await import('./order/TrackingApp');
+      root.render(
+        <StrictMode>
+          <ConfigCheck>
+            <ErrorBoundary>
+              <TrackingApp />
+            </ErrorBoundary>
+          </ConfigCheck>
+        </StrictMode>
+      );
+    } else {
+      const { OrderApp } = await import('./order/OrderApp');
+      root.render(
+        <StrictMode>
+          <ConfigCheck>
+            <ErrorBoundary>
+              <OrderApp />
+            </ErrorBoundary>
+          </ConfigCheck>
+        </StrictMode>
+      );
+    }
+    return;
+  }
+
+  if (hostSurface === 'kiosk') {
     const { KioskApp } = await import('./kiosk/KioskApp');
     root.render(
       <StrictMode>
@@ -104,7 +74,7 @@ async function renderApp() {
     return;
   }
 
-  if (pathNorm === '/kds') {
+  if (hostSurface === 'kds') {
     const { KitchenDisplay } = await import('./kds/KitchenDisplay');
     root.render(
       <StrictMode>
@@ -118,21 +88,7 @@ async function renderApp() {
     return;
   }
 
-  if (pathNorm === '/order') {
-    const { OrderApp } = await import('./order/OrderApp');
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <OrderApp />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
-    return;
-  }
-
-  if (pathNorm === '/track') {
+  if (hostSurface === 'track') {
     const { TrackingApp } = await import('./order/TrackingApp');
     root.render(
       <StrictMode>
@@ -146,21 +102,52 @@ async function renderApp() {
     return;
   }
 
-  if (pathNorm === '/order-manager') {
-    const { OrderManagerApp } = await import('./order-manager/OrderManagerApp');
+  // Path-based routing (localhost, preview URLs, or hosts without VITE_SURFACE_* set)
+  if (pathNorm === '/kiosk') {
+    const { KioskApp } = await import('./kiosk/KioskApp');
     root.render(
       <StrictMode>
         <ConfigCheck>
           <ErrorBoundary>
-            <OrderManagerApp />
+            <KioskApp />
           </ErrorBoundary>
         </ConfigCheck>
       </StrictMode>
     );
-    return;
-  }
-
-  if (isStaffRoutePath(pathNorm)) {
+  } else if (pathNorm === '/kds') {
+    const { KitchenDisplay } = await import('./kds/KitchenDisplay');
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <KitchenDisplay />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+  } else if (pathNorm === '/order') {
+    const { OrderApp } = await import('./order/OrderApp');
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <OrderApp />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+  } else if (pathNorm === '/track') {
+    const { TrackingApp } = await import('./order/TrackingApp');
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <TrackingApp />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+  } else if (pathNorm === '/order-manager' || isAdminPath(pathNorm)) {
     root.render(
       <StrictMode>
         <ConfigCheck>
@@ -170,16 +157,25 @@ async function renderApp() {
         </ConfigCheck>
       </StrictMode>
     );
-    return;
+  } else if (pathNorm === '/') {
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <PublicNotFound />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+  } else {
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <PublicNotFound />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
   }
-
-  root.render(
-    <StrictMode>
-      <ConfigCheck>
-        <ErrorBoundary>
-          <PublicNotFound />
-        </ErrorBoundary>
-      </ConfigCheck>
-    </StrictMode>
-  );
 }

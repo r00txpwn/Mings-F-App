@@ -9,20 +9,12 @@ interface AuthContextType {
   loading: boolean;
   /** True when a row exists in `public.users` (staff/admin). False for customer-only auth.users. */
   isStaff: boolean;
-  role: 'admin' | 'manager' | 'staff' | null;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   /** SMS OTP via Supabase Auth (Twilio configured in project dashboard). */
   sendPhoneOtp: (phone: string) => Promise<{ error: AuthError | null | Error }>;
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: AuthError | null | Error }>;
-  /**
-   * Google OAuth via Supabase Auth (provider configured in project dashboard).
-   * `redirectTo` defaults to the current surface's origin + pathname so users
-   * land back where they started the sign-in.
-   */
-  signInWithGoogle: (
-    redirectTo?: string,
-  ) => Promise<{ error: AuthError | null | Error }>;
+  signInWithGoogle: (redirectPath?: string) => Promise<{ error: AuthError | null | Error }>;
   signOut: () => Promise<void>;
   /** Re-check whether current user is present in `public.users`. */
   refetchIsStaff: () => Promise<void>;
@@ -30,21 +22,15 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-type StaffInfo = { isStaff: boolean; role: 'admin' | 'manager' | 'staff' | null };
-
-async function fetchStaffInfo(userId: string): Promise<StaffInfo> {
-  const { data, error } = await supabase.from('users').select('id, role').eq('id', userId).maybeSingle();
+async function fetchIsStaff(userId: string): Promise<boolean> {
+  const { data, error } = await supabase.from('users').select('id').eq('id', userId).maybeSingle();
   if (error) {
     if (import.meta.env.DEV) {
-      console.warn('[auth] fetchStaffInfo failed:', error.message);
+      console.warn('[auth] fetchIsStaff failed:', error.message);
     }
-    return { isStaff: false, role: null };
+    return false;
   }
-  if (!data) return { isStaff: false, role: null };
-  return {
-    isStaff: true,
-    role: (data.role as 'admin' | 'manager' | 'staff') ?? null,
-  };
+  return Boolean(data);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -52,7 +38,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isStaff, setIsStaff] = useState(false);
-  const [role, setRole] = useState<'admin' | 'manager' | 'staff' | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,14 +47,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const nextUser = nextSession?.user ?? null;
       setUser(nextUser);
       if (nextUser) {
-        const { isStaff: staff, role: nextRole } = await fetchStaffInfo(nextUser.id);
-        if (!cancelled) {
-          setIsStaff(staff);
-          setRole(nextRole);
-        }
+        const staff = await fetchIsStaff(nextUser.id);
+        if (!cancelled) setIsStaff(staff);
       } else if (!cancelled) {
         setIsStaff(false);
-        setRole(null);
       }
       if (!cancelled) setLoading(false);
     };
@@ -137,12 +118,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
-  const signInWithGoogle = async (redirectTo?: string) => {
-    const target =
-      redirectTo ?? `${window.location.origin}${window.location.pathname}`;
+  const signInWithGoogle = async (redirectPath?: string) => {
+    const origin = window.location.origin;
+    const targetPath = redirectPath?.trim() ? redirectPath.trim() : window.location.pathname;
+    const redirectTo = `${origin}${targetPath.startsWith('/') ? targetPath : `/${targetPath}`}${window.location.search}`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: target },
+      options: { redirectTo },
     });
     return { error };
   };
@@ -156,12 +138,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const uid = s?.user?.id;
     if (!uid) {
       setIsStaff(false);
-      setRole(null);
       return;
     }
-    const { isStaff: staff, role: nextRole } = await fetchStaffInfo(uid);
+    const staff = await fetchIsStaff(uid);
     setIsStaff(staff);
-    setRole(nextRole);
   }, []);
 
   return (
@@ -171,7 +151,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         loading,
         isStaff,
-        role,
         signIn,
         signUp,
         sendPhoneOtp,

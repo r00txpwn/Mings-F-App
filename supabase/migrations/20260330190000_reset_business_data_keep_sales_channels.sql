@@ -19,6 +19,7 @@ DECLARE
     'sale_item_modifiers',
     'sale_items',
     'online_payments',
+    'saved_cards',
     'delivery_orders',
     'platform_payouts',
     'sales',

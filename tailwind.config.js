@@ -7,9 +7,25 @@ export default {
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
-        display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Unbounded"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
       },
       colors: {
+        ming: {
+          red: '#E11D48',
+          'red-600': '#E11D48',
+          'red-700': '#BE123C',
+          'red-800': '#9F1239',
+          'red-900': '#4C0519',
+          flame: '#F97316',
+          gold: '#FBBF24',
+          ink: '#0B0B0D',
+          charcoal: '#17161A',
+          graphite: '#24222A',
+          smoke: '#3A3844',
+          bone: '#F5F5F4',
+          ash: '#A8A6B0',
+          mute: '#6B6870',
+        },
         kiosk: {
           bg: '#1f1f1f',
           card: '#2c2c2c',
@@ -55,6 +71,8 @@ export default {
         'cockpit-glow': '0 0 40px -8px rgba(45, 212, 191, 0.25)',
         neon: '0 0 0 1px rgba(139, 92, 246, 0.2), 0 16px 50px -20px rgba(91, 33, 182, 0.65)',
         'neon-soft': '0 10px 30px -16px rgba(139, 92, 246, 0.45)',
+        ming: '0 1px 0 rgba(255,255,255,0.04) inset, 0 20px 45px -28px rgba(225, 29, 72, 0.55)',
+        'ming-glow': '0 0 0 1px rgba(225, 29, 72, 0.35), 0 18px 60px -20px rgba(225, 29, 72, 0.6)',
       },
       backgroundImage: {
         'grid-cockpit':

@@ -264,9 +264,6 @@ export interface Translations {
   staffAccessRetry: string;
   staffGoToOrder: string;
   staffSignOut: string;
-  adminAccessDeniedTitle: string;
-  adminAccessDeniedBody: string;
-  adminAccessGoToOrderManager: string;
   newUserRole: string;
   userRoleStaff: string;
   userRoleManager: string;
@@ -376,13 +373,6 @@ export interface Translations {
   prepTime: string;
   connected: string;
   reconnecting: string;
-  kdsConnectionLostBanner: string;
-  kdsPaymentPendingOnline: string;
-  kdsPaymentCashCod: string;
-  kdsPaymentConfirmed: string;
-  kdsPrepTimeLabel: string;
-  kdsBusyKitchenHint: string;
-  kdsCourierNoteLabel: string;
 
   // Kiosk Admin
   kioskOrders: string;
@@ -396,7 +386,6 @@ export interface Translations {
   orderDetails: string;
   preparing: string;
   ready: string;
-  dispatched: string;
   completed: string;
   cancelled: string;
   unpaid: string;
@@ -404,23 +393,28 @@ export interface Translations {
   filterByStatus: string;
   noKioskOrders: string;
   viewKiosk: string;
-  kioskPaymentPendingBadge: string;
-  kioskPaymentCashCodBadge: string;
-  kioskPaymentPaidBadge: string;
-  woltTrackingLink: string;
-  woltOpenPortal: string;
-  woltDispatchLocked: string;
-  woltCopyAll: string;
-  woltCopiedAll: string;
-  woltTrackingUrlLabel: string;
-  woltSaveDispatched: string;
-  woltCopyCustomer: string;
-  woltCopyPhone: string;
-  woltCopyAddress: string;
-  woltCopyNotes: string;
-  woltCopyFailed: string;
-  woltSaveFailed: string;
-  saving: string;
+  orderManagerTitle: string;
+  orderManagerDescription: string;
+  openOnlineOrder: string;
+  refreshOrders: string;
+  totalOrders: string;
+  ordersInQueue: string;
+  todayRevenue: string;
+  searchOrderManagerPlaceholder: string;
+  allSources: string;
+  allPayments: string;
+  paidOnly: string;
+  unpaidOnly: string;
+  dragOrder: string;
+  pendingPayment: string;
+  awaitingCardPayment: string;
+  woltTracking: string;
+  dragOrdersHint: string;
+  cannotMoveOrderHere: string;
+  cancelledOrderLocked: string;
+  completedOrderLocked: string;
+  paymentRequiredBeforePrep: string;
+  cancelOnlyBeforeReady: string;
 
   // Product extensions
   kioskVisible: string;
@@ -541,8 +535,6 @@ export interface Translations {
   orderNavAccount: string;
   orderSignIn: string;
   orderSignUp: string;
-  orderSignInGoogle: string;
-  orderSignInGoogleRedirecting: string;
   orderSignOut: string;
   orderMyOrders: string;
   orderNoOrders: string;
@@ -550,6 +542,7 @@ export interface Translations {
   orderEmail: string;
   orderPassword: string;
   orderCreateAccountHint: string;
+  orderAuthRequired: string;
   orderYourName: string;
   orderYourPhone: string;
   orderSaveProfile: string;
@@ -569,32 +562,16 @@ export interface Translations {
   orderGeoFailed: string;
   orderGeoUpdated: string;
   orderOutsideZone: string;
-  /** Delivery address is outside all zones — inline error (checkout). */
-  zoneErrorTitle: string;
-  zoneErrorMessage: string;
-  zoneSwitchTakeaway: string;
-  /** Shown when Place Order is disabled because address is outside delivery zone. */
-  orderSubmitDisabledOutsideZone: string;
-  /** Kitchen is not accepting online orders (checkout banner). */
-  kitchenClosedTitle: string;
-  kitchenClosedMessage: string;
-  /** Shown before hours line when reopening info exists */
-  kitchenClosedReopenHint: string;
-  kitchenClosedBackToMenu: string;
-  /** Cart contains items no longer available for online order */
-  cartUnavailableTitle: string;
-  cartUnavailableIntro: string;
-  cartUnavailableRemoveLine: string;
-  cartUnavailableContinueWithout: string;
-  cartUnavailableBackMenu: string;
-  cartUnavailableServerHint: string;
-  /** Fallback line label when an item can no longer be resolved by name */
-  cartUnavailableGenericItemLabel: string;
   orderInZonePrefix: string;
   orderPayment: string;
   orderPayCod: string;
   orderPayCash: string;
   orderPayEpoint: string;
+  /** Shown when user returns from Epoint with ?paid=1 */
+  orderPaymentReturnSuccess: string;
+  /** Shown when user returns with ?payment_error=1 */
+  orderPaymentReturnFailed: string;
+  orderPaymentDismiss: string;
   orderPlacedTitle: string;
   orderTrackHint: string;
   orderOpenTracking: string;
@@ -611,16 +588,11 @@ export interface Translations {
   orderYourCart: string;
   orderAuthEmail: string;
   orderAuthSms: string;
+  orderAuthGoogle: string;
   orderSendSmsCode: string;
   orderSmsCode: string;
   orderVerifySms: string;
   orderSmsSentHint: string;
-  orderResendSmsCode: string;
-  orderResendSmsIn: string;
-  orderResendSmsSent: string;
-  orderOtpRateLimit: string;
-  orderOtpDeliveryFailed: string;
-  orderOtpInvalidOrExpired: string;
   orderChangePhone: string;
   orderInvalidPhone: string;
   orderAccountPhone: string;
@@ -628,14 +600,6 @@ export interface Translations {
   orderMapPinHint: string;
   orderMapLoading: string;
   orderMapUnavailable: string;
-  orderMapNoResults: string;
-  orderApartmentLabel: string;
-  orderApartmentPlaceholder: string;
-  orderFloorLabel: string;
-  orderFloorPlaceholder: string;
-  orderZonePillIn: string;
-  orderZonePillOut: string;
-  orderZonePillChecking: string;
   orderChooseFulfillmentTitle: string;
   orderSearchMenu: string;
   orderVenueInfoTitle: string;
@@ -645,247 +609,9 @@ export interface Translations {
   orderAddToCart: string;
   orderSearchNoResults: string;
   orderDeliveryDisabledInSettings: string;
-  orderCombosSection: string;
-  orderComboCustomize: string;
-  orderComboBadge: string;
-  orderPhoneFormatHint: string;
-  orderDeliveryNotesLabel: string;
-  orderDeliveryNotesPlaceholder: string;
-  orderUpsellTitle: string;
-  orderUpsellMakeItComboNamed: string;
-  orderUpsellYes: string;
-  orderUpsellNo: string;
-  orderComboSavingsBadge: string;
-  comboBuilderHeader: string;
-  comboBuilderStepOf: string;
-  comboBuilderAddToCart: string;
-  comboBuilderNext: string;
-  comboBuilderPickOne: string;
-
-  // Customer tracking (/track)
-  trackingPageTitle: string;
-  trackingOrderLabel: string;
-  trackingKitchenStatus: string;
-  trackingPayment: string;
-  trackingTotal: string;
-  trackingLoading: string;
-  trackingNotFound: string;
-  trackingMissingToken: string;
-  trackOnWolt: string;
-  trackStatusPending: string;
-  trackStatusPreparing: string;
-  trackStatusReady: string;
-  trackStatusDispatched: string;
-  trackStatusCompleted: string;
-  /** Cancelled with staff reason */
-  orderCancelledTitle: string;
-  orderCancelledReason: string;
-  orderCancelledRefundNote: string;
-  orderCancelledGeneric: string;
-  trackingOrderAgain: string;
-  trackingCancelledContact: string;
-  trackStageOrderPlaced: string;
-  trackStagePreparing: string;
-  trackStageReady: string;
-  trackStageReadyForPickup: string;
-  trackStageOutForDelivery: string;
-  trackStageDelivered: string;
-  trackStageCollected: string;
-  trackStageEtaMinutes: string;
-  trackStageArrivingAround: string;
-  trackEtaLabel: string;
-  trackTimelineTitle: string;
-
-  // Combos admin
-  combosScreenTitle: string;
-  combosScreenDescription: string;
-  combosScreenGroupsHint: string;
-  combosName: string;
-  combosEmpty: string;
-  comboGroupsTitle: string;
-  comboGroupAdd: string;
-  comboGroupRequired: string;
-  comboItemsTitle: string;
-  comboItemAdd: string;
-  comboItemPriceAdjustment: string;
-  comboUpsellLink: string;
-  comboUpsellNone: string;
-
-  // Order Manager
-  omActiveOrders: string;
-  omPastOrders: string;
-  omMenuEditor: string;
-  omNewOrders: string;
-  omScheduledOrders: string;
-  omInProgress: string;
-  omReady: string;
-  omInDelivery: string;
-  omAccept: string;
-  omMarkReady: string;
-  omPickedUp: string;
-  omDelivered: string;
-  omSaveDispatch: string;
-  omPrepTime: string;
-  omReminderBefore: string;
-  omToday: string;
-  omYesterday: string;
-  omLast7Days: string;
-  omThisMonth: string;
-  omLastMonth: string;
-  omProducts: string;
-  omCombos: string;
-  omKioskToggle: string;
-  omOnlineToggle: string;
-  omActiveToggle: string;
-  omNoActiveOrders: string;
-  omNoScheduledOrders: string;
-  omNoPastOrders: string;
-  omSourceKiosk: string;
-  omSourceTakeaway: string;
-  omSourceDelivery: string;
-  omTitle: string;
-  omReminderSet: string;
-  omSelfDelivery: string;
-  omWoltDrive: string;
-  omWoltDriveComingSoon: string;
-  omConfirmSelfDispatch: string;
-  omDispatchedSelfDelivery: string;
-  omNoLocationData: string;
-  omDistanceAway: string;
-  omRecommended: string;
-  omRejectOrder: string;
-  omRejectReasonItemUnavailable: string;
-  omRejectReasonTooBusy: string;
-  omRejectReasonZoneIssue: string;
-  omRejectReasonCustomerRequest: string;
-  omRejectReasonOther: string;
-  omRejectNotePlaceholder: string;
-  omRejectConfirm: string;
-  omRejectCancel: string;
-  omRejectSelectReason: string;
-
-  // Admin Order Support
-  orderSupport: string;
-  orderSupportDescription: string;
-  orderSupportOpenOrderPage: string;
-  orderSupportSearch: string;
-  orderSupportOrdersFound: string;
-  orderSupportNoOrders: string;
-  orderSupportFilter_all: string;
-  orderSupportFilter_active: string;
-  orderSupportFilter_dispatched: string;
-  orderSupportFilter_completed: string;
-  orderSupportFilter_cancelled: string;
-  orderSupportSourceAll: string;
-  orderSupportColTime: string;
-  orderSupportColCustomer: string;
-  orderSupportColItems: string;
-  orderSupportColTotal: string;
-  orderSupportColStatus: string;
-  orderSupportDrawerComingSoon: string;
-
-  // Delivery control center
-  deliveryNav: string;
-  deliveryRefresh: string;
-  deliveryScreenTitle: string;
-  deliveryScreenDescription: string;
-  deliveryTabZones: string;
-  deliveryTabSettings: string;
-  deliveryTabDispatch: string;
-
-  deliveryZonesTitle: string;
-  deliveryZonesDescription: string;
-  deliveryZonesNew: string;
-  deliveryZonesEmptyTitle: string;
-  deliveryZonesEmptyHint: string;
-  deliveryZonesColName: string;
-  deliveryZonesColVertices: string;
-  deliveryZonesColFee: string;
-  deliveryZonesColMinOrder: string;
-  deliveryZonesColActive: string;
-  deliveryZonesColActions: string;
-
-  deliveryZoneNewTitle: string;
-  deliveryZoneEditTitle: string;
-  deliveryZoneFieldName: string;
-  deliveryZoneFieldFee: string;
-  deliveryZoneFieldMinOrder: string;
-  deliveryZoneFieldFreeThreshold: string;
-  deliveryZoneFieldSortOrder: string;
-  deliveryZoneFieldActive: string;
-  deliveryZoneFieldPolygon: string;
-  deliveryZonePolygonHint: string;
-  deliveryZoneClearShape: string;
-  deliveryZonePolygonRequired: string;
-  deliveryZoneOpenGeoJsonIo: string;
-  deliveryZoneExport: string;
-  deliveryZoneCopied: string;
-  deliveryZonePreview: string;
-  deliveryZonePreviewLoading: string;
-  deliveryZonePreviewUnavailable: string;
-  deliveryZonePreviewEmpty: string;
-  deliveryZoneErrorEmpty: string;
-  deliveryZoneErrorJson: string;
-  deliveryZoneErrorPolygon: string;
-  deliveryZoneErrorPoints: string;
-  deliveryZoneErrorTooFew: string;
-  deliveryZoneAutoClosed: string;
-  deliveryZoneVertices: string;
-  deliveryZoneSave: string;
-  deliveryZoneSaving: string;
-  deliveryZoneSaveError: string;
-  deliveryZoneDeleteConfirm: string;
-  deliveryZoneDeleteError: string;
-  deliveryZoneToggleError: string;
-
-  deliverySettingsTitle: string;
-  deliverySettingsDescription: string;
-  deliverySettingsKitchenOpen: string;
-  deliverySettingsKitchenOpenHint: string;
-  deliverySettingsDeliveryEnabled: string;
-  deliverySettingsTakeawayEnabled: string;
-  deliverySettingsGlobalMinOrder: string;
-  deliverySettingsDefaultPrep: string;
-  deliverySettingsDefaultPrepHint: string;
-  deliverySettingsGlobalFreeThreshold: string;
-  deliverySettingsDispatchMode: string;
-  deliverySettingsDispatchAuto: string;
-  deliverySettingsDispatchManual: string;
-  deliverySettingsHours: string;
-  deliverySettingsHoursHint: string;
-  deliverySettingsClosed: string;
-  deliverySettingsOpenAt: string;
-  deliverySettingsCloseAt: string;
-  deliverySettingsSave: string;
-  deliverySettingsSaving: string;
-  deliverySettingsSaved: string;
-  deliverySettingsSaveError: string;
-  deliverySettingsDayMon: string;
-  deliverySettingsDayTue: string;
-  deliverySettingsDayWed: string;
-  deliverySettingsDayThu: string;
-  deliverySettingsDayFri: string;
-  deliverySettingsDaySat: string;
-  deliverySettingsDaySun: string;
-
-  deliveryDispatchTitle: string;
-  deliveryDispatchDescription: string;
-  deliveryDispatchEmpty: string;
-  deliveryDispatchColOrder: string;
-  deliveryDispatchColCustomer: string;
-  deliveryDispatchColAddress: string;
-  deliveryDispatchColStatus: string;
-  deliveryDispatchColActions: string;
-  deliveryDispatchNoWolt: string;
-  deliveryDispatchManuallyDispatched: string;
-  deliveryDispatchTrackOpen: string;
-  deliveryDispatchTrackCopy: string;
-  deliveryDispatchTrackCopied: string;
-  deliveryDispatchActionDispatch: string;
-  deliveryDispatchActionMarkManual: string;
-  deliveryDispatchActionCancel: string;
-  deliveryDispatchInvokeError: string;
-  deliveryDispatchInvokeOk: string;
+  orderCartEmptyTitle: string;
+  orderStepContact: string;
+  orderPlacedSubtitle: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -1140,10 +866,6 @@ export const translations: Record<Language, Translations> = {
     staffAccessRetry: 'Check again',
     staffGoToOrder: 'Order online',
     staffSignOut: 'Sign out',
-    adminAccessDeniedTitle: 'Access Restricted',
-    adminAccessDeniedBody:
-      'You do not have permission to access the admin panel. Please use the Order Manager instead.',
-    adminAccessGoToOrderManager: 'Go to Order Manager',
     newUserRole: 'Role',
     userRoleStaff: 'Staff',
     userRoleManager: 'Manager',
@@ -1247,14 +969,6 @@ export const translations: Record<Language, Translations> = {
     prepTime: 'Prep Time',
     connected: 'Connected',
     reconnecting: 'Reconnecting',
-    kdsConnectionLostBanner:
-      'CONNECTION LOST — Orders may be missing. Tap here to reconnect.',
-    kdsPaymentPendingOnline: 'PAYMENT PENDING — do not prepare yet',
-    kdsPaymentCashCod: 'CASH / COD',
-    kdsPaymentConfirmed: '✓ Payment Confirmed',
-    kdsPrepTimeLabel: 'Prep time (minutes)',
-    kdsBusyKitchenHint: 'Busy kitchen? 20 min is suggested.',
-    kdsCourierNoteLabel: 'Courier',
 
     kioskOrders: 'Kiosk Orders',
     confirmPayment: 'Confirm Payment',
@@ -1267,7 +981,6 @@ export const translations: Record<Language, Translations> = {
     orderDetails: 'Order Details',
     preparing: 'Preparing',
     ready: 'Ready',
-    dispatched: 'Dispatched',
     completed: 'Completed',
     cancelled: 'Cancelled',
     unpaid: 'Unpaid',
@@ -1275,23 +988,28 @@ export const translations: Record<Language, Translations> = {
     filterByStatus: 'Filter by Status',
     noKioskOrders: 'No kiosk orders yet',
     viewKiosk: 'View Kiosk',
-    kioskPaymentPendingBadge: 'Online payment pending',
-    kioskPaymentCashCodBadge: 'CASH / COD',
-    kioskPaymentPaidBadge: '✓ Paid',
-    woltTrackingLink: 'Wolt tracking',
-    woltOpenPortal: 'Open Wolt portal',
-    woltDispatchLocked: 'Being booked… ({seconds}s)',
-    woltCopyAll: 'Copy all for Wolt',
-    woltCopiedAll: 'Copied!',
-    woltTrackingUrlLabel: 'Tracking URL',
-    woltSaveDispatched: 'Save & mark dispatched',
-    woltCopyCustomer: 'Customer',
-    woltCopyPhone: 'Phone',
-    woltCopyAddress: 'Address',
-    woltCopyNotes: 'Notes',
-    woltCopyFailed: 'Could not copy to clipboard.',
-    woltSaveFailed: 'Could not save tracking URL.',
-    saving: 'Saving…',
+    orderManagerTitle: 'Order Manager',
+    orderManagerDescription: 'Live board for kiosk and online orders with real-time status control.',
+    openOnlineOrder: 'Open Online Order',
+    refreshOrders: 'Refresh orders',
+    totalOrders: 'Total Orders',
+    ordersInQueue: 'In Queue',
+    todayRevenue: 'Today Revenue',
+    searchOrderManagerPlaceholder: 'Search by order number, phone, or ID',
+    allSources: 'All Sources',
+    allPayments: 'All Payments',
+    paidOnly: 'Paid Only',
+    unpaidOnly: 'Unpaid Only',
+    dragOrder: 'Drag order',
+    pendingPayment: 'Pending Payment',
+    awaitingCardPayment: 'Awaiting Card',
+    woltTracking: 'Wolt Tracking',
+    dragOrdersHint: 'Drag orders between columns to update status. Unpaid orders stay in Pending until payment is confirmed.',
+    cannotMoveOrderHere: 'Cannot move order here.',
+    cancelledOrderLocked: 'Cancelled orders cannot be moved.',
+    completedOrderLocked: 'Completed orders stay in Done.',
+    paymentRequiredBeforePrep: 'Confirm payment before moving past Pending.',
+    cancelOnlyBeforeReady: 'Only pending or preparing orders can be cancelled.',
 
     kioskVisible: 'Show on Kiosk',
     onlineVisible: 'Show on web order',
@@ -1404,8 +1122,6 @@ export const translations: Record<Language, Translations> = {
     orderNavAccount: 'Account',
     orderSignIn: 'Sign in',
     orderSignUp: 'Sign up',
-    orderSignInGoogle: 'Continue with Google',
-    orderSignInGoogleRedirecting: 'Redirecting to Google…',
     orderSignOut: 'Sign out',
     orderMyOrders: 'My orders',
     orderNoOrders: 'No orders yet',
@@ -1413,6 +1129,7 @@ export const translations: Record<Language, Translations> = {
     orderEmail: 'Email',
     orderPassword: 'Password',
     orderCreateAccountHint: 'Create an account to save addresses and see order history.',
+    orderAuthRequired: 'Please sign in to place your order.',
     orderYourName: 'Your name',
     orderYourPhone: 'Phone',
     orderSaveProfile: 'Save profile',
@@ -1432,28 +1149,14 @@ export const translations: Record<Language, Translations> = {
     orderGeoFailed: 'Could not get location',
     orderGeoUpdated: 'Location updated',
     orderOutsideZone: 'Outside delivery zones — adjust location.',
-    zoneErrorTitle: "We don't deliver to this address yet",
-    zoneErrorMessage: 'Try a different address or choose Takeaway.',
-    zoneSwitchTakeaway: 'Switch to Takeaway',
-    orderSubmitDisabledOutsideZone:
-      'Delivery is unavailable for this address. Switch to Takeaway or move the pin.',
-    kitchenClosedTitle: "We're closed right now",
-    kitchenClosedMessage: 'Online ordering is paused. Please check back when we reopen.',
-    kitchenClosedReopenHint: 'Opening hours:',
-    kitchenClosedBackToMenu: 'Back to menu',
-    cartUnavailableTitle: 'Some items are no longer available',
-    cartUnavailableIntro: 'Remove unavailable items to continue.',
-    cartUnavailableRemoveLine: 'Remove',
-    cartUnavailableContinueWithout: 'Continue without these items',
-    cartUnavailableBackMenu: 'Go back to menu',
-    cartUnavailableServerHint:
-      'The menu changed while your cart was open. Update your cart and try again.',
-    cartUnavailableGenericItemLabel: 'One or more items in your cart are no longer available',
     orderInZonePrefix: 'In zone',
     orderPayment: 'Payment',
     orderPayCod: 'Cash on pickup / delivery',
     orderPayCash: 'Cash',
     orderPayEpoint: 'Card (E-point)',
+    orderPaymentReturnSuccess: 'Payment received. Thank you — your order is confirmed.',
+    orderPaymentReturnFailed: 'Payment did not complete. You can try again from checkout.',
+    orderPaymentDismiss: 'Dismiss',
     orderPlacedTitle: 'Order placed',
     orderTrackHint: 'Track status',
     orderOpenTracking: 'Open tracking',
@@ -1470,16 +1173,11 @@ export const translations: Record<Language, Translations> = {
     orderYourCart: 'Your cart',
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
+    orderAuthGoogle: 'Continue with Google',
     orderSendSmsCode: 'Send code',
     orderSmsCode: 'SMS code',
     orderVerifySms: 'Verify & sign in',
     orderSmsSentHint: 'We sent a code to your phone. Enter it below.',
-    orderResendSmsCode: 'Resend code',
-    orderResendSmsIn: 'Resend in {seconds}s',
-    orderResendSmsSent: 'Code sent. If it does not arrive, use resend after the timer.',
-    orderOtpRateLimit: 'Too many attempts. Please wait before requesting another code.',
-    orderOtpDeliveryFailed: 'SMS delivery failed. Please try again shortly.',
-    orderOtpInvalidOrExpired: 'Code is invalid or expired. Request a new code.',
     orderChangePhone: 'Use a different number',
     orderInvalidPhone: 'Enter a valid number with country code (e.g. +994…).',
     orderAccountPhone: 'Phone',
@@ -1487,14 +1185,6 @@ export const translations: Record<Language, Translations> = {
     orderMapPinHint: 'Drag the pin or search — we use the pin location for delivery.',
     orderMapLoading: 'Loading map…',
     orderMapUnavailable: 'Map preview unavailable. Type your address or use device location.',
-    orderMapNoResults: 'No matches in Baku. Try a different street or landmark.',
-    orderApartmentLabel: 'Apartment / unit',
-    orderApartmentPlaceholder: 'e.g. 14A',
-    orderFloorLabel: 'Floor',
-    orderFloorPlaceholder: 'e.g. 3',
-    orderZonePillIn: 'Delivering to {zone} · ₼{fee}',
-    orderZonePillOut: 'Outside delivery area',
-    orderZonePillChecking: 'Checking delivery zone…',
     orderChooseFulfillmentTitle: 'Pickup or delivery?',
     orderSearchMenu: 'Search menu…',
     orderVenueInfoTitle: 'Restaurant',
@@ -1505,244 +1195,9 @@ export const translations: Record<Language, Translations> = {
     orderSearchNoResults: 'No dishes match your search.',
     orderDeliveryDisabledInSettings:
       'Delivery is turned off in your database. Set online_settings.delivery_enabled = true in Supabase (or run the latest migration), or choose pickup.',
-    orderCombosSection: 'Combos',
-    orderComboCustomize: 'Customize',
-    orderComboBadge: 'Combo',
-    orderPhoneFormatHint: 'Use Azerbaijan format: +994 followed by 9 digits.',
-    orderDeliveryNotesLabel: 'Apartment / notes for courier',
-    orderDeliveryNotesPlaceholder:
-      'Apartment no., floor, entry code, or notes for the courier',
-    orderUpsellTitle: 'Make {name} a combo?',
-    orderUpsellMakeItComboNamed: 'Make it {name} for +₼{price}?',
-    orderUpsellYes: 'Yes, upgrade',
-    orderUpsellNo: 'No thanks',
-    orderComboSavingsBadge: 'Save ₼{amount}',
-    comboBuilderHeader: 'Build combo',
-    comboBuilderStepOf: 'Step {n} of {t}',
-    comboBuilderAddToCart: 'Add combo to cart',
-    comboBuilderNext: 'Next',
-    comboBuilderPickOne: 'Choose one option',
-
-    trackingPageTitle: 'Order status',
-    trackingOrderLabel: 'Order',
-    trackingKitchenStatus: 'Kitchen status',
-    trackingPayment: 'Payment',
-    trackingTotal: 'Total',
-    trackingLoading: 'Loading…',
-    trackingNotFound: 'Order not found',
-    trackingMissingToken: 'Missing tracking link',
-    trackOnWolt: 'Track your order on Wolt',
-    trackStatusPending: 'We received your order!',
-    trackStatusPreparing: 'Your food is being prepared',
-    trackStatusReady: 'Almost there — courier is being assigned',
-    trackStatusDispatched: 'On the way!',
-    trackStatusCompleted: 'Delivered — enjoy your meal!',
-    orderCancelledTitle: 'Your order was cancelled',
-    orderCancelledReason: 'Reason: {reason}',
-    orderCancelledRefundNote:
-      'A refund will be processed. Contact us at +994518962446 if you have questions.',
-    orderCancelledGeneric: 'Your order was cancelled. Contact us if you have questions.',
-    trackingOrderAgain: 'Order again',
-    trackingCancelledContact: 'Questions? Call +994518962446',
-    trackStageOrderPlaced: 'Order placed',
-    trackStagePreparing: 'Being prepared',
-    trackStageReady: 'Ready',
-    trackStageReadyForPickup: 'Ready for pickup',
-    trackStageOutForDelivery: 'Out for delivery',
-    trackStageDelivered: 'Delivered',
-    trackStageCollected: 'Collected',
-    trackStageEtaMinutes: 'Est. {min} min',
-    trackStageArrivingAround: 'Arriving around {time}',
-    trackEtaLabel: 'ETA',
-    trackTimelineTitle: 'Order status',
-
-    combosScreenTitle: 'Combo deals',
-    combosScreenDescription: 'Create bundled offers for the online menu.',
-    combosScreenGroupsHint:
-      'After creating a combo, add groups and menu items in Supabase Table Editor (combo_groups / combo_group_items) or extend this screen later.',
-    combosName: 'Combo name',
-    combosEmpty: 'No combos yet — create one above.',
-    comboGroupsTitle: 'Groups',
-    comboGroupAdd: 'Add group',
-    comboGroupRequired: 'Required',
-    comboItemsTitle: 'Items',
-    comboItemAdd: 'Add item',
-    comboItemPriceAdjustment: 'Price adjustment',
-    comboUpsellLink: 'Upsell mapping',
-    comboUpsellNone: 'No combo',
-
-    omActiveOrders: 'Active Orders',
-    omPastOrders: 'Past Orders',
-    omMenuEditor: 'Menu Editor',
-    omNewOrders: 'New Orders',
-    omScheduledOrders: 'Scheduled Orders',
-    omInProgress: 'In Progress',
-    omReady: 'Ready',
-    omInDelivery: 'In Delivery',
-    omAccept: 'Accept',
-    omMarkReady: 'Ready',
-    omPickedUp: 'Picked up',
-    omDelivered: 'Delivered',
-    omSaveDispatch: 'Save & Dispatch',
-    omPrepTime: 'Prep time',
-    omReminderBefore: 'Reminder before',
-    omToday: 'Today',
-    omYesterday: 'Yesterday',
-    omLast7Days: 'Last 7 days',
-    omThisMonth: 'This month',
-    omLastMonth: 'Last month',
-    omProducts: 'Products',
-    omCombos: 'Combos',
-    omKioskToggle: 'Kiosk',
-    omOnlineToggle: 'Online',
-    omActiveToggle: 'Active',
-    omNoActiveOrders: 'No active orders',
-    omNoScheduledOrders: 'No scheduled orders',
-    omNoPastOrders: 'No past orders for this range',
-    omSourceKiosk: 'Kiosk',
-    omSourceTakeaway: 'Online · Takeaway',
-    omSourceDelivery: 'Online · Delivery',
-    omTitle: 'Order Manager',
-    omReminderSet: 'Reminder set',
-    omSelfDelivery: 'Self Delivery',
-    omWoltDrive: 'Wolt Drive',
-    omWoltDriveComingSoon: 'Coming soon',
-    omConfirmSelfDispatch: 'Confirm — Self Delivery',
-    omDispatchedSelfDelivery: 'Dispatched — Self Delivery',
-    omNoLocationData: 'No location data — assign manually',
-    omDistanceAway: 'away',
-    omRecommended: 'recommended',
-    omRejectOrder: 'Reject order',
-    omRejectReasonItemUnavailable: 'Item unavailable',
-    omRejectReasonTooBusy: 'Kitchen too busy',
-    omRejectReasonZoneIssue: 'Outside delivery zone',
-    omRejectReasonCustomerRequest: 'Customer request',
-    omRejectReasonOther: 'Other reason',
-    omRejectNotePlaceholder: 'Add a note for the customer...',
-    omRejectConfirm: 'Confirm Reject',
-    omRejectCancel: 'Cancel',
-    omRejectSelectReason: 'Select a reason...',
-
-    orderSupport: 'Order Support',
-    orderSupportDescription: 'Manage and support all customer orders',
-    orderSupportOpenOrderPage: 'Open order page',
-    orderSupportSearch: 'Search by order #, phone, name...',
-    orderSupportOrdersFound: 'orders found',
-    orderSupportNoOrders: 'No orders match your filters',
-    orderSupportFilter_all: 'All',
-    orderSupportFilter_active: 'Active',
-    orderSupportFilter_dispatched: 'Dispatched',
-    orderSupportFilter_completed: 'Completed',
-    orderSupportFilter_cancelled: 'Cancelled',
-    orderSupportSourceAll: 'All sources',
-    orderSupportColTime: 'Time',
-    orderSupportColCustomer: 'Customer',
-    orderSupportColItems: 'Items',
-    orderSupportColTotal: 'Total',
-    orderSupportColStatus: 'Status',
-    orderSupportDrawerComingSoon: 'Order details coming in next update',
-
-    deliveryNav: 'Delivery',
-    deliveryRefresh: 'Refresh',
-    deliveryScreenTitle: 'Delivery control center',
-    deliveryScreenDescription: 'Manage delivery zones, kitchen settings, and live dispatch in one place.',
-    deliveryTabZones: 'Zones',
-    deliveryTabSettings: 'Settings',
-    deliveryTabDispatch: 'Dispatch',
-
-    deliveryZonesTitle: 'Delivery zones',
-    deliveryZonesDescription: 'Polygons that decide where customers can order delivery and what they pay.',
-    deliveryZonesNew: 'New zone',
-    deliveryZonesEmptyTitle: 'No zones yet',
-    deliveryZonesEmptyHint: 'Create your first zone to enable delivery on the customer site.',
-    deliveryZonesColName: 'Name',
-    deliveryZonesColVertices: 'Points',
-    deliveryZonesColFee: 'Fee',
-    deliveryZonesColMinOrder: 'Min',
-    deliveryZonesColActive: 'On',
-    deliveryZonesColActions: '',
-
-    deliveryZoneNewTitle: 'New delivery zone',
-    deliveryZoneEditTitle: 'Edit delivery zone',
-    deliveryZoneFieldName: 'Zone name',
-    deliveryZoneFieldFee: 'Delivery fee',
-    deliveryZoneFieldMinOrder: 'Minimum order',
-    deliveryZoneFieldFreeThreshold: 'Free above',
-    deliveryZoneFieldSortOrder: 'Sort order',
-    deliveryZoneFieldActive: 'Active',
-    deliveryZoneFieldPolygon: 'Delivery area',
-    deliveryZonePolygonHint: 'Use the polygon tool on the map, then drag points to fine-tune the zone.',
-    deliveryZoneClearShape: 'Clear shape',
-    deliveryZonePolygonRequired: 'Draw a delivery area polygon before saving.',
-    deliveryZoneOpenGeoJsonIo: 'Open geojson.io',
-    deliveryZoneExport: 'Copy GeoJSON',
-    deliveryZoneCopied: 'Copied',
-    deliveryZonePreview: 'Preview',
-    deliveryZonePreviewLoading: 'Loading map…',
-    deliveryZonePreviewUnavailable: 'Set VITE_GOOGLE_MAPS_API_KEY to preview the polygon.',
-    deliveryZonePreviewEmpty: 'Paste a polygon above to see it on the map.',
-    deliveryZoneErrorEmpty: 'Polygon is empty.',
-    deliveryZoneErrorJson: 'Polygon is not valid JSON.',
-    deliveryZoneErrorPolygon: 'GeoJSON does not contain a Polygon geometry.',
-    deliveryZoneErrorPoints: 'Polygon contains an invalid lng/lat point.',
-    deliveryZoneErrorTooFew: 'A polygon needs at least 3 distinct points.',
-    deliveryZoneAutoClosed: 'Ring auto-closed.',
-    deliveryZoneVertices: 'points',
-    deliveryZoneSave: 'Save zone',
-    deliveryZoneSaving: 'Saving…',
-    deliveryZoneSaveError: 'Could not save zone',
-    deliveryZoneDeleteConfirm: 'Delete zone "{name}"? This cannot be undone.',
-    deliveryZoneDeleteError: 'Could not delete zone',
-    deliveryZoneToggleError: 'Could not toggle zone',
-
-    deliverySettingsTitle: 'Delivery settings',
-    deliverySettingsDescription: 'Global rules that apply to every online order.',
-    deliverySettingsKitchenOpen: 'Kitchen is open',
-    deliverySettingsKitchenOpenHint: 'When off, the customer site refuses new orders.',
-    deliverySettingsDeliveryEnabled: 'Delivery enabled',
-    deliverySettingsTakeawayEnabled: 'Pickup enabled',
-    deliverySettingsGlobalMinOrder: 'Global minimum order',
-    deliverySettingsDefaultPrep: 'Default prep time (min)',
-    deliverySettingsDefaultPrepHint: 'Used to estimate ready time on new orders.',
-    deliverySettingsGlobalFreeThreshold: 'Free delivery above',
-    deliverySettingsDispatchMode: 'Dispatch mode',
-    deliverySettingsDispatchAuto: 'Auto — call Wolt on every delivery',
-    deliverySettingsDispatchManual: 'Manual — staff dispatches from the cockpit',
-    deliverySettingsHours: 'Opening hours',
-    deliverySettingsHoursHint: 'Used by the customer site to display when you are open.',
-    deliverySettingsClosed: 'Closed',
-    deliverySettingsOpenAt: 'Open',
-    deliverySettingsCloseAt: 'Close',
-    deliverySettingsSave: 'Save settings',
-    deliverySettingsSaving: 'Saving…',
-    deliverySettingsSaved: 'Settings saved',
-    deliverySettingsSaveError: 'Could not save settings',
-    deliverySettingsDayMon: 'Mon',
-    deliverySettingsDayTue: 'Tue',
-    deliverySettingsDayWed: 'Wed',
-    deliverySettingsDayThu: 'Thu',
-    deliverySettingsDayFri: 'Fri',
-    deliverySettingsDaySat: 'Sat',
-    deliverySettingsDaySun: 'Sun',
-
-    deliveryDispatchTitle: 'Live dispatch',
-    deliveryDispatchDescription: 'Delivery orders from the last 24 hours, updated in real time.',
-    deliveryDispatchEmpty: 'No active delivery orders.',
-    deliveryDispatchColOrder: 'Order',
-    deliveryDispatchColCustomer: 'Customer',
-    deliveryDispatchColAddress: 'Address',
-    deliveryDispatchColStatus: 'Status',
-    deliveryDispatchColActions: '',
-    deliveryDispatchNoWolt: 'no wolt',
-    deliveryDispatchManuallyDispatched: 'manual',
-    deliveryDispatchTrackOpen: 'Open tracking',
-    deliveryDispatchTrackCopy: 'Copy tracking link',
-    deliveryDispatchTrackCopied: 'Copied',
-    deliveryDispatchActionDispatch: 'Dispatch',
-    deliveryDispatchActionMarkManual: 'Manual',
-    deliveryDispatchActionCancel: 'Cancel',
-    deliveryDispatchInvokeError: 'Action failed',
-    deliveryDispatchInvokeOk: 'Done',
+    orderCartEmptyTitle: 'Your bag is empty',
+    orderStepContact: 'Your contact',
+    orderPlacedSubtitle: 'We\u2019re firing up the wok. Track your order below.',
   },
 
   az: {
@@ -1996,10 +1451,6 @@ export const translations: Record<Language, Translations> = {
     staffAccessRetry: 'Yenidən yoxla',
     staffGoToOrder: 'Onlayn sifariş',
     staffSignOut: 'Çıxış',
-    adminAccessDeniedTitle: 'Giriş məhduddur',
-    adminAccessDeniedBody:
-      'Admin panelinə giriş icazəniz yoxdur. Zəhmət olmasa Sifariş Menecerindən istifadə edin.',
-    adminAccessGoToOrderManager: 'Sifariş menecerinə keç',
     newUserRole: 'Rol',
     userRoleStaff: 'Personal',
     userRoleManager: 'Menecer',
@@ -2103,14 +1554,6 @@ export const translations: Record<Language, Translations> = {
     prepTime: 'Hazırlıq müddəti',
     connected: 'Bağlı',
     reconnecting: 'Yenidən bağlanılır',
-    kdsConnectionLostBanner:
-      'BAĞLANTI KƏSİLDİ — Sifarişlər çata bilməz. Yenidən bağlanmaq üçün toxunun.',
-    kdsPaymentPendingOnline: 'ÖDƏNİŞ GÖZLƏNİR — hələ hazırlamayın',
-    kdsPaymentCashCod: 'NAĞD / ÇATDIRILMADA',
-    kdsPaymentConfirmed: '✓ Ödəniş təsdiqləndi',
-    kdsPrepTimeLabel: 'Hazırlıq müddəti (dəqiqə)',
-    kdsBusyKitchenHint: 'Mətbəx yüklüdür? 20 dəq tövsiyə olunur.',
-    kdsCourierNoteLabel: 'Kuryer',
 
     kioskOrders: 'Kiosk Sifarişləri',
     confirmPayment: 'Ödənişi təsdiq et',
@@ -2123,7 +1566,6 @@ export const translations: Record<Language, Translations> = {
     orderDetails: 'Sifariş Detalları',
     preparing: 'Hazırlanır',
     ready: 'Hazır',
-    dispatched: 'Yoldadır',
     completed: 'Tamamlandı',
     cancelled: 'Ləğv edildi',
     unpaid: 'Ödənilməyib',
@@ -2131,23 +1573,28 @@ export const translations: Record<Language, Translations> = {
     filterByStatus: 'Statusa görə filtr',
     noKioskOrders: 'Hələ kiosk sifarişi yoxdur',
     viewKiosk: 'Kiosku Aç',
-    kioskPaymentPendingBadge: 'Onlayn ödəniş gözlənilir',
-    kioskPaymentCashCodBadge: 'NAĞD / ÇATDIRILMADA',
-    kioskPaymentPaidBadge: '✓ Ödənilib',
-    woltTrackingLink: 'Wolt izləmə',
-    woltOpenPortal: 'Wolt portalını aç',
-    woltDispatchLocked: 'Sifariş edilir… ({seconds}s)',
-    woltCopyAll: 'Hamısını Wolt üçün kopyala',
-    woltCopiedAll: 'Kopyalandı!',
-    woltTrackingUrlLabel: 'İzləmə linki',
-    woltSaveDispatched: 'Saxla və yola sal',
-    woltCopyCustomer: 'Müştəri',
-    woltCopyPhone: 'Telefon',
-    woltCopyAddress: 'Ünvan',
-    woltCopyNotes: 'Qeydlər',
-    woltCopyFailed: 'Mübadilə buferinə kopyalamaq alınmadı.',
-    woltSaveFailed: 'İzləmə linki saxlanılmadı.',
-    saving: 'Saxlanılır…',
+    orderManagerTitle: 'Sifariş İdarəetməsi',
+    orderManagerDescription: 'Kiosk və onlayn sifarişlər üçün real vaxt status nəzarət lövhəsi.',
+    openOnlineOrder: 'Onlayn Sifarişi Aç',
+    refreshOrders: 'Sifarişləri yenilə',
+    totalOrders: 'Ümumi Sifariş',
+    ordersInQueue: 'Növbədə',
+    todayRevenue: 'Bugünkü Gəlir',
+    searchOrderManagerPlaceholder: 'Sifariş nömrəsi, telefon və ya ID ilə axtarın',
+    allSources: 'Bütün Mənbələr',
+    allPayments: 'Bütün Ödənişlər',
+    paidOnly: 'Yalnız Ödənilmiş',
+    unpaidOnly: 'Yalnız Ödənilməmiş',
+    dragOrder: 'Sifarişi sürüklə',
+    pendingPayment: 'Ödəniş gözlənilir',
+    awaitingCardPayment: 'Kart gözlənilir',
+    woltTracking: 'Wolt İzləmə',
+    dragOrdersHint: 'Statusu yeniləmək üçün sifarişləri sütunlar arasında sürükləyin. Ödənilməmiş sifarişlər ödəniş təsdiqlənənə qədər Gözləyir bölməsində qalır.',
+    cannotMoveOrderHere: 'Sifarişi bura köçürmək olmur.',
+    cancelledOrderLocked: 'Ləğv edilən sifarişlər köçürülə bilməz.',
+    completedOrderLocked: 'Tamamlanan sifarişlər Done sütununda qalır.',
+    paymentRequiredBeforePrep: 'Gözləyir statusundan keçmək üçün əvvəlcə ödənişi təsdiqləyin.',
+    cancelOnlyBeforeReady: 'Yalnız Gözləyir və ya Hazırlanır sifarişləri ləğv edilə bilər.',
 
     kioskVisible: 'Kioskda göstər',
     onlineVisible: 'Web sifarişdə göstər',
@@ -2260,8 +1707,6 @@ export const translations: Record<Language, Translations> = {
     orderNavAccount: 'Hesab',
     orderSignIn: 'Daxil ol',
     orderSignUp: 'Qeydiyyat',
-    orderSignInGoogle: 'Google ilə davam et',
-    orderSignInGoogleRedirecting: 'Google-a yönləndirilir…',
     orderSignOut: 'Çıxış',
     orderMyOrders: 'Sifarişlərim',
     orderNoOrders: 'Hələ sifariş yoxdur',
@@ -2269,6 +1714,7 @@ export const translations: Record<Language, Translations> = {
     orderEmail: 'E-poçt',
     orderPassword: 'Şifrə',
     orderCreateAccountHint: 'Ünvanları saxlamaq və sifariş tarixçəsini görmək üçün hesab yaradın.',
+    orderAuthRequired: 'Sifarişi tamamlamaq üçün daxil olun.',
     orderYourName: 'Adınız',
     orderYourPhone: 'Telefon',
     orderSaveProfile: 'Profili saxla',
@@ -2288,29 +1734,14 @@ export const translations: Record<Language, Translations> = {
     orderGeoFailed: 'Məkan alına bilmədi',
     orderGeoUpdated: 'Məkan yeniləndi',
     orderOutsideZone: 'Çatdırılma zonasından kənar — məkanı düzəldin.',
-    zoneErrorTitle: 'Bu ünvana hələ çatdırmırıq',
-    zoneErrorMessage: 'Başqa ünvan sınayın və ya Götürmə seçin.',
-    zoneSwitchTakeaway: 'Götürməyə keç',
-    orderSubmitDisabledOutsideZone:
-      'Bu ünvan üçün çatdırılma yoxdur. Götürməyə keçin və ya işarəni dəyişin.',
-    kitchenClosedTitle: 'Hal-hazırda bağıyıq',
-    kitchenClosedMessage: 'Onlayn sifariş müvəqqəti dayandırılıb. Yenidən açılanda yoxlayın.',
-    kitchenClosedReopenHint: 'İş saatları:',
-    kitchenClosedBackToMenu: 'Menyuya qayıt',
-    cartUnavailableTitle: 'Bəzi məhsullar artıq mövcud deyil',
-    cartUnavailableIntro: 'Davam etmək üçün əlçatan olmayanları silin.',
-    cartUnavailableRemoveLine: 'Sil',
-    cartUnavailableContinueWithout: 'Bu məhsullarsız davam et',
-    cartUnavailableBackMenu: 'Menyuya qayıt',
-    cartUnavailableServerHint:
-      'Səbətiniz açıq olanda menyu dəyişdi. Səbəti yeniləyib yenidən cəhd edin.',
-    cartUnavailableGenericItemLabel:
-      'Səbətinizdəki bəzi məhsullar artıq mövcud deyil',
     orderInZonePrefix: 'Zona',
     orderPayment: 'Ödəniş',
     orderPayCod: 'Nağd (götürmə/çatdırılma)',
     orderPayCash: 'Nağd',
     orderPayEpoint: 'Kart (E-point)',
+    orderPaymentReturnSuccess: 'Ödəniş qəbul edildi. Təşəkkür edirik — sifarişiniz təsdiqləndi.',
+    orderPaymentReturnFailed: 'Ödəniş tamamlanmadı. Yenidən ödəniş cəhdini checkoutdan edə bilərsiniz.',
+    orderPaymentDismiss: 'Bağla',
     orderPlacedTitle: 'Sifariş verildi',
     orderTrackHint: 'Statusu izlə',
     orderOpenTracking: 'İzləməni aç',
@@ -2327,16 +1758,11 @@ export const translations: Record<Language, Translations> = {
     orderYourCart: 'Səbətiniz',
     orderAuthEmail: 'E-poçt',
     orderAuthSms: 'SMS',
+    orderAuthGoogle: 'Google ilə davam et',
     orderSendSmsCode: 'Kod göndər',
     orderSmsCode: 'SMS kodu',
     orderVerifySms: 'Təsdiqlə və daxil ol',
     orderSmsSentHint: 'Telefonunuza kod göndərildi. Aşağıya daxil edin.',
-    orderResendSmsCode: 'Kodu yenidən göndər',
-    orderResendSmsIn: '{seconds} san sonra yenidən göndər',
-    orderResendSmsSent: 'Kod göndərildi. Gəlməsə, taymer bitəndən sonra yenidən göndərin.',
-    orderOtpRateLimit: 'Çox cəhd etdiniz. Yeni kod üçün bir az gözləyin.',
-    orderOtpDeliveryFailed: 'SMS çatdırılmadı. Az sonra yenidən cəhd edin.',
-    orderOtpInvalidOrExpired: 'Kod yanlışdır və ya vaxtı bitib. Yeni kod istəyin.',
     orderChangePhone: 'Başqa nömrə',
     orderInvalidPhone: 'Ölkə kodu ilə düzgün nömrə daxil edin (məs. +994…).',
     orderAccountPhone: 'Telefon',
@@ -2344,14 +1770,6 @@ export const translations: Record<Language, Translations> = {
     orderMapPinHint: 'İşarəni sürüyün və ya axtarın — çatdırılma üçün məkan işarədən götürülür.',
     orderMapLoading: 'Xəritə yüklənir…',
     orderMapUnavailable: 'Xəritə əlçatan deyil. Ünvanı yazın və ya cihaz məkanından istifadə edin.',
-    orderMapNoResults: 'Bakıda uyğun nəticə yoxdur. Başqa küçə və ya yer yazın.',
-    orderApartmentLabel: 'Mənzil / nömrə',
-    orderApartmentPlaceholder: 'məs. 14A',
-    orderFloorLabel: 'Mərtəbə',
-    orderFloorPlaceholder: 'məs. 3',
-    orderZonePillIn: 'Çatdırılma: {zone} · ₼{fee}',
-    orderZonePillOut: 'Çatdırılma ərazisindən kənar',
-    orderZonePillChecking: 'Çatdırılma zonası yoxlanılır…',
     orderChooseFulfillmentTitle: 'Götürmə və ya çatdırılma?',
     orderSearchMenu: 'Menyu axtar…',
     orderVenueInfoTitle: 'Restoran',
@@ -2362,243 +1780,9 @@ export const translations: Record<Language, Translations> = {
     orderSearchNoResults: 'Axtarışınıza uyğun yemək yoxdur.',
     orderDeliveryDisabledInSettings:
       'Çatdırılma verilənlər bazasında söndürülüb. Supabase-də online_settings.delivery_enabled = true edin və ya götürmə seçin.',
-    orderCombosSection: 'Kombolar',
-    orderComboCustomize: 'Fərdiləşdir',
-    orderComboBadge: 'Kombo',
-    orderPhoneFormatHint: 'Azərbaycan formatı: +994 və 9 rəqəm.',
-    orderDeliveryNotesLabel: 'Mənzil / kuryer üçün qeyd',
-    orderDeliveryNotesPlaceholder: 'Mənzil, mərtəbə, kod və ya kuryer üçün qeyd',
-    orderUpsellTitle: '{name} kombo edək?',
-    orderUpsellMakeItComboNamed: '{name} komboya +₼{price} əlavə edək?',
-    orderUpsellYes: 'Bəli, yenilə',
-    orderUpsellNo: 'Xeyr',
-    orderComboSavingsBadge: '₼{amount} qənaət',
-    comboBuilderHeader: 'Kombo yığ',
-    comboBuilderStepOf: 'Addım {n} / {t}',
-    comboBuilderAddToCart: 'Kombonu səbətə əlavə et',
-    comboBuilderNext: 'Növbəti',
-    comboBuilderPickOne: 'Bir seçim edin',
-
-    trackingPageTitle: 'Sifariş statusu',
-    trackingOrderLabel: 'Sifariş',
-    trackingKitchenStatus: 'Mətbəx statusu',
-    trackingPayment: 'Ödəniş',
-    trackingTotal: 'Cəmi',
-    trackingLoading: 'Yüklənir…',
-    trackingNotFound: 'Sifariş tapılmadı',
-    trackingMissingToken: 'İzləmə linki yoxdur',
-    trackOnWolt: 'Wolt-da izlə',
-    trackStatusPending: 'Sifarişiniz qəbul edildi!',
-    trackStatusPreparing: 'Yeməyiniz hazırlanır',
-    trackStatusReady: 'Demək olar hazırdır — kuryer təyin olunur',
-    trackStatusDispatched: 'Yoldadır!',
-    trackStatusCompleted: 'Çatdırıldı — nuş olsun!',
-    orderCancelledTitle: 'Sifarişiniz ləğv edildi',
-    orderCancelledReason: 'Səbəb: {reason}',
-    orderCancelledRefundNote:
-      'Geri ödəmə həyata keçiriləcək. Suallar üçün +994518962446 nömrəsi ilə əlaqə saxlayın.',
-    orderCancelledGeneric: 'Sifarişiniz ləğv edildi. Suallar üçün bizimlə əlaqə saxlayın.',
-    trackingOrderAgain: 'Yenidən sifariş',
-    trackingCancelledContact: 'Suallar? +994518962446',
-    trackStageOrderPlaced: 'Sifariş verildi',
-    trackStagePreparing: 'Hazırlanır',
-    trackStageReady: 'Hazırdır',
-    trackStageReadyForPickup: 'Götürməyə hazırdır',
-    trackStageOutForDelivery: 'Çatdırma yoldadır',
-    trackStageDelivered: 'Çatdırıldı',
-    trackStageCollected: 'Götürüldü',
-    trackStageEtaMinutes: 'Təxminən {min} dəq',
-    trackStageArrivingAround: 'Təxminən {time} çatacaq',
-    trackEtaLabel: 'Çatdırılma vaxtı',
-    trackTimelineTitle: 'Sifariş vəziyyəti',
-
-    combosScreenTitle: 'Kombo təkliflər',
-    combosScreenDescription: 'Onlayn menyu üçün paket təkliflər yaradın.',
-    combosScreenGroupsHint:
-      'Kombo yaratdıqdan sonra qruplar və məhsulları Supabase Table Editor-də əlavə edin (combo_groups / combo_group_items).',
-    combosName: 'Kombo adı',
-    combosEmpty: 'Hələ kombo yoxdur — yuxarıdan yaradın.',
-    comboGroupsTitle: 'Qruplar',
-    comboGroupAdd: 'Qrup əlavə et',
-    comboGroupRequired: 'Məcburi',
-    comboItemsTitle: 'Məhsullar',
-    comboItemAdd: 'Məhsul əlavə et',
-    comboItemPriceAdjustment: 'Qiymət fərqi',
-    comboUpsellLink: 'Upsell uyğunluğu',
-    comboUpsellNone: 'Kombo yoxdur',
-
-    omActiveOrders: 'Aktiv sifarişlər',
-    omPastOrders: 'Keçmiş sifarişlər',
-    omMenuEditor: 'Menyu redaktoru',
-    omNewOrders: 'Yeni sifarişlər',
-    omScheduledOrders: 'Planlı sifarişlər',
-    omInProgress: 'Hazırlanır',
-    omReady: 'Hazır',
-    omInDelivery: 'Çatdırılmada',
-    omAccept: 'Qəbul et',
-    omMarkReady: 'Hazır et',
-    omPickedUp: 'Təhvil verildi',
-    omDelivered: 'Çatdırıldı',
-    omSaveDispatch: 'Saxla və yola sal',
-    omPrepTime: 'Hazırlıq vaxtı',
-    omReminderBefore: 'Xatırlatma',
-    omToday: 'Bu gün',
-    omYesterday: 'Dünən',
-    omLast7Days: 'Son 7 gün',
-    omThisMonth: 'Bu ay',
-    omLastMonth: 'Ötən ay',
-    omProducts: 'Məhsullar',
-    omCombos: 'Kombolar',
-    omKioskToggle: 'Kiosk',
-    omOnlineToggle: 'Onlayn',
-    omActiveToggle: 'Aktiv',
-    omNoActiveOrders: 'Aktiv sifariş yoxdur',
-    omNoScheduledOrders: 'Planlı sifariş yoxdur',
-    omNoPastOrders: 'Bu aralıqda keçmiş sifariş yoxdur',
-    omSourceKiosk: 'Kiosk',
-    omSourceTakeaway: 'Onlayn · Əlavə',
-    omSourceDelivery: 'Onlayn · Çatdırılma',
-    omTitle: 'Sifariş meneceri',
-    omReminderSet: 'Xatırlatma quruldu',
-    omSelfDelivery: 'Öz çatdırılma',
-    omWoltDrive: 'Wolt Drive',
-    omWoltDriveComingSoon: 'Tezliklə',
-    omConfirmSelfDispatch: 'Təsdiqlə — Öz çatdırılma',
-    omDispatchedSelfDelivery: 'Yola salındı — Öz çatdırılma',
-    omNoLocationData: 'Lokasiya məlumatı yoxdur — əl ilə təyin edin',
-    omDistanceAway: 'uzaqda',
-    omRecommended: 'tövsiyə olunur',
-    omRejectOrder: 'Sifarişi rədd et',
-    omRejectReasonItemUnavailable: 'Məhsul yoxdur',
-    omRejectReasonTooBusy: 'Mətbəx çox yüklüdür',
-    omRejectReasonZoneIssue: 'Çatdırılma zonasından kənar',
-    omRejectReasonCustomerRequest: 'Müştəri istəyi',
-    omRejectReasonOther: 'Başqa səbəb',
-    omRejectNotePlaceholder: 'Müştəri üçün qeyd əlavə edin...',
-    omRejectConfirm: 'Rədd etməni təsdiqlə',
-    omRejectCancel: 'Ləğv et',
-    omRejectSelectReason: 'Səbəb seçin...',
-
-    orderSupport: 'Sifariş Dəstəyi',
-    orderSupportDescription: 'Bütün müştəri sifarişlərini idarə edin və dəstəkləyin',
-    orderSupportOpenOrderPage: 'Sifariş səhifəsini aç',
-    orderSupportSearch: 'Sifariş №, telefon, ad ilə axtar...',
-    orderSupportOrdersFound: 'sifariş tapıldı',
-    orderSupportNoOrders: 'Filtrlərə uyğun sifariş yoxdur',
-    orderSupportFilter_all: 'Hamısı',
-    orderSupportFilter_active: 'Aktiv',
-    orderSupportFilter_dispatched: 'Göndərilib',
-    orderSupportFilter_completed: 'Tamamlanıb',
-    orderSupportFilter_cancelled: 'Ləğv edilib',
-    orderSupportSourceAll: 'Bütün mənbələr',
-    orderSupportColTime: 'Vaxt',
-    orderSupportColCustomer: 'Müştəri',
-    orderSupportColItems: 'Məhsullar',
-    orderSupportColTotal: 'Cəmi',
-    orderSupportColStatus: 'Status',
-    orderSupportDrawerComingSoon: 'Sifariş detalları növbəti yeniləmədə olacaq',
-
-    deliveryNav: 'Çatdırılma',
-    deliveryRefresh: 'Yenilə',
-    deliveryScreenTitle: 'Çatdırılma idarə paneli',
-    deliveryScreenDescription: 'Zonalar, mətbəx parametrləri və canlı dispetçer — hamısı bir yerdə.',
-    deliveryTabZones: 'Zonalar',
-    deliveryTabSettings: 'Parametrlər',
-    deliveryTabDispatch: 'Dispetçer',
-
-    deliveryZonesTitle: 'Çatdırılma zonaları',
-    deliveryZonesDescription: 'Müştərilərin çatdırılma sifariş edə biləcəyi və qiymətləri müəyyən edən poliqonlar.',
-    deliveryZonesNew: 'Yeni zona',
-    deliveryZonesEmptyTitle: 'Hələ zona yoxdur',
-    deliveryZonesEmptyHint: 'Müştəri saytında çatdırılmanı aktiv etmək üçün ilk zonanı yaradın.',
-    deliveryZonesColName: 'Ad',
-    deliveryZonesColVertices: 'Nöqtə',
-    deliveryZonesColFee: 'Haqq',
-    deliveryZonesColMinOrder: 'Min',
-    deliveryZonesColActive: 'Aktiv',
-    deliveryZonesColActions: '',
-
-    deliveryZoneNewTitle: 'Yeni çatdırılma zonası',
-    deliveryZoneEditTitle: 'Çatdırılma zonasını redaktə et',
-    deliveryZoneFieldName: 'Zona adı',
-    deliveryZoneFieldFee: 'Çatdırılma haqqı',
-    deliveryZoneFieldMinOrder: 'Minimum sifariş',
-    deliveryZoneFieldFreeThreshold: 'Pulsuz hədd',
-    deliveryZoneFieldSortOrder: 'Sıra',
-    deliveryZoneFieldActive: 'Aktiv',
-    deliveryZoneFieldPolygon: 'Çatdırılma sahəsi',
-    deliveryZonePolygonHint: 'Xəritədə poliqon alətindən istifadə edin, sonra zonanı dəqiqləşdirmək üçün nöqtələri sürüşdürün.',
-    deliveryZoneClearShape: 'Sahəni təmizlə',
-    deliveryZonePolygonRequired: 'Yadda saxlamazdan əvvəl çatdırılma poliqonu çəkin.',
-    deliveryZoneOpenGeoJsonIo: 'geojson.io aç',
-    deliveryZoneExport: 'GeoJSON kopyala',
-    deliveryZoneCopied: 'Kopyalandı',
-    deliveryZonePreview: 'Önizləmə',
-    deliveryZonePreviewLoading: 'Xəritə yüklənir…',
-    deliveryZonePreviewUnavailable: 'Önizləmə üçün VITE_GOOGLE_MAPS_API_KEY təyin edin.',
-    deliveryZonePreviewEmpty: 'Xəritədə görmək üçün yuxarıya poliqon yapışdırın.',
-    deliveryZoneErrorEmpty: 'Poliqon boşdur.',
-    deliveryZoneErrorJson: 'Poliqon düzgün JSON deyil.',
-    deliveryZoneErrorPolygon: 'GeoJSON-da Polygon geometriya yoxdur.',
-    deliveryZoneErrorPoints: 'Poliqonda yanlış lng/lat nöqtəsi var.',
-    deliveryZoneErrorTooFew: 'Poliqon ən azı 3 fərqli nöqtə tələb edir.',
-    deliveryZoneAutoClosed: 'Halqa avtomatik bağlandı.',
-    deliveryZoneVertices: 'nöqtə',
-    deliveryZoneSave: 'Zonanı yadda saxla',
-    deliveryZoneSaving: 'Yadda saxlanılır…',
-    deliveryZoneSaveError: 'Zona yadda saxlanılmadı',
-    deliveryZoneDeleteConfirm: '"{name}" zonası silinsin? Geri qaytarıla bilməz.',
-    deliveryZoneDeleteError: 'Zona silinmədi',
-    deliveryZoneToggleError: 'Zona dəyişdirilmədi',
-
-    deliverySettingsTitle: 'Çatdırılma parametrləri',
-    deliverySettingsDescription: 'Bütün onlayn sifarişlərə tətbiq olunan qaydalar.',
-    deliverySettingsKitchenOpen: 'Mətbəx açıqdır',
-    deliverySettingsKitchenOpenHint: 'Söndürüldükdə müştəri saytı yeni sifarişləri qəbul etməz.',
-    deliverySettingsDeliveryEnabled: 'Çatdırılma aktivdir',
-    deliverySettingsTakeawayEnabled: 'Götürmə aktivdir',
-    deliverySettingsGlobalMinOrder: 'Ümumi minimum sifariş',
-    deliverySettingsDefaultPrep: 'Standart hazırlıq vaxtı (dəq)',
-    deliverySettingsDefaultPrepHint: 'Yeni sifarişlərdə hazır olma vaxtını təxmin etmək üçün istifadə olunur.',
-    deliverySettingsGlobalFreeThreshold: 'Pulsuz çatdırılma həddi',
-    deliverySettingsDispatchMode: 'Dispetçer rejimi',
-    deliverySettingsDispatchAuto: 'Avtomatik — hər çatdırılma üçün Wolt çağır',
-    deliverySettingsDispatchManual: 'Manual — heyət kokpitdən göndərir',
-    deliverySettingsHours: 'İş saatları',
-    deliverySettingsHoursHint: 'Müştəri saytında nə vaxt açıq olduğunuzu göstərmək üçün istifadə olunur.',
-    deliverySettingsClosed: 'Bağlı',
-    deliverySettingsOpenAt: 'Açılış',
-    deliverySettingsCloseAt: 'Bağlanış',
-    deliverySettingsSave: 'Parametrləri yadda saxla',
-    deliverySettingsSaving: 'Yadda saxlanılır…',
-    deliverySettingsSaved: 'Parametrlər yadda saxlandı',
-    deliverySettingsSaveError: 'Parametrlər yadda saxlanılmadı',
-    deliverySettingsDayMon: 'B.e',
-    deliverySettingsDayTue: 'Ç.a',
-    deliverySettingsDayWed: 'Çər',
-    deliverySettingsDayThu: 'C.a',
-    deliverySettingsDayFri: 'Cüm',
-    deliverySettingsDaySat: 'Şən',
-    deliverySettingsDaySun: 'Baz',
-
-    deliveryDispatchTitle: 'Canlı dispetçer',
-    deliveryDispatchDescription: 'Son 24 saatdakı çatdırılma sifarişləri, real vaxt rejimində.',
-    deliveryDispatchEmpty: 'Aktiv çatdırılma sifarişi yoxdur.',
-    deliveryDispatchColOrder: 'Sifariş',
-    deliveryDispatchColCustomer: 'Müştəri',
-    deliveryDispatchColAddress: 'Ünvan',
-    deliveryDispatchColStatus: 'Status',
-    deliveryDispatchColActions: '',
-    deliveryDispatchNoWolt: 'wolt yox',
-    deliveryDispatchManuallyDispatched: 'manual',
-    deliveryDispatchTrackOpen: 'İzləməni aç',
-    deliveryDispatchTrackCopy: 'İzləmə linkini kopyala',
-    deliveryDispatchTrackCopied: 'Kopyalandı',
-    deliveryDispatchActionDispatch: 'Göndər',
-    deliveryDispatchActionMarkManual: 'Manual',
-    deliveryDispatchActionCancel: 'Ləğv',
-    deliveryDispatchInvokeError: 'Əməliyyat alınmadı',
-    deliveryDispatchInvokeOk: 'Tamam',
+    orderCartEmptyTitle: 'Səbətiniz boşdur',
+    orderStepContact: 'Əlaqə məlumatı',
+    orderPlacedSubtitle: 'Vok qızdırılır. Sifarişinizi aşağıda izləyin.',
   },
 
   ru: {
@@ -2852,10 +2036,6 @@ export const translations: Record<Language, Translations> = {
     staffAccessRetry: 'Проверить снова',
     staffGoToOrder: 'Заказать онлайн',
     staffSignOut: 'Выйти',
-    adminAccessDeniedTitle: 'Доступ ограничен',
-    adminAccessDeniedBody:
-      'У вас нет доступа к панели администратора. Пожалуйста, используйте Менеджер заказов.',
-    adminAccessGoToOrderManager: 'Перейти в Менеджер заказов',
     newUserRole: 'Роль',
     userRoleStaff: 'Сотрудник',
     userRoleManager: 'Менеджер',
@@ -2959,14 +2139,6 @@ export const translations: Record<Language, Translations> = {
     prepTime: 'Время готовки',
     connected: 'Подключено',
     reconnecting: 'Переподключение',
-    kdsConnectionLostBanner:
-      'СОЕДИНЕНИЕ ПОТЕРЯНО — заказы могут не отображаться. Нажмите, чтобы переподключиться.',
-    kdsPaymentPendingOnline: 'ОПЛАТА ОЖИДАЕТСЯ — не готовьте',
-    kdsPaymentCashCod: 'НАЛИЧНЫЕ / ПРИ ПОЛУЧЕНИИ',
-    kdsPaymentConfirmed: '✓ Оплата подтверждена',
-    kdsPrepTimeLabel: 'Время приготовления (мин)',
-    kdsBusyKitchenHint: 'Загруженная кухня? Рекомендуем 20 мин.',
-    kdsCourierNoteLabel: 'Курьер',
 
     kioskOrders: 'Заказы с Киоска',
     confirmPayment: 'Подтвердить оплату',
@@ -2979,7 +2151,6 @@ export const translations: Record<Language, Translations> = {
     orderDetails: 'Детали Заказа',
     preparing: 'Готовится',
     ready: 'Готов',
-    dispatched: 'В пути',
     completed: 'Завершён',
     cancelled: 'Отменён',
     unpaid: 'Не оплачен',
@@ -2987,23 +2158,28 @@ export const translations: Record<Language, Translations> = {
     filterByStatus: 'Фильтр по статусу',
     noKioskOrders: 'Заказов с киоска пока нет',
     viewKiosk: 'Открыть Киоск',
-    kioskPaymentPendingBadge: 'Ожидается онлайн-оплата',
-    kioskPaymentCashCodBadge: 'НАЛИЧНЫЕ / ПРИ ПОЛУЧЕНИИ',
-    kioskPaymentPaidBadge: '✓ Оплачено',
-    woltTrackingLink: 'Отслеживание Wolt',
-    woltOpenPortal: 'Открыть портал Wolt',
-    woltDispatchLocked: 'Бронирование… ({seconds} с)',
-    woltCopyAll: 'Копировать всё для Wolt',
-    woltCopiedAll: 'Скопировано!',
-    woltTrackingUrlLabel: 'Ссылка отслеживания',
-    woltSaveDispatched: 'Сохранить и отправить',
-    woltCopyCustomer: 'Клиент',
-    woltCopyPhone: 'Телефон',
-    woltCopyAddress: 'Адрес',
-    woltCopyNotes: 'Примечания',
-    woltCopyFailed: 'Не удалось скопировать.',
-    woltSaveFailed: 'Не удалось сохранить ссылку.',
-    saving: 'Сохранение…',
+    orderManagerTitle: 'Менеджер Заказов',
+    orderManagerDescription: 'Живая доска заказов киоска и онлайн-каналов с управлением статусами в реальном времени.',
+    openOnlineOrder: 'Открыть Онлайн-Заказ',
+    refreshOrders: 'Обновить заказы',
+    totalOrders: 'Всего Заказов',
+    ordersInQueue: 'В Очереди',
+    todayRevenue: 'Выручка Сегодня',
+    searchOrderManagerPlaceholder: 'Поиск по номеру заказа, телефону или ID',
+    allSources: 'Все Источники',
+    allPayments: 'Все Платежи',
+    paidOnly: 'Только Оплаченные',
+    unpaidOnly: 'Только Неоплаченные',
+    dragOrder: 'Перетащить заказ',
+    pendingPayment: 'Ожидание оплаты',
+    awaitingCardPayment: 'Ожидание карты',
+    woltTracking: 'Wolt Трекинг',
+    dragOrdersHint: 'Перетаскивайте заказы между колонками для обновления статуса. Неоплаченные заказы остаются в Ожидании до подтверждения оплаты.',
+    cannotMoveOrderHere: 'Нельзя переместить заказ сюда.',
+    cancelledOrderLocked: 'Отменённые заказы нельзя перемещать.',
+    completedOrderLocked: 'Завершённые заказы остаются в Done.',
+    paymentRequiredBeforePrep: 'Подтвердите оплату перед переходом из Ожидания.',
+    cancelOnlyBeforeReady: 'Отменять можно только заказы в Ожидании или Готовится.',
 
     kioskVisible: 'Показать на киоске',
     onlineVisible: 'Показать в веб-заказе',
@@ -3116,8 +2292,6 @@ export const translations: Record<Language, Translations> = {
     orderNavAccount: 'Аккаунт',
     orderSignIn: 'Войти',
     orderSignUp: 'Регистрация',
-    orderSignInGoogle: 'Продолжить через Google',
-    orderSignInGoogleRedirecting: 'Переход в Google…',
     orderSignOut: 'Выйти',
     orderMyOrders: 'Мои заказы',
     orderNoOrders: 'Пока нет заказов',
@@ -3125,6 +2299,7 @@ export const translations: Record<Language, Translations> = {
     orderEmail: 'Email',
     orderPassword: 'Пароль',
     orderCreateAccountHint: 'Создайте аккаунт, чтобы сохранять адреса и видеть историю заказов.',
+    orderAuthRequired: 'Войдите в аккаунт, чтобы оформить заказ.',
     orderYourName: 'Ваше имя',
     orderYourPhone: 'Телефон',
     orderSaveProfile: 'Сохранить профиль',
@@ -3144,29 +2319,14 @@ export const translations: Record<Language, Translations> = {
     orderGeoFailed: 'Не удалось получить местоположение',
     orderGeoUpdated: 'Местоположение обновлено',
     orderOutsideZone: 'Вне зоны доставки — уточните точку.',
-    zoneErrorTitle: 'Пока не доставляем по этому адресу',
-    zoneErrorMessage: 'Попробуйте другой адрес или выберите самовывоз.',
-    zoneSwitchTakeaway: 'Перейти к самовывозу',
-    orderSubmitDisabledOutsideZone:
-      'Доставка недоступна для этого адреса. Переключитесь на самовывоз или переместите метку.',
-    kitchenClosedTitle: 'Сейчас мы закрыты',
-    kitchenClosedMessage: 'Онлайн-заказы временно недоступны. Загляните позже.',
-    kitchenClosedReopenHint: 'Часы работы:',
-    kitchenClosedBackToMenu: 'В меню',
-    cartUnavailableTitle: 'Некоторые позиции больше недоступны',
-    cartUnavailableIntro: 'Удалите недоступные позиции, чтобы продолжить.',
-    cartUnavailableRemoveLine: 'Убрать',
-    cartUnavailableContinueWithout: 'Продолжить без этих позиций',
-    cartUnavailableBackMenu: 'В меню',
-    cartUnavailableServerHint:
-      'Меню изменилось, пока корзина была открыта. Обновите корзину и попробуйте снова.',
-    cartUnavailableGenericItemLabel:
-      'Некоторых позиций в корзине больше нет в наличии',
     orderInZonePrefix: 'Зона',
     orderPayment: 'Оплата',
     orderPayCod: 'Наличные при получении',
     orderPayCash: 'Наличные',
     orderPayEpoint: 'Карта (E-point)',
+    orderPaymentReturnSuccess: 'Платёж получен. Спасибо — заказ подтверждён.',
+    orderPaymentReturnFailed: 'Платёж не завершён. Повторите оплату при оформлении заказа.',
+    orderPaymentDismiss: 'Закрыть',
     orderPlacedTitle: 'Заказ оформлен',
     orderTrackHint: 'Статус заказа',
     orderOpenTracking: 'Открыть отслеживание',
@@ -3183,16 +2343,11 @@ export const translations: Record<Language, Translations> = {
     orderYourCart: 'Ваша корзина',
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
+    orderAuthGoogle: 'Продолжить через Google',
     orderSendSmsCode: 'Отправить код',
     orderSmsCode: 'Код из SMS',
     orderVerifySms: 'Подтвердить и войти',
     orderSmsSentHint: 'Мы отправили код на ваш телефон. Введите его ниже.',
-    orderResendSmsCode: 'Отправить код повторно',
-    orderResendSmsIn: 'Повтор через {seconds}с',
-    orderResendSmsSent: 'Код отправлен. Если не пришёл, используйте повтор после таймера.',
-    orderOtpRateLimit: 'Слишком много попыток. Подождите перед новым запросом кода.',
-    orderOtpDeliveryFailed: 'Не удалось доставить SMS. Попробуйте ещё раз чуть позже.',
-    orderOtpInvalidOrExpired: 'Код неверный или истёк. Запросите новый код.',
     orderChangePhone: 'Другой номер',
     orderInvalidPhone: 'Укажите номер с кодом страны (например +994…).',
     orderAccountPhone: 'Телефон',
@@ -3200,14 +2355,6 @@ export const translations: Record<Language, Translations> = {
     orderMapPinHint: 'Перетащите метку или найдите адрес — доставка по положению метки.',
     orderMapLoading: 'Загрузка карты…',
     orderMapUnavailable: 'Карта недоступна. Введите адрес или используйте геолокацию.',
-    orderMapNoResults: 'Нет совпадений в Баку. Попробуйте другую улицу или ориентир.',
-    orderApartmentLabel: 'Квартира / номер',
-    orderApartmentPlaceholder: 'напр. 14A',
-    orderFloorLabel: 'Этаж',
-    orderFloorPlaceholder: 'напр. 3',
-    orderZonePillIn: 'Доставка в {zone} · ₼{fee}',
-    orderZonePillOut: 'Вне зоны доставки',
-    orderZonePillChecking: 'Проверка зоны доставки…',
     orderChooseFulfillmentTitle: 'Самовывоз или доставка?',
     orderSearchMenu: 'Поиск в меню…',
     orderVenueInfoTitle: 'Ресторан',
@@ -3218,241 +2365,8 @@ export const translations: Record<Language, Translations> = {
     orderSearchNoResults: 'Ничего не найдено.',
     orderDeliveryDisabledInSettings:
       'Доставка отключена в базе. Включите online_settings.delivery_enabled = true в Supabase или выберите самовывоз.',
-    orderCombosSection: 'Комбо',
-    orderComboCustomize: 'Настроить',
-    orderComboBadge: 'Комбо',
-    orderPhoneFormatHint: 'Формат Азербайджана: +994 и 9 цифр.',
-    orderDeliveryNotesLabel: 'Квартира / примечания для курьера',
-    orderDeliveryNotesPlaceholder: 'Квартира, этаж, код домофона или примечания',
-    orderUpsellTitle: 'Сделать «{name}» комбо?',
-    orderUpsellMakeItComboNamed: 'Сделать {name} комбо за +₼{price}?',
-    orderUpsellYes: 'Да, улучшить',
-    orderUpsellNo: 'Нет',
-    orderComboSavingsBadge: 'Экономия ₼{amount}',
-    comboBuilderHeader: 'Собрать комбо',
-    comboBuilderStepOf: 'Шаг {n} из {t}',
-    comboBuilderAddToCart: 'Добавить комбо в корзину',
-    comboBuilderNext: 'Далее',
-    comboBuilderPickOne: 'Выберите один вариант',
-
-    trackingPageTitle: 'Статус заказа',
-    trackingOrderLabel: 'Заказ',
-    trackingKitchenStatus: 'Статус кухни',
-    trackingPayment: 'Оплата',
-    trackingTotal: 'Итого',
-    trackingLoading: 'Загрузка…',
-    trackingNotFound: 'Заказ не найден',
-    trackingMissingToken: 'Нет ссылки отслеживания',
-    trackOnWolt: 'Отследить в Wolt',
-    trackStatusPending: 'Мы получили ваш заказ!',
-    trackStatusPreparing: 'Ваш заказ готовится',
-    trackStatusReady: 'Почти готово — назначаем курьера',
-    trackStatusDispatched: 'В пути!',
-    trackStatusCompleted: 'Доставлено — приятного аппетита!',
-    orderCancelledTitle: 'Заказ отменён',
-    orderCancelledReason: 'Причина: {reason}',
-    orderCancelledRefundNote:
-      'Возврат будет обработан. Вопросы: +994518962446',
-    orderCancelledGeneric: 'Заказ отменён. Свяжитесь с нами, если есть вопросы.',
-    trackingOrderAgain: 'Заказать снова',
-    trackingCancelledContact: 'Вопросы? Звоните +994518962446',
-    trackStageOrderPlaced: 'Заказ оформлен',
-    trackStagePreparing: 'Готовится',
-    trackStageReady: 'Готово',
-    trackStageReadyForPickup: 'Готов к выдаче',
-    trackStageOutForDelivery: 'В пути к вам',
-    trackStageDelivered: 'Доставлено',
-    trackStageCollected: 'Получен',
-    trackStageEtaMinutes: 'Около {min} мин',
-    trackStageArrivingAround: 'Ожидается около {time}',
-    trackEtaLabel: 'Прибытие',
-    trackTimelineTitle: 'Статус заказа',
-
-    combosScreenTitle: 'Комбо-предложения',
-    combosScreenDescription: 'Создавайте пакетные предложения для онлайн-меню.',
-    combosScreenGroupsHint:
-      'После создания комбо добавьте группы и позиции в Supabase (таблицы combo_groups / combo_group_items).',
-    combosName: 'Название комбо',
-    combosEmpty: 'Комбо пока нет — создайте выше.',
-    comboGroupsTitle: 'Группы',
-    comboGroupAdd: 'Добавить группу',
-    comboGroupRequired: 'Обязательно',
-    comboItemsTitle: 'Позиции',
-    comboItemAdd: 'Добавить позицию',
-    comboItemPriceAdjustment: 'Корректировка цены',
-    comboUpsellLink: 'Привязка upsell',
-    comboUpsellNone: 'Без комбо',
-    omActiveOrders: 'Активные заказы',
-    omPastOrders: 'Прошлые заказы',
-    omMenuEditor: 'Редактор меню',
-    omNewOrders: 'Новые заказы',
-    omScheduledOrders: 'Запланированные заказы',
-    omInProgress: 'В работе',
-    omReady: 'Готово',
-    omInDelivery: 'В доставке',
-    omAccept: 'Принять',
-    omMarkReady: 'Готово',
-    omPickedUp: 'Забрано',
-    omDelivered: 'Доставлено',
-    omSaveDispatch: 'Сохранить и отправить',
-    omPrepTime: 'Время готовки',
-    omReminderBefore: 'Напомнить за',
-    omToday: 'Сегодня',
-    omYesterday: 'Вчера',
-    omLast7Days: 'Последние 7 дней',
-    omThisMonth: 'Этот месяц',
-    omLastMonth: 'Прошлый месяц',
-    omProducts: 'Продукты',
-    omCombos: 'Комбо',
-    omKioskToggle: 'Киоск',
-    omOnlineToggle: 'Онлайн',
-    omActiveToggle: 'Активно',
-    omNoActiveOrders: 'Нет активных заказов',
-    omNoScheduledOrders: 'Нет запланированных заказов',
-    omNoPastOrders: 'Нет прошлых заказов за период',
-    omSourceKiosk: 'Киоск',
-    omSourceTakeaway: 'Онлайн · Самовывоз',
-    omSourceDelivery: 'Онлайн · Доставка',
-    omTitle: 'Менеджер заказов',
-    omReminderSet: 'Напоминание установлено',
-    omSelfDelivery: 'Своя доставка',
-    omWoltDrive: 'Wolt Drive',
-    omWoltDriveComingSoon: 'Скоро',
-    omConfirmSelfDispatch: 'Подтвердить — Своя доставка',
-    omDispatchedSelfDelivery: 'Отправлено — Своя доставка',
-    omNoLocationData: 'Нет данных о локации — назначьте вручную',
-    omDistanceAway: 'от кухни',
-    omRecommended: 'рекомендуется',
-    omRejectOrder: 'Отклонить заказ',
-    omRejectReasonItemUnavailable: 'Товар недоступен',
-    omRejectReasonTooBusy: 'Кухня перегружена',
-    omRejectReasonZoneIssue: 'Вне зоны доставки',
-    omRejectReasonCustomerRequest: 'По просьбе клиента',
-    omRejectReasonOther: 'Другая причина',
-    omRejectNotePlaceholder: 'Добавьте комментарий для клиента...',
-    omRejectConfirm: 'Подтвердить отказ',
-    omRejectCancel: 'Отмена',
-    omRejectSelectReason: 'Выберите причину...',
-
-    orderSupport: 'Поддержка заказов',
-    orderSupportDescription: 'Управляйте и поддерживайте все заказы клиентов',
-    orderSupportOpenOrderPage: 'Открыть страницу заказа',
-    orderSupportSearch: 'Поиск по №, телефону, имени...',
-    orderSupportOrdersFound: 'заказов найдено',
-    orderSupportNoOrders: 'Нет заказов по вашим фильтрам',
-    orderSupportFilter_all: 'Все',
-    orderSupportFilter_active: 'Активные',
-    orderSupportFilter_dispatched: 'Отправлены',
-    orderSupportFilter_completed: 'Завершены',
-    orderSupportFilter_cancelled: 'Отменены',
-    orderSupportSourceAll: 'Все источники',
-    orderSupportColTime: 'Время',
-    orderSupportColCustomer: 'Клиент',
-    orderSupportColItems: 'Позиции',
-    orderSupportColTotal: 'Итого',
-    orderSupportColStatus: 'Статус',
-    orderSupportDrawerComingSoon: 'Детали заказа появятся в следующем обновлении',
-
-    deliveryNav: 'Доставка',
-    deliveryRefresh: 'Обновить',
-    deliveryScreenTitle: 'Центр управления доставкой',
-    deliveryScreenDescription: 'Зоны, настройки кухни и онлайн-диспетчер — всё в одном месте.',
-    deliveryTabZones: 'Зоны',
-    deliveryTabSettings: 'Настройки',
-    deliveryTabDispatch: 'Диспетчер',
-
-    deliveryZonesTitle: 'Зоны доставки',
-    deliveryZonesDescription: 'Полигоны, определяющие где доступна доставка и сколько она стоит.',
-    deliveryZonesNew: 'Новая зона',
-    deliveryZonesEmptyTitle: 'Пока нет зон',
-    deliveryZonesEmptyHint: 'Создайте первую зону, чтобы включить доставку на сайте клиента.',
-    deliveryZonesColName: 'Название',
-    deliveryZonesColVertices: 'Точки',
-    deliveryZonesColFee: 'Стоимость',
-    deliveryZonesColMinOrder: 'Мин',
-    deliveryZonesColActive: 'Вкл',
-    deliveryZonesColActions: '',
-
-    deliveryZoneNewTitle: 'Новая зона доставки',
-    deliveryZoneEditTitle: 'Редактировать зону доставки',
-    deliveryZoneFieldName: 'Название зоны',
-    deliveryZoneFieldFee: 'Стоимость доставки',
-    deliveryZoneFieldMinOrder: 'Мин. сумма',
-    deliveryZoneFieldFreeThreshold: 'Бесплатно от',
-    deliveryZoneFieldSortOrder: 'Порядок',
-    deliveryZoneFieldActive: 'Активна',
-    deliveryZoneFieldPolygon: 'Зона доставки',
-    deliveryZonePolygonHint: 'Используйте инструмент полигона на карте, затем перетаскивайте точки для точной настройки.',
-    deliveryZoneClearShape: 'Очистить контур',
-    deliveryZonePolygonRequired: 'Перед сохранением нарисуйте полигон зоны доставки.',
-    deliveryZoneOpenGeoJsonIo: 'Открыть geojson.io',
-    deliveryZoneExport: 'Скопировать GeoJSON',
-    deliveryZoneCopied: 'Скопировано',
-    deliveryZonePreview: 'Предпросмотр',
-    deliveryZonePreviewLoading: 'Загрузка карты…',
-    deliveryZonePreviewUnavailable: 'Задайте VITE_GOOGLE_MAPS_API_KEY для предпросмотра.',
-    deliveryZonePreviewEmpty: 'Вставьте полигон выше, чтобы увидеть его на карте.',
-    deliveryZoneErrorEmpty: 'Полигон пуст.',
-    deliveryZoneErrorJson: 'Полигон не является валидным JSON.',
-    deliveryZoneErrorPolygon: 'В GeoJSON нет геометрии Polygon.',
-    deliveryZoneErrorPoints: 'В полигоне есть некорректная точка lng/lat.',
-    deliveryZoneErrorTooFew: 'Полигон должен содержать минимум 3 точки.',
-    deliveryZoneAutoClosed: 'Кольцо закрыто автоматически.',
-    deliveryZoneVertices: 'точек',
-    deliveryZoneSave: 'Сохранить зону',
-    deliveryZoneSaving: 'Сохранение…',
-    deliveryZoneSaveError: 'Не удалось сохранить зону',
-    deliveryZoneDeleteConfirm: 'Удалить зону «{name}»? Действие необратимо.',
-    deliveryZoneDeleteError: 'Не удалось удалить зону',
-    deliveryZoneToggleError: 'Не удалось переключить зону',
-
-    deliverySettingsTitle: 'Настройки доставки',
-    deliverySettingsDescription: 'Глобальные правила для всех онлайн-заказов.',
-    deliverySettingsKitchenOpen: 'Кухня открыта',
-    deliverySettingsKitchenOpenHint: 'Когда выключено, сайт не принимает новые заказы.',
-    deliverySettingsDeliveryEnabled: 'Доставка включена',
-    deliverySettingsTakeawayEnabled: 'Самовывоз включён',
-    deliverySettingsGlobalMinOrder: 'Глобальная минимальная сумма',
-    deliverySettingsDefaultPrep: 'Время приготовления (мин)',
-    deliverySettingsDefaultPrepHint: 'Используется для оценки времени готовности новых заказов.',
-    deliverySettingsGlobalFreeThreshold: 'Бесплатная доставка от',
-    deliverySettingsDispatchMode: 'Режим диспетчера',
-    deliverySettingsDispatchAuto: 'Авто — вызов Wolt при каждой доставке',
-    deliverySettingsDispatchManual: 'Ручной — диспетчер из кокпита',
-    deliverySettingsHours: 'Часы работы',
-    deliverySettingsHoursHint: 'Используется на сайте клиента для отображения расписания.',
-    deliverySettingsClosed: 'Закрыто',
-    deliverySettingsOpenAt: 'Открытие',
-    deliverySettingsCloseAt: 'Закрытие',
-    deliverySettingsSave: 'Сохранить настройки',
-    deliverySettingsSaving: 'Сохранение…',
-    deliverySettingsSaved: 'Настройки сохранены',
-    deliverySettingsSaveError: 'Не удалось сохранить настройки',
-    deliverySettingsDayMon: 'Пн',
-    deliverySettingsDayTue: 'Вт',
-    deliverySettingsDayWed: 'Ср',
-    deliverySettingsDayThu: 'Чт',
-    deliverySettingsDayFri: 'Пт',
-    deliverySettingsDaySat: 'Сб',
-    deliverySettingsDaySun: 'Вс',
-
-    deliveryDispatchTitle: 'Онлайн-диспетчер',
-    deliveryDispatchDescription: 'Заказы на доставку за последние 24 часа, в реальном времени.',
-    deliveryDispatchEmpty: 'Нет активных заказов на доставку.',
-    deliveryDispatchColOrder: 'Заказ',
-    deliveryDispatchColCustomer: 'Клиент',
-    deliveryDispatchColAddress: 'Адрес',
-    deliveryDispatchColStatus: 'Статус',
-    deliveryDispatchColActions: '',
-    deliveryDispatchNoWolt: 'без wolt',
-    deliveryDispatchManuallyDispatched: 'вручную',
-    deliveryDispatchTrackOpen: 'Открыть отслеживание',
-    deliveryDispatchTrackCopy: 'Скопировать ссылку',
-    deliveryDispatchTrackCopied: 'Скопировано',
-    deliveryDispatchActionDispatch: 'Отправить',
-    deliveryDispatchActionMarkManual: 'Вручную',
-    deliveryDispatchActionCancel: 'Отмена',
-    deliveryDispatchInvokeError: 'Не удалось выполнить действие',
-    deliveryDispatchInvokeOk: 'Готово',
+    orderCartEmptyTitle: 'Ваша корзина пуста',
+    orderStepContact: 'Контактные данные',
+    orderPlacedSubtitle: 'Уже разогреваем вок. Следите за заказом ниже.',
   },
 };

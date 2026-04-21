@@ -263,7 +263,7 @@ Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
 | **user-management** | `GET` list users, `POST` create, `DELETE` by id — requires authenticated JWT; **admin** check (`app_metadata.role` / `users.role`) |
 | **online-order-create** | `POST` JSON cart — validates prices/modifiers (per-group `min_select` / `max_select`), zones; inserts `sales` + line items (including combo selections and combo component modifiers) |
 | **epoint-create-payment** | Prepares `online_payments` row + placeholder checkout URL (configure real E-point per docs) |
-| **epoint-webhook** | Updates `online_payments` + `sales.payment_status` when `EPOINT_WEBHOOK_SECRET` matches signature |
+| **epoint-webhook** | Updates `online_payments` + `sales.payment_status`; verifies Epoint `data`+`signature` (SHA1) with `EPOINT_PRIVATE_KEY`, or optional legacy HMAC JSON with `EPOINT_WEBHOOK_SECRET` |
 | **wolt-drive-check** | Zone / coordinate helper (optional Wolt ping when token set) |
 | **wolt-drive-create** | Creates `delivery_orders` stub or real API integration |
 | **wolt-drive-cancel** | Cancels delivery row |
