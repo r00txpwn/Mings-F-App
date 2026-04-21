@@ -8,6 +8,7 @@ import { MenuCategoryManager } from '../components/MenuCategoryManager';
 import { MenuProductForm } from '../components/MenuProductForm';
 import { PageHeader } from '../components/cockpit';
 import { IconActionButton } from '../components/ui/IconActionButton';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 export function MenuScreen() {
   const { t } = useLanguage();
@@ -20,6 +21,7 @@ export function MenuScreen() {
   const [assignProduct, setAssignProduct] = useState<Product | null>(null);
   const [showModifierLibrary, setShowModifierLibrary] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [confirmDeleteProductId, setConfirmDeleteProductId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -96,7 +98,6 @@ export function MenuScreen() {
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!window.confirm(t.deleteProductConfirm + '?')) return;
     await supabase.from('products').delete().eq('id', productId);
     loadData();
   };
@@ -113,6 +114,7 @@ export function MenuScreen() {
         image_url: product.image_url,
         kiosk_visible: false,
         online_visible: false,
+        is_halal: product.is_halal ?? false,
         display_order: (product.display_order || 0) + 1,
         unit: product.unit,
         quantity: 0,
@@ -288,6 +290,11 @@ export function MenuScreen() {
                             {t.onlineVisible} — off
                           </span>
                         )}
+                        {product.is_halal ? (
+                          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-200">
+                            {t.halal}
+                          </span>
+                        ) : null}
                       </div>
                       {product.description && (
                         <p className="mb-1 truncate text-sm text-slate-500 dark:text-slate-400">{product.description}</p>
@@ -341,7 +348,7 @@ export function MenuScreen() {
                         title={t.duplicateProduct}
                       />
                       <IconActionButton
-                        onClick={() => handleDeleteProduct(product.id)}
+                        onClick={() => setConfirmDeleteProductId(product.id)}
                         icon={<Trash2 className="h-4 w-4" />}
                         tone="danger"
                         label={t.delete}
@@ -383,6 +390,19 @@ export function MenuScreen() {
           onClose={() => { setShowCategoryManager(false); loadData(); }}
         />
       )}
+      <ConfirmDialog
+        open={confirmDeleteProductId !== null}
+        title={t.delete}
+        message={`${t.deleteProductConfirm}?`}
+        confirmLabel={t.delete}
+        cancelLabel={t.cancel}
+        onCancel={() => setConfirmDeleteProductId(null)}
+        onConfirm={() => {
+          if (!confirmDeleteProductId) return;
+          void handleDeleteProduct(confirmDeleteProductId);
+          setConfirmDeleteProductId(null);
+        }}
+      />
     </div>
   );
 }

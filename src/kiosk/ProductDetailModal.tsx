@@ -11,13 +11,15 @@ interface ProductDetailModalProps {
   product: Product;
   onAddToCart: (product: Product, selectedModifiers: SelectedModifiers) => void;
   onClose: () => void;
+  theme?: 'kiosk' | 'order';
 }
 
-export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDetailModalProps) {
+export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kiosk' }: ProductDetailModalProps) {
   const { t } = useLanguage();
   const [selections, setSelections] = useState<SelectedModifiers>({});
   const [quantity, setQuantity] = useState(1);
   const [closing, setClosing] = useState(false);
+  const isOrderTheme = theme === 'order';
 
   const groups = useMemo(() => {
     return (product.modifier_groups || [])
@@ -138,21 +140,28 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col transition-opacity duration-200 font-montserrat ${closing ? 'opacity-0' : 'opacity-100'}`}
+      className={`fixed inset-0 z-50 flex flex-col transition-opacity duration-200 ${isOrderTheme ? '' : 'font-montserrat'} ${closing ? 'opacity-0' : 'opacity-100'}`}
     >
       {/* Overlay */}
       <div
-        className="absolute inset-0"
-        style={{ backgroundColor: 'rgba(31,31,31,0.92)' }}
+        className="absolute inset-0 backdrop-blur-[2px]"
+        style={{
+          background: isOrderTheme
+            ? 'radial-gradient(1200px 520px at 50% -20%, rgba(225, 29, 72, 0.18), transparent 58%), rgba(11, 11, 13, 0.76)'
+            : 'radial-gradient(900px 420px at 8% -8%, rgba(225, 29, 72, 0.22), transparent 60%), rgba(11, 11, 13, 0.84)',
+        }}
         onClick={handleClose}
       />
 
       {/* Modal panel */}
-      <div
-        className={`relative flex flex-col w-full h-full sm:max-w-lg sm:mx-auto sm:my-4 sm:h-auto sm:max-h-[92vh] transition-transform duration-200 ${closing ? 'translate-y-8' : 'translate-y-0'}`}
+            <div
+        className={`relative mx-2 my-2 flex h-[calc(100vh-1rem)] w-auto flex-col overflow-hidden sm:mx-auto sm:my-4 sm:h-auto sm:w-full sm:max-w-lg sm:max-h-[92vh] transition-transform duration-200 ${isOrderTheme ? 'ming-card-raised border border-white/[0.08]' : ''} ${closing ? 'translate-y-8' : 'translate-y-0'}`}
+              role="dialog"
+              aria-modal="true"
+              aria-label={product.name}
         style={{
-          backgroundColor: 'var(--kiosk-card)',
-          borderRadius: '22px',
+          backgroundColor: isOrderTheme ? '#1f1f24' : 'var(--kiosk-card)',
+          borderRadius: isOrderTheme ? '20px' : '22px',
         }}
       >
         {/* Product image */}
@@ -176,16 +185,19 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
           <button
             onClick={handleClose}
             className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-            style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: 'var(--kiosk-white)' }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.7)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.5)')}
+            style={{
+              backgroundColor: isOrderTheme ? 'rgba(11,11,13,0.62)' : 'rgba(0,0,0,0.5)',
+              color: 'var(--kiosk-white)',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = isOrderTheme ? 'rgba(11,11,13,0.82)' : 'rgba(0,0,0,0.7)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = isOrderTheme ? 'rgba(11,11,13,0.62)' : 'rgba(0,0,0,0.5)')}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="ming-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {/* Product info */}
           <div className="p-5">
             <h2
@@ -194,6 +206,11 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
             >
               {product.name}
             </h2>
+            {product.is_halal ? (
+              <span className="mb-2 inline-flex rounded-full border border-emerald-500/45 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
+                {t.halal}
+              </span>
+            ) : null}
             {product.description && (
               <p className="text-sm mb-3" style={{ color: 'var(--kiosk-smoke)' }}>{product.description}</p>
             )}
@@ -262,7 +279,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
                                   className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0"
                                   style={{ backgroundColor: '#383838' }}
                                 >
-                                  <img src={option.image_url} alt="" className="w-full h-full object-cover" />
+                                  <img src={option.image_url} alt={option.name} className="w-full h-full object-cover" />
                                 </div>
                               )}
 
@@ -349,7 +366,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
                                 className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0"
                                 style={{ backgroundColor: '#383838' }}
                               >
-                                <img src={option.image_url} alt="" className="w-full h-full object-cover" />
+                                <img src={option.image_url} alt={option.name} className="w-full h-full object-cover" />
                               </div>
                             )}
 
@@ -382,11 +399,12 @@ export function ProductDetailModal({ product, onAddToCart, onClose }: ProductDet
 
         {/* Footer: qty stepper + add button */}
         <div
-          className="flex-shrink-0 p-4"
+          className="sticky bottom-0 z-10 flex-shrink-0 p-4"
           style={{
             borderTop: '1px solid var(--kiosk-border)',
             borderRadius: '0 0 22px 22px',
-            backgroundColor: 'var(--kiosk-card)',
+            backgroundColor: 'rgba(42, 42, 43, 0.97)',
+            backdropFilter: 'blur(6px)',
           }}
         >
           <div className="flex items-center gap-4">

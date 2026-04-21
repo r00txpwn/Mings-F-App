@@ -187,7 +187,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid rgb(139 92 246 / 0.9);
+    outline: 2px solid rgba(225, 29, 72, 0.95);
     outline-offset: 2px;
   }
 }
@@ -476,6 +476,32 @@
     height: 48px;
     pointer-events: none;
     background: linear-gradient(to bottom, transparent, #0b0b0d);
+  }
+
+  /* Custom scrollbar for /order surfaces */
+  .ming-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(225, 29, 72, 0.78) rgba(255, 255, 255, 0.06);
+  }
+
+  .ming-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .ming-scroll::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+  }
+
+  .ming-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(225, 29, 72, 0.95), rgba(190, 24, 93, 0.92));
+    border-radius: 999px;
+    border: 1px solid rgba(11, 11, 13, 0.75);
+  }
+
+  .ming-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(225, 29, 72, 1), rgba(190, 24, 93, 0.98));
   }
 
   @keyframes mingSlideUp {

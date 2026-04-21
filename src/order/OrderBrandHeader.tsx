@@ -16,7 +16,7 @@ export function OrderBrandHeader({ tagline, heroImageUrl, title }: OrderBrandHea
         <div className="relative h-36 w-full sm:h-44 lg:h-52">
           <img
             src={heroImageUrl}
-            alt=""
+            alt={title}
             loading="lazy"
             className="h-full w-full object-cover"
           />

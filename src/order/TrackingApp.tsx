@@ -4,7 +4,12 @@ import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
-import { estimateDeliveryMinutes, formatEta } from '../order-manager/deliveryUtils';
+import {
+  estimateDeliveryMinutes,
+  formatEta,
+  getKitchenLocationFromSettings,
+  type KitchenLocation,
+} from '../order-manager/deliveryUtils';
 
 interface TrackingPayload {
   sale: Record<string, unknown> | null;
@@ -26,13 +31,20 @@ function TrackingContent() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<TrackingPayload | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [kitchenLocation, setKitchenLocation] = useState<KitchenLocation>(() =>
+    getKitchenLocationFromSettings(null),
+  );
   const token = useMemo(() => new URLSearchParams(window.location.search).get('token'), []);
 
   const load = useCallback(async () => {
     if (!token) return;
-    const { data: row, error } = await supabase.rpc('get_sale_tracking_public', {
-      p_token: token,
-    });
+    const [{ data: row, error }, { data: settingsData }] = await Promise.all([
+      supabase.rpc('get_sale_tracking_public', {
+        p_token: token,
+      }),
+      supabase.from('online_settings').select('kitchen_lat, kitchen_lng').limit(1).maybeSingle(),
+    ]);
+    setKitchenLocation(getKitchenLocationFromSettings(settingsData));
     if (error) setErr(error.message);
     else setData(row as TrackingPayload);
     setLoading(false);
@@ -168,6 +180,8 @@ function TrackingContent() {
 
   const isDelivery = String(sale.source ?? '') === 'online_delivery';
   const createdAt = sale.created_at as string | null;
+  const scheduledFor = sale.scheduled_for as string | null;
+  const isScheduled = Boolean((sale.is_scheduled as boolean | null) ?? scheduledFor);
   const prepStartedAt = sale.prep_started_at as string | null;
   const readyAt = sale.ready_at as string | null;
   const dispatchedAt = sale.dispatched_at as string | null;
@@ -175,7 +189,7 @@ function TrackingContent() {
   const deliveryLat = sale.delivery_lat as number | null;
   const deliveryLng = sale.delivery_lng as number | null;
 
-  const estimatedMinutes = isDelivery ? estimateDeliveryMinutes(deliveryLat, deliveryLng) : null;
+  const estimatedMinutes = isDelivery ? estimateDeliveryMinutes(deliveryLat, deliveryLng, kitchenLocation) : null;
 
   const etaTime = dispatchedAt && estimatedMinutes ? formatEta(dispatchedAt, estimatedMinutes) : null;
 
@@ -260,6 +274,21 @@ function TrackingContent() {
           <p className="mt-1 font-mono text-2xl font-bold text-cockpit-400">#{display}</p>
 
           <p className="mt-3 text-lg font-semibold text-white">{friendly}</p>
+          {isScheduled && scheduledFor ? (
+            <p className="mt-2 text-sm text-cockpit-300">
+              {t.trackScheduledForLabel}{' '}
+              <span className="font-semibold">
+                {new Date(scheduledFor).toLocaleString('az-AZ', {
+                  weekday: 'short',
+                  day: '2-digit',
+                  month: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false,
+                })}
+              </span>
+            </p>
+          ) : null}
 
           {status === 'dispatched' && etaTime ? (
             <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-cockpit-500/30 bg-cockpit-500/10 px-3 py-1.5">

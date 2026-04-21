@@ -50,6 +50,7 @@ export function DeliveryScreen() {
 
   const zonesT = useMemo<ZonesTabTranslations>(
     () => ({
+      deleteLabel: t.delete,
       title: t.deliveryZonesTitle,
       description: t.deliveryZonesDescription,
       newButton: t.deliveryZonesNew,
@@ -101,6 +102,11 @@ export function DeliveryScreen() {
       defaultPrep: t.deliverySettingsDefaultPrep,
       defaultPrepHint: t.deliverySettingsDefaultPrepHint,
       globalFreeThreshold: t.deliverySettingsGlobalFreeThreshold,
+      kitchenLocationTitle: t.deliverySettingsKitchenLocationTitle,
+      kitchenLocationHint: t.deliverySettingsKitchenLocationHint,
+      kitchenLatitude: t.deliverySettingsKitchenLatitude,
+      kitchenLongitude: t.deliverySettingsKitchenLongitude,
+      kitchenLocationInvalid: t.deliverySettingsKitchenLocationInvalid,
       dispatchMode: t.deliverySettingsDispatchMode,
       dispatchAuto: t.deliverySettingsDispatchAuto,
       dispatchManual: t.deliverySettingsDispatchManual,

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Pencil, ChevronDown, ChevronUp, Loader2, GripVertical, Check, Package } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, ModifierGroup, ModifierOption } from '../lib/supabase';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 interface ModifierLibraryProps {
   onClose: () => void;
@@ -37,6 +38,7 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
   const [optionForm, setOptionForm] = useState<OptionForm>(emptyOptionForm);
   const [showOptionFormFor, setShowOptionFormFor] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [confirmDeleteGroupId, setConfirmDeleteGroupId] = useState<string | null>(null);
 
   useEffect(() => { loadGroups(); }, []);
 
@@ -98,7 +100,6 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
   };
 
   const handleDeleteGroup = async (groupId: string) => {
-    if (!window.confirm(t.confirmDelete)) return;
     await supabase.from('modifier_groups').delete().eq('id', groupId);
     loadGroups();
   };
@@ -261,7 +262,7 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteGroup(group.id)}
+                            onClick={() => setConfirmDeleteGroupId(group.id)}
                             className="p-1.5 text-red-400 hover:text-red-600 rounded"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -496,6 +497,19 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmDeleteGroupId !== null}
+        title={t.delete}
+        message={t.confirmDelete}
+        confirmLabel={t.delete}
+        cancelLabel={t.cancel}
+        onCancel={() => setConfirmDeleteGroupId(null)}
+        onConfirm={() => {
+          if (!confirmDeleteGroupId) return;
+          void handleDeleteGroup(confirmDeleteGroupId);
+          setConfirmDeleteGroupId(null);
+        }}
+      />
     </div>
   );
 }

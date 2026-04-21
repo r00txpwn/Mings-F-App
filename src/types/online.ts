@@ -53,6 +53,16 @@ export interface OnlineSettingsRow {
   free_delivery_threshold?: number | null;
   /** Auto = call Wolt on order; manual = staff dispatches from the cockpit. */
   dispatch_mode?: DispatchMode | null;
+  /** Slot granularity for scheduled orders. */
+  scheduled_slot_minutes?: number | null;
+  /** Minimum lead time from now for scheduled orders. */
+  scheduled_lead_minutes?: number | null;
+  /** Kitchen/store anchor latitude used for distance + ETA helpers. */
+  kitchen_lat?: number | null;
+  /** Kitchen/store anchor longitude used for distance + ETA helpers. */
+  kitchen_lng?: number | null;
+  loyalty_enabled?: boolean | null;
+  loyalty_reward_every_orders?: number | null;
 }
 
 export interface CustomerProfileRow {

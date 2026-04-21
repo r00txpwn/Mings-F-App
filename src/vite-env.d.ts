@@ -23,3 +23,33 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+declare module '@vercel/analytics/react' {
+  export interface AnalyticsProps {
+    beforeSend?: (event: unknown) => unknown;
+    debug?: boolean;
+    mode?: 'auto' | 'development' | 'production';
+    scriptSrc?: string;
+    dsn?: string;
+    eventEndpoint?: string;
+    viewEndpoint?: string;
+    sessionEndpoint?: string;
+    endpoint?: string;
+  }
+
+  export const Analytics: (
+    props: AnalyticsProps & {
+      framework?: string;
+      route?: string | null;
+      path?: string | null;
+      basePath?: string;
+      configString?: string;
+    }
+  ) => null;
+
+  export function track(
+    name: string,
+    properties?: Record<string, string | number | boolean | null | undefined>,
+    options?: { flags?: unknown }
+  ): void;
+}

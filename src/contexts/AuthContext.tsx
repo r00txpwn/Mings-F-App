@@ -15,6 +15,10 @@ interface AuthContextType {
   sendPhoneOtp: (phone: string) => Promise<{ error: AuthError | null | Error }>;
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: AuthError | null | Error }>;
   signInWithGoogle: (redirectPath?: string) => Promise<{ error: AuthError | null | Error }>;
+  forgotPassword: (
+    email: string,
+    redirectPath?: string
+  ) => Promise<{ error: AuthError | null | Error }>;
   signOut: () => Promise<void>;
   /** Re-check whether current user is present in `public.users`. */
   refetchIsStaff: () => Promise<void>;
@@ -92,6 +96,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isLikelyE164(normalized)) {
       return { error: new Error('Invalid phone number. Use country code, e.g. +994…') };
     }
+    const { data: rateData, error: rateErr } = await supabase.rpc('rpc_request_phone_otp', {
+      phone: normalized,
+    });
+    if (rateErr) return { error: rateErr };
+    const first = Array.isArray(rateData) ? rateData[0] : null;
+    if (first && first.allowed === false) {
+      return {
+        error: new Error(
+          `Please wait ${Number(first.retry_after_seconds ?? 45)}s before requesting another code.`
+        ),
+      };
+    }
     const { error } = await supabase.auth.signInWithOtp({
       phone: normalized,
       options: {
@@ -129,6 +145,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  const forgotPassword = async (email: string, redirectPath?: string) => {
+    const normalized = email.trim().toLowerCase();
+    if (!normalized) return { error: new Error('Enter a valid email address') };
+    const origin = window.location.origin;
+    const targetPath = redirectPath?.trim() ? redirectPath.trim() : '/order';
+    const redirectTo = `${origin}${targetPath.startsWith('/') ? targetPath : `/${targetPath}`}`;
+    const { error } = await supabase.auth.resetPasswordForEmail(normalized, {
+      redirectTo,
+    });
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -156,6 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sendPhoneOtp,
         verifyPhoneOtp,
         signInWithGoogle,
+        forgotPassword,
         signOut,
         refetchIsStaff,
       }}

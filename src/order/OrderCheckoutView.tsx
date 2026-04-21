@@ -1,6 +1,14 @@
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, CreditCard, Loader2, MapPin, Navigation, Wallet } from 'lucide-react';
 import type { CustomerAddressRow, DeliveryZoneRow, OnlineFulfillmentType, OnlinePaymentMethod } from '../types/online';
 import { OrderAddressMap } from './OrderAddressMap';
+
+function toLocalDayKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 interface OrderCheckoutViewProps {
   fulfillment: OnlineFulfillmentType;
@@ -12,6 +20,8 @@ interface OrderCheckoutViewProps {
   customerPhone: string;
   customerName: string;
   onCustomerPhoneChange: (v: string) => void;
+  customerEmail: string;
+  onCustomerEmailChange: (v: string) => void;
   onCustomerNameChange: (v: string) => void;
 
   userLoggedIn: boolean;
@@ -34,6 +44,24 @@ interface OrderCheckoutViewProps {
 
   paymentMethod: OnlinePaymentMethod;
   onPaymentMethodChange: (m: OnlinePaymentMethod) => void;
+  saveCardForFuture: boolean;
+  onSaveCardForFutureChange: (v: boolean) => void;
+  payWithWallet: boolean;
+  onPayWithWalletChange: (v: boolean) => void;
+  savedCardsCount: number;
+  isScheduled: boolean;
+  scheduledFor: string | null;
+  availableScheduleSlots: string[];
+  onScheduledChange: (v: boolean) => void;
+  onScheduledForChange: (iso: string | null) => void;
+  promoCode: string;
+  onPromoCodeChange: (v: string) => void;
+  tipAmount: number;
+  onTipAmountChange: (v: number) => void;
+  orderNotes: string;
+  onOrderNotesChange: (v: string) => void;
+  consentAccepted: boolean;
+  onConsentAcceptedChange: (v: boolean) => void;
 
   cartTotal: number;
   deliveryFee: number;
@@ -54,6 +82,7 @@ export interface CheckoutLabels {
   checkout: string;
   contact: string;
   phone: string;
+  email: string;
   nameOptional: string;
   pickupOrDelivery: string;
   takeaway: string;
@@ -71,6 +100,9 @@ export interface CheckoutLabels {
   payCod: string;
   payCash: string;
   payEpoint: string;
+  payCardWithWallet: string;
+  saveCardForFuture: string;
+  savedCardsAvailable: string;
   placeOrder: string;
   takeawayDisabled: string;
   onlineDisabled: string;
@@ -81,6 +113,22 @@ export interface CheckoutLabels {
   mapLoading: string;
   mapUnavailable: string;
   authRequired: string;
+  scheduleNow: string;
+  scheduleLater: string;
+  scheduleFor: string;
+  scheduleDay: string;
+  scheduleTime: string;
+  today: string;
+  tomorrow: string;
+  scheduleNoSlots: string;
+  promoCode: string;
+  tip: string;
+  orderNotes: string;
+  consentLabel: string;
+  terms: string;
+  privacy: string;
+  refundPolicy: string;
+  retry: string;
 }
 
 export function OrderCheckoutView({
@@ -90,6 +138,8 @@ export function OrderCheckoutView({
   onFulfillmentChange,
   serverAllowsDelivery,
   customerPhone,
+  customerEmail,
+  onCustomerEmailChange,
   customerName,
   onCustomerPhoneChange,
   onCustomerNameChange,
@@ -110,6 +160,24 @@ export function OrderCheckoutView({
   zoneMatch,
   paymentMethod,
   onPaymentMethodChange,
+  saveCardForFuture,
+  onSaveCardForFutureChange,
+  payWithWallet,
+  onPayWithWalletChange,
+  savedCardsCount,
+  isScheduled,
+  scheduledFor,
+  availableScheduleSlots,
+  onScheduledChange,
+  onScheduledForChange,
+  promoCode,
+  onPromoCodeChange,
+  tipAmount,
+  onTipAmountChange,
+  orderNotes,
+  onOrderNotesChange,
+  consentAccepted,
+  onConsentAcceptedChange,
   cartTotal,
   deliveryFee,
   grandTotal,
@@ -120,6 +188,83 @@ export function OrderCheckoutView({
   onBack,
   labels,
 }: OrderCheckoutViewProps) {
+  const [selectedScheduleDay, setSelectedScheduleDay] = useState<string>('');
+  const contactStep = 3;
+  const addressStep = 4;
+  const paymentStep = fulfillment === 'delivery' ? 5 : 4;
+
+  const scheduleDays = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const byDay = new Map<
+      string,
+      { dayIso: string; label: string; slots: Array<{ iso: string; label: string }> }
+    >();
+
+    for (const slot of availableScheduleSlots) {
+      const dt = new Date(slot);
+      if (Number.isNaN(dt.getTime())) continue;
+      const dayStart = new Date(dt);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayIso = toLocalDayKey(dayStart);
+      const slotLabel = dt.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      if (!byDay.has(dayIso)) {
+        const isToday = dayStart.getTime() === today.getTime();
+        const isTomorrow = dayStart.getTime() === tomorrow.getTime();
+        const baseLabel = isToday
+          ? labels.today
+          : isTomorrow
+            ? labels.tomorrow
+            : dt.toLocaleDateString(undefined, {
+                weekday: 'short',
+                day: '2-digit',
+                month: 'short',
+              });
+        byDay.set(dayIso, { dayIso, label: baseLabel, slots: [] });
+      }
+      byDay.get(dayIso)?.slots.push({ iso: slot, label: slotLabel });
+    }
+    return Array.from(byDay.values());
+  }, [availableScheduleSlots, labels.today, labels.tomorrow]);
+
+  const selectedDaySlots = useMemo(() => {
+    const day = scheduleDays.find((entry) => entry.dayIso === selectedScheduleDay);
+    return day?.slots ?? [];
+  }, [scheduleDays, selectedScheduleDay]);
+
+  useEffect(() => {
+    if (!isScheduled) return;
+    if (scheduleDays.length === 0) {
+      if (selectedScheduleDay !== '') setSelectedScheduleDay('');
+      if (scheduledFor) onScheduledForChange(null);
+      return;
+    }
+
+    if (scheduledFor) {
+      const parsed = new Date(scheduledFor);
+      if (!Number.isNaN(parsed.getTime())) {
+        const dayIso = toLocalDayKey(parsed);
+        const dayExists = scheduleDays.some((entry) => entry.dayIso === dayIso);
+        if (dayExists) {
+          if (selectedScheduleDay !== dayIso) setSelectedScheduleDay(dayIso);
+          return;
+        }
+      }
+    }
+
+    const fallbackDay = scheduleDays[0];
+    if (selectedScheduleDay !== fallbackDay.dayIso) setSelectedScheduleDay(fallbackDay.dayIso);
+    if (!scheduledFor || !fallbackDay.slots.some((slot) => slot.iso === scheduledFor)) {
+      onScheduledForChange(fallbackDay.slots[0]?.iso ?? null);
+    }
+  }, [isScheduled, scheduleDays, scheduledFor, selectedScheduleDay, onScheduledForChange]);
+
   const StepHeading = ({ n, title, optional }: { n: number; title: string; optional?: boolean }) => (
     <div className="mb-3 flex items-center gap-3">
       <span className="ming-display inline-flex h-7 w-7 items-center justify-center rounded-full bg-ming-red text-[13px] text-white shadow-ming">
@@ -237,9 +382,92 @@ export function OrderCheckoutView({
             ) : null}
           </section>
 
+          <section className="ming-card p-5">
+            <StepHeading n={2} title={labels.scheduleFor} />
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => onScheduledChange(false)}
+                  className={`rounded-xl border p-3 text-left text-[13px] font-semibold transition-colors ${
+                    !isScheduled
+                      ? 'border-ming-red bg-ming-red/10 text-ming-bone'
+                      : 'border-white/10 bg-white/[0.02] text-ming-ash'
+                  }`}
+                >
+                  {labels.scheduleNow}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onScheduledChange(true)}
+                  className={`rounded-xl border p-3 text-left text-[13px] font-semibold transition-colors ${
+                    isScheduled
+                      ? 'border-ming-red bg-ming-red/10 text-ming-bone'
+                      : 'border-white/10 bg-white/[0.02] text-ming-ash'
+                  }`}
+                >
+                  {labels.scheduleLater}
+                </button>
+              </div>
+              {isScheduled ? (
+                scheduleDays.length > 0 ? (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ming-ash">
+                        {labels.scheduleDay}
+                      </p>
+                      <div className="ming-scroll flex gap-2 overflow-x-auto pb-1">
+                        {scheduleDays.map((day) => (
+                          <button
+                            key={day.dayIso}
+                            type="button"
+                            onClick={() => {
+                              setSelectedScheduleDay(day.dayIso);
+                              onScheduledForChange(day.slots[0]?.iso ?? null);
+                            }}
+                            className={`shrink-0 rounded-xl border px-3 py-2 text-[13px] font-semibold transition-colors ${
+                              selectedScheduleDay === day.dayIso
+                                ? 'border-ming-red bg-ming-red/10 text-ming-bone'
+                                : 'border-white/10 bg-white/[0.02] text-ming-ash hover:border-white/20 hover:text-ming-bone'
+                            }`}
+                          >
+                            {day.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ming-ash">
+                        {labels.scheduleTime}
+                      </p>
+                      <div className="ming-scroll flex gap-2 overflow-x-auto pb-1">
+                        {selectedDaySlots.map((slot) => (
+                          <button
+                            key={slot.iso}
+                            type="button"
+                            onClick={() => onScheduledForChange(slot.iso)}
+                            className={`shrink-0 rounded-xl border px-3 py-2 text-[13px] font-semibold transition-colors ${
+                              scheduledFor === slot.iso
+                                ? 'border-ming-red bg-ming-red/10 text-ming-bone'
+                                : 'border-white/10 bg-white/[0.02] text-ming-ash hover:border-white/20 hover:text-ming-bone'
+                            }`}
+                          >
+                            {slot.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-ming-gold">{labels.scheduleNoSlots}</p>
+                )
+              ) : null}
+            </div>
+          </section>
+
           {/* Step 2 — contact */}
           <section className="ming-card p-5">
-            <StepHeading n={2} title={labels.contact} />
+            <StepHeading n={contactStep} title={labels.contact} />
             <div className="space-y-3">
               <div>
                 <label className="ming-label mb-1.5 block" htmlFor="ming-phone">
@@ -267,32 +495,57 @@ export function OrderCheckoutView({
                   autoComplete="name"
                 />
               </div>
+              <div>
+                <label className="ming-label mb-1.5 block" htmlFor="ming-email">
+                  {labels.email}
+                </label>
+                <input
+                  id="ming-email"
+                  className="ming-input"
+                  value={customerEmail}
+                  onChange={(e) => onCustomerEmailChange(e.target.value)}
+                  autoComplete="email"
+                  inputMode="email"
+                />
+              </div>
             </div>
           </section>
 
           {/* Step 3 — address (only delivery) */}
           {fulfillment === 'delivery' ? (
             <section className="ming-card p-5">
-              <StepHeading n={3} title={labels.deliveryAddress} />
+              <StepHeading n={addressStep} title={labels.deliveryAddress} />
               <div className="space-y-3">
                 {userLoggedIn && savedAddresses.length > 0 ? (
                   <div>
-                    <label className="ming-label mb-1.5 block" htmlFor="ming-saved-addr">
-                      {labels.selectSaved}
-                    </label>
-                    <select
-                      id="ming-saved-addr"
-                      className="ming-select"
-                      value={selectedSavedAddressId ?? ''}
-                      onChange={(e) => onSelectSavedAddressId(e.target.value || null)}
-                    >
-                      <option value="">— {labels.addressDismiss} —</option>
+                    <p className="ming-label mb-1.5 block">{labels.selectSaved}</p>
+                    <div className="ming-scroll flex gap-2 overflow-x-auto pb-1">
+                      <button
+                        type="button"
+                        onClick={() => onSelectSavedAddressId(null)}
+                        className={`shrink-0 rounded-xl border px-3 py-2 text-[13px] font-semibold transition-colors ${
+                          !selectedSavedAddressId
+                            ? 'border-ming-red bg-ming-red/10 text-ming-bone'
+                            : 'border-white/10 bg-white/[0.02] text-ming-ash hover:border-white/20 hover:text-ming-bone'
+                        }`}
+                      >
+                        {labels.addressDismiss}
+                      </button>
                       {savedAddresses.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.label}: {a.line1}
-                        </option>
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => onSelectSavedAddressId(a.id)}
+                          className={`shrink-0 rounded-xl border px-3 py-2 text-left text-[13px] font-semibold transition-colors ${
+                            selectedSavedAddressId === a.id
+                              ? 'border-ming-red bg-ming-red/10 text-ming-bone'
+                              : 'border-white/10 bg-white/[0.02] text-ming-ash hover:border-white/20 hover:text-ming-bone'
+                          }`}
+                        >
+                          <span className="block max-w-[220px] truncate">{a.label}: {a.line1}</span>
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   </div>
                 ) : null}
 
@@ -323,7 +576,10 @@ export function OrderCheckoutView({
                 </div>
 
                 {lat != null && lng != null ? (
-                  <p className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-ming-ink/60 px-3 py-2 text-[12px]">
+                  <p
+                    aria-live="polite"
+                    className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-ming-ink/60 px-3 py-2 text-[12px]"
+                  >
                     <MapPin className="h-4 w-4 shrink-0 text-ming-red" />
                     {zoneMatch ? (
                       <span className="text-ming-bone">
@@ -355,18 +611,92 @@ export function OrderCheckoutView({
 
           {/* Step — Payment */}
           <section className="ming-card p-5">
-            <StepHeading n={fulfillment === 'delivery' ? 4 : 3} title={labels.payment} />
+            <StepHeading n={paymentStep} title={labels.payment} />
             <div className="space-y-2">
               {paymentOption('cod', labels.payCod, 'Pay on pickup or to the courier', Wallet)}
               {paymentOption('cash', labels.payCash, 'Cash in store', Wallet)}
               {paymentOption('epoint', labels.payEpoint, 'Secure card payment via E-point', CreditCard)}
+              {paymentMethod === 'epoint' ? (
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-ming-ash">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-ming-red"
+                      checked={payWithWallet}
+                      onChange={(e) => onPayWithWalletChange(e.target.checked)}
+                    />
+                    {labels.payCardWithWallet}
+                  </label>
+                  <label className="mt-2 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-ming-red"
+                      checked={saveCardForFuture}
+                      onChange={(e) => onSaveCardForFutureChange(e.target.checked)}
+                    />
+                    {labels.saveCardForFuture}
+                  </label>
+                  {savedCardsCount > 0 ? (
+                    <p className="mt-2 text-xs text-ming-mute">
+                      {labels.savedCardsAvailable.replace('{count}', String(savedCardsCount))}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="ming-label mb-1.5 block">{labels.promoCode}</label>
+                <input
+                  className="ming-input"
+                  value={promoCode}
+                  onChange={(e) => onPromoCodeChange(e.target.value)}
+                  placeholder="MINGS10"
+                />
+              </div>
+              <div>
+                <label className="ming-label mb-1.5 block">{labels.tip}</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.5"
+                  className="ming-input"
+                  value={tipAmount}
+                  onChange={(e) => onTipAmountChange(Number(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+            <div className="mt-3">
+              <label className="ming-label mb-1.5 block">{labels.orderNotes}</label>
+              <textarea
+                className="ming-input min-h-[84px] resize-y"
+                value={orderNotes}
+                onChange={(e) => onOrderNotesChange(e.target.value)}
+              />
+            </div>
+            <label className="mt-3 flex items-start gap-2 text-[13px] text-ming-ash">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-ming-red"
+                checked={consentAccepted}
+                onChange={(e) => onConsentAcceptedChange(e.target.checked)}
+              />
+              <span>
+                {labels.consentLabel}{' '}
+                <a href="/terms" className="ming-btn-link inline px-0 py-0">{labels.terms}</a>,{' '}
+                <a href="/privacy" className="ming-btn-link inline px-0 py-0">{labels.privacy}</a>,{' '}
+                <a href="/refund" className="ming-btn-link inline px-0 py-0">{labels.refundPolicy}</a>.
+              </span>
+            </label>
           </section>
 
           {submitError ? (
-            <p className="rounded-xl border border-ming-red/40 bg-ming-red/10 px-4 py-3 text-sm text-ming-red">
-              {submitError}
-            </p>
+            <div className="rounded-xl border border-ming-red/40 bg-ming-red/10 px-4 py-3 text-sm text-ming-red">
+              <p>{submitError}</p>
+              <button type="button" onClick={onSubmit} className="ming-btn-link mt-2 px-0 py-0 text-sm">
+                {labels.retry}
+              </button>
+            </div>
           ) : null}
 
           {!userLoggedIn ? (

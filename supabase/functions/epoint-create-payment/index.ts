@@ -55,7 +55,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: sale, error: sErr } = await supabase
     .from('sales')
-    .select('id, total_price, payment_status, source, display_number, customer_user_id, payment_init_token')
+    .select('id, total_price, payment_status, source, display_number, customer_user_id, payment_init_token, created_at, online_payment_id')
     .eq('id', saleId)
     .maybeSingle();
 
@@ -68,6 +68,13 @@ Deno.serve(async (req: Request) => {
   }
   if ((sale.payment_init_token ?? null) !== paymentInitToken) {
     return jsonResponse({ error: 'Invalid payment init token' }, 403);
+  }
+  const createdAt = new Date(String(sale.created_at ?? ''));
+  if (Number.isNaN(createdAt.getTime()) || Date.now() - createdAt.getTime() > 20 * 60_000) {
+    return jsonResponse({ error: 'paymentInitToken expired' }, 410);
+  }
+  if (sale.online_payment_id) {
+    return jsonResponse({ error: 'Payment already initialized for this sale' }, 409);
   }
   if (sale.customer_user_id && !callerUserId) {
     return jsonResponse({ error: 'Authentication required for this sale' }, 401);

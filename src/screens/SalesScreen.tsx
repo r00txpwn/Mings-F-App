@@ -405,15 +405,15 @@ export function SalesScreen() {
                       <>{/* Fragment key on the parent tr */}
                         <tr
                           key={groupedSale.date}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                          className="cockpit-tr cursor-pointer"
                           onClick={() => toggleDateExpansion(groupedSale.date)}
                         >
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                          <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">
                             <div className="flex items-center gap-2">
                               {isExpanded ? (
-                                <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                               ) : (
-                                <ChevronRight className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                               )}
                               {new Date(groupedSale.date).toLocaleDateString()}
                             </div>
@@ -421,12 +421,12 @@ export function SalesScreen() {
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap gap-1.5">
                               {groupedSale.channels.length === 0 ? (
-                                <span className="text-xs text-gray-500 dark:text-gray-400">N/A</span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">N/A</span>
                               ) : (
                                 groupedSale.channels.map((channel) => (
                                   <div
                                     key={channel.id}
-                                    className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-medium text-gray-900 dark:text-white"
+                                    className="inline-flex items-center gap-1.5 rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-900 dark:bg-slate-700 dark:text-white"
                                   >
                                     {channel.logo_url ? (
                                       <img src={channel.logo_url} alt={channel.name} className="h-3 w-3 object-contain" />
@@ -439,10 +439,10 @@ export function SalesScreen() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                          <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">
                             {groupedSale.totalOrders}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                          <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">
                             ₼{groupedSale.aov.toFixed(2)}
                           </td>
                           <td className="px-4 py-3 text-sm font-bold text-green-600 dark:text-green-400">
@@ -457,7 +457,7 @@ export function SalesScreen() {
 
                           if (isEditing) {
                             return (
-                              <tr key={sale.id} className="bg-blue-50 dark:bg-blue-900/20" onClick={(e) => e.stopPropagation()}>
+                              <tr key={sale.id} className="bg-cockpit-500/10" onClick={(e) => e.stopPropagation()}>
                                 <td className="px-4 py-3 pl-12">
                                   <SingleDatePicker
                                     value={editingSale.sale_date.split('T')[0]}
@@ -480,23 +480,23 @@ export function SalesScreen() {
                                 <td className="px-4 py-3">
                                   <div className="flex gap-2">
                                     <div>
-                                      <label className="text-xs text-gray-600 dark:text-gray-400">{t.orders}</label>
+                                      <label className="text-xs text-slate-600 dark:text-slate-400">{t.orders}</label>
                                       <input
                                         type="number"
                                         min="1"
                                         value={editingSale.quantity}
                                         onChange={(e) => setEditingSale({ ...editingSale, quantity: Number(e.target.value) })}
-                                        className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                                        className="cockpit-input w-20 px-2 py-1 text-sm"
                                       />
                                     </div>
                                     <div>
-                                      <label className="text-xs text-gray-600 dark:text-gray-400">{t.amount}</label>
+                                      <label className="text-xs text-slate-600 dark:text-slate-400">{t.amount}</label>
                                       <input
                                         type="number"
                                         step="0.01"
                                         value={editingSale.total_price}
                                         onChange={(e) => setEditingSale({ ...editingSale, total_price: Number(e.target.value) })}
-                                        className="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                                        className="cockpit-input w-24 px-2 py-1 text-sm"
                                       />
                                     </div>
                                   </div>
@@ -507,7 +507,7 @@ export function SalesScreen() {
                                     placeholder={t.description}
                                     value={editingSale.notes}
                                     onChange={(e) => setEditingSale({ ...editingSale, notes: e.target.value })}
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                                    className="cockpit-input w-full px-2 py-1 text-sm"
                                   />
                                 </td>
                                 <td className="px-4 py-3">
@@ -520,7 +520,7 @@ export function SalesScreen() {
                                     </button>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); setEditingSale(null); }}
-                                      className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                      className="p-1.5 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 rounded"
                                     >
                                       <X className="w-4 h-4" />
                                     </button>
@@ -532,7 +532,7 @@ export function SalesScreen() {
 
                           if (isDeleting) {
                             return (
-                              <tr key={sale.id} className="bg-red-50 dark:bg-red-900/20" onClick={(e) => e.stopPropagation()}>
+                              <tr key={sale.id} className="bg-rose-500/10" onClick={(e) => e.stopPropagation()}>
                                 <td colSpan={5} className="px-4 py-3 pl-12">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm text-red-900 dark:text-red-100">
@@ -547,7 +547,7 @@ export function SalesScreen() {
                                       </button>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }}
-                                        className="px-3 py-1.5 text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded"
+                                        className="px-3 py-1.5 text-sm bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded"
                                       >
                                         {t.cancel}
                                       </button>
@@ -561,19 +561,19 @@ export function SalesScreen() {
                           return (
                             <tr
                               key={sale.id}
-                              className="bg-gray-50/50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                              className="bg-slate-50/60 dark:bg-slate-700/25 hover:bg-slate-100 dark:hover:bg-slate-700/40"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <td className="px-4 py-2 pl-12 text-sm text-gray-600 dark:text-gray-400">
+                              <td className="px-4 py-2 pl-12 text-sm text-slate-600 dark:text-slate-400">
                                 {channel?.name || '-'}
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
+                              <td className="px-4 py-2 text-sm text-slate-900 dark:text-white">
                                 {channel?.name || 'N/A'}
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
+                              <td className="px-4 py-2 text-sm text-slate-900 dark:text-white">
                                 {sale.quantity} {t.orders} &bull; ₼{Number(sale.total_price).toFixed(2)}
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">
+                              <td className="px-4 py-2 text-sm text-slate-600 dark:text-slate-300">
                                 {sale.notes || '-'}
                               </td>
                               <td className="px-4 py-2">

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Plus, ChevronUp, ChevronDown, Trash2, Pencil, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, Category } from '../lib/supabase';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 interface MenuCategoryManagerProps {
   categories: Category[];
@@ -17,6 +18,7 @@ export function MenuCategoryManager({ categories, onClose }: MenuCategoryManager
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', icon: '🍽️', color: '#EF4444' });
   const [localCategories, setLocalCategories] = useState(categories);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const resetForm = () => {
     setForm({ name: '', icon: '🍽️', color: '#EF4444' });
@@ -56,7 +58,6 @@ export function MenuCategoryManager({ categories, onClose }: MenuCategoryManager
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(t.deleteCategoryConfirm)) return;
     await supabase.from('master_categories').delete().eq('id', id);
     setLocalCategories(prev => prev.filter(c => c.id !== id));
   };
@@ -201,7 +202,7 @@ export function MenuCategoryManager({ categories, onClose }: MenuCategoryManager
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDelete(cat.id)}
+                  onClick={() => setConfirmDeleteId(cat.id)}
                   className="p-1.5 text-red-400 hover:text-red-600 rounded-lg"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -211,6 +212,19 @@ export function MenuCategoryManager({ categories, onClose }: MenuCategoryManager
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title={t.delete}
+        message={t.deleteCategoryConfirm}
+        confirmLabel={t.delete}
+        cancelLabel={t.cancel}
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          if (!confirmDeleteId) return;
+          void handleDelete(confirmDeleteId);
+          setConfirmDeleteId(null);
+        }}
+      />
     </div>
   );
 }

@@ -29,6 +29,7 @@ export interface Translations {
   actions: string;
   status: string;
   notes: string;
+  halal: string;
   active: string;
   inactive: string;
   new: string;
@@ -595,6 +596,9 @@ export interface Translations {
   orderPayCod: string;
   orderPayCash: string;
   orderPayEpoint: string;
+  orderPayCardWithWallet: string;
+  orderSaveCardForFuture: string;
+  orderSavedCardsAvailable: string;
   orderPlacedTitle: string;
   orderTrackHint: string;
   orderOpenTracking: string;
@@ -609,8 +613,23 @@ export interface Translations {
   orderSaveAddressForNext: string;
   orderLoadingMenu: string;
   orderYourCart: string;
+  /** Shown in cart/checkout when sign-in is required before order placement. */
+  orderAuthRequired: string;
   orderAuthEmail: string;
   orderAuthSms: string;
+  orderAuthGoogle: string;
+  orderForgotPassword: string;
+  orderForgotPasswordSent: string;
+  orderSignUpInlinePrompt: string;
+  orderSignUpInlineAction: string;
+  orderEmailConfirmAfterSignup: string;
+  orderResetPasswordTitle: string;
+  orderResetPasswordHint: string;
+  orderResetPasswordNew: string;
+  orderResetPasswordConfirm: string;
+  orderResetPasswordSubmit: string;
+  orderResetPasswordSuccess: string;
+  orderResetPasswordMismatch: string;
   orderSendSmsCode: string;
   orderSmsCode: string;
   orderVerifySms: string;
@@ -622,13 +641,39 @@ export interface Translations {
   orderMapPinHint: string;
   orderMapLoading: string;
   orderMapUnavailable: string;
+  orderItemNotes: string;
+  orderItemNotesPlaceholder: string;
+  orderReorder: string;
+  orderRemoveLine: string;
+  orderDecreaseQty: string;
+  orderIncreaseQty: string;
   orderChooseFulfillmentTitle: string;
+  orderScheduleNow: string;
+  orderScheduleLater: string;
+  orderScheduleFor: string;
+  orderScheduleDay: string;
+  orderScheduleTime: string;
+  orderScheduleNoSlots: string;
+  orderPromoCode: string;
+  orderTip: string;
+  orderOrderNotes: string;
+  orderConsentLabel: string;
+  orderTerms: string;
+  orderPrivacy: string;
+  orderRefundPolicy: string;
+  orderConsentRequired: string;
+  orderErrInvalidEmail: string;
+  retry: string;
+  cookieConsentCopy: string;
+  cookieConsentAccept: string;
   orderSearchMenu: string;
   orderVenueInfoTitle: string;
   orderVenueHours: string;
   orderVenueAddress: string;
   orderVenuePhone: string;
   orderAddToCart: string;
+  orderFavoriteAdd: string;
+  orderFavoriteRemove: string;
   orderSearchNoResults: string;
   orderDeliveryDisabledInSettings: string;
   orderCombosSection: string;
@@ -647,6 +692,23 @@ export interface Translations {
   comboBuilderAddToCart: string;
   comboBuilderNext: string;
   comboBuilderPickOne: string;
+  orderErrGeneric: string;
+  orderErrAuthRequired: string;
+  orderErrCartEmpty: string;
+  orderErrPhoneRequired: string;
+  orderErrPhoneInvalid: string;
+  orderErrOnlineUnavailable: string;
+  orderErrTakeawayDisabled: string;
+  orderErrDeliveryDisabled: string;
+  orderErrLocationRequired: string;
+  orderErrAddressRequired: string;
+  orderErrOutsideZone: string;
+  orderErrMinimumOrder: string;
+  orderErrZoneMinimumOrder: string;
+  orderErrPaymentInitFailed: string;
+  orderErrScheduleRequired: string;
+  orderErrScheduleInvalid: string;
+  orderErrScheduleTooSoon: string;
 
   // Customer tracking (/track)
   trackingPageTitle: string;
@@ -680,6 +742,7 @@ export interface Translations {
   trackStageEtaMinutes: string;
   trackStageArrivingAround: string;
   trackEtaLabel: string;
+  trackScheduledForLabel: string;
   trackTimelineTitle: string;
 
   // Combos admin
@@ -749,6 +812,11 @@ export interface Translations {
   omRejectConfirm: string;
   omRejectCancel: string;
   omRejectSelectReason: string;
+  deliverySettingsKitchenLocationTitle: string;
+  deliverySettingsKitchenLocationHint: string;
+  deliverySettingsKitchenLatitude: string;
+  deliverySettingsKitchenLongitude: string;
+  deliverySettingsKitchenLocationInvalid: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -777,6 +845,7 @@ export const translations: Record<Language, Translations> = {
     actions: 'Actions',
     status: 'Status',
     notes: 'Notes',
+    halal: 'Halal',
     active: 'Active',
     inactive: 'Inactive',
     new: 'New',
@@ -1315,6 +1384,9 @@ export const translations: Record<Language, Translations> = {
     orderPayCod: 'Cash on pickup / delivery',
     orderPayCash: 'Cash',
     orderPayEpoint: 'Card (E-point)',
+    orderPayCardWithWallet: 'Use Apple Pay / Google Pay when available',
+    orderSaveCardForFuture: 'Save card for future orders',
+    orderSavedCardsAvailable: '{count} saved cards available in your account.',
     orderPlacedTitle: 'Order placed',
     orderTrackHint: 'Track status',
     orderOpenTracking: 'Open tracking',
@@ -1329,8 +1401,22 @@ export const translations: Record<Language, Translations> = {
     orderSaveAddressForNext: 'Save this address for next time',
     orderLoadingMenu: 'Loading menu…',
     orderYourCart: 'Your cart',
+    orderAuthRequired: 'Please sign in to continue to checkout.',
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
+    orderAuthGoogle: 'Continue with Google',
+    orderForgotPassword: 'Forgot password?',
+    orderForgotPasswordSent: 'If this email exists, reset instructions were sent.',
+    orderSignUpInlinePrompt: "Don't have an account yet?",
+    orderSignUpInlineAction: 'Sign up here',
+    orderEmailConfirmAfterSignup: 'Check your email to confirm your account before first login.',
+    orderResetPasswordTitle: 'Set a new password',
+    orderResetPasswordHint: 'Create a new password to finish account recovery.',
+    orderResetPasswordNew: 'New password',
+    orderResetPasswordConfirm: 'Confirm new password',
+    orderResetPasswordSubmit: 'Update password',
+    orderResetPasswordSuccess: 'Password updated. You can continue using your account.',
+    orderResetPasswordMismatch: 'Passwords do not match.',
     orderSendSmsCode: 'Send code',
     orderSmsCode: 'SMS code',
     orderVerifySms: 'Verify & sign in',
@@ -1342,13 +1428,39 @@ export const translations: Record<Language, Translations> = {
     orderMapPinHint: 'Drag the pin or search — we use the pin location for delivery.',
     orderMapLoading: 'Loading map…',
     orderMapUnavailable: 'Map preview unavailable. Type your address or use device location.',
+    orderItemNotes: 'Item notes',
+    orderItemNotesPlaceholder: 'Allergies, no onions, extra spicy…',
+    orderReorder: 'Reorder',
+    orderRemoveLine: 'Remove item',
+    orderDecreaseQty: 'Decrease quantity',
+    orderIncreaseQty: 'Increase quantity',
     orderChooseFulfillmentTitle: 'Pickup or delivery?',
+    orderScheduleNow: 'ASAP',
+    orderScheduleLater: 'Schedule',
+    orderScheduleFor: 'Choose a time slot',
+    orderScheduleDay: 'Day',
+    orderScheduleTime: 'Time',
+    orderScheduleNoSlots: 'No schedule slots available right now.',
+    orderPromoCode: 'Promo code',
+    orderTip: 'Tip',
+    orderOrderNotes: 'Order notes',
+    orderConsentLabel: 'I agree to the',
+    orderTerms: 'Terms',
+    orderPrivacy: 'Privacy',
+    orderRefundPolicy: 'Refund policy',
+    orderConsentRequired: 'Please accept terms before placing order.',
+    orderErrInvalidEmail: 'Please enter a valid email address.',
+    retry: 'Retry',
+    cookieConsentCopy: 'We use cookies to improve ordering and analytics.',
+    cookieConsentAccept: 'Accept cookies',
     orderSearchMenu: 'Search menu…',
     orderVenueInfoTitle: 'Restaurant',
     orderVenueHours: 'Hours',
     orderVenueAddress: 'Address',
     orderVenuePhone: 'Phone',
     orderAddToCart: 'Add',
+    orderFavoriteAdd: 'Add to favorites',
+    orderFavoriteRemove: 'Remove from favorites',
     orderSearchNoResults: 'No dishes match your search.',
     orderDeliveryDisabledInSettings:
       'Delivery is turned off in your database. Set online_settings.delivery_enabled = true in Supabase (or run the latest migration), or choose pickup.',
@@ -1369,6 +1481,23 @@ export const translations: Record<Language, Translations> = {
     comboBuilderAddToCart: 'Add combo to cart',
     comboBuilderNext: 'Next',
     comboBuilderPickOne: 'Choose one option',
+    orderErrGeneric: 'Could not place your order. Please try again.',
+    orderErrAuthRequired: 'Please sign in to place your order.',
+    orderErrCartEmpty: 'Your cart is empty.',
+    orderErrPhoneRequired: 'Phone number is required.',
+    orderErrPhoneInvalid: 'Enter a valid phone number with country code.',
+    orderErrOnlineUnavailable: 'Online ordering is currently unavailable.',
+    orderErrTakeawayDisabled: 'Takeaway is currently unavailable.',
+    orderErrDeliveryDisabled: 'Delivery is currently unavailable.',
+    orderErrLocationRequired: 'Please set your delivery location.',
+    orderErrAddressRequired: 'Please enter your delivery address.',
+    orderErrOutsideZone: 'Your address is outside our delivery zone.',
+    orderErrMinimumOrder: 'Order total is below the minimum amount.',
+    orderErrZoneMinimumOrder: 'Order subtotal is below this zone minimum.',
+    orderErrPaymentInitFailed: 'Payment could not be initialized. Please try again.',
+    orderErrScheduleRequired: 'Please choose a scheduled time.',
+    orderErrScheduleInvalid: 'Scheduled time is invalid.',
+    orderErrScheduleTooSoon: 'Please choose a later time slot.',
 
     trackingPageTitle: 'Order status',
     trackingOrderLabel: 'Order',
@@ -1401,6 +1530,7 @@ export const translations: Record<Language, Translations> = {
     trackStageEtaMinutes: 'Est. {min} min',
     trackStageArrivingAround: 'Arriving around {time}',
     trackEtaLabel: 'ETA',
+    trackScheduledForLabel: 'Scheduled for:',
     trackTimelineTitle: 'Order status',
 
     combosScreenTitle: 'Combo deals',
@@ -1469,6 +1599,12 @@ export const translations: Record<Language, Translations> = {
     omRejectConfirm: 'Confirm Reject',
     omRejectCancel: 'Cancel',
     omRejectSelectReason: 'Select a reason...',
+    deliverySettingsKitchenLocationTitle: 'Kitchen location',
+    deliverySettingsKitchenLocationHint:
+      'Used for distance, ETA, and self-delivery recommendations. Leave empty to use default location.',
+    deliverySettingsKitchenLatitude: 'Kitchen latitude',
+    deliverySettingsKitchenLongitude: 'Kitchen longitude',
+    deliverySettingsKitchenLocationInvalid: 'Enter valid kitchen coordinates (lat: -90..90, lng: -180..180).',
   },
 
   az: {
@@ -1496,6 +1632,7 @@ export const translations: Record<Language, Translations> = {
     actions: 'Əməliyyatlar',
     status: 'Status',
     notes: 'Qeydlər',
+    halal: 'Halal',
     active: 'Aktiv',
     inactive: 'Deaktiv',
     new: 'Yeni',
@@ -2035,6 +2172,9 @@ export const translations: Record<Language, Translations> = {
     orderPayCod: 'Nağd (götürmə/çatdırılma)',
     orderPayCash: 'Nağd',
     orderPayEpoint: 'Kart (E-point)',
+    orderPayCardWithWallet: 'Mövcuddursa Apple Pay / Google Pay istifadə et',
+    orderSaveCardForFuture: 'Kartı növbəti sifarişlər üçün yadda saxla',
+    orderSavedCardsAvailable: 'Hesabınızda {count} saxlanmış kart var.',
     orderPlacedTitle: 'Sifariş verildi',
     orderTrackHint: 'Statusu izlə',
     orderOpenTracking: 'İzləməni aç',
@@ -2049,8 +2189,22 @@ export const translations: Record<Language, Translations> = {
     orderSaveAddressForNext: 'Bu ünvanı növbəti dəfə üçün saxla',
     orderLoadingMenu: 'Menyu yüklənir…',
     orderYourCart: 'Səbətiniz',
+    orderAuthRequired: 'Checkout üçün davam etməkdən əvvəl daxil olun.',
     orderAuthEmail: 'E-poçt',
     orderAuthSms: 'SMS',
+    orderAuthGoogle: 'Google ilə davam et',
+    orderForgotPassword: 'Şifrəni unutmusunuz?',
+    orderForgotPasswordSent: 'Bu e-poçt mövcuddursa, bərpa təlimatı göndərildi.',
+    orderSignUpInlinePrompt: 'Hələ hesabınız yoxdur?',
+    orderSignUpInlineAction: 'Buradan qeydiyyat',
+    orderEmailConfirmAfterSignup: 'İlk girişdən əvvəl hesabı təsdiqləmək üçün e-poçtunuzu yoxlayın.',
+    orderResetPasswordTitle: 'Yeni şifrə təyin edin',
+    orderResetPasswordHint: 'Hesab bərpasını tamamlamaq üçün yeni şifrə yaradın.',
+    orderResetPasswordNew: 'Yeni şifrə',
+    orderResetPasswordConfirm: 'Yeni şifrəni təsdiqləyin',
+    orderResetPasswordSubmit: 'Şifrəni yenilə',
+    orderResetPasswordSuccess: 'Şifrə yeniləndi. Hesabdan istifadə etməyə davam edə bilərsiniz.',
+    orderResetPasswordMismatch: 'Şifrələr eyni deyil.',
     orderSendSmsCode: 'Kod göndər',
     orderSmsCode: 'SMS kodu',
     orderVerifySms: 'Təsdiqlə və daxil ol',
@@ -2062,13 +2216,39 @@ export const translations: Record<Language, Translations> = {
     orderMapPinHint: 'İşarəni sürüyün və ya axtarın — çatdırılma üçün məkan işarədən götürülür.',
     orderMapLoading: 'Xəritə yüklənir…',
     orderMapUnavailable: 'Xəritə əlçatan deyil. Ünvanı yazın və ya cihaz məkanından istifadə edin.',
+    orderItemNotes: 'Məhsul qeydləri',
+    orderItemNotesPlaceholder: 'Allergiya, soğansız, daha acı…',
+    orderReorder: 'Yenidən sifariş et',
+    orderRemoveLine: 'Məhsulu sil',
+    orderDecreaseQty: 'Sayı azaldın',
+    orderIncreaseQty: 'Sayı artırın',
     orderChooseFulfillmentTitle: 'Götürmə və ya çatdırılma?',
+    orderScheduleNow: 'İndi',
+    orderScheduleLater: 'Planla',
+    orderScheduleFor: 'Vaxt seçin',
+    orderScheduleDay: 'Gün',
+    orderScheduleTime: 'Saat',
+    orderScheduleNoSlots: 'Hazırda planlı slot mövcud deyil.',
+    orderPromoCode: 'Promo kod',
+    orderTip: 'Bəxşiş',
+    orderOrderNotes: 'Sifariş qeydi',
+    orderConsentLabel: 'Mən razıyam:',
+    orderTerms: 'Şərtlər',
+    orderPrivacy: 'Məxfilik',
+    orderRefundPolicy: 'Geri qaytarma siyasəti',
+    orderConsentRequired: 'Sifarişdən əvvəl şərtləri qəbul edin.',
+    orderErrInvalidEmail: 'Düzgün e-poçt ünvanı daxil edin.',
+    retry: 'Yenidən cəhd et',
+    cookieConsentCopy: 'Sifariş təcrübəsi və analitika üçün kukilərdən istifadə edirik.',
+    cookieConsentAccept: 'Kukiləri qəbul et',
     orderSearchMenu: 'Menyu axtar…',
     orderVenueInfoTitle: 'Restoran',
     orderVenueHours: 'İş saatları',
     orderVenueAddress: 'Ünvan',
     orderVenuePhone: 'Telefon',
     orderAddToCart: 'Əlavə et',
+    orderFavoriteAdd: 'Sevimlilərə əlavə et',
+    orderFavoriteRemove: 'Sevimlilərdən sil',
     orderSearchNoResults: 'Axtarışınıza uyğun yemək yoxdur.',
     orderDeliveryDisabledInSettings:
       'Çatdırılma verilənlər bazasında söndürülüb. Supabase-də online_settings.delivery_enabled = true edin və ya götürmə seçin.',
@@ -2088,6 +2268,23 @@ export const translations: Record<Language, Translations> = {
     comboBuilderAddToCart: 'Kombonu səbətə əlavə et',
     comboBuilderNext: 'Növbəti',
     comboBuilderPickOne: 'Bir seçim edin',
+    orderErrGeneric: 'Sifarişi tamamlamaq olmadı. Yenidən cəhd edin.',
+    orderErrAuthRequired: 'Sifariş vermək üçün daxil olun.',
+    orderErrCartEmpty: 'Səbət boşdur.',
+    orderErrPhoneRequired: 'Telefon nömrəsi tələb olunur.',
+    orderErrPhoneInvalid: 'Ölkə kodu ilə düzgün telefon nömrəsi daxil edin.',
+    orderErrOnlineUnavailable: 'Onlayn sifariş hazırda əlçatan deyil.',
+    orderErrTakeawayDisabled: 'Götürmə hazırda əlçatan deyil.',
+    orderErrDeliveryDisabled: 'Çatdırılma hazırda əlçatan deyil.',
+    orderErrLocationRequired: 'Çatdırılma məkanını seçin.',
+    orderErrAddressRequired: 'Çatdırılma ünvanını daxil edin.',
+    orderErrOutsideZone: 'Ünvanınız çatdırılma zonasından kənardadır.',
+    orderErrMinimumOrder: 'Sifariş məbləği minimum tələbdən azdır.',
+    orderErrZoneMinimumOrder: 'Bu zona üçün minimum məbləğdən azdır.',
+    orderErrPaymentInitFailed: 'Ödəniş başladılmadı. Yenidən cəhd edin.',
+    orderErrScheduleRequired: 'Planlı sifariş üçün vaxt seçin.',
+    orderErrScheduleInvalid: 'Seçilən vaxt etibarsızdır.',
+    orderErrScheduleTooSoon: 'Daha gec bir slot seçin.',
 
     trackingPageTitle: 'Sifariş statusu',
     trackingOrderLabel: 'Sifariş',
@@ -2120,6 +2317,7 @@ export const translations: Record<Language, Translations> = {
     trackStageEtaMinutes: 'Təxminən {min} dəq',
     trackStageArrivingAround: 'Təxminən {time} çatacaq',
     trackEtaLabel: 'Çatdırılma vaxtı',
+    trackScheduledForLabel: 'Planlanıb:',
     trackTimelineTitle: 'Sifariş vəziyyəti',
 
     combosScreenTitle: 'Kombo təkliflər',
@@ -2188,6 +2386,13 @@ export const translations: Record<Language, Translations> = {
     omRejectConfirm: 'Rədd etməni təsdiqlə',
     omRejectCancel: 'Ləğv et',
     omRejectSelectReason: 'Səbəb seçin...',
+    deliverySettingsKitchenLocationTitle: 'Mətbəx məkanı',
+    deliverySettingsKitchenLocationHint:
+      'Məsafə, ETA və öz kuryer tövsiyəsi üçün istifadə olunur. Boş saxlasanız standart məkan istifadə ediləcək.',
+    deliverySettingsKitchenLatitude: 'Mətbəx enliyi',
+    deliverySettingsKitchenLongitude: 'Mətbəx uzunluğu',
+    deliverySettingsKitchenLocationInvalid:
+      'Düzgün mətbəx koordinatları daxil edin (enlik: -90..90, uzunluq: -180..180).',
   },
 
   ru: {
@@ -2215,6 +2420,7 @@ export const translations: Record<Language, Translations> = {
     actions: 'Действия',
     status: 'Статус',
     notes: 'Заметки',
+    halal: 'Халяль',
     active: 'Активен',
     inactive: 'Неактивен',
     new: 'Новый',
@@ -2754,6 +2960,9 @@ export const translations: Record<Language, Translations> = {
     orderPayCod: 'Наличные при получении',
     orderPayCash: 'Наличные',
     orderPayEpoint: 'Карта (E-point)',
+    orderPayCardWithWallet: 'Использовать Apple Pay / Google Pay при наличии',
+    orderSaveCardForFuture: 'Сохранить карту для следующих заказов',
+    orderSavedCardsAvailable: 'В аккаунте сохранено карт: {count}.',
     orderPlacedTitle: 'Заказ оформлен',
     orderTrackHint: 'Статус заказа',
     orderOpenTracking: 'Открыть отслеживание',
@@ -2768,8 +2977,22 @@ export const translations: Record<Language, Translations> = {
     orderSaveAddressForNext: 'Сохранить этот адрес',
     orderLoadingMenu: 'Загрузка меню…',
     orderYourCart: 'Ваша корзина',
+    orderAuthRequired: 'Войдите в аккаунт, чтобы продолжить к оформлению.',
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
+    orderAuthGoogle: 'Продолжить через Google',
+    orderForgotPassword: 'Забыли пароль?',
+    orderForgotPasswordSent: 'Если такой email существует, инструкция по сбросу отправлена.',
+    orderSignUpInlinePrompt: 'Еще нет аккаунта?',
+    orderSignUpInlineAction: 'Зарегистрироваться',
+    orderEmailConfirmAfterSignup: 'Подтвердите email перед первым входом в аккаунт.',
+    orderResetPasswordTitle: 'Задайте новый пароль',
+    orderResetPasswordHint: 'Создайте новый пароль, чтобы завершить восстановление.',
+    orderResetPasswordNew: 'Новый пароль',
+    orderResetPasswordConfirm: 'Подтвердите новый пароль',
+    orderResetPasswordSubmit: 'Обновить пароль',
+    orderResetPasswordSuccess: 'Пароль обновлен. Вы можете продолжить пользоваться аккаунтом.',
+    orderResetPasswordMismatch: 'Пароли не совпадают.',
     orderSendSmsCode: 'Отправить код',
     orderSmsCode: 'Код из SMS',
     orderVerifySms: 'Подтвердить и войти',
@@ -2781,13 +3004,39 @@ export const translations: Record<Language, Translations> = {
     orderMapPinHint: 'Перетащите метку или найдите адрес — доставка по положению метки.',
     orderMapLoading: 'Загрузка карты…',
     orderMapUnavailable: 'Карта недоступна. Введите адрес или используйте геолокацию.',
+    orderItemNotes: 'Комментарий к позиции',
+    orderItemNotesPlaceholder: 'Аллергия, без лука, поострее…',
+    orderReorder: 'Повторить заказ',
+    orderRemoveLine: 'Удалить позицию',
+    orderDecreaseQty: 'Уменьшить количество',
+    orderIncreaseQty: 'Увеличить количество',
     orderChooseFulfillmentTitle: 'Самовывоз или доставка?',
+    orderScheduleNow: 'Как можно скорее',
+    orderScheduleLater: 'Запланировать',
+    orderScheduleFor: 'Выберите время',
+    orderScheduleDay: 'День',
+    orderScheduleTime: 'Время',
+    orderScheduleNoSlots: 'Сейчас нет доступных слотов.',
+    orderPromoCode: 'Промокод',
+    orderTip: 'Чаевые',
+    orderOrderNotes: 'Комментарий к заказу',
+    orderConsentLabel: 'Я принимаю',
+    orderTerms: 'Условия',
+    orderPrivacy: 'Конфиденциальность',
+    orderRefundPolicy: 'Политику возврата',
+    orderConsentRequired: 'Примите условия перед оформлением заказа.',
+    orderErrInvalidEmail: 'Введите корректный email.',
+    retry: 'Повторить',
+    cookieConsentCopy: 'Мы используем cookies для улучшения заказа и аналитики.',
+    cookieConsentAccept: 'Принять cookies',
     orderSearchMenu: 'Поиск в меню…',
     orderVenueInfoTitle: 'Ресторан',
     orderVenueHours: 'Часы',
     orderVenueAddress: 'Адрес',
     orderVenuePhone: 'Телефон',
     orderAddToCart: 'В корзину',
+    orderFavoriteAdd: 'Добавить в избранное',
+    orderFavoriteRemove: 'Убрать из избранного',
     orderSearchNoResults: 'Ничего не найдено.',
     orderDeliveryDisabledInSettings:
       'Доставка отключена в базе. Включите online_settings.delivery_enabled = true в Supabase или выберите самовывоз.',
@@ -2808,6 +3057,23 @@ export const translations: Record<Language, Translations> = {
     comboBuilderNext: 'Далее',
     comboBuilderPickOne: 'Выберите один вариант',
 
+    orderErrGeneric: 'Не удалось оформить заказ. Попробуйте снова.',
+    orderErrAuthRequired: 'Войдите в аккаунт, чтобы оформить заказ.',
+    orderErrCartEmpty: 'Корзина пуста.',
+    orderErrPhoneRequired: 'Требуется номер телефона.',
+    orderErrPhoneInvalid: 'Укажите корректный номер с кодом страны.',
+    orderErrOnlineUnavailable: 'Онлайн-заказы сейчас недоступны.',
+    orderErrTakeawayDisabled: 'Самовывоз сейчас недоступен.',
+    orderErrDeliveryDisabled: 'Доставка сейчас недоступна.',
+    orderErrLocationRequired: 'Укажите точку доставки на карте.',
+    orderErrAddressRequired: 'Введите адрес доставки.',
+    orderErrOutsideZone: 'Ваш адрес вне зоны доставки.',
+    orderErrMinimumOrder: 'Сумма заказа ниже минимальной.',
+    orderErrZoneMinimumOrder: 'Сумма заказа ниже минимума для этой зоны.',
+    orderErrPaymentInitFailed: 'Не удалось начать оплату. Попробуйте снова.',
+    orderErrScheduleRequired: 'Выберите время для запланированного заказа.',
+    orderErrScheduleInvalid: 'Выбранное время недействительно.',
+    orderErrScheduleTooSoon: 'Выберите более поздний слот.',
     trackingPageTitle: 'Статус заказа',
     trackingOrderLabel: 'Заказ',
     trackingKitchenStatus: 'Статус кухни',
@@ -2839,6 +3105,7 @@ export const translations: Record<Language, Translations> = {
     trackStageEtaMinutes: 'Около {min} мин',
     trackStageArrivingAround: 'Ожидается около {time}',
     trackEtaLabel: 'Прибытие',
+    trackScheduledForLabel: 'Запланировано на:',
     trackTimelineTitle: 'Статус заказа',
 
     combosScreenTitle: 'Комбо-предложения',
@@ -2906,5 +3173,12 @@ export const translations: Record<Language, Translations> = {
     omRejectConfirm: 'Подтвердить отказ',
     omRejectCancel: 'Отмена',
     omRejectSelectReason: 'Выберите причину...',
+    deliverySettingsKitchenLocationTitle: 'Локация кухни',
+    deliverySettingsKitchenLocationHint:
+      'Используется для расстояния, ETA и рекомендаций по собственной доставке. Если пусто — используется локация по умолчанию.',
+    deliverySettingsKitchenLatitude: 'Широта кухни',
+    deliverySettingsKitchenLongitude: 'Долгота кухни',
+    deliverySettingsKitchenLocationInvalid:
+      'Введите корректные координаты кухни (широта: -90..90, долгота: -180..180).',
   },
 };

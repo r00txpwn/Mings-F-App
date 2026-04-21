@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react';
 import { Edit3, Plus, Power, Trash2 } from 'lucide-react';
 import type { DeliveryZoneRow } from '../../types/online';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ZoneEditorDialog, type ZoneEditorTranslations } from './ZoneEditorDialog';
 
 export interface ZonesTabTranslations extends ZoneEditorTranslations {
+  deleteLabel: string;
   title: string;
   description: string;
   newButton: string;
@@ -56,6 +58,7 @@ export function ZonesTab({
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorZone, setEditorZone] = useState<DeliveryZoneRow | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteZone, setConfirmDeleteZone] = useState<DeliveryZoneRow | null>(null);
 
   const openNew = useCallback(() => {
     setEditorZone(null);
@@ -101,11 +104,10 @@ export function ZonesTab({
 
   const handleDelete = useCallback(
     async (zone: DeliveryZoneRow) => {
-      if (!window.confirm(t.toastDeleteConfirm.replace('{name}', zone.name))) return;
       const { error } = await deleteZone(zone.id);
       if (error) onError(`${t.toastDeleteError}: ${error.message}`);
     },
-    [deleteZone, onError, t.toastDeleteConfirm, t.toastDeleteError],
+    [deleteZone, onError, t.toastDeleteError],
   );
 
   return (
@@ -189,7 +191,7 @@ export function ZonesTab({
                   </button>
                   <button
                     type="button"
-                    onClick={() => void handleDelete(zone)}
+                    onClick={() => setConfirmDeleteZone(zone)}
                     className="rounded-lg p-2 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400"
                     aria-label={t.toastDeleteConfirm.replace('{name}', zone.name)}
                   >
@@ -210,6 +212,23 @@ export function ZonesTab({
         onCancel={() => (saving ? null : setEditorOpen(false))}
         onSave={(next) => void handleSave(next)}
         t={t}
+      />
+      <ConfirmDialog
+        open={confirmDeleteZone !== null}
+        title={t.deleteLabel}
+        message={
+          confirmDeleteZone
+            ? t.toastDeleteConfirm.replace('{name}', confirmDeleteZone.name)
+            : t.toastDeleteConfirm
+        }
+        confirmLabel={t.deleteLabel}
+        cancelLabel={t.cancel}
+        onCancel={() => setConfirmDeleteZone(null)}
+        onConfirm={() => {
+          if (!confirmDeleteZone) return;
+          void handleDelete(confirmDeleteZone);
+          setConfirmDeleteZone(null);
+        }}
       />
     </div>
   );

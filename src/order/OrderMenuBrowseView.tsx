@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Package, Plus, Search, X } from 'lucide-react';
+import { Heart, Package, Plus, Search, X } from 'lucide-react';
 import type { Category, Product } from '../lib/supabase';
 import type { OnlineFulfillmentType } from '../types/online';
 import { OrderVenueInfo } from './OrderVenueInfo';
@@ -18,6 +18,9 @@ export interface OrderMenuBrowseLabels {
   orderVenuePhone: string;
   orderAddToCart: string;
   orderSearchNoResults: string;
+  halalBadge: string;
+  favoriteAdd: string;
+  favoriteRemove: string;
 }
 
 interface OrderMenuBrowseViewProps {
@@ -34,6 +37,8 @@ interface OrderMenuBrowseViewProps {
   venuePhone: string;
   labels: OrderMenuBrowseLabels;
   onAddProduct: (p: Product) => void;
+  favoriteProductIds?: string[];
+  onToggleFavorite?: (productId: string) => void;
   /** When false but user chose delivery, show admin hint (DB must enable delivery). */
   serverAllowsDelivery: boolean;
   deliveryDisabledHint: string;
@@ -44,10 +49,20 @@ interface OrderMenuBrowseViewProps {
 function ProductCard({
   product,
   addLabel,
+  halalLabel,
+  favoriteAddLabel,
+  favoriteRemoveLabel,
+  isFavorite,
+  onToggleFavorite,
   onAdd,
 }: {
   product: Product;
   addLabel: string;
+  halalLabel: string;
+  favoriteAddLabel: string;
+  favoriteRemoveLabel: string;
+  isFavorite: boolean;
+  onToggleFavorite?: () => void;
   onAdd: () => void;
 }) {
   const hasMods = (product.modifier_groups?.length ?? 0) > 0;
@@ -68,7 +83,7 @@ function ProductCard({
         {product.image_url ? (
           <img
             src={product.image_url}
-            alt=""
+            alt={product.name}
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
           />
@@ -79,7 +94,14 @@ function ProductCard({
         )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
-        <h3 className="ming-display text-[17px] leading-[1.15] text-ming-bone">{product.name}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="ming-display text-[17px] leading-[1.15] text-ming-bone">{product.name}</h3>
+          {product.is_halal ? (
+            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
+              {halalLabel}
+            </span>
+          ) : null}
+        </div>
         {product.description ? (
           <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-ming-ash">
             {product.description}
@@ -111,6 +133,23 @@ function ProductCard({
             <Plus className="h-3.5 w-3.5" />
             {addLabel}
           </button>
+          {onToggleFavorite ? (
+            <button
+              type="button"
+              aria-label={isFavorite ? favoriteRemoveLabel : favoriteAddLabel}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+                isFavorite
+                  ? 'border-ming-red/60 bg-ming-red/20 text-ming-red'
+                  : 'border-white/10 bg-white/[0.04] text-ming-ash hover:text-ming-bone'
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite();
+              }}
+            >
+              <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+            </button>
+          ) : null}
         </div>
       </div>
     </article>
@@ -124,6 +163,8 @@ export function OrderMenuBrowseView({
   onSelectCategory,
   labels,
   onAddProduct,
+  favoriteProductIds = [],
+  onToggleFavorite,
   serverAllowsDelivery,
   deliveryDisabledHint,
   fulfillment,
@@ -135,11 +176,27 @@ export function OrderMenuBrowseView({
   const [searchQuery, setSearchQuery] = useState('');
   const chipsRef = useRef<HTMLDivElement | null>(null);
 
+  const fuzzyMatch = (text: string, query: string): boolean => {
+    const source = text.toLowerCase();
+    const q = query.toLowerCase().trim();
+    if (!q) return true;
+    if (source.includes(q)) return true;
+    const tokens = q.split(/\s+/).filter(Boolean);
+    if (tokens.length > 1) return tokens.every((token) => source.includes(token));
+    let qi = 0;
+    for (let i = 0; i < source.length && qi < q.length; i += 1) {
+      if (source[i] === q[qi]) qi += 1;
+    }
+    return qi === q.length;
+  };
+
   const searchFiltered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return products;
     return products.filter(
-      (p) => p.name.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q)
+      (p) =>
+        fuzzyMatch(p.name, q) ||
+        fuzzyMatch(p.description ?? '', q)
     );
   }, [products, searchQuery]);
 
@@ -201,6 +258,11 @@ export function OrderMenuBrowseView({
               key={p.id}
               product={p}
               addLabel={labels.orderAddToCart}
+              halalLabel={labels.halalBadge}
+              favoriteAddLabel={labels.favoriteAdd}
+              favoriteRemoveLabel={labels.favoriteRemove}
+              isFavorite={favoriteProductIds.includes(p.id)}
+              onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
               onAdd={() => onAddProduct(p)}
             />
           ))}
@@ -232,6 +294,11 @@ export function OrderMenuBrowseView({
                       key={p.id}
                       product={p}
                       addLabel={labels.orderAddToCart}
+                      halalLabel={labels.halalBadge}
+                      favoriteAddLabel={labels.favoriteAdd}
+                      favoriteRemoveLabel={labels.favoriteRemove}
+                      isFavorite={favoriteProductIds.includes(p.id)}
+                      onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
                       onAdd={() => onAddProduct(p)}
                     />
                   ))}
@@ -259,6 +326,11 @@ export function OrderMenuBrowseView({
                 key={p.id}
                 product={p}
                 addLabel={labels.orderAddToCart}
+                halalLabel={labels.halalBadge}
+                favoriteAddLabel={labels.favoriteAdd}
+                favoriteRemoveLabel={labels.favoriteRemove}
+                isFavorite={favoriteProductIds.includes(p.id)}
+                onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
                 onAdd={() => onAddProduct(p)}
               />
             ))}

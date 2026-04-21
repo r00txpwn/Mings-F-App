@@ -7,7 +7,9 @@ import { InProgressCard } from './InProgressCard';
 import { NewOrderCard } from './NewOrderCard';
 import { ReadyCard } from './ReadyCard';
 import { ScheduledOrderCard } from './ScheduledOrderCard';
+import { getKitchenLocationFromSettings, type KitchenLocation } from './deliveryUtils';
 import type { OrderManagerOrder } from './types';
+import type { OnlineSettingsRow } from '../types/online';
 
 interface ActiveOrdersTabProps {
   accessToken: string | null;
@@ -24,6 +26,9 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
   const { t } = useLanguage();
   void accessToken;
   const [orders, setOrders] = useState<OrderManagerOrder[]>([]);
+  const [kitchenLocation, setKitchenLocation] = useState<KitchenLocation>(() =>
+    getKitchenLocationFromSettings(null),
+  );
   const [loading, setLoading] = useState(true);
   const [newSubTab, setNewSubTab] = useState<NewSubTab>('new');
   const [readySubTab, setReadySubTab] = useState<ReadySubTab>('ready');
@@ -68,12 +73,16 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
 
   const loadOrders = useCallback(async () => {
     if (!initialLoadDone) setLoading(true);
-    const { data } = await supabase
-      .from('sales')
-      .select('*, sale_items(*, sale_item_modifiers(*))')
-      .in('source', ['kiosk', 'online_delivery', 'online_takeaway'])
-      .in('order_status', ['pending', 'preparing', 'ready', 'dispatched'])
-      .order('created_at', { ascending: true });
+    const [{ data }, { data: settingsData }] = await Promise.all([
+      supabase
+        .from('sales')
+        .select('*, sale_items(*, sale_item_modifiers(*))')
+        .in('source', ['kiosk', 'online_delivery', 'online_takeaway'])
+        .in('order_status', ['pending', 'preparing', 'ready', 'dispatched'])
+        .order('created_at', { ascending: true }),
+      supabase.from('online_settings').select('kitchen_lat, kitchen_lng').limit(1).maybeSingle(),
+    ]);
+    setKitchenLocation(getKitchenLocationFromSettings(settingsData as OnlineSettingsRow | null));
 
     if (!data?.length) {
       setOrders([]);
@@ -407,6 +416,7 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
                   <ReadyCard
                     key={order.id}
                     order={order}
+                    kitchenLocation={kitchenLocation}
                     onPickedUp={() =>
                       void updateSale(order.id, {
                         order_status: 'completed',

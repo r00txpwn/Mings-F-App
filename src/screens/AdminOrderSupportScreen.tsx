@@ -274,7 +274,7 @@ export function AdminOrderSupportScreen() {
         <select
           value={sourceFilter}
           onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
-          className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cockpit-500 focus:outline-none"
+          className="cockpit-select h-11 min-w-[180px]"
         >
           <option value="all">{t.orderSupportSourceAll}</option>
           <option value="kiosk">{t.omSourceKiosk}</option>

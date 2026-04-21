@@ -1,6 +1,28 @@
-export const MINGS_LAT = 40.3777;
-export const MINGS_LNG = 49.892;
+export const DEFAULT_KITCHEN_LAT = 40.3777;
+export const DEFAULT_KITCHEN_LNG = 49.892;
 export const SELF_DELIVERY_THRESHOLD_KM = 1.0;
+
+export interface KitchenLocation {
+  lat: number;
+  lng: number;
+}
+
+export function getKitchenLocationFromSettings(
+  settings:
+    | {
+        kitchen_lat?: number | null;
+        kitchen_lng?: number | null;
+      }
+    | null
+    | undefined,
+): KitchenLocation {
+  const lat = Number(settings?.kitchen_lat);
+  const lng = Number(settings?.kitchen_lng);
+  return {
+    lat: Number.isFinite(lat) ? lat : DEFAULT_KITCHEN_LAT,
+    lng: Number.isFinite(lng) ? lng : DEFAULT_KITCHEN_LNG,
+  };
+}
 
 /**
  * Haversine formula — returns distance in km between two lat/lng points.
@@ -24,10 +46,11 @@ export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: numb
  */
 export function suggestDeliveryMethod(
   deliveryLat: number | null | undefined,
-  deliveryLng: number | null | undefined
+  deliveryLng: number | null | undefined,
+  kitchen: KitchenLocation = { lat: DEFAULT_KITCHEN_LAT, lng: DEFAULT_KITCHEN_LNG },
 ): 'self' | 'wolt' | null {
   if (deliveryLat == null || deliveryLng == null) return null;
-  const km = haversineKm(MINGS_LAT, MINGS_LNG, deliveryLat, deliveryLng);
+  const km = haversineKm(kitchen.lat, kitchen.lng, deliveryLat, deliveryLng);
   return km < SELF_DELIVERY_THRESHOLD_KM ? 'self' : 'wolt';
 }
 
@@ -36,10 +59,11 @@ export function suggestDeliveryMethod(
  */
 export function formatDistanceKm(
   deliveryLat: number | null | undefined,
-  deliveryLng: number | null | undefined
+  deliveryLng: number | null | undefined,
+  kitchen: KitchenLocation = { lat: DEFAULT_KITCHEN_LAT, lng: DEFAULT_KITCHEN_LNG },
 ): string | null {
   if (deliveryLat == null || deliveryLng == null) return null;
-  const km = haversineKm(MINGS_LAT, MINGS_LNG, deliveryLat, deliveryLng);
+  const km = haversineKm(kitchen.lat, kitchen.lng, deliveryLat, deliveryLng);
   return `${km.toFixed(1)} km`;
 }
 
@@ -51,10 +75,11 @@ export function formatDistanceKm(
  */
 export function estimateDeliveryMinutes(
   deliveryLat: number | null | undefined,
-  deliveryLng: number | null | undefined
+  deliveryLng: number | null | undefined,
+  kitchen: KitchenLocation = { lat: DEFAULT_KITCHEN_LAT, lng: DEFAULT_KITCHEN_LNG },
 ): number | null {
   if (deliveryLat == null || deliveryLng == null) return null;
-  const km = haversineKm(MINGS_LAT, MINGS_LNG, deliveryLat, deliveryLng);
+  const km = haversineKm(kitchen.lat, kitchen.lng, deliveryLat, deliveryLng);
   const raw = Math.round(km * 2.5) + 10; // base 10 min + 2.5 min per km
   return Math.min(Math.max(raw, 10), 45);
 }

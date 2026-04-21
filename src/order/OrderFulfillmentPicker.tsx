@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Bike, Store } from 'lucide-react';
+import { Bike, Store } from 'lucide-react';
 import type { OnlineFulfillmentType } from '../types/online';
 
 interface OrderFulfillmentPickerProps {
@@ -59,28 +59,16 @@ export function OrderFulfillmentPicker({
     // Compact pill for the top bar — swap modes on tap.
     const next: OnlineFulfillmentType = fulfillment === 'delivery' ? 'takeaway' : 'delivery';
     const activeLabel = fulfillment === 'delivery' ? deliveryLabel : takeawayLabel;
-    const altLabel = fulfillment === 'delivery' ? takeawayLabel : deliveryLabel;
     const Icon = fulfillment === 'delivery' ? Bike : Store;
     return (
       <button
         type="button"
         onClick={() => onChange(next)}
         className="inline-flex min-w-0 items-center gap-1 rounded-full border border-ming-red/40 bg-ming-red/10 px-2 py-1.5 text-[11px] font-semibold text-ming-bone transition-colors hover:border-ming-red hover:bg-ming-red/20 sm:gap-1.5 sm:px-3 sm:text-[12px]"
-        aria-label={label}
+        aria-label={`${label}: ${activeLabel}`}
       >
         <Icon className="h-3.5 w-3.5 shrink-0 text-ming-red" />
         <span className="truncate uppercase tracking-wide">{activeLabel}</span>
-        <span aria-hidden className="hidden text-ming-ash sm:inline">·</span>
-        <span
-          aria-hidden
-          className="hidden text-[10px] font-bold uppercase tracking-[0.12em] text-ming-red sm:inline"
-        >
-          {altLabel}?
-        </span>
-        <ArrowLeftRight
-          aria-hidden
-          className="h-3 w-3 shrink-0 text-ming-red/80 sm:hidden"
-        />
       </button>
     );
   }

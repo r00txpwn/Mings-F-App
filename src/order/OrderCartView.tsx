@@ -8,6 +8,7 @@ interface OrderCartViewProps {
   grandTotal: number;
   showDeliveryFee: boolean;
   onUpdateQty: (cartItemKey: string, delta: number) => void;
+  onUpdateNotes: (cartItemKey: string, notes: string) => void;
   onRemoveLine: (cartItemKey: string) => void;
   onCheckout: () => void;
   userLoggedIn: boolean;
@@ -21,6 +22,12 @@ interface OrderCartViewProps {
     total: string;
     continueCheckout: string;
     authRequired: string;
+    itemNotes: string;
+    itemNotesPlaceholder: string;
+    removeLine: string;
+    decreaseQty: string;
+    increaseQty: string;
+    itemsCountLabel: string;
   };
   /** Render as persistent desktop side panel instead of full view. */
   variant?: 'view' | 'panel';
@@ -33,6 +40,7 @@ export function OrderCartView({
   grandTotal,
   showDeliveryFee,
   onUpdateQty,
+  onUpdateNotes,
   onRemoveLine,
   onCheckout,
   userLoggedIn,
@@ -87,7 +95,7 @@ export function OrderCartView({
               {item.product.image_url ? (
                 <img
                   src={item.product.image_url}
-                  alt=""
+                  alt={item.product.name}
                   loading="lazy"
                   className="h-full w-full object-cover"
                 />
@@ -106,7 +114,7 @@ export function OrderCartView({
                   type="button"
                   onClick={() => onRemoveLine(item.cartItemKey)}
                   className="shrink-0 rounded-lg p-1.5 text-ming-mute transition-colors hover:bg-white/[0.06] hover:text-ming-red"
-                  aria-label="Remove"
+                  aria-label={labels.removeLine}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -114,13 +122,24 @@ export function OrderCartView({
               {modNames ? (
                 <p className="mt-0.5 line-clamp-1 text-[12px] text-ming-ash">{modNames}</p>
               ) : null}
+              <label className="mt-2 block">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-ming-ash">
+                  {labels.itemNotes}
+                </span>
+                <textarea
+                  value={item.notes}
+                  onChange={(e) => onUpdateNotes(item.cartItemKey, e.target.value)}
+                  placeholder={labels.itemNotesPlaceholder}
+                  className="ming-input min-h-[64px] resize-y py-2.5 text-[13px]"
+                />
+              </label>
               <div className="mt-2 flex items-center justify-between gap-2">
                 <div className="ming-stepper">
                   <button
                     type="button"
                     className="ming-stepper-btn"
                     onClick={() => onUpdateQty(item.cartItemKey, -1)}
-                    aria-label="Decrease"
+                    aria-label={labels.decreaseQty}
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
@@ -131,7 +150,7 @@ export function OrderCartView({
                     type="button"
                     className="ming-stepper-btn"
                     onClick={() => onUpdateQty(item.cartItemKey, 1)}
-                    aria-label="Increase"
+                    aria-label={labels.increaseQty}
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </button>
@@ -168,11 +187,11 @@ export function OrderCartView({
           <h2 className="ming-display text-lg text-ming-bone">{labels.title}</h2>
           {!isEmpty ? (
             <span className="ming-label">
-              {cart.reduce((s, i) => s + i.quantity, 0)} items
+              {cart.reduce((s, i) => s + i.quantity, 0)} {labels.itemsCountLabel}
             </span>
           ) : null}
         </div>
-        <div className="relative flex-1 overflow-y-auto px-5 py-4 ming-fade-b">
+        <div className="ming-scroll relative flex-1 overflow-y-auto px-5 py-4 ming-fade-b">
           {isEmpty ? emptyState : items}
         </div>
         {!isEmpty ? (

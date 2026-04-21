@@ -200,7 +200,7 @@ Mings Financial Automation is a business management system for small to medium-s
 | **KDS** (`/kds`) | Read/update **kiosk + online** orders (`order_status` pipeline) for kitchen |
 | **Kiosk orders (admin)** | Monitor same-day orders (kiosk + online) in Kanban; realtime on `sales` |
 | **Order manager** (`/order-manager`) | Staff-authenticated mobile-first operations view: active flow, past orders, menu toggles |
-| **Online** (`/order` / `/track`) | Public menu (`products.online_visible`), checkout via Edge `online-order-create`; tracking via RPC `get_sale_tracking_public` |
+| **Online** (`/order` / `/track`) | Public menu (`products.online_visible`, optional `products.is_halal` badge), checkout via Edge `online-order-create` (ASAP + scheduled slots); tracking via RPC `get_sale_tracking_public` |
 
 Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
 
@@ -237,9 +237,9 @@ Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
 |-------|---------|
 | sales_channels | Channel definitions (logos, icons, active flag) |
 | sales | Sales rows (`source`: manual, kiosk, `online_delivery`, `online_takeaway`; `order_status`; `track_token`; delivery fields: `delivery_address`, `delivery_apartment`, `delivery_floor`, `delivery_notes`, `delivery_lat`/`delivery_lng`, `delivery_fee`, `delivery_zone_id`) |
-| products | Catalog, stock, `kiosk_visible`, `online_visible`, combo upsell flags |
+| products | Catalog, stock, `kiosk_visible`, `online_visible`, `is_halal`, combo upsell flags |
 | combo_deals / combo_groups / combo_group_items | Combo catalog and group-item mapping |
-| online_settings | Takeaway/delivery toggles, hours JSON, min order |
+| online_settings | Takeaway/delivery toggles, hours JSON, min order, scheduled slot/lead-time settings, kitchen anchor coordinates (`kitchen_lat`/`kitchen_lng`) |
 | delivery_zones | GeoJSON polygons, fees (active zones readable publicly) |
 | online_payments | E-point / card rows (admin read; writes via Edge service role) |
 | delivery_orders | Wolt Drive linkage (admin read; writes via Edge service role) |

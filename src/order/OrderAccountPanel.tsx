@@ -4,6 +4,7 @@ import type { User } from '@supabase/supabase-js';
 import type { CustomerAddressRow, CustomerProfileRow } from '../types/online';
 import type { Sale } from '../lib/supabase';
 import { OrderAddressMap } from './OrderAddressMap';
+import { supabase } from '../lib/supabase';
 
 interface OrderAccountPanelProps {
   user: User | null;
@@ -12,6 +13,7 @@ interface OrderAccountPanelProps {
   sendPhoneOtp: (phone: string) => Promise<{ error: unknown }>;
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: unknown }>;
   signInWithGoogle: (redirectPath?: string) => Promise<{ error: unknown }>;
+  forgotPassword: (email: string, redirectPath?: string) => Promise<{ error: unknown }>;
   signOut: () => Promise<void>;
   profile: CustomerProfileRow | null;
   addresses: CustomerAddressRow[];
@@ -27,6 +29,9 @@ interface OrderAccountPanelProps {
   orders: Sale[];
   ordersLoading: boolean;
   onReloadOrders: () => void;
+  onReorder: (order: Sale) => void;
+  loyaltyEnabled?: boolean;
+  loyaltyRewardEveryOrders?: number;
   /** When set, address form uses map + Places (same as checkout). */
   googleMapsApiKey?: string;
   t: {
@@ -48,6 +53,18 @@ interface OrderAccountPanelProps {
     orderAuthEmail: string;
     orderAuthSms: string;
     orderAuthGoogle: string;
+    orderForgotPassword: string;
+    orderForgotPasswordSent: string;
+    orderSignUpInlinePrompt: string;
+    orderSignUpInlineAction: string;
+    orderEmailConfirmAfterSignup: string;
+    orderResetPasswordTitle: string;
+    orderResetPasswordHint: string;
+    orderResetPasswordNew: string;
+    orderResetPasswordConfirm: string;
+    orderResetPasswordSubmit: string;
+    orderResetPasswordSuccess: string;
+    orderResetPasswordMismatch: string;
     orderSendSmsCode: string;
     orderSmsCode: string;
     orderVerifySms: string;
@@ -60,6 +77,7 @@ interface OrderAccountPanelProps {
     orderMapLoading: string;
     orderMapUnavailable: string;
     orderDeliveryAddress: string;
+    orderReorder: string;
   };
 }
 
@@ -82,6 +100,7 @@ export function OrderAccountPanel({
   sendPhoneOtp,
   verifyPhoneOtp,
   signInWithGoogle,
+  forgotPassword,
   signOut,
   profile,
   addresses,
@@ -91,6 +110,9 @@ export function OrderAccountPanel({
   orders,
   ordersLoading,
   onReloadOrders,
+  onReorder,
+  loyaltyEnabled = false,
+  loyaltyRewardEveryOrders = 10,
   googleMapsApiKey,
   t,
 }: OrderAccountPanelProps) {
@@ -101,7 +123,12 @@ export function OrderAccountPanel({
   const [otp, setOtp] = useState('');
   const [otpStep, setOtpStep] = useState<'phone' | 'otp'>('phone');
   const [authErr, setAuthErr] = useState('');
+  const [authNotice, setAuthNotice] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetBusy, setResetBusy] = useState(false);
   const [nameEdit, setNameEdit] = useState('');
   const [phoneEdit, setPhoneEdit] = useState('');
   const [addrLabel, setAddrLabel] = useState('Home');
@@ -128,8 +155,23 @@ export function OrderAccountPanel({
     }
   }, [user]);
 
+  useEffect(() => {
+    const detectRecoveryMode = () => {
+      const query = new URLSearchParams(window.location.search);
+      const hash = window.location.hash.startsWith('#')
+        ? new URLSearchParams(window.location.hash.slice(1))
+        : new URLSearchParams();
+      const authType = query.get('type') ?? hash.get('type');
+      setRecoveryMode(authType === 'recovery');
+    };
+    detectRecoveryMode();
+    window.addEventListener('hashchange', detectRecoveryMode);
+    return () => window.removeEventListener('hashchange', detectRecoveryMode);
+  }, []);
+
   const handleAuth = async (signup: boolean) => {
     setAuthErr('');
+    setAuthNotice('');
     if (!email.trim() || password.length < 6) {
       setAuthErr('Enter email and password (min 6 chars).');
       return;
@@ -137,12 +179,14 @@ export function OrderAccountPanel({
     setAuthBusy(true);
     const res = signup ? await signUp(email.trim(), password) : await signIn(email.trim(), password);
     if (res.error) setAuthErr(String((res.error as { message?: string }).message ?? res.error));
+    if (!res.error && signup) setAuthNotice(t.orderEmailConfirmAfterSignup);
     setAuthBusy(false);
     if (!res.error) void onReloadOrders();
   };
 
   const handleSendSms = async () => {
     setAuthErr('');
+    setAuthNotice('');
     setAuthBusy(true);
     const res = await sendPhoneOtp(phoneInput);
     if (res.error) {
@@ -158,12 +202,103 @@ export function OrderAccountPanel({
 
   const handleVerifySms = async () => {
     setAuthErr('');
+    setAuthNotice('');
     setAuthBusy(true);
     const res = await verifyPhoneOtp(phoneInput, otp);
     if (res.error) setAuthErr(String((res.error as { message?: string }).message ?? res.error));
     setAuthBusy(false);
     if (!res.error) void onReloadOrders();
   };
+
+  const handleForgotPassword = async () => {
+    setAuthErr('');
+    setAuthNotice('');
+    if (!email.trim()) {
+      setAuthErr('Enter email and password (min 6 chars).');
+      return;
+    }
+    setAuthBusy(true);
+    const res = await forgotPassword(email.trim(), '/order');
+    if (res.error) {
+      setAuthErr(String((res.error as { message?: string }).message ?? res.error));
+    } else {
+      setAuthNotice(t.orderForgotPasswordSent);
+    }
+    setAuthBusy(false);
+  };
+
+  const handleResetPassword = async () => {
+    setAuthErr('');
+    setAuthNotice('');
+    if (newPassword.length < 6 || confirmPassword.length < 6) {
+      setAuthErr('Enter email and password (min 6 chars).');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setAuthErr(t.orderResetPasswordMismatch);
+      return;
+    }
+    setResetBusy(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setAuthErr(error.message);
+      setResetBusy(false);
+      return;
+    }
+    setResetBusy(false);
+    setRecoveryMode(false);
+    setNewPassword('');
+    setConfirmPassword('');
+    setAuthNotice(t.orderResetPasswordSuccess);
+    if (window.location.hash) {
+      window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
+    }
+  };
+
+  if (recoveryMode) {
+    return (
+      <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6">
+        <div className="ming-card-raised relative overflow-hidden p-6">
+          <p className="ming-eyebrow mb-2">Ming&apos;s · Security</p>
+          <h2 className="ming-display text-[26px] leading-tight text-ming-bone">{t.orderResetPasswordTitle}</h2>
+          <p className="mt-1.5 text-sm text-ming-ash">{t.orderResetPasswordHint}</p>
+
+          {authErr ? (
+            <p className="mt-4 rounded-xl border border-ming-red/40 bg-ming-red/10 px-3 py-2 text-[13px] text-ming-red">
+              {authErr}
+            </p>
+          ) : null}
+
+          <div className="mt-5 space-y-3">
+            <input
+              type="password"
+              className="ming-input"
+              placeholder={t.orderResetPasswordNew}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+            <input
+              type="password"
+              className="ming-input"
+              placeholder={t.orderResetPasswordConfirm}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+            <button
+              type="button"
+              disabled={resetBusy}
+              onClick={() => void handleResetPassword()}
+              className="ming-btn-primary w-full justify-center"
+            >
+              {resetBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t.orderResetPasswordSubmit}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -211,6 +346,11 @@ export function OrderAccountPanel({
               {authErr}
             </p>
           ) : null}
+          {authNotice ? (
+            <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-300">
+              {authNotice}
+            </p>
+          ) : null}
 
           <div className="mt-5 space-y-3">
             <button
@@ -248,26 +388,37 @@ export function OrderAccountPanel({
                   placeholder={t.orderPassword}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
+                  autoComplete="current-password"
                 />
-                <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={authBusy}
+                  onClick={() => void handleAuth(false)}
+                  className="ming-btn-primary w-full justify-center"
+                >
+                  {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t.orderSignIn}
+                </button>
+                <div className="flex items-center justify-start">
                   <button
                     type="button"
                     disabled={authBusy}
-                    onClick={() => void handleAuth(false)}
-                    className="ming-btn-primary flex-1"
+                    onClick={() => void handleForgotPassword()}
+                    className="ming-btn-link px-0 py-0 text-[13px]"
                   >
-                    {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t.orderSignIn}
+                    {t.orderForgotPassword}
                   </button>
+                </div>
+                <p className="text-center text-[13px] text-ming-ash">
+                  {t.orderSignUpInlinePrompt}{' '}
                   <button
                     type="button"
                     disabled={authBusy}
                     onClick={() => void handleAuth(true)}
-                    className="ming-btn-ghost flex-1"
+                    className="ming-btn-link inline-flex px-0 py-0 text-[13px]"
                   >
-                    {t.orderSignUp}
+                    {t.orderSignUpInlineAction}
                   </button>
-                </div>
+                </p>
               </>
             ) : otpStep === 'phone' ? (
               <>
@@ -512,27 +663,44 @@ export function OrderAccountPanel({
                       ? 'bg-ming-gold/15 text-ming-gold'
                       : 'bg-white/[0.05] text-ming-ash';
                   return (
-                    <li
-                      key={o.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3"
-                    >
-                      <span className="ming-mono text-[14px] font-bold text-ming-bone">
-                        #{o.display_number ?? '—'}
-                      </span>
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${toneClass}`}
-                      >
-                        {label}
-                      </span>
-                      <span className="ming-mono text-[14px] font-semibold text-ming-bone">
-                        {Number(o.total_price).toFixed(2)} ₼
-                      </span>
+                    <li key={o.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="ming-mono text-[14px] font-bold text-ming-bone">
+                          #{o.display_number ?? '—'}
+                        </span>
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${toneClass}`}
+                        >
+                          {label}
+                        </span>
+                        <span className="ming-mono text-[14px] font-semibold text-ming-bone">
+                          {Number(o.total_price).toFixed(2)} ₼
+                        </span>
+                      </div>
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => onReorder(o)}
+                          className="ming-btn-ghost px-3 py-2 text-[12px]"
+                        >
+                          {t.orderReorder}
+                        </button>
+                      </div>
                     </li>
                   );
                 })}
               </ul>
             )}
           </section>
+
+          {loyaltyEnabled ? (
+            <section className="ming-card p-5">
+              <p className="ming-eyebrow mb-3">Loyalty</p>
+              <p className="text-sm text-ming-ash">
+                {`Progress: ${orders.length % Math.max(1, loyaltyRewardEveryOrders)} / ${Math.max(1, loyaltyRewardEveryOrders)}`}
+              </p>
+            </section>
+          ) : null}
         </div>
       )}
     </div>

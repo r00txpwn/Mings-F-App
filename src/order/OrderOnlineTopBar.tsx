@@ -3,6 +3,12 @@ import type { Language } from '../translations';
 import type { OnlineFulfillmentType } from '../types/online';
 import { OrderFulfillmentPicker } from './OrderFulfillmentPicker';
 
+const LANGUAGES: { code: Language; label: string }[] = [
+  { code: 'en', label: 'EN' },
+  { code: 'az', label: 'AZ' },
+  { code: 'ru', label: 'RU' },
+];
+
 interface OrderOnlineTopBarProps {
   language: Language;
   onLanguageChange: (lang: Language) => void;
@@ -67,28 +73,29 @@ export function OrderOnlineTopBar({
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-          <label className="sr-only" htmlFor="ming-lang">
-            {languageLabel}
-          </label>
-          <div className="relative">
-            <select
-              id="ming-lang"
-              value={language}
-              onChange={(e) => void onLanguageChange(e.target.value as Language)}
-              className="appearance-none rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 pr-6 text-[11px] font-bold uppercase tracking-wider text-ming-bone transition-colors hover:border-white/20 hover:bg-white/[0.08] focus:border-ming-red/60 focus:outline-none focus:ring-2 focus:ring-ming-red/25 sm:px-2.5 sm:pr-7"
-              aria-label={languageLabel}
-              style={{
-                backgroundImage:
-                  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A8A6B0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")",
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 0.35rem center',
-                backgroundSize: '0.65rem',
-              }}
-            >
-              <option value="en">EN</option>
-              <option value="az">AZ</option>
-              <option value="ru">RU</option>
-            </select>
+          <div
+            className="inline-flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/[0.04] p-0.5"
+            role="group"
+            aria-label={languageLabel}
+          >
+            {LANGUAGES.map((lang) => {
+              const active = language === lang.code;
+              return (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => onLanguageChange(lang.code)}
+                  aria-pressed={active}
+                  className={`rounded-lg px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors sm:px-2.5 ${
+                    active
+                      ? 'bg-ming-red/25 text-ming-bone ring-1 ring-ming-red/60'
+                      : 'text-ming-ash hover:bg-white/[0.08] hover:text-ming-bone'
+                  }`}
+                >
+                  {lang.label}
+                </button>
+              );
+            })}
           </div>
 
           {hideAccountButton ? null : (

@@ -180,7 +180,7 @@ export function KioskOrdersScreen() {
           <select
             value={sourceFilter}
             onChange={(event) => setSourceFilter(event.target.value as typeof sourceFilter)}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-cockpit-400 transition focus:ring-2 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+            className="cockpit-select h-11 w-full"
           >
             <option value="all">{t.allSources}</option>
             <option value="kiosk">{t.kiosk}</option>
@@ -194,7 +194,7 @@ export function KioskOrdersScreen() {
           <select
             value={paymentFilter}
             onChange={(event) => setPaymentFilter(event.target.value as typeof paymentFilter)}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-cockpit-400 transition focus:ring-2 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+            className="cockpit-select h-11 w-full"
           >
             <option value="all">{t.allPayments}</option>
             <option value="unpaid">{t.unpaidOnly}</option>

@@ -21,6 +21,8 @@ Pick **one** of:
 
 `vercel.json` in this repo configures SPA rewrites so `/order`, `/track`, `/kiosk`, `/kds` work.
 
+PWA assets are served from `public/manifest.webmanifest` and `public/sw.js`. Ensure these files are included in your static deploy output.
+
 ### Subdomains (optional, same build)
 
 1. **DNS:** Add `A`/`CNAME` records for e.g. `app.`, `order.`, `kiosk.` pointing at your static host (or Vercel as documented).
@@ -28,6 +30,16 @@ Pick **one** of:
 3. **Env:** Set `VITE_SURFACE_*` lists so `order.yourdomain.com` loads the storefront at `/` without the `/order` path; `app.yourdomain.com` loads the staff cockpit at `/`.
 4. **Supabase Auth:** If staff and storefront use different registrable domains, add every auth redirect URL in Supabase **Authentication → URL configuration** (same parent domain usually works with defaults).
 5. **Edge `APP_BASE_URL`:** Set to the **canonical online storefront origin** (e.g. `https://order.yourdomain.com` when using an order subdomain) so Epoint return URLs and payment flows match where customers land. If the menu is served at `/` on that host, set Edge secret **`APP_STOREFRONT_PATH=/`** (see [.env.example](.env.example)).
+
+### Supabase Auth settings (recommended baseline)
+
+In **Authentication → Providers / Settings**:
+
+- Turn on **Confirm sign up** for email/password users.
+- Turn on **Reset password** so storefront users can recover accounts from `/order`.
+- Keep `Site URL` set to your primary storefront origin (example: `https://order.mings.az`).
+- Add allowed redirects for every live surface origin that can start auth (for this project: `https://order.mings.az/**` and `https://sp.mings.az/**`).
+- For Google OAuth, ensure provider credentials are configured in Supabase and in Google Cloud, with callback `https://<project-ref>.supabase.co/auth/v1/callback`.
 
 **Subdomain smoke checks (after DNS + env propagate):**
 
@@ -70,6 +82,14 @@ supabase db push
 ```bash
 npm run supabase:push
 ```
+
+Recent online-order schema additions included in this repo:
+
+- `20260421153000_scheduled_slots.sql` (`sales.is_scheduled`, `online_settings.scheduled_slot_minutes`, `online_settings.scheduled_lead_minutes`)
+- `20260421161000_add_product_halal_flag.sql` (`products.is_halal`)
+- `20260421174000_checkout_promos_loyalty_errors.sql` (`sales.discount_amount`, `sales.tip_amount`, `sales.promo_code`, `promo_codes`, `dispatch_failures`, OTP rate-limit RPC)
+- `20260421182500_customer_favorites.sql` (`customer_favorites`)
+- `20260421194000_online_settings_kitchen_location.sql` (`online_settings.kitchen_lat`, `online_settings.kitchen_lng`)
 
 If you see **“Remote migration versions not found in local migrations directory”**, fix history first: **[docs/MIGRATION_HISTORY.md](docs/MIGRATION_HISTORY.md)** (`npm run supabase:repair:remote` then push again).
 

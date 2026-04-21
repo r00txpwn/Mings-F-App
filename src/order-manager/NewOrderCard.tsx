@@ -178,7 +178,7 @@ export function NewOrderCard({ order, onAccept, onMarkPaid, onReject, disabled }
               if (e.target.value !== 'other') setRejectNote('');
             }}
             disabled={disabled}
-            className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:border-cockpit-500 focus:outline-none"
+            className="cockpit-select w-full"
           >
             <option value="" disabled>
               {t.omRejectSelectReason}

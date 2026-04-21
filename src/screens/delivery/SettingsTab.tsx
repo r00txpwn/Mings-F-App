@@ -13,6 +13,11 @@ export interface SettingsTabTranslations {
   defaultPrep: string;
   defaultPrepHint: string;
   globalFreeThreshold: string;
+  kitchenLocationTitle: string;
+  kitchenLocationHint: string;
+  kitchenLatitude: string;
+  kitchenLongitude: string;
+  kitchenLocationInvalid: string;
   dispatchMode: string;
   dispatchAuto: string;
   dispatchManual: string;
@@ -88,6 +93,8 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
   const [minOrder, setMinOrder] = useState('0');
   const [defaultPrep, setDefaultPrep] = useState('25');
   const [freeThreshold, setFreeThreshold] = useState('');
+  const [kitchenLat, setKitchenLat] = useState('');
+  const [kitchenLng, setKitchenLng] = useState('');
   const [dispatchMode, setDispatchMode] = useState<DispatchMode>('auto');
   const [hours, setHours] = useState<HoursState>(() => readHoursJson(null));
   const [saving, setSaving] = useState(false);
@@ -102,6 +109,8 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
     setFreeThreshold(
       settings.free_delivery_threshold != null ? String(settings.free_delivery_threshold) : '',
     );
+    setKitchenLat(settings.kitchen_lat != null ? String(settings.kitchen_lat) : '');
+    setKitchenLng(settings.kitchen_lng != null ? String(settings.kitchen_lng) : '');
     setDispatchMode(settings.dispatch_mode === 'manual' ? 'manual' : 'auto');
     setHours(readHoursJson(settings.hours_json as Record<string, unknown>));
   }, [settings]);
@@ -120,6 +129,14 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
   );
 
   const handleSave = async () => {
+    const lat = kitchenLat.trim() === '' ? null : Number(kitchenLat);
+    const lng = kitchenLng.trim() === '' ? null : Number(kitchenLng);
+    const latValid = lat == null || (Number.isFinite(lat) && lat >= -90 && lat <= 90);
+    const lngValid = lng == null || (Number.isFinite(lng) && lng >= -180 && lng <= 180);
+    if (!latValid || !lngValid) {
+      onError(t.kitchenLocationInvalid);
+      return;
+    }
     setSaving(true);
     const { error } = await updateSettings({
       is_open: isOpen,
@@ -128,6 +145,8 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
       min_order_amount: Number(minOrder) || 0,
       default_prep_time_minutes: Number(defaultPrep) || 25,
       free_delivery_threshold: freeThreshold.trim() === '' ? null : Number(freeThreshold) || 0,
+      kitchen_lat: lat,
+      kitchen_lng: lng,
       dispatch_mode: dispatchMode,
       hours_json: serialiseHoursJson(hours),
     });
@@ -225,12 +244,40 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
             className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-cockpit-500 focus:outline-none"
           />
         </label>
+        <div className="space-y-1 text-xs sm:col-span-2">
+          <span className="font-medium text-slate-300">{t.kitchenLocationTitle}</span>
+          <p className="text-[11px] text-slate-500">{t.kitchenLocationHint}</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="space-y-1">
+              <span className="font-medium text-slate-400">{t.kitchenLatitude}</span>
+              <input
+                type="number"
+                step="0.000001"
+                value={kitchenLat}
+                onChange={(e) => setKitchenLat(e.target.value)}
+                placeholder="40.377700"
+                className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-cockpit-500 focus:outline-none"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="font-medium text-slate-400">{t.kitchenLongitude}</span>
+              <input
+                type="number"
+                step="0.000001"
+                value={kitchenLng}
+                onChange={(e) => setKitchenLng(e.target.value)}
+                placeholder="49.892000"
+                className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-cockpit-500 focus:outline-none"
+              />
+            </label>
+          </div>
+        </div>
         <label className="space-y-1 text-xs">
           <span className="font-medium text-slate-400">{t.dispatchMode}</span>
           <select
             value={dispatchMode}
             onChange={(e) => setDispatchMode(e.target.value as DispatchMode)}
-            className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 focus:border-cockpit-500 focus:outline-none"
+            className="cockpit-select w-full"
           >
             <option value="auto">{t.dispatchAuto}</option>
             <option value="manual">{t.dispatchManual}</option>

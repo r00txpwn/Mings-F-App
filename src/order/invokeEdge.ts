@@ -6,7 +6,7 @@ export async function invokeEdgeFunction<TBody extends object, TRes = unknown>(
   body: TBody,
   /** Customer JWT — when set, Edge links the sale to `customer_user_id`. */
   accessToken?: string | null
-): Promise<{ ok: boolean; status: number; data: TRes | null; error?: string }> {
+): Promise<{ ok: boolean; status: number; data: TRes | null; error?: string; code?: string }> {
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
   if (!key) {
     return { ok: false, status: 0, data: null, error: 'Missing anon key' };
@@ -24,8 +24,15 @@ export async function invokeEdgeFunction<TBody extends object, TRes = unknown>(
   });
   const json = (await res.json().catch(() => null)) as TRes | { error?: string } | null;
   if (!res.ok) {
-    const err = json && typeof json === 'object' && json !== null && 'error' in json ? String((json as { error?: string }).error) : res.statusText;
-    return { ok: false, status: res.status, data: null, error: err };
+    const err =
+      json && typeof json === 'object' && json !== null && 'error' in json
+        ? String((json as { error?: string }).error)
+        : res.statusText;
+    const code =
+      json && typeof json === 'object' && json !== null && 'code' in json
+        ? String((json as { code?: string }).code ?? '')
+        : undefined;
+    return { ok: false, status: res.status, data: null, error: err, code: code || undefined };
   }
   return { ok: true, status: res.status, data: json as TRes };
 }

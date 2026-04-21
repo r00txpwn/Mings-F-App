@@ -135,6 +135,7 @@ export interface Sale {
   ready_at?: string | null;
   estimated_ready_at?: string | null;
   scheduled_for?: string | null;
+  is_scheduled?: boolean | null;
   reminder_at?: string | null;
   online_payment_method?: string | null;
   delivery_notes?: string | null;
@@ -191,6 +192,7 @@ export interface Product {
   updated_at: string;
   kiosk_visible?: boolean;
   online_visible?: boolean;
+  is_halal?: boolean;
   image_url?: string | null;
   display_order?: number;
   /** When true, adding this item alone may show “make it a combo” upsell (online order). */

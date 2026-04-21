@@ -3,6 +3,7 @@ import { Flame, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 type ComboGroupItemRow = {
   id: string;
@@ -48,6 +49,7 @@ export function CombosScreen() {
   const [newGroupName, setNewGroupName] = useState('');
   const [newItemByGroup, setNewItemByGroup] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [confirmState, setConfirmState] = useState<{ type: 'combo' | 'group'; id: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -146,7 +148,6 @@ export function CombosScreen() {
   };
 
   const remove = async (id: string) => {
-    if (!window.confirm(t.confirmDelete)) return;
     await supabase.from('combo_deals').delete().eq('id', id);
     if (selectedComboId === id) setSelectedComboId(null);
     await load();
@@ -175,7 +176,6 @@ export function CombosScreen() {
   };
 
   const removeGroup = async (groupId: string) => {
-    if (!window.confirm(t.confirmDelete)) return;
     setBusy(true);
     await supabase.from('combo_groups').delete().eq('id', groupId);
     setBusy(false);
@@ -291,7 +291,7 @@ export function CombosScreen() {
                       className="rounded-lg p-2 text-rose-500 hover:bg-rose-500/10"
                       onClick={(event) => {
                         event.stopPropagation();
-                        void remove(r.id);
+                        setConfirmState({ type: 'combo', id: r.id });
                       }}
                       aria-label={t.delete}
                     >
@@ -470,7 +470,7 @@ export function CombosScreen() {
                         <button
                           type="button"
                           className="rounded-lg p-2 text-rose-500 hover:bg-rose-500/10"
-                          onClick={() => void removeGroup(group.id)}
+                          onClick={() => setConfirmState({ type: 'group', id: group.id })}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -603,6 +603,24 @@ export function CombosScreen() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmState !== null}
+        title={t.delete}
+        message={t.confirmDelete}
+        confirmLabel={t.delete}
+        cancelLabel={t.cancel}
+        onCancel={() => setConfirmState(null)}
+        onConfirm={() => {
+          if (!confirmState) return;
+          const state = confirmState;
+          setConfirmState(null);
+          if (state.type === 'combo') {
+            void remove(state.id);
+            return;
+          }
+          void removeGroup(state.id);
+        }}
+      />
     </div>
   );
 }

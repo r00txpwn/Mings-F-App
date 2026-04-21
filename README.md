@@ -14,6 +14,23 @@ Runs `npm run build` then `vite preview` on **127.0.0.1**. Default port is **417
 
 See **[DEPLOY.md](DEPLOY.md)** for Vercel/Netlify/Supabase CLI steps. Production build: `npm run build` → `dist/`.
 
+## Auth basics (`/order` + staff)
+
+- Enable **Confirm sign up** in Supabase Auth for email/password signups.
+- Enable **Reset password** in Supabase Auth so storefront users can recover accounts.
+- Keep redirect URLs aligned with your live origins (for this project typically `https://order.mings.az/**` and `https://sp.mings.az/**`).
+- Google OAuth and email recovery links should return users to `/order` to complete sign-in/reset flows.
+
+## Storefront checkout highlights
+
+- Cart state persists across refresh (`cart`, fulfillment mode, selected saved address).
+- Cart lines support per-item notes and those notes are passed to `online-order-create`.
+- Account order history includes a one-tap reorder action that rebuilds the cart from prior sale items.
+- Checkout supports `ASAP` and scheduled time-slot ordering (lead-time guarded server-side).
+- Checkout includes promo code, tip, order notes, consent checkbox, and retry button on submit errors.
+- PWA basics enabled (`/manifest.webmanifest` + service worker registration) for installability and offline fallback.
+- Delivery Control Center settings include editable kitchen coordinates, used by staff/order-tracking distance and ETA calculations.
+
 ## Feature docs
 
 - Combo deals: **[docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)**

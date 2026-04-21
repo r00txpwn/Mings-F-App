@@ -21,6 +21,11 @@ interface Body {
   fulfillmentType: FulfillmentType;
   paymentMethod: PaymentMethod;
   cart: CartLine[];
+  promoCode?: string;
+  tipAmount?: number;
+  orderNotes?: string;
+  isScheduled?: boolean;
+  scheduledFor?: string;
   customerName?: string;
   customerPhone: string;
   deliveryAddress?: string;
@@ -34,6 +39,10 @@ interface Body {
   deliveryNotes?: string;
   /** QR/table context (e.g. `?table=` or `?ref=`) — stored on the sale `notes` field for kitchen. */
   tableLabel?: string;
+}
+
+function errorResponse(code: string, error: string, status = 400): Response {
+  return jsonResponse({ code, error }, status);
 }
 
 function normalizePhoneE164(input: string): string {
@@ -93,13 +102,13 @@ async function handleRequest(req: Request): Promise<Response> {
     return corsPreflightResponse();
   }
   if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405);
+    return errorResponse('METHOD_NOT_ALLOWED', 'Method not allowed', 405);
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   if (!supabaseUrl || !serviceKey) {
-    return jsonResponse({ error: 'Server misconfigured' }, 500);
+    return errorResponse('SERVER_MISCONFIGURED', 'Server misconfigured', 500);
   }
 
   const supabase = createClient(supabaseUrl, serviceKey, {
@@ -119,14 +128,14 @@ async function handleRequest(req: Request): Promise<Response> {
     }
   }
   if (!customerUserId) {
-    return jsonResponse({ error: 'Authentication required to place order' }, 401);
+    return errorResponse('AUTH_REQUIRED', 'Authentication required to place order', 401);
   }
 
   let body: Body;
   try {
     body = (await req.json()) as Body;
   } catch {
-    return jsonResponse({ error: 'Invalid JSON' }, 400);
+    return errorResponse('INVALID_JSON', 'Invalid JSON', 400);
   }
 
   const {
@@ -135,6 +144,11 @@ async function handleRequest(req: Request): Promise<Response> {
     cart,
     customerName,
     customerPhone,
+    promoCode,
+    tipAmount,
+    orderNotes,
+    isScheduled,
+    scheduledFor,
     deliveryAddress,
     deliveryLat,
     deliveryLng,
@@ -145,49 +159,65 @@ async function handleRequest(req: Request): Promise<Response> {
   } = body;
 
   if (!Array.isArray(cart) || cart.length === 0) {
-    return jsonResponse({ error: 'Cart is empty' }, 400);
+    return errorResponse('CART_EMPTY', 'Cart is empty', 400);
   }
   if (!customerPhone || typeof customerPhone !== 'string') {
-    return jsonResponse({ error: 'Valid phone number required' }, 400);
+    return errorResponse('PHONE_REQUIRED', 'Valid phone number required', 400);
   }
   const normalizedPhone = normalizePhoneE164(customerPhone);
   if (!isLikelyE164(normalizedPhone)) {
-    return jsonResponse({ error: 'Valid phone number required (E.164, e.g. +994...)' }, 400);
+    return errorResponse('PHONE_INVALID', 'Valid phone number required (E.164, e.g. +994...)', 400);
   }
 
   const { data: settings } = await supabase.from('online_settings').select('*').limit(1).maybeSingle();
   if (!settings) {
-    return jsonResponse({ error: 'Online ordering not configured' }, 503);
+    return errorResponse('ONLINE_NOT_CONFIGURED', 'Online ordering not configured', 503);
   }
 
   if (fulfillmentType === 'takeaway' && !settings.takeaway_enabled) {
-    return jsonResponse({ error: 'Takeaway ordering is disabled' }, 400);
+    return errorResponse('TAKEAWAY_DISABLED', 'Takeaway ordering is disabled', 400);
   }
   if (fulfillmentType === 'delivery' && !settings.delivery_enabled) {
-    return jsonResponse({ error: 'Delivery is disabled' }, 400);
+    return errorResponse('DELIVERY_DISABLED', 'Delivery is disabled', 400);
   }
 
   if (fulfillmentType === 'delivery') {
     if (deliveryLat == null || deliveryLng == null || Number.isNaN(deliveryLat) || Number.isNaN(deliveryLng)) {
-      return jsonResponse({ error: 'Delivery location required' }, 400);
+      return errorResponse('DELIVERY_LOCATION_REQUIRED', 'Delivery location required', 400);
     }
     if (!deliveryAddress?.trim()) {
-      return jsonResponse({ error: 'Delivery address required' }, 400);
+      return errorResponse('DELIVERY_ADDRESS_REQUIRED', 'Delivery address required', 400);
     }
+  }
+
+  let scheduledAtIso: string | null = null;
+  if (isScheduled) {
+    if (!scheduledFor?.trim()) {
+      return errorResponse('SCHEDULE_TIME_REQUIRED', 'Scheduled time is required', 400);
+    }
+    const parsed = new Date(scheduledFor);
+    if (Number.isNaN(parsed.getTime())) {
+      return errorResponse('SCHEDULE_TIME_INVALID', 'Scheduled time is invalid', 400);
+    }
+    const leadMinutes = Number(settings.scheduled_lead_minutes ?? settings.default_prep_time_minutes ?? 45);
+    if (parsed.getTime() < Date.now() + Math.max(5, leadMinutes) * 60_000) {
+      return errorResponse('SCHEDULE_TIME_TOO_SOON', 'Scheduled time does not meet lead time', 400);
+    }
+    scheduledAtIso = parsed.toISOString();
   }
 
   const source = fulfillmentType === 'delivery' ? 'online_delivery' : 'online_takeaway';
 
   const { data: channel } = await supabase.from('sales_channels').select('id').eq('name', 'Online').maybeSingle();
   if (!channel?.id) {
-    return jsonResponse({ error: 'Online sales channel missing' }, 500);
+    return errorResponse('ONLINE_CHANNEL_MISSING', 'Online sales channel missing', 500);
   }
 
   const { data: orderNum, error: rpcErr } = await supabase.rpc('generate_daily_order_number_for_source', {
     order_source: source,
   });
   if (rpcErr || orderNum == null) {
-    return jsonResponse({ error: rpcErr?.message ?? 'Order number failed' }, 500);
+    return errorResponse('ORDER_NUMBER_FAILED', rpcErr?.message ?? 'Order number failed', 500);
   }
   const dailyNumber = Number(orderNum);
   const displayNumber = 'O' + String(dailyNumber).padStart(3, '0');
@@ -210,7 +240,7 @@ async function handleRequest(req: Request): Promise<Response> {
       }
     }
     if (!matched) {
-      return jsonResponse({ error: 'Address is outside delivery zones' }, 400);
+      return errorResponse('OUTSIDE_DELIVERY_ZONE', 'Address is outside delivery zones', 400);
     }
     deliveryFee = Number(matched.delivery_fee ?? 0);
     zoneId = matched.id;
@@ -474,18 +504,55 @@ async function handleRequest(req: Request): Promise<Response> {
     });
   }
 
-  const total = subtotal + deliveryFee;
+  const tip = Math.max(0, Number(tipAmount ?? 0));
+  let discount = 0;
+  let promoCodeApplied: string | null = null;
+  if (promoCode?.trim()) {
+    const normalizedCode = promoCode.trim().toUpperCase();
+    const { data: promo } = await supabase
+      .from('promo_codes')
+      .select('*')
+      .eq('code', normalizedCode)
+      .eq('active', true)
+      .maybeSingle();
+    if (!promo) {
+      return errorResponse('PROMO_INVALID', 'Promo code is invalid or inactive', 400);
+    }
+    const startsAt = promo.starts_at ? new Date(String(promo.starts_at)).getTime() : null;
+    const endsAt = promo.ends_at ? new Date(String(promo.ends_at)).getTime() : null;
+    const now = Date.now();
+    if ((startsAt && now < startsAt) || (endsAt && now > endsAt)) {
+      return errorResponse('PROMO_INACTIVE_WINDOW', 'Promo code is not active right now', 400);
+    }
+    const minPromoOrder = Number(promo.min_order_amount ?? 0);
+    if (subtotal < minPromoOrder) {
+      return errorResponse('PROMO_MIN_NOT_MET', `Promo requires minimum ₼${minPromoOrder.toFixed(2)}`, 400);
+    }
+    if (promo.discount_type === 'percent') {
+      discount = (subtotal * Number(promo.discount_value ?? 0)) / 100;
+    } else {
+      discount = Number(promo.discount_value ?? 0);
+    }
+    discount = Math.max(0, Math.min(discount, subtotal));
+    promoCodeApplied = normalizedCode;
+  }
+
+  const totalWithAdjustments = subtotal + deliveryFee - discount + tip;
   // Combos remain bundled pricing lines and should stay outside discount arithmetic by default.
   const minOrder = Number(settings.min_order_amount ?? 0);
-  if (total < minOrder) {
-    return jsonResponse({ error: `Minimum order is ₼${minOrder.toFixed(2)}` }, 400);
+  if (totalWithAdjustments < minOrder) {
+    return errorResponse('MIN_ORDER_NOT_MET', `Minimum order is ₼${minOrder.toFixed(2)}`, 400);
   }
 
   if (fulfillmentType === 'delivery' && zoneId) {
     const { data: zrow } = await supabase.from('delivery_zones').select('min_order_amount').eq('id', zoneId).maybeSingle();
     const zmin = Number((zrow as { min_order_amount?: number } | null)?.min_order_amount ?? 0);
     if (subtotal < zmin) {
-      return jsonResponse({ error: `Minimum subtotal for this zone is ₼${zmin.toFixed(2)}` }, 400);
+      return errorResponse(
+        'ZONE_MIN_ORDER_NOT_MET',
+        `Minimum subtotal for this zone is ₼${zmin.toFixed(2)}`,
+        400
+      );
     }
   }
 
@@ -511,14 +578,21 @@ async function handleRequest(req: Request): Promise<Response> {
       order_status: 'pending',
       payment_status: paymentStatus,
       sales_channel_id: channel.id,
-      total_price: total,
+      total_price: totalWithAdjustments,
+      discount_amount: discount,
+      tip_amount: tip,
+      promo_code: promoCodeApplied,
       quantity: itemCount,
-      unit_price: itemCount > 0 ? total / itemCount : total,
+      unit_price: itemCount > 0 ? totalWithAdjustments / itemCount : totalWithAdjustments,
       daily_order_number: dailyNumber,
       display_number: displayNumber,
       track_token: trackToken,
+      is_scheduled: Boolean(isScheduled && scheduledAtIso),
+      scheduled_for: scheduledAtIso,
       sale_date: new Date().toISOString(),
-      notes: [tableNote, courierNote ? `Courier: ${courierNote}` : ''].filter(Boolean).join(' | '),
+      notes: [tableNote, orderNotes?.trim(), courierNote ? `Courier: ${courierNote}` : '']
+        .filter(Boolean)
+        .join(' | '),
       delivery_notes: courierNote || null,
       online_payment_method: paymentMethod,
       customer_name: customerName?.trim() || null,
@@ -619,14 +693,31 @@ async function handleRequest(req: Request): Promise<Response> {
 
   if (fulfillmentType === 'delivery' && Deno.env.get('WOLT_API_TOKEN')) {
     EdgeRuntime.waitUntil(
-      fetch(`${supabaseUrl}/functions/v1/wolt-drive-create`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ saleId }),
-      }).catch(() => void 0)
+      (async () => {
+        try {
+          const resp = await fetch(`${supabaseUrl}/functions/v1/wolt-drive-create`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${serviceKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ saleId }),
+          });
+          if (!resp.ok) {
+            await supabase.from('dispatch_failures').insert({
+              sale_id: saleId,
+              reason: `wolt-drive-create failed: ${resp.status}`,
+              payload: { status: resp.status },
+            });
+          }
+        } catch (err) {
+          await supabase.from('dispatch_failures').insert({
+            sale_id: saleId,
+            reason: 'wolt-drive-create network failure',
+            payload: { error: err instanceof Error ? err.message : String(err) },
+          });
+        }
+      })()
     );
   }
 
@@ -634,7 +725,7 @@ async function handleRequest(req: Request): Promise<Response> {
     saleId,
     trackToken,
     displayNumber,
-    total,
+    total: totalWithAdjustments,
     deliveryFee,
     paymentMethod,
     paymentInitToken,

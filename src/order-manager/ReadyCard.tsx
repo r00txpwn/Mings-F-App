@@ -1,18 +1,24 @@
 import { Bike, ClipboardCopy, MapPin, Navigation, Phone, Truck, User } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { SELF_DELIVERY_THRESHOLD_KM, formatDistanceKm, suggestDeliveryMethod } from './deliveryUtils';
+import {
+  SELF_DELIVERY_THRESHOLD_KM,
+  formatDistanceKm,
+  suggestDeliveryMethod,
+  type KitchenLocation,
+} from './deliveryUtils';
 import { getCustomerDisplayName, type OrderManagerOrder } from './types';
 import { OrderItemSummary } from './OrderItemSummary';
 
 interface ReadyCardProps {
   order: OrderManagerOrder;
+  kitchenLocation: KitchenLocation;
   onPickedUp: () => void;
   onDispatched: () => void;
   onSelfDispatch: (orderId: string) => void;
 }
 
-export function ReadyCard({ order, onPickedUp, onDispatched, onSelfDispatch }: ReadyCardProps) {
+export function ReadyCard({ order, kitchenLocation, onPickedUp, onDispatched, onSelfDispatch }: ReadyCardProps) {
   const { t } = useLanguage();
   const [dispatchMethod, setDispatchMethod] = useState<'self' | 'wolt' | null>(null);
   const [dispatchConfirmed, setDispatchConfirmed] = useState(false);
@@ -26,8 +32,8 @@ export function ReadyCard({ order, onPickedUp, onDispatched, onSelfDispatch }: R
     return t.omSourceKiosk;
   }, [order.source, t]);
   const customerDisplay = getCustomerDisplayName(order);
-  const suggestion = suggestDeliveryMethod(order.delivery_lat, order.delivery_lng);
-  const distanceLabel = formatDistanceKm(order.delivery_lat, order.delivery_lng);
+  const suggestion = suggestDeliveryMethod(order.delivery_lat, order.delivery_lng, kitchenLocation);
+  const distanceLabel = formatDistanceKm(order.delivery_lat, order.delivery_lng, kitchenLocation);
   const activeMethod = dispatchMethod ?? suggestion;
 
   // Keep this prop wired for future Wolt integration.

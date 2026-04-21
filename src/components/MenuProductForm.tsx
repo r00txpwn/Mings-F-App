@@ -24,6 +24,7 @@ export function MenuProductForm({ product, categories, selectedCategoryId, onSav
     master_category_id: defaultCategoryId,
     kiosk_visible: product?.kiosk_visible ?? true,
     online_visible: product?.online_visible ?? true,
+    is_halal: product?.is_halal ?? false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,6 +40,8 @@ export function MenuProductForm({ product, categories, selectedCategoryId, onSav
       image_url: form.image_url.trim() || null,
       master_category_id: form.master_category_id || null,
       kiosk_visible: form.kiosk_visible,
+      online_visible: form.online_visible,
+      is_halal: form.is_halal,
     };
 
     if (product) {
@@ -184,6 +187,17 @@ export function MenuProductForm({ product, categories, selectedCategoryId, onSav
               <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${form.online_visible ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </div>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.onlineVisible}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, is_halal: !f.is_halal }))}
+            className="flex items-center gap-3 text-left"
+          >
+            <div className={`relative h-7 w-12 rounded-full transition-colors ${form.is_halal ? 'bg-amber-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+              <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${form.is_halal ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </div>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.halal}</span>
           </button>
 
           <div className="flex gap-3 pt-2">

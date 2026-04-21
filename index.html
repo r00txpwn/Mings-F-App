@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#e11d48" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -11,10 +13,30 @@
       rel="stylesheet"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mings Financial Automation</title>
-    <meta property="og:image" content="https://bolt.new/static/og_default.png" />
+    <title>Mings Online Ordering & Operations</title>
+    <meta name="description" content="Order from Mings online for takeaway or delivery in Baku." />
+    <meta property="og:title" content="Mings — Online Ordering" />
+    <meta property="og:description" content="Fast takeaway and delivery ordering from Mings in Baku." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/mings-logo.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://bolt.new/static/og_default.png" />
+    <meta name="twitter:title" content="Mings — Online Ordering" />
+    <meta name="twitter:description" content="Fast takeaway and delivery ordering from Mings in Baku." />
+    <meta name="twitter:image" content="/mings-logo.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Restaurant",
+        "name": "Mings",
+        "servesCuisine": ["Chinese", "Asian"],
+        "url": "https://order.mings.az",
+        "image": "https://order.mings.az/mings-logo.png",
+        "potentialAction": {
+          "@type": "OrderAction",
+          "target": "https://order.mings.az"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
