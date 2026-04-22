@@ -31,11 +31,13 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
   const [newSubTab, setNewSubTab] = useState<NewSubTab>('new');
   const [readySubTab, setReadySubTab] = useState<ReadySubTab>('ready');
   const [nowMs, setNowMs] = useState(Date.now());
-  const [channelHealth, setChannelHealth] = useState('CONNECTING');
+  const [showConnectionLostBanner, setShowConnectionLostBanner] = useState(false);
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const subscriptionIdRef = useRef(0);
+  const hasEverSubscribedRef = useRef(false);
   const ringtoneCtxRef = useRef<AudioContext | null>(null);
   const ringtoneIntervalRef = useRef<number | null>(null);
 
@@ -203,6 +205,8 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
   }, [loadOrders, orders]);
 
   const subscribeRealtime = useCallback(() => {
+    const subscriptionId = subscriptionIdRef.current + 1;
+    subscriptionIdRef.current = subscriptionId;
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
@@ -210,7 +214,8 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
     if (accessToken) {
       supabase.realtime.setAuth(accessToken);
     }
-    setChannelHealth('CONNECTING');
+    // Fresh page load should not flash a "connection lost" warning while still connecting.
+    setShowConnectionLostBanner(hasEverSubscribedRef.current);
     const channel = supabase.channel('order-manager-active');
     channelRef.current = channel;
     channel.on(
@@ -229,10 +234,16 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
       void loadOrders()
     );
     channel.subscribe((status) => {
-      setChannelHealth(status);
+      if (subscriptionId !== subscriptionIdRef.current) return;
       if (status === 'SUBSCRIBED') {
+        hasEverSubscribedRef.current = true;
+        setShowConnectionLostBanner(false);
         setActionError(null);
         void loadOrders();
+        return;
+      }
+      if (status === 'CLOSED' || status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+        setShowConnectionLostBanner(true);
       }
     });
   }, [accessToken, loadOrders]);
@@ -241,6 +252,7 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
     void loadOrders();
     subscribeRealtime();
     return () => {
+      subscriptionIdRef.current += 1;
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -320,7 +332,7 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
 
   return (
     <div className="space-y-4">
-      {channelHealth !== 'SUBSCRIBED' ? (
+      {showConnectionLostBanner ? (
         <button
           type="button"
           onClick={reconnectRealtime}
