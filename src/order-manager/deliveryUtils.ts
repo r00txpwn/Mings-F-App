@@ -16,12 +16,17 @@ export function getKitchenLocationFromSettings(
     | null
     | undefined,
 ): KitchenLocation {
+  // Keep NaN when settings are missing/invalid so callers can hide distance-based UI.
   const lat = Number(settings?.kitchen_lat);
   const lng = Number(settings?.kitchen_lng);
   return {
-    lat: Number.isFinite(lat) ? lat : DEFAULT_KITCHEN_LAT,
-    lng: Number.isFinite(lng) ? lng : DEFAULT_KITCHEN_LNG,
+    lat,
+    lng,
   };
+}
+
+function hasValidKitchenLocation(kitchen: KitchenLocation): boolean {
+  return Number.isFinite(kitchen.lat) && Number.isFinite(kitchen.lng);
 }
 
 /**
@@ -49,7 +54,7 @@ export function suggestDeliveryMethod(
   deliveryLng: number | null | undefined,
   kitchen: KitchenLocation = { lat: DEFAULT_KITCHEN_LAT, lng: DEFAULT_KITCHEN_LNG },
 ): 'self' | 'wolt' | null {
-  if (deliveryLat == null || deliveryLng == null) return null;
+  if (deliveryLat == null || deliveryLng == null || !hasValidKitchenLocation(kitchen)) return null;
   const km = haversineKm(kitchen.lat, kitchen.lng, deliveryLat, deliveryLng);
   return km < SELF_DELIVERY_THRESHOLD_KM ? 'self' : 'wolt';
 }
@@ -62,7 +67,7 @@ export function formatDistanceKm(
   deliveryLng: number | null | undefined,
   kitchen: KitchenLocation = { lat: DEFAULT_KITCHEN_LAT, lng: DEFAULT_KITCHEN_LNG },
 ): string | null {
-  if (deliveryLat == null || deliveryLng == null) return null;
+  if (deliveryLat == null || deliveryLng == null || !hasValidKitchenLocation(kitchen)) return null;
   const km = haversineKm(kitchen.lat, kitchen.lng, deliveryLat, deliveryLng);
   return `${km.toFixed(1)} km`;
 }
@@ -78,7 +83,7 @@ export function estimateDeliveryMinutes(
   deliveryLng: number | null | undefined,
   kitchen: KitchenLocation = { lat: DEFAULT_KITCHEN_LAT, lng: DEFAULT_KITCHEN_LNG },
 ): number | null {
-  if (deliveryLat == null || deliveryLng == null) return null;
+  if (deliveryLat == null || deliveryLng == null || !hasValidKitchenLocation(kitchen)) return null;
   const km = haversineKm(kitchen.lat, kitchen.lng, deliveryLat, deliveryLng);
   const raw = Math.round(km * 2.5) + 10; // base 10 min + 2.5 min per km
   return Math.min(Math.max(raw, 10), 45);

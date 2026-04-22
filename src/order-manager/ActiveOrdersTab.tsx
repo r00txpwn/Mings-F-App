@@ -9,7 +9,6 @@ import { ReadyCard } from './ReadyCard';
 import { ScheduledOrderCard } from './ScheduledOrderCard';
 import { getKitchenLocationFromSettings, type KitchenLocation } from './deliveryUtils';
 import type { OrderManagerOrder } from './types';
-import type { OnlineSettingsRow } from '../types/online';
 
 interface ActiveOrdersTabProps {
   accessToken: string | null;
@@ -73,16 +72,16 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
 
   const loadOrders = useCallback(async () => {
     if (!initialLoadDone) setLoading(true);
-    const [{ data }, { data: settingsData }] = await Promise.all([
-      supabase
-        .from('sales')
-        .select('*, sale_items(*, sale_item_modifiers(*))')
-        .in('source', ['kiosk', 'online_delivery', 'online_takeaway'])
-        .in('order_status', ['pending', 'preparing', 'ready', 'dispatched'])
-        .order('created_at', { ascending: true }),
-      supabase.from('online_settings').select('kitchen_lat, kitchen_lng').limit(1).maybeSingle(),
-    ]);
-    setKitchenLocation(getKitchenLocationFromSettings(settingsData as OnlineSettingsRow | null));
+    const { data } = await supabase
+      .from('sales')
+      .select('*, sale_items(*, sale_item_modifiers(*))')
+      .in('source', ['kiosk', 'online_delivery', 'online_takeaway'])
+      .in('order_status', ['pending', 'preparing', 'ready', 'dispatched'])
+      .order('created_at', { ascending: true });
+
+    // online_settings has no kitchen_lat/kitchen_lng in this project;
+    // keep location unknown so distance/suggestion UI stays hidden.
+    setKitchenLocation(getKitchenLocationFromSettings(null));
 
     if (!data?.length) {
       setOrders([]);
