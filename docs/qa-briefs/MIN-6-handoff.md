@@ -52,11 +52,11 @@
 
 - `screenshots/fixes/MIN-6/01-drawer.png` after local smoke (create folder if capturing).
 
-**Commit** (fill before posting to Linear / sending to QA)
+**Commit** (Cursor session — filled for QA)
 
-- SHA: `<run git rev-parse HEAD after committing MIN-6; must match build-meta.json on the preview host>`
-- Branch: `<branch name>`
-- Deployed: yes/no for `sp.mings.az` (production QA only after deploy includes this SHA).
+- **SHA:** `6ec675ceb97e6eb69978bd110fa6855ad95da886`
+- **Branch:** `session/2026-04-22-cursor-session`
+- **Deployed:** `sp.mings.az` — no (local QA only until you merge / deploy).
 
 ---
 
@@ -113,3 +113,25 @@ Mirror the numbered scenarios in the **Cursor → QA handoff** section above (dr
 ### Reference doc (human / Cursor)
 
 `docs/QA_COMMENT_TEMPLATES.md` — Templates A and B and agent rules.
+
+---
+
+## Claude Extension — continue QA (copy-paste after Cursor ran `npm run deploy:local`)
+
+Use this block **after** the human or Cursor has run **`npm run deploy:local`** from the repo that contains the SHA below.
+
+```markdown
+## MIN-6 — continue second-pass QA (local preview)
+
+**Build identity**
+- Branch: `session/2026-04-22-cursor-session`
+- Expected `gitSha` (must match `http://127.0.0.1:4175/build-meta.json`): `6ec675ceb97e6eb69978bd110fa6855ad95da886`
+
+**Steps**
+1. Open `http://127.0.0.1:4175/build-meta.json` — confirm `gitSha` equals the value above. If not, stop (stale `dist/` or wrong repo).
+2. Sign in to the cockpit, then open **`http://127.0.0.1:4175/spec-ops?screen=order-support`** (not `/?screen=…`).
+3. Run the scenarios in this file (drawer content, delivery, actions, scheduled hint, terminal).
+4. Record the result: save Template B to a file, then from repo root:  
+   `npm run qa:result -- --issue=MIN-6 --status=pass|fail|blocked --result-file=<path>`  
+   (`pass` moves the Linear issue to Done + `qa:passed` unless you add `--no-resolve`.)
+```
