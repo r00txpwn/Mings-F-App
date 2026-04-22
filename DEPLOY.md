@@ -20,6 +20,7 @@ Pick **one** of:
    - Optional public links from staff: `VITE_PUBLIC_ORDER_URL`, `VITE_PUBLIC_KIOSK_URL` (full URLs).
 
 `vercel.json` in this repo configures SPA rewrites so `/order`, `/track`, `/kiosk`, `/kds` work.
+It also sets a global CSP header; keep `connect-src` allowing both `https://*.supabase.co` and `wss://*.supabase.co` so Supabase Realtime WebSocket connections work.
 
 PWA assets are served from `public/manifest.webmanifest` and `public/sw.js`. Ensure these files are included in your static deploy output.
 
