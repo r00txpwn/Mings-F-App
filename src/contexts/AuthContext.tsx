@@ -3,12 +3,23 @@ import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
 
+/** Matches `public.users.role` (`user_role` enum). */
+export type StaffRole = 'admin' | 'manager' | 'staff';
+
+const STAFF_ROLES: StaffRole[] = ['admin', 'manager', 'staff'];
+
+function parseStaffRole(value: unknown): StaffRole {
+  return STAFF_ROLES.includes(value as StaffRole) ? (value as StaffRole) : 'staff';
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   /** True when a row exists in `public.users` (staff/admin). False for customer-only auth.users. */
   isStaff: boolean;
+  /** From `public.users.role` when `isStaff`; otherwise `null`. */
+  staffRole: StaffRole | null;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   /** SMS OTP via Supabase Auth (Twilio configured in project dashboard). */
@@ -26,15 +37,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function fetchIsStaff(userId: string): Promise<boolean> {
-  const { data, error } = await supabase.from('users').select('id').eq('id', userId).maybeSingle();
+async function fetchStaffState(userId: string): Promise<{ isStaff: boolean; staffRole: StaffRole | null }> {
+  const { data, error } = await supabase.from('users').select('id, role').eq('id', userId).maybeSingle();
   if (error) {
     if (import.meta.env.DEV) {
-      console.warn('[auth] fetchIsStaff failed:', error.message);
+      console.warn('[auth] fetchStaffState failed:', error.message);
     }
-    return false;
+    return { isStaff: false, staffRole: null };
   }
-  return Boolean(data);
+  if (!data) {
+    return { isStaff: false, staffRole: null };
+  }
+  return { isStaff: true, staffRole: parseStaffRole(data.role) };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -42,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isStaff, setIsStaff] = useState(false);
+  const [staffRole, setStaffRole] = useState<StaffRole | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,10 +66,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const nextUser = nextSession?.user ?? null;
       setUser(nextUser);
       if (nextUser) {
-        const staff = await fetchIsStaff(nextUser.id);
-        if (!cancelled) setIsStaff(staff);
+        const { isStaff: staff, staffRole: role } = await fetchStaffState(nextUser.id);
+        if (!cancelled) {
+          setIsStaff(staff);
+          setStaffRole(staff ? role : null);
+        }
       } else if (!cancelled) {
         setIsStaff(false);
+        setStaffRole(null);
       }
       if (!cancelled) setLoading(false);
     };
@@ -166,10 +185,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const uid = s?.user?.id;
     if (!uid) {
       setIsStaff(false);
+      setStaffRole(null);
       return;
     }
-    const staff = await fetchIsStaff(uid);
+    const { isStaff: staff, staffRole: role } = await fetchStaffState(uid);
     setIsStaff(staff);
+    setStaffRole(staff ? role : null);
   }, []);
 
   return (
@@ -179,6 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         loading,
         isStaff,
+        staffRole,
         signIn,
         signUp,
         sendPhoneOtp,

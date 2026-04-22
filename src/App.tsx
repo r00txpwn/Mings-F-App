@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Home,
   ShoppingCart,
@@ -86,6 +86,18 @@ function isScreen(value: string | null): value is Screen {
   return Boolean(value) && ALL_SCREENS.includes(value as Screen);
 }
 
+type CockpitNavItem =
+  | { kind: 'screen'; id: Screen; icon: ReactNode; label: string }
+  | { kind: 'kds-blank'; id: 'kds'; icon: ReactNode; label: string };
+
+function screenNavItem(
+  id: Screen,
+  icon: ReactNode,
+  label: string
+): CockpitNavItem {
+  return { kind: 'screen', id, icon, label };
+}
+
 function readScreenFromUrl(): Screen {
   const params = new URLSearchParams(window.location.search);
   const raw = params.get(SCREEN_QUERY_KEY);
@@ -104,10 +116,11 @@ function writeScreenToUrl(screen: Screen) {
 function AppContent() {
   const { t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  const { user, loading, signOut, isStaff } = useAuth();
+  const { user, loading, signOut, isStaff, staffRole } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>(() => readScreenFromUrl());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isDark = theme === 'dark';
+  const isStaffNavLimited = staffRole === 'staff';
 
   useEffect(() => {
     const onPopState = () => {
@@ -123,6 +136,13 @@ function AppContent() {
       writeScreenToUrl(currentScreen);
     }
   }, [currentScreen]);
+
+  useEffect(() => {
+    if (loading || staffRole !== 'staff') return;
+    if (currentScreen !== 'kiosk-orders') {
+      setCurrentScreen('kiosk-orders');
+    }
+  }, [loading, staffRole, currentScreen]);
 
   if (loading) {
     return (
@@ -154,6 +174,9 @@ function AppContent() {
   }
 
   const renderScreen = () => {
+    if (staffRole === 'staff') {
+      return <KioskOrdersScreen />;
+    }
     switch (currentScreen) {
       case 'home':
         return <HomeScreen />;
@@ -195,23 +218,35 @@ function AppContent() {
     setIsMobileMenuOpen(false);
   };
 
-  const navItems: { id: Screen; icon: React.ReactNode; label: string }[] = [
-    { id: 'home', icon: <Home className="h-5 w-5 shrink-0" />, label: t.home },
-    { id: 'sales', icon: <ShoppingCart className="h-5 w-5 shrink-0" />, label: t.sales },
-    { id: 'kiosk-orders', icon: <Monitor className="h-5 w-5 shrink-0" />, label: t.kioskOrders },
-    { id: 'order-support', icon: <ClipboardList className="h-5 w-5 shrink-0" />, label: t.orderSupport },
-    { id: 'delivery', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.deliveryScreenTitle },
-    { id: 'menu-builder', icon: <UtensilsCrossed className="h-5 w-5 shrink-0" />, label: t.menuBuilder },
-    { id: 'combos', icon: <Flame className="h-5 w-5 shrink-0" />, label: t.combosScreenTitle },
-    { id: 'products', icon: <Package className="h-5 w-5 shrink-0" />, label: t.products },
-    { id: 'suppliers', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.suppliers },
-    { id: 'expenses', icon: <DollarSign className="h-5 w-5 shrink-0" />, label: t.expenses },
-    { id: 'payouts', icon: <Banknote className="h-5 w-5 shrink-0" />, label: t.payouts },
-    { id: 'money', icon: <Wallet className="h-5 w-5 shrink-0" />, label: t.money },
-    { id: 'reports', icon: <BarChart3 className="h-5 w-5 shrink-0" />, label: t.reports },
-    { id: 'users', icon: <Users className="h-5 w-5 shrink-0" />, label: t.users },
-    { id: 'settings', icon: <Settings className="h-5 w-5 shrink-0" />, label: t.more },
+  const fullNavItems: CockpitNavItem[] = [
+    screenNavItem('home', <Home className="h-5 w-5 shrink-0" />, t.home),
+    screenNavItem('sales', <ShoppingCart className="h-5 w-5 shrink-0" />, t.sales),
+    screenNavItem('kiosk-orders', <Monitor className="h-5 w-5 shrink-0" />, t.kioskOrders),
+    screenNavItem('order-support', <ClipboardList className="h-5 w-5 shrink-0" />, t.orderSupport),
+    screenNavItem('delivery', <Truck className="h-5 w-5 shrink-0" />, t.deliveryScreenTitle),
+    screenNavItem('menu-builder', <UtensilsCrossed className="h-5 w-5 shrink-0" />, t.menuBuilder),
+    screenNavItem('combos', <Flame className="h-5 w-5 shrink-0" />, t.combosScreenTitle),
+    screenNavItem('products', <Package className="h-5 w-5 shrink-0" />, t.products),
+    screenNavItem('suppliers', <Truck className="h-5 w-5 shrink-0" />, t.suppliers),
+    screenNavItem('expenses', <DollarSign className="h-5 w-5 shrink-0" />, t.expenses),
+    screenNavItem('payouts', <Banknote className="h-5 w-5 shrink-0" />, t.payouts),
+    screenNavItem('money', <Wallet className="h-5 w-5 shrink-0" />, t.money),
+    screenNavItem('reports', <BarChart3 className="h-5 w-5 shrink-0" />, t.reports),
+    screenNavItem('users', <Users className="h-5 w-5 shrink-0" />, t.users),
+    screenNavItem('settings', <Settings className="h-5 w-5 shrink-0" />, t.more),
   ];
+
+  const navItems: CockpitNavItem[] = isStaffNavLimited
+    ? [
+        screenNavItem('kiosk-orders', <Monitor className="h-5 w-5 shrink-0" />, t.kioskOrders),
+        {
+          kind: 'kds-blank',
+          id: 'kds',
+          icon: <Monitor className="h-5 w-5 shrink-0" />,
+          label: t.kitchenDisplay,
+        },
+      ]
+    : fullNavItems;
 
   return (
     <div
@@ -219,7 +254,7 @@ function AppContent() {
         isDark ? 'neon-shell text-slate-100' : 'cockpit-bg-light text-slate-900'
       }`}
     >
-      {isMobileMenuOpen && (
+      {isMobileMenuOpen && !isStaffNavLimited && (
         <div
           className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
@@ -271,6 +306,25 @@ function AppContent() {
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
           <div className="space-y-0.5">
             {navItems.map((item) => {
+              if (item.kind === 'kds-blank') {
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => window.open('/kds', '_blank', 'noopener,noreferrer')}
+                    className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all ${
+                      isDark
+                        ? 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <span className="text-slate-500 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300">
+                      {item.icon}
+                    </span>
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                );
+              }
               const active = currentScreen === item.id;
               return (
                 <button
@@ -357,14 +411,25 @@ function AppContent() {
           }`}
         >
           <div className="flex items-center justify-between px-4 py-3">
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="rounded-lg p-2 text-slate-600 dark:text-slate-300"
-              aria-label="Open menu"
-            >
-              <Menu className="h-6 w-6" />
-            </button>
+            {isStaffNavLimited ? (
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="rounded-lg p-2 text-slate-600 dark:text-slate-300"
+                aria-label={isDark ? t.lightMode : t.darkMode}
+              >
+                {isDark ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="rounded-lg p-2 text-slate-600 dark:text-slate-300"
+                aria-label="Open menu"
+              >
+                <Menu className="h-6 w-6" />
+              </button>
+            )}
             <div className="flex min-w-0 max-w-[min(200px,55vw)] items-center gap-2">
               <div className="flex h-9 shrink-0 items-center justify-center rounded-lg bg-black px-2 py-1 shadow-md ring-1 ring-white/10">
                 <MingsWordmark className="h-6 w-auto max-w-[100px] object-contain" />
@@ -373,7 +438,28 @@ function AppContent() {
                 {t.commandCenter}
               </span>
             </div>
-            <div className="w-10" />
+            {isStaffNavLimited ? (
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => window.open('/kds', '_blank', 'noopener,noreferrer')}
+                  className="rounded-lg p-2 text-slate-600 dark:text-slate-300"
+                  aria-label={t.kitchenDisplay}
+                >
+                  <Monitor className="h-6 w-6" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => signOut()}
+                  className="rounded-lg p-2 text-rose-500 dark:text-rose-400"
+                  aria-label={t.staffSignOut}
+                >
+                  <LogOut className="h-6 w-6" />
+                </button>
+              </div>
+            ) : (
+              <div className="w-10" />
+            )}
           </div>
         </header>
 

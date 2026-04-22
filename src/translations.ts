@@ -2810,7 +2810,7 @@ export const translations: Record<Language, Translations> = {
     wouldYouLikeToAdd: 'Хотите добавить?',
     menu: 'Меню',
 
-    kitchenDisplay: 'Кухонный Дисплей',
+    kitchenDisplay: 'Экран кухни',
     startPreparing: 'Начать готовить',
     markReady: 'Готово',
     markCompleted: 'Завершить',
