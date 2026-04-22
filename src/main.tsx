@@ -19,11 +19,10 @@ async function renderApp() {
 
   const root = createRoot(document.getElementById('root')!);
   const hostSurface = resolveHostedSurface(window.location.hostname);
-  const isStaffEntrypoint =
-    pathNorm === '/order-manager' || pathNorm === '/order-management' || isAdminPath(pathNorm);
+  const isAdminEntrypoint = isAdminPath(pathNorm);
 
-  // Staff routes must always render the admin shell, even on order.* hosts.
-  if (isStaffEntrypoint) {
+  // Admin path always renders the cockpit shell.
+  if (isAdminEntrypoint) {
     root.render(
       <StrictMode>
         <ConfigCheck>
@@ -61,12 +60,13 @@ async function renderApp() {
           </ConfigCheck>
         </StrictMode>
       );
-    } else if (pathNorm === '/order-management') {
+    } else if (pathNorm === '/order-management' || pathNorm === '/order-manager') {
+      const { OrderManagerApp } = await import('./order-manager/OrderManagerApp');
       root.render(
         <StrictMode>
           <ConfigCheck>
             <ErrorBoundary>
-              <App />
+              <OrderManagerApp />
             </ErrorBoundary>
           </ConfigCheck>
         </StrictMode>
@@ -169,6 +169,17 @@ async function renderApp() {
         <ConfigCheck>
           <ErrorBoundary>
             <TrackingApp />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+  } else if (pathNorm === '/order-management' || pathNorm === '/order-manager') {
+    const { OrderManagerApp } = await import('./order-manager/OrderManagerApp');
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <OrderManagerApp />
           </ErrorBoundary>
         </ConfigCheck>
       </StrictMode>

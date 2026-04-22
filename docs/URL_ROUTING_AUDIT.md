@@ -9,7 +9,8 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | Host match (env) | Path | App |
 |------------------|------|-----|
 | `VITE_SURFACE_ADMIN_HOSTS` | any | `App` (cockpit) |
-| `VITE_SURFACE_ORDER_HOSTS` | not `/track` | `OrderApp` |
+| `VITE_SURFACE_ORDER_HOSTS` | `/order-manager` or `/order-management` | `OrderManagerApp` |
+| `VITE_SURFACE_ORDER_HOSTS` | not `/track` and not order-manager paths | `OrderApp` |
 | `VITE_SURFACE_ORDER_HOSTS` | `/track` | `TrackingApp` |
 | `VITE_SURFACE_KIOSK_HOSTS` | any | `KioskApp` |
 | `VITE_SURFACE_KDS_HOSTS` | any | `KitchenDisplay` |
@@ -23,6 +24,8 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | `/kiosk` | `KioskApp` | Uses `pathNorm` (trailing slash OK). |
 | `/kds` | `KitchenDisplay` | Uses `pathNorm` (fixed: was `pathname`, so `/kds/` was broken). |
 | `/order` | `OrderApp` | Public ordering. |
+| `/order-manager` | `OrderManagerApp` | Staff workflow surface (auth-gated in-app). |
+| `/order-management` | `OrderManagerApp` | Alias to `/order-manager`. |
 | `/track` | `TrackingApp` | Query `?token=` for status. |
 | `/spec-ops` | `App` (cockpit) | Default admin URL. Optional `VITE_ADMIN_APP_PATH` overrides. |
 | **Anything else** | `PublicNotFound` | No hints about admin URL. |

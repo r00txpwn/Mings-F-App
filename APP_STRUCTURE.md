@@ -35,6 +35,8 @@ Mings Financial Automation is a business management system for small to medium-s
 | `/kiosk`  | [`KioskApp`](src/kiosk/KioskApp.tsx) — customer kiosk |
 | `/kds`    | [`KitchenDisplay`](src/kds/KitchenDisplay.tsx) — kitchen screen |
 | `/order`  | [`OrderApp`](src/order/OrderApp.tsx) — public online ordering (no `SecretGate`). Delivery checkout uses a premium **Google Maps** address flow (Places API (New) autocomplete + draggable pin + reverse-geocode + zone polygons) when `VITE_GOOGLE_MAPS_API_KEY` is set — see [`src/order/AddressAutocomplete.tsx`](src/order/AddressAutocomplete.tsx), [`src/order/OrderAddressMap.tsx`](src/order/OrderAddressMap.tsx), [`src/order/googleMapsLoader.ts`](src/order/googleMapsLoader.ts), `.env.example`, and [`DEPLOY.md`](DEPLOY.md#google-maps-setup-required-for-the-customer-delivery-flow) for the APIs to enable. |
+| `/order-manager` | [`OrderManagerApp`](src/order-manager/OrderManagerApp.tsx) — dedicated staff order workflow surface (separate from `App.tsx`) |
+| `/order-management` | [`OrderManagerApp`](src/order-manager/OrderManagerApp.tsx) — alias route |
 | `/track`  | [`TrackingApp`](src/order/TrackingApp.tsx) — public order status via `track_token` |
 | *other*   | [`PublicNotFound`](src/PublicNotFound.tsx) — generic denied/404 (no admin hint, no `/order` push). |
 
@@ -201,7 +203,7 @@ Mings Financial Automation is a business management system for small to medium-s
 | **Kiosk** (`/kiosk`) | Browse menu, cart, checkout; writes to `sales` with `source = kiosk` |
 | **KDS** (`/kds`) | Read/update **kiosk + online** orders (`order_status` pipeline) for kitchen |
 | **Kiosk orders (admin)** | Monitor same-day orders (kiosk + online) in Kanban; realtime on `sales` |
-| **Order manager** (`/order-manager`) | Staff-authenticated mobile-first operations view: active flow, past orders, menu toggles |
+| **Order manager** (`/order-manager`, `/order-management`) | Staff-authenticated mobile-first operations view: active flow, past orders, menu toggles |
 | **Online** (`/order` / `/track`) | Public menu (`products.online_visible`, optional `products.is_halal` badge), checkout via Edge `online-order-create` (ASAP + scheduled slots); tracking via RPC `get_sale_tracking_public` |
 
 Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
