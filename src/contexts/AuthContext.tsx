@@ -2,15 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
+import { parseStaffRole, type StaffRole } from '../lib/staffRole';
 
-/** Matches `public.users.role` (`user_role` enum). */
-export type StaffRole = 'admin' | 'manager' | 'staff';
-
-const STAFF_ROLES: StaffRole[] = ['admin', 'manager', 'staff'];
-
-function parseStaffRole(value: unknown): StaffRole {
-  return STAFF_ROLES.includes(value as StaffRole) ? (value as StaffRole) : 'staff';
-}
+export type { StaffRole };
 
 interface AuthContextType {
   user: User | null;
@@ -60,22 +54,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    /** Suppresses stale `fetchStaffState` results when `getSession` and `onAuthStateChange` overlap. */
+    let latestApplyId = 0;
 
     const applySession = async (nextSession: Session | null) => {
+      const applyId = ++latestApplyId;
       setSession(nextSession);
       const nextUser = nextSession?.user ?? null;
       setUser(nextUser);
-      if (nextUser) {
-        const { isStaff: staff, staffRole: role } = await fetchStaffState(nextUser.id);
-        if (!cancelled) {
-          setIsStaff(staff);
-          setStaffRole(staff ? role : null);
+
+      if (!nextUser) {
+        if (!cancelled && applyId === latestApplyId) {
+          setIsStaff(false);
+          setStaffRole(null);
         }
-      } else if (!cancelled) {
-        setIsStaff(false);
-        setStaffRole(null);
+        if (!cancelled && applyId === latestApplyId) {
+          setLoading(false);
+        }
+        return;
       }
-      if (!cancelled) setLoading(false);
+
+      const { isStaff: staff, staffRole: role } = await fetchStaffState(nextUser.id);
+      if (cancelled || applyId !== latestApplyId) {
+        return;
+      }
+
+      setIsStaff(staff);
+      setStaffRole(staff ? role : null);
+      setLoading(false);
     };
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {

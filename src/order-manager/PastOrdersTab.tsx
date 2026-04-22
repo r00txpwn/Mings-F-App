@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { getCustomerDisplayName, type OrderManagerOrder } from './types';
 
 type PastPreset = 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'lastMonth';
+type PastStatus = 'all' | 'ready' | 'completed' | 'dispatched' | 'cancelled';
 
 function toIsoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -69,11 +70,19 @@ function statusLabel(status: string, t: ReturnType<typeof useLanguage>['t']): st
 export function PastOrdersTab() {
   const { t } = useLanguage();
   const [preset, setPreset] = useState<PastPreset>('today');
+  const [statusFilter, setStatusFilter] = useState<PastStatus>('all');
   const [orders, setOrders] = useState<OrderManagerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const range = useMemo(() => buildRange(preset), [preset]);
+  const selectedStatuses = useMemo(
+    () =>
+      statusFilter === 'all'
+        ? (['ready', 'completed', 'cancelled', 'dispatched'] as const)
+        : ([statusFilter] as const),
+    [statusFilter]
+  );
 
   useEffect(() => {
     void (async () => {
@@ -84,12 +93,12 @@ export function PastOrdersTab() {
         .in('source', ['kiosk', 'online_delivery', 'online_takeaway'])
         .gte('sale_date', range.start)
         .lte('sale_date', `${range.end}T23:59:59`)
-        .in('order_status', ['completed', 'cancelled', 'dispatched'])
+        .in('order_status', [...selectedStatuses])
         .order('created_at', { ascending: false });
       setOrders((data ?? []) as OrderManagerOrder[]);
       setLoading(false);
     })();
-  }, [range.end, range.start]);
+  }, [range.end, range.start, selectedStatuses]);
 
   const presetButtons: Array<{ id: PastPreset; label: string }> = [
     { id: 'today', label: t.omToday },
@@ -98,17 +107,48 @@ export function PastOrdersTab() {
     { id: 'thisMonth', label: t.omThisMonth },
     { id: 'lastMonth', label: t.omLastMonth },
   ];
+  const statusButtons: Array<{ id: PastStatus; label: string }> = [
+    { id: 'all', label: t.omAll },
+    { id: 'ready', label: t.omReady },
+    { id: 'completed', label: t.completed },
+    { id: 'dispatched', label: t.dispatched },
+    { id: 'cancelled', label: t.cancelled },
+  ];
+  const totalRevenue = useMemo(
+    () => orders.reduce((sum, order) => sum + Number(order.total_price ?? 0), 0),
+    [orders]
+  );
 
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {presetButtons.map((button) => (
+            <button
+              key={button.id}
+              type="button"
+              onClick={() => setPreset(button.id)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                preset === button.id ? 'bg-cockpit-500 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'
+              }`}
+            >
+              {button.label}
+            </button>
+          ))}
+        </div>
+        <div className="rounded-lg border border-emerald-400/50 bg-emerald-500/15 px-3 py-1.5 text-right">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-200">{t.periodRevenue}</p>
+          <p className="text-sm font-bold text-emerald-100">₼{totalRevenue.toFixed(2)}</p>
+        </div>
+      </div>
       <div className="flex flex-wrap gap-2">
-        {presetButtons.map((button) => (
+        {statusButtons.map((button) => (
           <button
             key={button.id}
             type="button"
-            onClick={() => setPreset(button.id)}
+            onClick={() => setStatusFilter(button.id)}
             className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-              preset === button.id ? 'bg-cockpit-500 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'
+              statusFilter === button.id ? 'bg-cockpit-500 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'
             }`}
           >
             {button.label}

@@ -1,6 +1,6 @@
 # URL & path audit (client routes, Edge Functions, logical risks)
 
-Last reviewed: 2026-03-26
+Last reviewed: 2026-04-22
 
 ## 1. SPA entry (`src/main.tsx`)
 
@@ -24,8 +24,8 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | `/kiosk` | `KioskApp` | Uses `pathNorm` (trailing slash OK). |
 | `/kds` | `KitchenDisplay` | Uses `pathNorm` (fixed: was `pathname`, so `/kds/` was broken). |
 | `/order` | `OrderApp` | Public ordering. |
-| `/order-manager` | `OrderManagerApp` | Staff workflow surface (auth-gated in-app). |
-| `/order-management` | `OrderManagerApp` | Alias to `/order-manager`. |
+| `/order-manager` | `OrderManagerApp` | Staff workflow (auth-gated). Bottom nav: Active + Past for every staff user; **Menu Editor** tab only when `public.users.role` is `admin` or `manager` (hidden for `staff`). The shell re-reads `users.role` after auth so the tab list matches the same Supabase row QA inspects on `/rest/v1/users`. |
+| `/order-management` | `OrderManagerApp` | Alias to `/order-manager`. Same tab rules as `/order-manager`. |
 | `/track` | `TrackingApp` | Query `?token=` for status. |
 | `/spec-ops` | `App` (cockpit) | Default admin URL. Optional `VITE_ADMIN_APP_PATH` overrides. |
 | **Anything else** | `PublicNotFound` | No hints about admin URL. |
@@ -43,6 +43,7 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | Location | Behavior | Risk / note |
 |----------|----------|-------------|
 | `App.tsx` | Non-staff logged-in users → `StaffAccessDeniedScreen` (no auto-redirect to `/order`). | OK. |
+| `App.tsx` | On the **admin host** or at **`/spec-ops`** (default local admin path), `?screen=order-support` (and nav) → `AdminOrderSupportScreen`: order list + side drawer with line items, customer/delivery, and workflow actions on `sales`. | **Local QA URL:** `http://127.0.0.1:4175/spec-ops?screen=order-support` — not root `/?screen=…` (see `getResolvedAdminPath()`). |
 | `OrderApp.tsx` | E-point success → external `checkoutUrl`. Done screen → `/track?token=`. | External URL must be trusted (payment provider). |
 | `PublicNotFound.tsx` | Denied/404 messaging for root + unknown paths. | No storefront auto-redirect from `/` or invalid paths. |
 | `StaffAccessDeniedScreen.tsx` | Link via `getPublicOrderUrl()` (`VITE_PUBLIC_ORDER_URL` or same-origin `/order`). | OK. |

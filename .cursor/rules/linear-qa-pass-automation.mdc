@@ -1,0 +1,26 @@
+---
+description: When second-pass QA passes on a Linear issue, record it with npm run qa-result (sets Done + qa:passed); optional Linear MCP for ad-hoc issue reads only.
+alwaysApply: false
+---
+
+# Linear — QA pass automation (board resolved)
+
+## Default (Claude Extension + humans)
+
+After a **pass**, run from **repo root**:
+
+```bash
+npm run qa:result -- --issue=<MIN-XX> --status=pass --result-file=<path-to-template-b.md>
+```
+
+That script uses the **Linear GraphQL API** with `LINEAR_API_KEY` (same backend an in-editor **Linear MCP** tool would call): it sets `qa:passed`, posts the comment, and **`issueUpdate`s the workflow `stateId` to the team’s first `type: completed` state** (Done). No separate MCP “mark resolved” step is required when this command succeeds.
+
+- **`--no-resolve`** — set only labels + comment; do **not** change workflow state (rare; e.g. process requires Done only after merge).
+
+## Linear MCP in Cursor chats
+
+Use **Linear MCP** for interactive reads (issue details, search, comments) when helpful. For **recording a pass**, prefer **`npm run qa:result`** so behavior matches CI/docs and you do not double-apply state if both MCP and the script run.
+
+## Fail / blocked
+
+`--status=fail` or `blocked` updates `qa:*` labels (and optional comment) only — **no** automatic move to completed.

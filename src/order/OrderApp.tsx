@@ -962,6 +962,7 @@ function OrderContent() {
       orderSmsResend: t.orderSmsResend,
       orderSmsResendWait: t.orderSmsResendWait,
       orderSmsCodeExpiredHint: t.orderSmsCodeExpiredHint,
+      orderSmsCodeSentConfirmation: t.orderSmsCodeSentConfirmation,
       orderChangePhone: t.orderChangePhone,
       orderInvalidPhone: t.orderInvalidPhone,
       orderAccountPhone: t.orderAccountPhone,

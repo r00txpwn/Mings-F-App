@@ -1,0 +1,130 @@
+---
+description: Manual workflow for resolving a Linear issue end to end
+alwaysApply: false
+---
+
+# Linear Issue Resolution Loop
+
+Use this rule only when the user explicitly asks to work on a Linear issue like `MIN-12`.
+
+## Trigger
+
+When asked to "work on LINEAR issue MIN-[number]", follow this exact loop.
+
+## STEP 1 — READ THE ISSUE
+
+- Use Linear MCP to read the full issue details.
+- Extract and restate:
+  - title
+  - description
+  - acceptance criteria
+  - labels (including any existing `qa:*` label)
+  - priority (`Urgent`, `High`, `Medium`, `Low`, `No priority`)
+- State out loud what the issue is and what done looks like.
+- Ask exactly: `Should I proceed with this issue?`
+- Wait for confirmation before moving on.
+
+## STEP 2 — INVESTIGATE BEFORE TOUCHING CODE
+
+- Read every file mentioned in the issue description.
+- Read any related files that could be affected.
+- State what the current code does.
+- State what needs to change.
+- List which files will be touched and why.
+- Ask exactly: `Does this investigation look correct?`
+- Wait for confirmation before moving on.
+
+## STEP 3 — IMPLEMENT THE FIX
+
+- Make only the changes described.
+- Follow the design system: teal/gray, no purple, `rounded-lg`, existing app styling patterns.
+- Keep all customer-facing text in `src/translations.ts`.
+- Do not refactor anything unrelated.
+- Run `npm run typecheck` after every change.
+- Run `npm run lint` after every change.
+- State exactly what was changed and which lines.
+
+## STEP 4 — VISUAL VERIFICATION (Cursor first-pass)
+
+- Run:
+  - `npm run verify:fix -- --issue=MIN-[number]`
+- Wait for Playwright to complete.
+- Show the screenshot paths to the user.
+- State exactly: `Please review the screenshots and confirm the fix looks correct`
+- Wait for the user to say `approved` or `rejected`.
+- If rejected:
+  - ask what is wrong
+  - go back to STEP 3
+- If approved:
+  - continue to STEP 5
+
+## STEP 5 — DEPLOY / SHIP (no automatic push to `main`)
+
+- **Do not `git push` to `main` or merge to a production branch unless the user explicitly says to in this task** (e.g. “push to main”, “merge and deploy”). Treat pushes to default branches as high risk — the human owns that decision.
+- When the user wants backend/edge changes live, follow this order:
+  1. If database changes: apply via Supabase MCP
+  2. If edge functions changed: deploy via Supabase MCP with the correct `verify_jwt` setting
+  3. Frontend: commit locally (clear message); give the user the branch, files touched, and suggested `git` commands if they ask to ship — **do not push** unless they explicitly requested a push.
+- Confirm each backend/edge step succeeded before moving on.
+- Never run `vercel --prod` from the local workspace unless the user explicitly asked for a production CLI deploy (still prefer git integration on **their** branch flow).
+
+## STEP 6 — QA HANDOFF
+
+After the fix is merged or otherwise available where QA will test (preview, branch deploy, or production per team process), hand off to the Claude Chrome Extension for second-pass QA.
+
+- Prepare a QA brief at **`docs/qa-briefs/<ISSUE>-handoff.md`** (filename convention) that follows Template A in `docs/QA_COMMENT_TEMPLATES.md`. Include:
+  - short summary
+  - files changed (real paths)
+  - surfaces / URLs to test
+  - 3–5 scenarios with explicit pass/fail criteria
+  - auth + test data requirements
+  - screenshots already captured in Step 4
+  - commit SHA on the current branch (or the SHA the user merged, if they shipped separately)
+  - **mandatory:** the filled **"Claude Extension — fresh-context starter prompt"** block from the same doc (so each extension session has full context without relying on prior Cursor chats)
+- Run:
+  - `npm run qa:handoff -- --issue=MIN-[number] --brief-file=<path>`
+- This must:
+  - post the Cursor → QA comment on the issue
+  - apply label `qa:ready`
+  - remove labels `qa:running`, `qa:passed`, `qa:failed`, `qa:blocked`
+- State exactly: `MIN-[number] handed off to QA; waiting for Claude Extension to post results`
+- Stop. Do not proceed until a new Linear comment appears with the QA → Cursor result shape (Template B) and one of `qa:passed`, `qa:failed`, `qa:blocked` is set.
+
+## STEP 7 — REACT TO QA RESULT
+
+Read the latest QA result comment and the current labels on the issue.
+
+- If `qa:passed`:
+  - If the Extension (or human) recorded the pass with `npm run qa:result -- ... --status=pass`, Linear is already updated to the team’s **completed** workflow state (Done) in the same API call as the `qa:passed` label — treat the issue as **resolved** in board terms.
+  - Continue to STEP 8 only when your team still requires `close:issue` (e.g. completion comment template, high-priority gate).
+- If `qa:failed`:
+  - extract the "Scenarios" and "Next action for Cursor" sections
+  - return to STEP 2 (investigate), then STEP 3, STEP 4, STEP 5, STEP 6
+  - do not close the issue
+- If `qa:blocked`:
+  - read the blockers
+  - if fixable in code, return to STEP 2
+  - if not fixable without a human (e.g. production data, OTP, physical device), ask the user exactly: `MIN-[number] is blocked by <reason>. How should we proceed?`
+  - do not close the issue until the block is cleared.
+
+## STEP 8 — CLOSE THE ISSUE (completion comment / policy)
+
+Skip if your process treats `qa:result` pass (workflow → completed + `qa:passed`) as sufficient.
+
+Only run this step when the issue has label `qa:passed` or the user explicitly overrides.
+
+- Run:
+  - `npm run close:issue -- MIN-[number]`
+- The script refuses to close the issue if:
+  - the issue priority is `Urgent` or `High` and the user has not typed `approved to close` in the last message, or
+  - the issue does not have label `qa:passed` (unless `--force` is passed).
+- State exactly: `MIN-[number] is complete and closed in Linear`
+
+## Guardrails
+
+- Do not skip the confirmation checkpoints in Steps 1, 2, or 4.
+- Do not deploy before local verification is complete.
+- Do not close the issue before QA has posted a `qa:passed` result, unless the user explicitly overrides.
+- **Never push to `main` / default release branch without an explicit user request in the conversation.** Prefer PRs or instructions for the human to push.
+- Avoid production CLI deploys; prefer git-triggered builds on the branch the team uses for release.
+- Never touch code outside the scope of the issue.

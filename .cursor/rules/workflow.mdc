@@ -1,0 +1,77 @@
+---
+name: Ming's OS — Development Workflow Rules
+description: Applied to every prompt to prevent regressions and maintain code quality
+alwaysApply: true
+---
+
+# Ming's OS — Development Workflow Rules
+
+## Before Writing Any Code
+1. Read all files relevant to the task before making changes
+2. State what the current code does before describing what you will change
+3. If the task touches more than 2 files, list all files you will modify and why before starting
+
+## One Problem at a Time
+- Fix exactly what was asked — nothing more
+- Do not refactor unrelated code while fixing a bug
+- Do not rename variables, restructure files, or change patterns unless explicitly asked
+- If you notice another issue while fixing something, mention it but do not fix it automatically
+
+## Before Every Change
+Ask yourself:
+- Will this break anything that is currently working?
+- Does this touch shared code used by multiple surfaces (OrderApp, KDS, AdminPanel, OrderManagerApp)?
+- If yes, trace the impact across all surfaces before changing
+
+## Testing Requirement
+After every change:
+- Run npm run typecheck
+- Run npm run lint
+- State clearly what was changed, what file, and what line numbers
+
+## Deployment Rules
+- Never suggest deploying to production before local testing
+- Local test command: npm run dev
+- Only deploy after confirming the fix works locally
+- **Do not push to `main` (or merge to your production/release branch) unless the user explicitly asks in the current task.** Pushing straight to `main` is high risk; default to committing locally and letting the human open a PR, push a feature branch, or merge when they choose.
+- Deploy backend and edge work in the right order when shipping is requested:
+  1. npm run supabase:push (database migrations first)
+  2. Supabase MCP (edge functions second)
+  3. Frontend: only after the user confirms how they want to ship (e.g. PR → `main`, or their team’s release branch) — **never assume `git push origin main`**
+
+## Ming's OS Architecture — Always Keep in Mind
+This codebase has FOUR separate surfaces that share the same repo:
+- order.mings.az → Customer ordering (OrderApp)
+- order.mings.az/order-manager → Staff workflow (OrderManagerApp)
+- sp.mings.az → Admin panel (App.tsx)
+- /kds → Kitchen display (KitchenDisplay)
+
+A change to a shared file (supabase client, translations, auth context)
+affects ALL surfaces. Always check impact across all four before changing.
+
+## Database Changes
+- Never delete columns — use is_deleted or is_active flags instead
+- Always write migrations with timestamp prefix: YYYYMMDDHHMMSS_description.sql
+- Never modify existing migrations — always create new ones
+- After schema changes, update affected TypeScript types
+
+## Translation Rules
+- Never hardcode customer-facing text in components
+- All text goes through src/translations.ts with en, az, and ru keys
+- Staff-facing internal text (console logs, error codes) does not need translation
+
+## When Something is Unclear
+- Ask one clarifying question before proceeding
+- Do not assume and proceed — assumptions cause regressions
+
+## Session wrap-up — branch, SHA, local preview, Claude Extension QA
+
+When a Cursor session produces changes that need **second-pass QA** (or any time you hand off to the Claude Chrome Extension):
+
+1. **Never leave work only on `main` as uncommitted files.** Create a **session branch** from your current HEAD, e.g. `session/YYYY-MM-DD-short-topic` (`git checkout -b …`).
+2. **Commit everything** that belongs to the session with a clear message (`git add -A`, then `git commit`). Do not push to `main` unless the user explicitly asked in that task.
+3. **Record the SHA:** run `git rev-parse HEAD` and paste it into **`docs/qa-briefs/<ISSUE>-handoff.md`** (replace `<run git rev-parse HEAD…>` / placeholders in the **Commit** section). QA must compare this value to `http://127.0.0.1:4175/build-meta.json` after deploy.
+4. **Local production preview:** from repo root run **`npm run deploy:local`** (build + `build-meta.json` + `vite preview` on **4175**). If port 4175 is busy, stop the old preview first.
+5. **Extension instructions** must be in the same handoff file: correct **cockpit** URL on localhost is **`http://127.0.0.1:4175/spec-ops?screen=…`** (not `/?screen=…`), plus the verbatim **“Claude Extension — QA session”** block and the **`npm run qa:result`** line when QA finishes.
+
+If the user asked only for policy/docs and there is nothing to commit, still update the handoff template or rules — skip branch creation only when there are **zero** file changes.

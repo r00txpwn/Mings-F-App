@@ -72,6 +72,7 @@ interface OrderAccountPanelProps {
     orderSmsResend: string;
     orderSmsResendWait: string;
     orderSmsCodeExpiredHint: string;
+    orderSmsCodeSentConfirmation: string;
     orderChangePhone: string;
     orderInvalidPhone: string;
     orderAccountPhone: string;
@@ -175,6 +176,14 @@ export function OrderAccountPanel({
     return () => window.clearInterval(id);
   }, [otpResendAfter]);
 
+  useEffect(() => {
+    if (authNotice !== t.orderSmsCodeSentConfirmation) return;
+    const noticeTimer = window.setTimeout(() => {
+      setAuthNotice('');
+    }, 2000);
+    return () => window.clearTimeout(noticeTimer);
+  }, [authNotice, t.orderSmsCodeSentConfirmation]);
+
   const mapAuthErrorMessage = (raw: string): string => {
     const msg = raw.toLowerCase();
     if (msg.includes('invalid phone')) return t.orderInvalidPhone;
@@ -216,7 +225,7 @@ export function OrderAccountPanel({
     if (!res.error) void onReloadOrders();
   };
 
-  const handleSendSms = async () => {
+  const handleSendSms = async (resend = false) => {
     setAuthErr('');
     setAuthNotice('');
     setAuthBusy(true);
@@ -235,6 +244,9 @@ export function OrderAccountPanel({
     setOtpStep('otp');
     setOtp('');
     setOtpResendAfter(45);
+    if (resend) {
+      setAuthNotice(t.orderSmsCodeSentConfirmation);
+    }
   };
 
   const handleVerifySms = async () => {
@@ -385,6 +397,16 @@ export function OrderAccountPanel({
             <p className="mt-4 rounded-xl border border-ming-red/40 bg-ming-red/10 px-3 py-2 text-[13px] text-ming-red">
               {authErr}
             </p>
+          ) : null}
+          {authChannel === 'phone' && otpStep === 'otp' && authErr === t.orderSmsCodeExpiredHint ? (
+            <button
+              type="button"
+              className="ming-btn-ghost mt-2 w-full justify-center"
+              disabled={authBusy || !phoneInput.trim()}
+              onClick={() => void handleSendSms(true)}
+            >
+              {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t.orderSmsResend}
+            </button>
           ) : null}
           {authNotice ? (
             <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-300">

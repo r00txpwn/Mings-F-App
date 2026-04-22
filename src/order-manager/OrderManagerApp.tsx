@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ClipboardList, History, Loader2, LogOut, UtensilsCrossed } from 'lucide-react';
 import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import { supabase } from '../lib/supabase';
+import { parseStaffRole, roleMayUseOrderManagerMenuEditor } from '../lib/staffRole';
 import { LoginScreen } from '../screens/LoginScreen';
 import { StaffAccessDeniedScreen } from '../screens/StaffAccessDeniedScreen';
 import { ActiveOrdersTab } from './ActiveOrdersTab';
@@ -16,6 +18,40 @@ function OrderManagerShell() {
   const { t } = useLanguage();
   const { user, isStaff, loading, session, signOut } = useAuth();
   const [tab, setTab] = useState<OrderManagerTab>('active');
+  /** Authoritative for this surface: direct `users.role` read (avoids stale auth context between overlapping session applies). */
+  const [menuEditorAllowed, setMenuEditorAllowed] = useState(false);
+
+  useEffect(() => {
+    if (loading || !user?.id || !isStaff) {
+      setMenuEditorAllowed(false);
+      return;
+    }
+
+    setMenuEditorAllowed(false);
+    let cancelled = false;
+
+    void (async () => {
+      const { data, error } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
+      if (cancelled) return;
+      if (error || !data) {
+        setMenuEditorAllowed(false);
+        return;
+      }
+      setMenuEditorAllowed(roleMayUseOrderManagerMenuEditor(parseStaffRole(data.role)));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, user?.id, isStaff]);
+
+  const canUseMenuEditor = menuEditorAllowed;
+
+  useEffect(() => {
+    if (!canUseMenuEditor && tab === 'menu') {
+      setTab('active');
+    }
+  }, [canUseMenuEditor, tab]);
 
   if (loading) {
     return (
@@ -50,7 +86,9 @@ function OrderManagerShell() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-slate-950/95 p-2 backdrop-blur">
-        <div className="mx-auto grid w-full max-w-xl grid-cols-3 gap-2">
+        <div
+          className={`mx-auto grid w-full max-w-xl gap-2 ${canUseMenuEditor ? 'grid-cols-3' : 'grid-cols-2'}`}
+        >
           <button
             type="button"
             onClick={() => setTab('active')}
@@ -71,16 +109,18 @@ function OrderManagerShell() {
             <History className="mb-1 h-4 w-4" />
             {t.omPastOrders}
           </button>
-          <button
-            type="button"
-            onClick={() => setTab('menu')}
-            className={`flex flex-col items-center rounded-lg py-2 text-xs font-semibold ${
-              tab === 'menu' ? 'bg-cockpit-500/25 text-cockpit-200' : 'text-slate-400'
-            }`}
-          >
-            <UtensilsCrossed className="mb-1 h-4 w-4" />
-            {t.omMenuEditor}
-          </button>
+          {canUseMenuEditor ? (
+            <button
+              type="button"
+              onClick={() => setTab('menu')}
+              className={`flex flex-col items-center rounded-lg py-2 text-xs font-semibold ${
+                tab === 'menu' ? 'bg-cockpit-500/25 text-cockpit-200' : 'text-slate-400'
+              }`}
+            >
+              <UtensilsCrossed className="mb-1 h-4 w-4" />
+              {t.omMenuEditor}
+            </button>
+          ) : null}
         </div>
       </nav>
     </div>

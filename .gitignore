@@ -25,5 +25,7 @@ supabase/.temp/
 .vercel
 .playwright-mcp/
 pw-*.png
+screenshots/
+test-results/
 .cursor/skills/
 **/__pycache__/

@@ -14,7 +14,7 @@ When the user message includes the exact phrase `test initiate`, execute this te
 
 ## Required Execution Order
 
-1. Validate test environment readiness (app reachable, auth ready, required tools available). If the app was started with `npm run deploy:local`, read the terminal for **`Local: http://127.0.0.1:<port>/`** — the **port can change on each build/run** (see workspace rule **local-preview-port**); do not assume `4173` without checking.
+1. Validate test environment readiness (app reachable, auth ready, required tools available). If the app was started with `npm run deploy:local`, the URL is **`http://127.0.0.1:4175/`** (fixed port; see **local-preview-port**). Confirm the preview matches the workspace: open **`http://127.0.0.1:4175/build-meta.json`** and check `gitSha` against the repo under test (stale `dist/` if they differ).
 2. Run desktop smoke checks for core flows (auth, navigation, key CRUD paths, date/input interactions, URL sync/refresh behavior).
 3. Run mobile viewport checks for equivalent critical flows (layout, tap targets, responsive menus, forms, dialogs, date pickers).
 4. Capture evidence: at least one screenshot per check (desktop and mobile sets separated).

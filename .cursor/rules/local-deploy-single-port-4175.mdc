@@ -17,12 +17,12 @@ When running local production preview, use only port `4175` and do not create mu
 ## Command standard
 
 ```bash
-# ✅ Required
-npm run build && vite preview --host 127.0.0.1 --port 4175 --strictPort
+# ✅ Required (build + build-meta + preview on 4175)
+npm run deploy:local
 ```
 
 ```bash
 # ❌ Not allowed for local deploy
-npm run deploy:local
 vite preview --host 127.0.0.1 --strictPort false
+# `vite preview` without a fresh `npm run build` first (serves stale dist/)
 ```

@@ -9,7 +9,7 @@ When you **build and serve the production bundle locally**, use a single fixed U
 
 ## Commands
 
-- **`npm run deploy:local`** runs `npm run build` then `vite preview --host 127.0.0.1 --port 4175 --strictPort`.
+- **`npm run deploy:local`** runs `npm run build`, writes **`dist/build-meta.json`** (git SHA + `builtAt`), then `vite preview --host 127.0.0.1 --port 4175 --strictPort`.
 - This command must stay single-port and single-instance (no automatic fallback to other ports).
 
 ## What to do
@@ -17,5 +17,6 @@ When you **build and serve the production bundle locally**, use a single fixed U
 1. Start or reuse preview at **`http://127.0.0.1:4175/`** only.
 2. If port `4175` is occupied, stop the running preview instead of launching another instance.
 3. When sharing a local deploy link, always use **`http://127.0.0.1:4175/`**.
+4. After a code change, **`vite preview` alone is not enough** — it serves existing `dist/`. Always run **`npm run deploy:local`** (or at least `npm run build` before preview). Open **`http://127.0.0.1:4175/build-meta.json`** and confirm `gitSha` matches the commit under test.
 
 See also `README.md` → **Local production preview**.
