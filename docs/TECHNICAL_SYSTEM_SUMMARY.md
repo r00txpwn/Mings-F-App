@@ -356,6 +356,10 @@ The UI supports these operational transitions:
 - Scheduled reminder workflows update `reminder_at`
 - Reject flow updates `order_status = cancelled` and `cancellation_reason`
 
+### Staff authorization on `sales` updates (RLS + trigger)
+
+Authenticated users whose `public.users.role` is `staff`, `manager`, or `admin` may `UPDATE` `public.sales` under the policy introduced in migration `20260422100500_fix_staff_sales_update_policy.sql` (**`Staff, manager, admin can update sales`**), replacing the older “own sale only” constraint so Order Manager can progress **online** rows where `created_by` may be null or another user. Follow-up migrations `20260422103000_expand_staff_workflow_update_columns.sql` and `20260422104500_allow_staff_complete_orders.sql` widen the **`BEFORE UPDATE`** trigger `enforce_staff_sales_workflow_update` so **staff** may touch workflow timestamps (`ready_at`, `dispatched_at`, `completed_at`, etc.) and set `order_status` to **`completed`**, while still blocking arbitrary edits to unrelated financial columns.
+
 ### Past Orders Workflow
 
 `PastOrdersTab.tsx` supports:

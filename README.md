@@ -47,7 +47,7 @@ See **[DEPLOY.md](DEPLOY.md)** for Vercel/Netlify/Supabase CLI steps. Production
 - Verify a specific Linear fix with Playwright: `npm run verify:fix -- --issue=MIN-12`
 - Hand off a fix to second-pass QA (Claude Chrome Extension): `npm run qa:handoff -- --issue=MIN-12 --brief-file=<path>`
   - Applies label `qa:ready`, clears other `qa:*` labels, posts the Cursor → QA comment.
-  - **Before running `qa:handoff`,** write `docs/qa-briefs/<ISSUE>-handoff.md` (see `docs/qa-briefs/MIN-6-handoff.md` / `MIN-9-handoff.md`) including the full **Claude Extension — QA session** block so Extension testers have explicit URLs, scenarios, and `qa:result` steps without repo access.
+  - **Before running `qa:handoff`,** write `docs/qa-briefs/<ISSUE>-handoff.md` (see `docs/qa-briefs/MIN-6-handoff.md`, `MIN-9-handoff.md`, `MIN-10-handoff.md`) including the full **Claude Extension — QA session** block so Extension testers have explicit URLs, scenarios, and `qa:result` steps without repo access.
 - Record a QA result (invoked by Claude Extension or manually): `npm run qa:result -- --issue=MIN-12 --status=pass --result-file=<path>` — on **pass**, Linear gets `qa:passed`, your comment, **and** the issue is moved to the team’s **completed** (Done) workflow state (same API as Linear MCP would use). Pass **`--no-resolve`** to set only the label + comment.
   - Statuses: `pass`, `fail`, `blocked`. Applies `qa:passed` / `qa:failed` / `qa:blocked` and clears the rest.
 - Close a Linear issue from the CLI after QA passes: `npm run close:issue -- MIN-12`
