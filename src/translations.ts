@@ -634,10 +634,18 @@ export interface Translations {
   orderSmsCode: string;
   orderVerifySms: string;
   orderSmsSentHint: string;
+  orderSmsResend: string;
+  orderSmsResendWait: string;
+  orderSmsCodeExpiredHint: string;
   orderChangePhone: string;
   orderInvalidPhone: string;
   orderAccountPhone: string;
   orderMapSearchPlaceholder: string;
+  orderMapNoResults: string;
+  orderMapSearchFailed: string;
+  orderMapSelectFailed: string;
+  orderMapLoadFailed: string;
+  orderZonePillIn: string;
   orderMapPinHint: string;
   orderMapLoading: string;
   orderMapUnavailable: string;
@@ -692,6 +700,19 @@ export interface Translations {
   comboBuilderAddToCart: string;
   comboBuilderNext: string;
   comboBuilderPickOne: string;
+  comboBuilderEmptyGroup: string;
+  comboBuilderEmptyCombo: string;
+  orderErrKitchenClosed: string;
+  orderPayCodDescription: string;
+  orderPayCashDescription: string;
+  orderPayEpointDescription: string;
+  orderCheckoutSummary: string;
+  orderCheckoutBrand: string;
+  orderProfileSection: string;
+  orderAddressDefaultBadge: string;
+  orderAddressHomeLabel: string;
+  orderPromoCodePlaceholder: string;
+  orderZonePillChecking: string;
   orderErrGeneric: string;
   orderErrAuthRequired: string;
   orderErrCartEmpty: string;
@@ -709,6 +730,7 @@ export interface Translations {
   orderErrScheduleRequired: string;
   orderErrScheduleInvalid: string;
   orderErrScheduleTooSoon: string;
+  orderErrInvalidQuantity: string;
 
   // Customer tracking (/track)
   trackingPageTitle: string;
@@ -1421,10 +1443,18 @@ export const translations: Record<Language, Translations> = {
     orderSmsCode: 'SMS code',
     orderVerifySms: 'Verify & sign in',
     orderSmsSentHint: 'We sent a code to your phone. Enter it below.',
+    orderSmsResend: 'Resend code',
+    orderSmsResendWait: 'Resend in {seconds}s',
+    orderSmsCodeExpiredHint: 'Code expired or invalid. Request a new SMS code.',
     orderChangePhone: 'Use a different number',
     orderInvalidPhone: 'Enter a valid number with country code (e.g. +994…).',
     orderAccountPhone: 'Phone',
     orderMapSearchPlaceholder: 'Search for a street or place…',
+    orderMapNoResults: 'No matches in Baku.',
+    orderMapSearchFailed: 'Could not search addresses. Please try again.',
+    orderMapSelectFailed: 'Could not resolve this address. Try another result.',
+    orderMapLoadFailed: 'Map search is unavailable right now.',
+    orderZonePillIn: 'Delivering to {zone} · ₼{fee}',
     orderMapPinHint: 'Drag the pin or search — we use the pin location for delivery.',
     orderMapLoading: 'Loading map…',
     orderMapUnavailable: 'Map preview unavailable. Type your address or use device location.',
@@ -1481,6 +1511,8 @@ export const translations: Record<Language, Translations> = {
     comboBuilderAddToCart: 'Add combo to cart',
     comboBuilderNext: 'Next',
     comboBuilderPickOne: 'Choose one option',
+    comboBuilderEmptyGroup: 'This combo step is currently unavailable.',
+    comboBuilderEmptyCombo: 'This combo has no steps configured.',
     orderErrGeneric: 'Could not place your order. Please try again.',
     orderErrAuthRequired: 'Please sign in to place your order.',
     orderErrCartEmpty: 'Your cart is empty.',
@@ -1498,6 +1530,18 @@ export const translations: Record<Language, Translations> = {
     orderErrScheduleRequired: 'Please choose a scheduled time.',
     orderErrScheduleInvalid: 'Scheduled time is invalid.',
     orderErrScheduleTooSoon: 'Please choose a later time slot.',
+    orderErrInvalidQuantity: 'One or more cart items have invalid quantity.',
+    orderErrKitchenClosed: 'The kitchen is closed for online orders right now.',
+    orderPayCodDescription: 'Pay on pickup or to the courier.',
+    orderPayCashDescription: 'Cash in store.',
+    orderPayEpointDescription: 'Secure card payment via E-point.',
+    orderCheckoutSummary: 'Summary',
+    orderCheckoutBrand: "Ming's",
+    orderProfileSection: 'Profile',
+    orderAddressDefaultBadge: 'Default',
+    orderAddressHomeLabel: 'Home',
+    orderPromoCodePlaceholder: 'MINGS10',
+    orderZonePillChecking: 'Checking delivery zone…',
 
     trackingPageTitle: 'Order status',
     trackingOrderLabel: 'Order',
@@ -2209,10 +2253,18 @@ export const translations: Record<Language, Translations> = {
     orderSmsCode: 'SMS kodu',
     orderVerifySms: 'Təsdiqlə və daxil ol',
     orderSmsSentHint: 'Telefonunuza kod göndərildi. Aşağıya daxil edin.',
+    orderSmsResend: 'Kodu yenidən göndər',
+    orderSmsResendWait: '{seconds}s sonra yenidən göndər',
+    orderSmsCodeExpiredHint: 'Kodun vaxtı bitib və ya yanlışdır. Yeni SMS kodu istəyin.',
     orderChangePhone: 'Başqa nömrə',
     orderInvalidPhone: 'Ölkə kodu ilə düzgün nömrə daxil edin (məs. +994…).',
     orderAccountPhone: 'Telefon',
     orderMapSearchPlaceholder: 'Küçə və ya yer axtarın…',
+    orderMapNoResults: 'Bakıda uyğun nəticə tapılmadı.',
+    orderMapSearchFailed: 'Ünvan axtarışı alınmadı. Yenidən cəhd edin.',
+    orderMapSelectFailed: 'Bu ünvan təsdiqlənmədi. Başqa nəticəni seçin.',
+    orderMapLoadFailed: 'Xəritə axtarışı hazırda əlçatan deyil.',
+    orderZonePillIn: '{zone} üçün çatdırılma · ₼{fee}',
     orderMapPinHint: 'İşarəni sürüyün və ya axtarın — çatdırılma üçün məkan işarədən götürülür.',
     orderMapLoading: 'Xəritə yüklənir…',
     orderMapUnavailable: 'Xəritə əlçatan deyil. Ünvanı yazın və ya cihaz məkanından istifadə edin.',
@@ -2268,6 +2320,8 @@ export const translations: Record<Language, Translations> = {
     comboBuilderAddToCart: 'Kombonu səbətə əlavə et',
     comboBuilderNext: 'Növbəti',
     comboBuilderPickOne: 'Bir seçim edin',
+    comboBuilderEmptyGroup: 'Bu kombo addımı hazırda əlçatan deyil.',
+    comboBuilderEmptyCombo: 'Bu kombo üçün addımlar konfiqurasiya edilməyib.',
     orderErrGeneric: 'Sifarişi tamamlamaq olmadı. Yenidən cəhd edin.',
     orderErrAuthRequired: 'Sifariş vermək üçün daxil olun.',
     orderErrCartEmpty: 'Səbət boşdur.',
@@ -2285,6 +2339,18 @@ export const translations: Record<Language, Translations> = {
     orderErrScheduleRequired: 'Planlı sifariş üçün vaxt seçin.',
     orderErrScheduleInvalid: 'Seçilən vaxt etibarsızdır.',
     orderErrScheduleTooSoon: 'Daha gec bir slot seçin.',
+    orderErrInvalidQuantity: 'Səbətdəki bəzi məhsulların sayı etibarsızdır.',
+    orderErrKitchenClosed: 'Mətbəx onlayn sifarişlər üçün hazırda bağlıdır.',
+    orderPayCodDescription: 'Götürmə zamanı və ya kuryerə nağd ödəniş.',
+    orderPayCashDescription: 'Restoranda nağd.',
+    orderPayEpointDescription: 'E-point ilə təhlükəsiz kart ödənişi.',
+    orderCheckoutSummary: 'Xülasə',
+    orderCheckoutBrand: "Ming's",
+    orderProfileSection: 'Profil',
+    orderAddressDefaultBadge: 'Defolt',
+    orderAddressHomeLabel: 'Ev',
+    orderPromoCodePlaceholder: 'MINGS10',
+    orderZonePillChecking: 'Çatdırılma zonası yoxlanır…',
 
     trackingPageTitle: 'Sifariş statusu',
     trackingOrderLabel: 'Sifariş',
@@ -2997,10 +3063,18 @@ export const translations: Record<Language, Translations> = {
     orderSmsCode: 'Код из SMS',
     orderVerifySms: 'Подтвердить и войти',
     orderSmsSentHint: 'Мы отправили код на ваш телефон. Введите его ниже.',
+    orderSmsResend: 'Отправить код снова',
+    orderSmsResendWait: 'Повтор через {seconds}с',
+    orderSmsCodeExpiredHint: 'Код истек или неверный. Запросите новый SMS-код.',
     orderChangePhone: 'Другой номер',
     orderInvalidPhone: 'Укажите номер с кодом страны (например +994…).',
     orderAccountPhone: 'Телефон',
     orderMapSearchPlaceholder: 'Поиск улицы или места…',
+    orderMapNoResults: 'По Баку ничего не найдено.',
+    orderMapSearchFailed: 'Не удалось выполнить поиск адреса. Повторите попытку.',
+    orderMapSelectFailed: 'Не удалось определить этот адрес. Выберите другой вариант.',
+    orderMapLoadFailed: 'Поиск по карте сейчас недоступен.',
+    orderZonePillIn: 'Доставляем в {zone} · ₼{fee}',
     orderMapPinHint: 'Перетащите метку или найдите адрес — доставка по положению метки.',
     orderMapLoading: 'Загрузка карты…',
     orderMapUnavailable: 'Карта недоступна. Введите адрес или используйте геолокацию.',
@@ -3056,6 +3130,8 @@ export const translations: Record<Language, Translations> = {
     comboBuilderAddToCart: 'Добавить комбо в корзину',
     comboBuilderNext: 'Далее',
     comboBuilderPickOne: 'Выберите один вариант',
+    comboBuilderEmptyGroup: 'Этот шаг комбо сейчас недоступен.',
+    comboBuilderEmptyCombo: 'Для этого комбо не настроены шаги.',
 
     orderErrGeneric: 'Не удалось оформить заказ. Попробуйте снова.',
     orderErrAuthRequired: 'Войдите в аккаунт, чтобы оформить заказ.',
@@ -3074,6 +3150,19 @@ export const translations: Record<Language, Translations> = {
     orderErrScheduleRequired: 'Выберите время для запланированного заказа.',
     orderErrScheduleInvalid: 'Выбранное время недействительно.',
     orderErrScheduleTooSoon: 'Выберите более поздний слот.',
+    orderErrInvalidQuantity: 'У одной или нескольких позиций в корзине неверное количество.',
+    orderErrKitchenClosed: 'Кухня сейчас не принимает онлайн-заказы.',
+    orderPayCodDescription: 'Оплата при получении или курьеру.',
+    orderPayCashDescription: 'Наличные в ресторане.',
+    orderPayEpointDescription: 'Безопасная оплата картой через E-point.',
+    orderCheckoutSummary: 'Итого',
+    orderCheckoutBrand: "Ming's",
+    orderProfileSection: 'Профиль',
+    orderAddressDefaultBadge: 'По умолчанию',
+    orderAddressHomeLabel: 'Дом',
+    orderPromoCodePlaceholder: 'MINGS10',
+    orderZonePillChecking: 'Проверяем зону доставки…',
+
     trackingPageTitle: 'Статус заказа',
     trackingOrderLabel: 'Заказ',
     trackingKitchenStatus: 'Статус кухни',

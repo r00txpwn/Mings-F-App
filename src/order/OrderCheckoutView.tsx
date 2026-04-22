@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, CreditCard, Loader2, MapPin, Wallet } from 'lucide-react';
 import type { CustomerAddressRow, DeliveryZoneRow, OnlineFulfillmentType, OnlinePaymentMethod } from '../types/online';
-import { OrderAddressMap } from './OrderAddressMap';
+import { OrderAddressMap, type ZonePillStatus } from './OrderAddressMap';
 
 function toLocalDayKey(date: Date): string {
   const y = date.getFullYear();
@@ -41,6 +41,8 @@ interface OrderCheckoutViewProps {
   geoStatus: string | null;
 
   zoneMatch: DeliveryZoneRow | null;
+  /** Active delivery zones for map polygons + zone pill (delivery only). */
+  deliveryZones?: DeliveryZoneRow[];
 
   paymentMethod: OnlinePaymentMethod;
   onPaymentMethodChange: (m: OnlinePaymentMethod) => void;
@@ -109,6 +111,10 @@ export interface CheckoutLabels {
   deliveryDisabledHint: string;
   saveAddressForNext: string;
   mapSearch: string;
+  mapNoResults: string;
+  mapSearchFailed: string;
+  mapSelectFailed: string;
+  mapLoadFailed: string;
   mapPinHint: string;
   mapLoading: string;
   mapUnavailable: string;
@@ -118,6 +124,7 @@ export interface CheckoutLabels {
   scheduleFor: string;
   scheduleDay: string;
   scheduleTime: string;
+  zonePillIn: string;
   today: string;
   tomorrow: string;
   scheduleNoSlots: string;
@@ -129,6 +136,14 @@ export interface CheckoutLabels {
   privacy: string;
   refundPolicy: string;
   retry: string;
+  payCodDescription: string;
+  payCashDescription: string;
+  payEpointDescription: string;
+  checkoutSummary: string;
+  checkoutBrand: string;
+  promoPlaceholder: string;
+  zonePillChecking: string;
+  optional: string;
 }
 
 export function OrderCheckoutView({
@@ -158,6 +173,7 @@ export function OrderCheckoutView({
   onUseLocation,
   geoStatus,
   zoneMatch,
+  deliveryZones,
   paymentMethod,
   onPaymentMethodChange,
   saveCardForFuture,
@@ -189,6 +205,21 @@ export function OrderCheckoutView({
   labels,
 }: OrderCheckoutViewProps) {
   const [selectedScheduleDay, setSelectedScheduleDay] = useState<string>('');
+
+  const mapZoneStatus = useMemo((): ZonePillStatus | undefined => {
+    if (fulfillment !== 'delivery' || !deliveryZones?.length) return undefined;
+    if (lat == null || lng == null) return { kind: 'idle' };
+    if (zoneMatch) {
+      return {
+        kind: 'in',
+        zoneId: zoneMatch.id,
+        zoneName: zoneMatch.name,
+        fee: Number(zoneMatch.delivery_fee ?? 0),
+      };
+    }
+    return { kind: 'out' };
+  }, [deliveryZones, fulfillment, lat, lng, zoneMatch]);
+
   const contactStep = 3;
   const addressStep = 4;
   const paymentStep = fulfillment === 'delivery' ? 5 : 4;
@@ -274,7 +305,7 @@ export function OrderCheckoutView({
         {title}
         {optional ? (
           <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-[0.14em] text-ming-mute">
-            · optional
+            · {labels.optional}
           </span>
         ) : null}
       </h3>
@@ -328,7 +359,7 @@ export function OrderCheckoutView({
           <ChevronLeft className="h-4.5 w-4.5" />
         </button>
         <div>
-          <p className="ming-eyebrow">Ming&apos;s</p>
+          <p className="ming-eyebrow">{labels.checkoutBrand}</p>
           <h1 className="ming-display text-xl leading-tight text-ming-bone sm:text-2xl">
             {labels.checkout}
           </h1>
@@ -557,9 +588,18 @@ export function OrderCheckoutView({
                   onLocationChange={onLocationChange}
                   onAddressChange={onAddressChange}
                   searchPlaceholder={labels.mapSearch}
+                  noResultsLabel={labels.mapNoResults}
+                  searchFailedLabel={labels.mapSearchFailed}
+                  selectFailedLabel={labels.mapSelectFailed}
+                  mapsLoadFailedLabel={labels.mapLoadFailed}
                   pinHint={labels.mapPinHint}
                   loadingLabel={labels.mapLoading}
                   unavailableLabel={labels.mapUnavailable}
+                  zones={deliveryZones}
+                  zoneStatus={mapZoneStatus}
+                  zonePillIn={labels.zonePillIn}
+                  zonePillOut={labels.outsideZone}
+                  zonePillChecking={labels.zonePillChecking}
                   addressLabel={`${labels.deliveryAddress} *`}
                   onUseLocation={onUseLocation}
                   useLocationLabel={labels.useLocation}
@@ -605,9 +645,9 @@ export function OrderCheckoutView({
           <section className="ming-card p-5">
             <StepHeading n={paymentStep} title={labels.payment} />
             <div className="space-y-2">
-              {paymentOption('cod', labels.payCod, 'Pay on pickup or to the courier', Wallet)}
-              {paymentOption('cash', labels.payCash, 'Cash in store', Wallet)}
-              {paymentOption('epoint', labels.payEpoint, 'Secure card payment via E-point', CreditCard)}
+              {paymentOption('cod', labels.payCod, labels.payCodDescription, Wallet)}
+              {paymentOption('cash', labels.payCash, labels.payCashDescription, Wallet)}
+              {paymentOption('epoint', labels.payEpoint, labels.payEpointDescription, CreditCard)}
               {paymentMethod === 'epoint' ? (
                 <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-ming-ash">
                   <label className="flex items-center gap-2">
@@ -643,7 +683,7 @@ export function OrderCheckoutView({
                   className="ming-input"
                   value={promoCode}
                   onChange={(e) => onPromoCodeChange(e.target.value)}
-                  placeholder="MINGS10"
+                  placeholder={labels.promoPlaceholder}
                 />
               </div>
               <div>
@@ -702,7 +742,7 @@ export function OrderCheckoutView({
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="ming-card-raised relative overflow-hidden p-5">
             <div aria-hidden className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-ming-red/15 blur-3xl" />
-            <p className="ming-eyebrow mb-3">Summary</p>
+            <p className="ming-eyebrow mb-3">{labels.checkoutSummary}</p>
             <dl className="space-y-2.5 text-sm">
               <div className="flex items-center justify-between">
                 <dt className="text-ming-ash">{labels.subtotal}</dt>

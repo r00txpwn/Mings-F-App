@@ -24,6 +24,8 @@ Mings Financial Automation is a business management system for small to medium-s
 
 **Audit:** [docs/URL_ROUTING_AUDIT.md](docs/URL_ROUTING_AUDIT.md) — client paths, Edge Functions, known quirks.
 
+**Reliability QA:** [docs/RELIABILITY_QA_PRIORITIES.md](docs/RELIABILITY_QA_PRIORITIES.md) — manual smoke priorities for order/payment, KDS, Wolt dispatch.
+
 [`src/main.tsx`](src/main.tsx) chooses the root app by **pathname** (no `react-router`):
 
 | Path      | App |

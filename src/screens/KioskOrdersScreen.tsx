@@ -33,7 +33,7 @@ export function KioskOrdersScreen() {
       const ids = data.map((s) => s.id);
       const { data: dels } = await supabase
         .from('delivery_orders')
-        .select('sale_id, status, tracking_url, wolt_delivery_id')
+        .select('sale_id, status, tracking_url, wolt_delivery_id, wolt_booking_locked_until')
         .in('sale_id', ids);
       const map = new Map((dels ?? []).map((d) => [d.sale_id as string, d]));
       const merged = data.map((s) => ({
@@ -58,6 +58,11 @@ export function KioskOrdersScreen() {
         () => void loadOrders()
       );
     }
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'delivery_orders' },
+      () => void loadOrders()
+    );
     channel.subscribe();
 
     return () => {

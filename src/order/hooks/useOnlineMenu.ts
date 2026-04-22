@@ -17,6 +17,7 @@ export function useOnlineMenu() {
           '*, product_modifier_groups(id, modifier_group_id, display_order, modifier_groups(id, name, min_select, max_select, is_required, display_order, modifier_options(*)))'
         )
         .eq('online_visible', true)
+        .eq('is_deleted', false)
         .gt('selling_price', 0)
         .order('display_order')
         .order('name'),

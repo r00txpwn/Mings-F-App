@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: sale, error: sErr } = await supabase
     .from('sales')
-    .select('id, source')
+    .select('id, source, order_status')
     .eq('id', saleId)
     .maybeSingle();
 
@@ -69,7 +69,39 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Only delivery orders can be dispatched' }, 400);
   }
 
+  const prevStatus = String(sale.order_status ?? '');
+
+  const { data: existingDo } = await supabase
+    .from('delivery_orders')
+    .select('id, tracking_url')
+    .eq('sale_id', saleId)
+    .maybeSingle();
+
+  if (prevStatus === 'dispatched') {
+    if (existingDo?.tracking_url === trackingUrl) {
+      return jsonResponse({ ok: true, delivery_order_id: existingDo.id, idempotent: true });
+    }
+    return jsonResponse({ error: 'Order already dispatched' }, 409);
+  }
+
+  if (prevStatus !== 'preparing' && prevStatus !== 'ready') {
+    return jsonResponse({ error: 'Order must be preparing or ready before manual dispatch' }, 400);
+  }
+
   const now = new Date().toISOString();
+
+  const { data: updatedRows, error: uErr } = await supabase
+    .from('sales')
+    .update({ order_status: 'dispatched' })
+    .eq('id', saleId)
+    .in('order_status', ['preparing', 'ready'])
+    .select('id');
+
+  if (uErr) return jsonResponse({ error: uErr.message }, 500);
+  if (!updatedRows?.length) {
+    return jsonResponse({ error: 'Could not move order to dispatched (conflict or stale state)' }, 409);
+  }
+
   const { data: dRow, error: dErr } = await supabase
     .from('delivery_orders')
     .upsert(
@@ -85,14 +117,10 @@ Deno.serve(async (req: Request) => {
     .select('id')
     .single();
 
-  if (dErr) return jsonResponse({ error: dErr.message }, 500);
-
-  const { error: uErr } = await supabase
-    .from('sales')
-    .update({ order_status: 'dispatched' })
-    .eq('id', saleId);
-
-  if (uErr) return jsonResponse({ error: uErr.message }, 500);
+  if (dErr) {
+    await supabase.from('sales').update({ order_status: prevStatus }).eq('id', saleId);
+    return jsonResponse({ error: dErr.message }, 500);
+  }
 
   return jsonResponse({ ok: true, delivery_order_id: dRow?.id });
 });

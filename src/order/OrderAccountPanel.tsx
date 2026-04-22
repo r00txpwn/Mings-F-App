@@ -69,6 +69,9 @@ interface OrderAccountPanelProps {
     orderSmsCode: string;
     orderVerifySms: string;
     orderSmsSentHint: string;
+    orderSmsResend: string;
+    orderSmsResendWait: string;
+    orderSmsCodeExpiredHint: string;
     orderChangePhone: string;
     orderInvalidPhone: string;
     orderAccountPhone: string;
@@ -78,6 +81,13 @@ interface OrderAccountPanelProps {
     orderMapUnavailable: string;
     orderDeliveryAddress: string;
     orderReorder: string;
+    orderMapNoResults: string;
+    orderMapSearchFailed: string;
+    orderMapSelectFailed: string;
+    orderMapLoadFailed: string;
+    orderProfileSection: string;
+    orderAddressDefaultBadge: string;
+    orderAddressHomeLabel: string;
   };
 }
 
@@ -125,6 +135,7 @@ export function OrderAccountPanel({
   const [authErr, setAuthErr] = useState('');
   const [authNotice, setAuthNotice] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
+  const [otpResendAfter, setOtpResendAfter] = useState(0);
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -152,8 +163,29 @@ export function OrderAccountPanel({
     if (!user) {
       setOtpStep('phone');
       setOtp('');
+      setOtpResendAfter(0);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (otpResendAfter <= 0) return;
+    const id = window.setInterval(() => {
+      setOtpResendAfter((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [otpResendAfter]);
+
+  const mapAuthErrorMessage = (raw: string): string => {
+    const msg = raw.toLowerCase();
+    if (msg.includes('invalid phone')) return t.orderInvalidPhone;
+    if (msg.includes('before requesting another code')) {
+      return t.orderSmsResendWait.replace('{seconds}', String(Math.max(1, otpResendAfter || 1)));
+    }
+    if (msg.includes('expired') || msg.includes('otp') || msg.includes('code')) {
+      return t.orderSmsCodeExpiredHint;
+    }
+    return raw;
+  };
 
   useEffect(() => {
     const detectRecoveryMode = () => {
@@ -191,13 +223,18 @@ export function OrderAccountPanel({
     const res = await sendPhoneOtp(phoneInput);
     if (res.error) {
       const msg = String((res.error as { message?: string }).message ?? res.error);
-      setAuthErr(msg.includes('Invalid phone') ? t.orderInvalidPhone : msg);
+      const retryMatch = /wait\s+(\d+)s/i.exec(msg);
+      if (retryMatch) {
+        setOtpResendAfter(Number(retryMatch[1]));
+      }
+      setAuthErr(mapAuthErrorMessage(msg));
       setAuthBusy(false);
       return;
     }
     setAuthBusy(false);
     setOtpStep('otp');
     setOtp('');
+    setOtpResendAfter(45);
   };
 
   const handleVerifySms = async () => {
@@ -205,7 +242,10 @@ export function OrderAccountPanel({
     setAuthNotice('');
     setAuthBusy(true);
     const res = await verifyPhoneOtp(phoneInput, otp);
-    if (res.error) setAuthErr(String((res.error as { message?: string }).message ?? res.error));
+    if (res.error) {
+      const msg = String((res.error as { message?: string }).message ?? res.error);
+      setAuthErr(mapAuthErrorMessage(msg));
+    }
     setAuthBusy(false);
     if (!res.error) void onReloadOrders();
   };
@@ -472,6 +512,16 @@ export function OrderAccountPanel({
                 >
                   {t.orderChangePhone}
                 </button>
+                <button
+                  type="button"
+                  className="ming-btn-link w-full justify-center"
+                  disabled={authBusy || otpResendAfter > 0}
+                  onClick={() => void handleSendSms()}
+                >
+                  {otpResendAfter > 0
+                    ? t.orderSmsResendWait.replace('{seconds}', String(otpResendAfter))
+                    : t.orderSmsResend}
+                </button>
               </>
             )}
           </div>
@@ -511,7 +561,7 @@ export function OrderAccountPanel({
         <div className="space-y-6">
           {/* Profile */}
           <section className="ming-card p-5">
-            <p className="ming-eyebrow mb-3">Profile</p>
+            <p className="ming-eyebrow mb-3">{t.orderProfileSection}</p>
             <div className="space-y-3">
               <div>
                 <label className="ming-label mb-1.5 block">{t.orderYourName}</label>
@@ -566,7 +616,7 @@ export function OrderAccountPanel({
                     </div>
                     {a.is_default ? (
                       <span className="shrink-0 rounded-full bg-ming-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ming-gold">
-                        Default
+                        {t.orderAddressDefaultBadge}
                       </span>
                     ) : null}
                   </li>
@@ -594,6 +644,10 @@ export function OrderAccountPanel({
                   }}
                   onAddressChange={(v) => setAddrLine(v)}
                   searchPlaceholder={t.orderMapSearchPlaceholder}
+                  noResultsLabel={t.orderMapNoResults}
+                  searchFailedLabel={t.orderMapSearchFailed}
+                  selectFailedLabel={t.orderMapSelectFailed}
+                  mapsLoadFailedLabel={t.orderMapLoadFailed}
                   pinHint={t.orderMapPinHint}
                   loadingLabel={t.orderMapLoading}
                   unavailableLabel={t.orderMapUnavailable}
@@ -613,7 +667,7 @@ export function OrderAccountPanel({
                 onClick={async () => {
                   setSavingAddr(true);
                   await onSaveAddress({
-                    label: addrLabel.trim() || 'Home',
+                    label: addrLabel.trim() || t.orderAddressHomeLabel,
                     line1: addrLine.trim(),
                     lat: addrLat,
                     lng: addrLng,

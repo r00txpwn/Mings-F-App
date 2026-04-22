@@ -33,6 +33,7 @@ export interface KioskOrder extends Sale {
     status?: string | null;
     wolt_delivery_id?: string | null;
     manually_dispatched?: boolean | null;
+    wolt_booking_locked_until?: string | null;
   } | null;
 }
 
@@ -500,6 +501,17 @@ export function KioskOrdersBoard({
       event: 'lock',
       payload: { saleId },
     });
+    if (staffAccessToken) {
+      void invokeEdgeFunction<{ saleId: string }, { ok?: boolean }>(
+        'wolt-dispatch-book-lock',
+        { saleId },
+        staffAccessToken
+      ).then((res) => {
+        if (!res.ok) {
+          console.warn('[KioskOrdersBoard] wolt-dispatch-book-lock failed:', res.error);
+        }
+      });
+    }
   };
 
   const copyAllPayload = (order: KioskOrder) => {
@@ -561,7 +573,12 @@ export function KioskOrdersBoard({
                     expanded={expanded.has(order.id)}
                     onToggleExpand={() => toggleExpand(order.id)}
                     staffAccessToken={staffAccessToken}
-                    dispatchLockUntil={dispatchLocks[order.id] ?? 0}
+                    dispatchLockUntil={Math.max(
+                      dispatchLocks[order.id] ?? 0,
+                      order.delivery_order?.wolt_booking_locked_until
+                        ? new Date(order.delivery_order.wolt_booking_locked_until).getTime()
+                        : 0
+                    )}
                     nowMs={nowMs}
                     trackingDraft={trackingDrafts[order.id] ?? ''}
                     onTrackingDraft={(v) =>

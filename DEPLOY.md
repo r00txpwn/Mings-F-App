@@ -90,6 +90,9 @@ Recent online-order schema additions included in this repo:
 - `20260421174000_checkout_promos_loyalty_errors.sql` (`sales.discount_amount`, `sales.tip_amount`, `sales.promo_code`, `promo_codes`, `dispatch_failures`, OTP rate-limit RPC)
 - `20260421182500_customer_favorites.sql` (`customer_favorites`)
 - `20260421194000_online_settings_kitchen_location.sql` (`online_settings.kitchen_lat`, `online_settings.kitchen_lng`)
+- `20260422200000_wolt_booking_lock_and_scheduled_guard.sql` (`delivery_orders.wolt_booking_locked_until` — Wolt portal booking lock)
+- `20260422201000_kiosk_anon_update_cancellation_reason_bound.sql` (tighter anon `UPDATE` on kiosk `sales` for `cancellation_reason`)
+- `20260422210000_products_combo_soft_delete_scheduled_future.sql` (`products.is_deleted`, `combo_deals.is_deleted`, combo read policy, `sales` trigger for future `scheduled_for`)
 
 If you see **“Remote migration versions not found in local migrations directory”**, fix history first: **[docs/MIGRATION_HISTORY.md](docs/MIGRATION_HISTORY.md)** (`npm run supabase:repair:remote` then push again).
 
@@ -103,6 +106,8 @@ supabase functions deploy wolt-drive-check
 supabase functions deploy wolt-drive-create
 supabase functions deploy wolt-drive-cancel
 supabase functions deploy wolt-drive-webhook
+supabase functions deploy wolt-drive-manual-dispatch
+supabase functions deploy wolt-dispatch-book-lock
 supabase functions deploy user-management
 ```
 

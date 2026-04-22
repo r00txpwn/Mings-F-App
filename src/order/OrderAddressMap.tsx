@@ -50,6 +50,9 @@ export interface OrderAddressMapProps {
   zonePillChecking?: string;
   onUseLocation?: () => void;
   useLocationLabel?: string;
+  searchFailedLabel?: string;
+  selectFailedLabel?: string;
+  mapsLoadFailedLabel?: string;
 }
 
 /**
@@ -82,6 +85,9 @@ export function OrderAddressMap({
   zonePillChecking,
   onUseLocation,
   useLocationLabel,
+  searchFailedLabel,
+  selectFailedLabel,
+  mapsLoadFailedLabel,
 }: OrderAddressMapProps) {
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -177,7 +183,8 @@ export function OrderAddressMap({
 
         setMapReady(true);
       } catch (e) {
-        if (!cancelled) setLoadError(e instanceof Error ? e.message : 'Map error');
+        if (!cancelled)
+          setLoadError(e instanceof Error ? e.message : (mapsLoadFailedLabel ?? 'Map error'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -298,7 +305,7 @@ export function OrderAddressMap({
     }
     if (zoneStatus.kind === 'in') {
       const label =
-        (zonePillIn ?? 'Delivering to {zone} · ₼{fee}')
+        (zonePillIn ?? '{zone} · ₼{fee}')
           .replace('{zone}', zoneStatus.zoneName)
           .replace('{fee}', Number(zoneStatus.fee).toFixed(2));
       return (
@@ -312,10 +319,10 @@ export function OrderAddressMap({
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-200">
         <XCircle className="h-3.5 w-3.5" aria-hidden />
-        {zonePillOut ?? 'Outside delivery area'}
+        {zonePillOut ?? unavailableLabel}
       </span>
     );
-  }, [zoneStatus, zonePillIn, zonePillOut, zonePillChecking]);
+  }, [zoneStatus, zonePillIn, zonePillOut, zonePillChecking, unavailableLabel]);
 
   // Fallback for environments without a Maps API key (local dev, preview without secrets).
   if (!apiKey?.trim()) {
@@ -345,6 +352,9 @@ export function OrderAddressMap({
         onSelect={handleAutocompleteSelect}
         placeholder={searchPlaceholder}
         noResultsLabel={noResultsLabel}
+        searchFailedLabel={searchFailedLabel}
+        selectFailedLabel={selectFailedLabel}
+        mapsLoadFailedLabel={mapsLoadFailedLabel}
       />
 
       {pill ? <div className="flex">{pill}</div> : null}
@@ -354,8 +364,8 @@ export function OrderAddressMap({
           <button
             type="button"
             onClick={onUseLocation}
-            aria-label={useLocationLabel ?? 'Use my location'}
-            title={useLocationLabel ?? 'Use my location'}
+            aria-label={useLocationLabel ?? pinHint}
+            title={useLocationLabel ?? pinHint}
             className="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-slate-950/70 text-white backdrop-blur transition-colors hover:bg-slate-900/85"
           >
             <Navigation className="h-4 w-4" />

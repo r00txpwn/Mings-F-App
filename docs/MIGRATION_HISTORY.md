@@ -82,3 +82,6 @@ npm run supabase:deploy:web
 - `20260418191000_combo_discount_fields.sql` — combo discount config foundation columns (`discount_*`) with non-negative constraint.
 - `20260418200000_add_scheduled_orders.sql` — adds `sales.scheduled_for` and `sales.reminder_at` for order-manager scheduled flow.
 - `20260419120000_online_settings_is_open_sales_cancellation_reason.sql` — `online_settings.is_open` (kitchen closed gate for `/order` checkout) and `sales.cancellation_reason` (customer-facing cancel reason on `/track`).
+- `20260422200000_wolt_booking_lock_and_scheduled_guard.sql` — `delivery_orders.wolt_booking_locked_until` (persisted Wolt portal booking lock; filename is historical).
+- `20260422201000_kiosk_anon_update_cancellation_reason_bound.sql` — tighter `WITH CHECK` on anon kiosk `sales` updates for `cancellation_reason`.
+- `20260422210000_products_combo_soft_delete_scheduled_future.sql` — `products.is_deleted` / `combo_deals.is_deleted`, combo storefront policy, `sales` trigger so `scheduled_for` stays in the future when scheduling changes.

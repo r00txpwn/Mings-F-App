@@ -9,6 +9,21 @@ type Body = {
   useWallet?: boolean;
 };
 
+async function markSalePaymentInitFailed(
+  supabase: ReturnType<typeof createClient>,
+  saleId: string,
+  reason: string
+) {
+  await supabase
+    .from('sales')
+    .update({
+      payment_status: 'failed',
+      order_status: 'cancelled',
+      cancellation_reason: reason.slice(0, 300),
+    })
+    .eq('id', saleId);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return corsPreflightResponse();
   if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
@@ -135,6 +150,7 @@ Deno.serve(async (req: Request) => {
       });
       if (!w.widgetUrl) {
         await supabase.from('online_payments').update({ status: 'failed', error_message: JSON.stringify(w.raw) }).eq('id', paymentId);
+        await markSalePaymentInitFailed(supabase, saleId, 'Card payment initialization failed');
         return jsonResponse(
           { error: 'Epoint widget failed', details: w.raw },
           502
@@ -170,6 +186,7 @@ Deno.serve(async (req: Request) => {
       });
       if (!r.redirectUrl) {
         await supabase.from('online_payments').update({ status: 'failed', error_message: JSON.stringify(r.raw) }).eq('id', paymentId);
+        await markSalePaymentInitFailed(supabase, saleId, 'Card payment initialization failed');
         return jsonResponse({ error: 'Epoint card+pay failed', details: r.raw }, 502);
       }
       await supabase
@@ -207,6 +224,7 @@ Deno.serve(async (req: Request) => {
         .from('online_payments')
         .update({ status: 'failed', error_message: result.message ?? JSON.stringify(result.raw) })
         .eq('id', paymentId);
+      await markSalePaymentInitFailed(supabase, saleId, 'Card payment initialization failed');
       return jsonResponse({ error: 'Epoint request failed', details: result.raw }, 502);
     }
 
@@ -235,6 +253,11 @@ Deno.serve(async (req: Request) => {
         error_message: e instanceof Error ? e.message : String(e),
       })
       .eq('id', paymentId);
+    await markSalePaymentInitFailed(
+      supabase,
+      saleId,
+      e instanceof Error ? `Card payment initialization failed: ${e.message}` : 'Card payment initialization failed'
+    );
     console.error('epoint-create-payment', e);
     return jsonResponse({ error: e instanceof Error ? e.message : 'Payment init failed' }, 500);
   }

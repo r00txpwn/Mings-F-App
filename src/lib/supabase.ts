@@ -192,6 +192,8 @@ export interface Product {
   updated_at: string;
   kiosk_visible?: boolean;
   online_visible?: boolean;
+  /** Soft-delete: hidden from online menu when true. */
+  is_deleted?: boolean;
   is_halal?: boolean;
   image_url?: string | null;
   display_order?: number;
@@ -228,6 +230,8 @@ export interface ComboDeal {
   name: string;
   base_price: number;
   is_active: boolean;
+  /** Soft-delete: hidden from customers when true. */
+  is_deleted?: boolean;
   image_url?: string | null;
   sort_order: number;
   discount_enabled?: boolean;

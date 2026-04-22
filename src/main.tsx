@@ -19,7 +19,8 @@ async function renderApp() {
 
   const root = createRoot(document.getElementById('root')!);
   const hostSurface = resolveHostedSurface(window.location.hostname);
-  const isStaffEntrypoint = pathNorm === '/order-manager' || isAdminPath(pathNorm);
+  const isStaffEntrypoint =
+    pathNorm === '/order-manager' || pathNorm === '/order-management' || isAdminPath(pathNorm);
 
   // Staff routes must always render the admin shell, even on order.* hosts.
   if (isStaffEntrypoint) {
@@ -56,6 +57,16 @@ async function renderApp() {
           <ConfigCheck>
             <ErrorBoundary>
               <TrackingApp />
+            </ErrorBoundary>
+          </ConfigCheck>
+        </StrictMode>
+      );
+    } else if (pathNorm === '/order-management') {
+      root.render(
+        <StrictMode>
+          <ConfigCheck>
+            <ErrorBoundary>
+              <App />
             </ErrorBoundary>
           </ConfigCheck>
         </StrictMode>

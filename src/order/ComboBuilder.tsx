@@ -60,6 +60,8 @@ interface ComboBuilderProps {
     addToCart: string;
     nextStep: string;
     pickOne: string;
+    emptyGroup: string;
+    emptyCombo: string;
   };
   onBack: () => void;
   onAddToCart: (line: Omit<Extract<OrderCartLine, { kind: 'combo' }>, 'cartItemKey'>) => void;
@@ -85,7 +87,8 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
     >
   >({});
   const g = groups[step];
-  const canNext = g ? Boolean(selectionState[g.id]) : false;
+  const hasStepItems = (g?.combo_group_items ?? []).some((row) => row.products);
+  const canNext = g ? hasStepItems && Boolean(selectionState[g.id]) : false;
 
   const sortedStepItems = useMemo(() => {
     return (g?.combo_group_items ?? []).filter((row) => row.products);
@@ -274,6 +277,11 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
           <>
             <h2 className="text-lg font-semibold text-white">{g.name}</h2>
             <p className="text-xs text-slate-500">{labels.pickOne}</p>
+            {!hasStepItems ? (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+                {labels.emptyGroup}
+              </div>
+            ) : null}
             <div className="space-y-2">
               {sortedStepItems.map((row) => {
                 const p = row.products;
@@ -398,7 +406,7 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
             ) : null}
           </>
         ) : (
-          <p className="text-slate-500">—</p>
+          <p className="text-slate-500">{labels.emptyCombo}</p>
         )}
       </div>
 

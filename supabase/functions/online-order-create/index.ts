@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsPreflightResponse, jsonResponse } from '../_shared/cors.ts';
 import { pointInGeoJsonPolygon } from '../_shared/geo.ts';
+import { roundMoney } from '../_shared/money.ts';
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
@@ -173,6 +174,9 @@ async function handleRequest(req: Request): Promise<Response> {
   if (!settings) {
     return errorResponse('ONLINE_NOT_CONFIGURED', 'Online ordering not configured', 503);
   }
+  if (settings.is_open === false) {
+    return errorResponse('KITCHEN_CLOSED', 'Kitchen is closed for online orders', 400);
+  }
 
   if (fulfillmentType === 'takeaway' && !settings.takeaway_enabled) {
     return errorResponse('TAKEAWAY_DISABLED', 'Takeaway ordering is disabled', 400);
@@ -301,16 +305,21 @@ async function handleRequest(req: Request): Promise<Response> {
   const resolvedLines: Array<ResolvedProductLine | ResolvedComboLine> = [];
 
   for (const line of cart) {
-    const qty = Math.max(1, Math.floor(Number(line.quantity) || 0));
+    const qtyRaw = Number(line.quantity);
+    if (!Number.isFinite(qtyRaw) || !Number.isInteger(qtyRaw) || qtyRaw < 1) {
+      return errorResponse('INVALID_QUANTITY', 'Invalid item quantity', 400);
+    }
+    const qty = qtyRaw;
 
     if (line.isCombo && line.comboId) {
       const { data: deal, error: dealErr } = await supabase
         .from('combo_deals')
-        .select('id, name, base_price, is_active')
+        .select('id, name, base_price, is_active, is_deleted')
         .eq('id', line.comboId)
         .maybeSingle();
 
-      if (dealErr || !deal || !(deal as { is_active?: boolean }).is_active) {
+      const d = deal as { is_active?: boolean; is_deleted?: boolean } | null;
+      if (dealErr || !d || !d.is_active || d.is_deleted === true) {
         return jsonResponse({ error: 'Invalid combo deal' }, 400);
       }
 
@@ -402,7 +411,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
       const base = Number((deal as { base_price: number }).base_price);
       const comboName = String((deal as { name: string }).name);
-      subtotal += base * qty;
+      subtotal += roundMoney(base * qty);
 
       resolvedLines.push({
         kind: 'combo',
@@ -488,8 +497,8 @@ async function handleRequest(req: Request): Promise<Response> {
       });
     }
 
-    const unitPrice = base + modAdjust;
-    subtotal += unitPrice * qty;
+    const unitPrice = roundMoney(base + modAdjust);
+    subtotal += roundMoney(unitPrice * qty);
 
     const modSummary = modifierRows.map((m) => m.optionName).join(', ');
     const noteParts = [line.notes, modSummary].filter(Boolean).join(' | ');
@@ -533,11 +542,12 @@ async function handleRequest(req: Request): Promise<Response> {
     } else {
       discount = Number(promo.discount_value ?? 0);
     }
-    discount = Math.max(0, Math.min(discount, subtotal));
+    discount = roundMoney(Math.max(0, Math.min(discount, subtotal)));
     promoCodeApplied = normalizedCode;
   }
 
-  const totalWithAdjustments = subtotal + deliveryFee - discount + tip;
+  subtotal = roundMoney(subtotal);
+  const totalWithAdjustments = roundMoney(subtotal + deliveryFee - discount + tip);
   // Combos remain bundled pricing lines and should stay outside discount arithmetic by default.
   const minOrder = Number(settings.min_order_amount ?? 0);
   if (totalWithAdjustments < minOrder) {
@@ -556,12 +566,9 @@ async function handleRequest(req: Request): Promise<Response> {
     }
   }
 
-  let paymentStatus: string;
-  if (paymentMethod === 'epoint') {
-    paymentStatus = 'pending';
-  } else {
-    paymentStatus = 'unpaid';
-  }
+  const isCardPayment = paymentMethod === 'epoint';
+  const paymentStatus = isCardPayment ? 'pending' : 'unpaid';
+  const initialOrderStatus = isCardPayment ? 'awaiting_payment' : 'pending';
 
   const itemCount = resolvedLines.reduce((s, l) => s + l.quantity, 0);
 
@@ -575,7 +582,7 @@ async function handleRequest(req: Request): Promise<Response> {
     .from('sales')
     .insert({
       source,
-      order_status: 'pending',
+      order_status: initialOrderStatus,
       payment_status: paymentStatus,
       sales_channel_id: channel.id,
       total_price: totalWithAdjustments,

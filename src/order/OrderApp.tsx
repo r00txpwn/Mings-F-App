@@ -43,6 +43,69 @@ function generateCartItemKey(productId: string, modifiers: SelectedModifiers): s
 type Flow = 'browse' | 'checkout' | 'done';
 const ORDER_CART_STORAGE_KEY = 'mings-order-cart-v2';
 const ORDER_COOKIE_CONSENT_KEY = 'mings-order-cookie-consent-v1';
+/** Epoint redirect recovery — canonical key (plan: `mings_pending_order_v1`). */
+const ORDER_PAYMENT_PENDING_KEY = 'mings_pending_order_v1';
+const LEGACY_ORDER_PAYMENT_PENDING_KEY = 'mings-order-payment-pending-v1';
+
+function clearPendingOrderPaymentKeys() {
+  window.localStorage.removeItem(ORDER_PAYMENT_PENDING_KEY);
+  window.localStorage.removeItem(LEGACY_ORDER_PAYMENT_PENDING_KEY);
+}
+
+/** Read pending sale id; migrates legacy storage key to canonical. */
+function readPendingOrderPaymentSaleId(): string | null {
+  const tryParse = (key: string): string | null => {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    try {
+      const pending = JSON.parse(raw) as { saleId?: string };
+      if (!pending?.saleId) return null;
+      if (key === LEGACY_ORDER_PAYMENT_PENDING_KEY) {
+        window.localStorage.setItem(ORDER_PAYMENT_PENDING_KEY, raw);
+        window.localStorage.removeItem(LEGACY_ORDER_PAYMENT_PENDING_KEY);
+      }
+      return pending.saleId;
+    } catch {
+      window.localStorage.removeItem(key);
+      return null;
+    }
+  };
+  return tryParse(ORDER_PAYMENT_PENDING_KEY) ?? tryParse(LEGACY_ORDER_PAYMENT_PENDING_KEY);
+}
+
+/** True when every required combo group has at least one linked product (online upsell path). */
+async function comboDealUpsellIsSatisfiable(comboId: string): Promise<boolean> {
+  const { data: combo } = await supabase
+    .from('combo_deals')
+    .select(
+      'id, combo_groups(id, name, required, sort_order, combo_group_items(id, menu_item_id, products(id, name, selling_price)))'
+    )
+    .eq('id', comboId)
+    .eq('is_active', true)
+    .eq('is_deleted', false)
+    .maybeSingle();
+  if (!combo) return false;
+  const comboGroups = ((combo as { combo_groups?: unknown[] }).combo_groups ?? []) as Array<{
+    id: string;
+    name: string;
+    required?: boolean;
+    combo_group_items?: Array<{ menu_item_id: string; products?: { id: string; name: string } | null }>;
+  }>;
+  const comboSelections = comboGroups
+    .map((group) => {
+      const firstValid = (group.combo_group_items ?? []).find((row) => row.products?.id);
+      if (!firstValid) {
+        if (group.required !== false) return null;
+        return undefined;
+      }
+      return { groupId: group.id };
+    })
+    .filter((s): s is NonNullable<typeof s> => Boolean(s));
+  if (comboGroups.some((group) => group.required !== false) && comboSelections.length === 0) {
+    return false;
+  }
+  return true;
+}
 
 interface StoredOrderCartState {
   cart: CartItem[];
@@ -211,6 +274,7 @@ function OrderContent() {
     if (paid === '1') {
       setPaymentReturn('success');
       setPaymentReturnDetail(null);
+      clearPendingOrderPaymentKeys();
       params.delete('paid');
       params.delete('sale');
       const qs = params.toString();
@@ -221,6 +285,7 @@ function OrderContent() {
     if (paymentErr === '1') {
       setPaymentReturn('error');
       setPaymentReturnDetail(params.get('message')?.trim() || null);
+      clearPendingOrderPaymentKeys();
       params.delete('payment_error');
       params.delete('sale');
       params.delete('message');
@@ -228,6 +293,53 @@ function OrderContent() {
       window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
     }
   }, [reloadOrders]);
+
+  useEffect(() => {
+    const pendingSaleId = readPendingOrderPaymentSaleId();
+    if (!pendingSaleId || paymentReturn) {
+      return;
+    }
+    void (async () => {
+      const { data } = await supabase
+        .from('sales')
+        .select('id, payment_status, track_token, display_number, total_price, delivery_fee, online_payment_method')
+        .eq('id', pendingSaleId)
+        .maybeSingle();
+      if (!data) return;
+      const paymentStatus = String((data as { payment_status?: string }).payment_status ?? '');
+      if (paymentStatus === 'paid') {
+        const sale = data as {
+          id: string;
+          track_token?: string | null;
+          display_number?: string | null;
+          total_price?: number | null;
+          delivery_fee?: number | null;
+          online_payment_method?: string | null;
+        };
+        if (!sale.track_token) return;
+        setResult({
+          saleId: sale.id,
+          trackToken: sale.track_token,
+          displayNumber: sale.display_number ?? sale.id,
+          total: Number(sale.total_price ?? 0),
+          deliveryFee: Number(sale.delivery_fee ?? 0),
+          paymentMethod: (sale.online_payment_method as OnlinePaymentMethod) ?? 'epoint',
+          nextStep: 'track',
+        });
+        setFlow('done');
+        setPaymentReturn('success');
+        setPaymentReturnDetail(null);
+        setCart([]);
+        clearPendingOrderPaymentKeys();
+        return;
+      }
+      if (paymentStatus === 'failed') {
+        setPaymentReturn('error');
+        setPaymentReturnDetail(t.orderPaymentReturnFailed);
+        clearPendingOrderPaymentKeys();
+      }
+    })();
+  }, [paymentReturn, t]);
 
   useEffect(() => {
     if (!user) {
@@ -426,8 +538,36 @@ function OrderContent() {
       )
       .eq('id', product.upsell_combo_id)
       .eq('is_active', true)
+      .eq('is_deleted', false)
       .maybeSingle();
     if (!combo) return false;
+    const comboGroups = ((combo as { combo_groups?: unknown[] }).combo_groups ?? []) as Array<{
+      id: string;
+      name: string;
+      required?: boolean;
+      combo_group_items?: Array<{ menu_item_id: string; products?: { id: string; name: string } | null }>;
+    }>;
+    const comboSelections = comboGroups
+      .map((group) => {
+        const firstValid = (group.combo_group_items ?? []).find((row) => row.products?.id);
+        if (!firstValid) {
+          if (group.required !== false) return null;
+          return undefined;
+        }
+        return {
+          groupId: group.id,
+          groupName: group.name,
+          item: {
+            id: firstValid.products!.id,
+            name: firstValid.products!.name,
+          } as Product,
+          priceAdjustment: 0,
+        };
+      })
+      .filter((s): s is NonNullable<typeof s> => Boolean(s));
+    if (comboGroups.some((group) => group.required !== false) && comboSelections.length === 0) {
+      return false;
+    }
 
     const key = `combo__${combo.id}__${Date.now()}`;
     const syntheticProduct: Product = {
@@ -461,6 +601,7 @@ function OrderContent() {
         comboId: String(combo.id),
         comboName: String(combo.name),
         comboBasePrice: Number(combo.base_price),
+        comboSelections,
       },
     ]);
     return true;
@@ -468,8 +609,10 @@ function OrderContent() {
 
   const addSimple = async (product: Product) => {
     if (product.combo_upsell_eligible && product.upsell_combo_id) {
-      setUpsellPromptProduct(product);
-      return;
+      if (await comboDealUpsellIsSatisfiable(product.upsell_combo_id)) {
+        setUpsellPromptProduct(product);
+        return;
+      }
     }
     const hasModifiers = product.modifier_groups && product.modifier_groups.length > 0;
     if (hasModifiers) setDetailProduct(product);
@@ -529,6 +672,7 @@ function OrderContent() {
       const byCode: Record<string, string> = {
         AUTH_REQUIRED: t.orderErrAuthRequired,
         CART_EMPTY: t.orderErrCartEmpty,
+        INVALID_QUANTITY: t.orderErrInvalidQuantity,
         PHONE_REQUIRED: t.orderErrPhoneRequired,
         PHONE_INVALID: t.orderErrPhoneInvalid,
         ONLINE_NOT_CONFIGURED: t.orderErrOnlineUnavailable,
@@ -542,6 +686,7 @@ function OrderContent() {
         SCHEDULE_TIME_REQUIRED: t.orderErrScheduleRequired,
         SCHEDULE_TIME_INVALID: t.orderErrScheduleInvalid,
         SCHEDULE_TIME_TOO_SOON: t.orderErrScheduleTooSoon,
+        KITCHEN_CLOSED: t.orderErrKitchenClosed,
       };
       return (code && byCode[code]) || fallback || t.orderErrGeneric;
     },
@@ -609,7 +754,11 @@ function OrderContent() {
             comboId: item.comboId,
             quantity: item.quantity,
             notes: item.notes || undefined,
-            comboSelections: [],
+            comboSelections: (item.comboSelections ?? []).map((selection) => ({
+              groupId: selection.groupId,
+              itemId: selection.item.id,
+              modifierOptionIds: [],
+            })),
           };
         }
         return {
@@ -676,6 +825,12 @@ function OrderContent() {
           return;
         }
         if (pay.data?.checkoutUrl) {
+          window.localStorage.setItem(
+            ORDER_PAYMENT_PENDING_KEY,
+            JSON.stringify({
+              saleId: data.saleId,
+            })
+          );
           window.location.href = pay.data.checkoutUrl;
           return;
         }
@@ -692,7 +847,7 @@ function OrderContent() {
         const exists = addresses.some((a) => a.line1.trim() === deliveryAddress.trim());
         if (!exists) {
           await saveAddress({
-            label: addresses.length === 0 ? 'Home' : 'Address',
+            label: addresses.length === 0 ? t.home : t.orderAddressLabel,
             line1: deliveryAddress.trim(),
             lat,
             lng,
@@ -703,6 +858,7 @@ function OrderContent() {
 
       setResult(data);
       setCart([]);
+      clearPendingOrderPaymentKeys();
       track('purchase', {
         sale_id: data.saleId,
         total: grandTotal,
@@ -803,6 +959,9 @@ function OrderContent() {
       orderSmsCode: t.orderSmsCode,
       orderVerifySms: t.orderVerifySms,
       orderSmsSentHint: t.orderSmsSentHint,
+      orderSmsResend: t.orderSmsResend,
+      orderSmsResendWait: t.orderSmsResendWait,
+      orderSmsCodeExpiredHint: t.orderSmsCodeExpiredHint,
       orderChangePhone: t.orderChangePhone,
       orderInvalidPhone: t.orderInvalidPhone,
       orderAccountPhone: t.orderAccountPhone,
@@ -812,6 +971,13 @@ function OrderContent() {
       orderMapUnavailable: t.orderMapUnavailable,
       orderDeliveryAddress: t.orderDeliveryAddress,
       orderReorder: t.orderReorder,
+      orderMapNoResults: t.orderMapNoResults,
+      orderMapSearchFailed: t.orderMapSearchFailed,
+      orderMapSelectFailed: t.orderMapSelectFailed,
+      orderMapLoadFailed: t.orderMapLoadFailed,
+      orderProfileSection: t.orderProfileSection,
+      orderAddressDefaultBadge: t.orderAddressDefaultBadge,
+      orderAddressHomeLabel: t.orderAddressHomeLabel,
     }),
     [t]
   );
@@ -889,6 +1055,10 @@ function OrderContent() {
       deliveryDisabledHint: t.orderDeliveryDisabledInSettings,
       saveAddressForNext: t.orderSaveAddressForNext,
       mapSearch: t.orderMapSearchPlaceholder,
+      mapNoResults: t.orderMapNoResults,
+      mapSearchFailed: t.orderMapSearchFailed,
+      mapSelectFailed: t.orderMapSelectFailed,
+      mapLoadFailed: t.orderMapLoadFailed,
       mapPinHint: t.orderMapPinHint,
       mapLoading: t.orderMapLoading,
       mapUnavailable: t.orderMapUnavailable,
@@ -898,6 +1068,7 @@ function OrderContent() {
       scheduleFor: t.orderScheduleFor,
       scheduleDay: t.orderScheduleDay,
       scheduleTime: t.orderScheduleTime,
+      zonePillIn: t.orderZonePillIn,
       today: t.today,
       tomorrow: t.tomorrow,
       scheduleNoSlots: t.orderScheduleNoSlots,
@@ -909,6 +1080,14 @@ function OrderContent() {
       privacy: t.orderPrivacy,
       refundPolicy: t.orderRefundPolicy,
       retry: t.retry,
+      payCodDescription: t.orderPayCodDescription,
+      payCashDescription: t.orderPayCashDescription,
+      payEpointDescription: t.orderPayEpointDescription,
+      checkoutSummary: t.orderCheckoutSummary,
+      checkoutBrand: t.orderCheckoutBrand,
+      promoPlaceholder: t.orderPromoCodePlaceholder,
+      zonePillChecking: t.orderZonePillChecking,
+      optional: t.optional,
     }),
     [t]
   );
@@ -1160,6 +1339,7 @@ function OrderContent() {
           onUseLocation={handleLocate}
           geoStatus={geoStatus}
           zoneMatch={zoneMatch}
+          deliveryZones={zones}
           paymentMethod={paymentMethod}
           onPaymentMethodChange={handlePaymentMethodChange}
           saveCardForFuture={saveCardForFuture}

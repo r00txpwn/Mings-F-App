@@ -90,7 +90,8 @@ function readScreenFromUrl(): Screen {
   const params = new URLSearchParams(window.location.search);
   const raw = params.get(SCREEN_QUERY_KEY);
   if (isScreen(raw)) return raw;
-  return normalizePathname(window.location.pathname) === ORDER_MANAGER_PATH ? 'kiosk-orders' : DEFAULT_SCREEN;
+  const p = normalizePathname(window.location.pathname);
+  return p === ORDER_MANAGER_PATH || p === '/order-management' ? 'kiosk-orders' : DEFAULT_SCREEN;
 }
 
 function writeScreenToUrl(screen: Screen) {
