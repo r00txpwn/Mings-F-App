@@ -24,7 +24,6 @@ function emptyState(label: string) {
 
 export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
   const { t } = useLanguage();
-  void accessToken;
   const [orders, setOrders] = useState<OrderManagerOrder[]>([]);
   const [kitchenLocation, setKitchenLocation] = useState<KitchenLocation>(() =>
     getKitchenLocationFromSettings(null),
@@ -35,8 +34,9 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
   const [nowMs, setNowMs] = useState(Date.now());
   const [channelHealth, setChannelHealth] = useState('CONNECTING');
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
-  const [channelRef, setChannelRef] = useState<ReturnType<typeof supabase.channel> | null>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const ringtoneCtxRef = useRef<AudioContext | null>(null);
   const ringtoneIntervalRef = useRef<number | null>(null);
 
@@ -108,12 +108,28 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
     setInitialLoadDone(true);
   }, [initialLoadDone]);
 
-  const updateSale = useCallback(async (orderId: string, patch: Record<string, unknown>) => {
-    setBusyOrderId(orderId);
-    await supabase.from('sales').update(patch).eq('id', orderId);
-    setBusyOrderId(null);
-    await loadOrders();
-  }, [loadOrders]);
+  const updateSale = useCallback(
+    async (orderId: string, patch: Record<string, unknown>) => {
+      setBusyOrderId(orderId);
+      setActionError(null);
+      try {
+        const { error } = await supabase.from('sales').update(patch).eq('id', orderId);
+        if (error) {
+          setActionError(`${t.errorOccurred}: ${error.message}`);
+          return false;
+        }
+        await loadOrders();
+        return true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setActionError(`${t.errorOccurred}: ${message}`);
+        return false;
+      } finally {
+        setBusyOrderId(null);
+      }
+    },
+    [loadOrders, t.errorOccurred]
+  );
 
   const acceptNew = useCallback(
     async (orderId: string, prepMinutes: number) => {
@@ -130,8 +146,6 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
 
   const rejectOrder = useCallback(
     async (orderId: string, reason: string, note?: string) => {
-      setBusyOrderId(orderId);
-
       const reasonLabels: Record<string, string> = {
         item_unavailable: 'Item unavailable',
         too_busy: 'Kitchen is too busy right now',
@@ -140,42 +154,29 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
         other: note?.trim() || 'Order cancelled',
       };
       const cancellationReason = reasonLabels[reason] ?? 'Order cancelled';
-
-      await supabase
-        .from('sales')
-        .update({
-          order_status: 'cancelled',
-          cancellation_reason: cancellationReason,
-        })
-        .eq('id', orderId);
-
-      setBusyOrderId(null);
-      await loadOrders();
+      await updateSale(orderId, {
+        order_status: 'cancelled',
+        cancellation_reason: cancellationReason,
+      });
     },
-    [loadOrders]
+    [updateSale]
   );
 
   const selfDispatch = useCallback(
     async (orderId: string) => {
-      setBusyOrderId(orderId);
-      await supabase
-        .from('sales')
-        .update({
-          order_status: 'dispatched',
-          dispatched_at: new Date().toISOString(),
-        })
-        .eq('id', orderId);
-      setBusyOrderId(null);
-      await loadOrders();
+      await updateSale(orderId, {
+        order_status: 'dispatched',
+        dispatched_at: new Date().toISOString(),
+      });
     },
-    [loadOrders]
+    [updateSale]
   );
 
   const acceptScheduled = useCallback(
     async (order: OrderManagerOrder, reminderMinutes: number) => {
       if (!order.scheduled_for) return;
       const reminderAt = new Date(new Date(order.scheduled_for).getTime() - reminderMinutes * 60_000).toISOString();
-      await updateSale(order.id, { reminder_at: reminderAt });
+      void (await updateSale(order.id, { reminder_at: reminderAt }));
     },
     [updateSale]
   );
@@ -202,10 +203,17 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
     await loadOrders();
   }, [loadOrders, orders]);
 
-  useEffect(() => {
-    void loadOrders();
+  const subscribeRealtime = useCallback(() => {
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+    if (accessToken) {
+      supabase.realtime.setAuth(accessToken);
+    }
+    setChannelHealth('CONNECTING');
     const channel = supabase.channel('order-manager-active');
-    setChannelRef(channel);
+    channelRef.current = channel;
     channel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'sales' },
@@ -224,14 +232,22 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
     channel.subscribe((status) => {
       setChannelHealth(status);
       if (status === 'SUBSCRIBED') {
+        setActionError(null);
         void loadOrders();
       }
     });
+  }, [accessToken, loadOrders]);
+
+  useEffect(() => {
+    void loadOrders();
+    subscribeRealtime();
     return () => {
-      setChannelRef(null);
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [loadOrders]);
+  }, [loadOrders, subscribeRealtime]);
 
   useEffect(() => {
     const poll = window.setInterval(() => {
@@ -241,14 +257,9 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
   }, [loadOrders]);
 
   const reconnectRealtime = useCallback(() => {
-    if (channelRef) {
-      channelRef.subscribe((status) => {
-        setChannelHealth(status);
-      });
-      return;
-    }
+    subscribeRealtime();
     void loadOrders();
-  }, [channelRef, loadOrders]);
+  }, [loadOrders, subscribeRealtime]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -319,6 +330,11 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
           <WifiOff className="h-4 w-4" />
           {t.kdsConnectionLostBanner}
         </button>
+      ) : null}
+      {actionError ? (
+        <div className="rounded-lg border border-rose-500/35 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200">
+          {actionError}
+        </div>
       ) : null}
 
       <div className="grid gap-3 xl:grid-cols-3">
