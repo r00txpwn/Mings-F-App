@@ -2,9 +2,9 @@
 
 > **Claude Extension:** each QA chat starts with **no repo context**. Paste **this entire file** as the **first user message** in a new Extension chat (or use the same text from the Linear comment after `npm run qa:handoff` posts it).
 
-**Status:** ready for second-pass QA
+**Status:** second-pass QA **passed** (2026-04-22) — ready to merge. Linear: record with `npm run qa:result -- --issue=MIN-6 --status=pass --result-file=docs/qa-briefs/MIN-6-qa-result-pass.md`.
 
-**Last QA feedback (2026-04-22, incorporated here):** second pass was **blocked** on a stale preview (`build-meta.json` still showed an old SHA) and on using **`/?screen=order-support`** instead of **`/spec-ops?screen=order-support`** on localhost. Re-run QA only after a fresh `npm run deploy:local` and `gitSha` match.
+**Last QA feedback:** first second-pass attempt was **blocked** on stale preview / wrong localhost path (`/?screen=…` vs `/spec-ops?screen=order-support`); re-test used fresh `deploy:local` + matching `build-meta.json` `gitSha`. Final run: all five scenarios **pass** (see `docs/qa-briefs/MIN-6-qa-result-pass.md`).
 
 **Summary**
 
@@ -47,6 +47,16 @@
 - Cockpit **staff/admin** login (same accounts you use for `sp.mings.az`).
 - You need **orders** in `sales` for the chosen **date range** and filters (kiosk / online_delivery / online_takeaway); empty list means scenario 1 cannot be exercised until data exists.
 - Viewports: desktop and ~393px width if possible.
+
+**Cursor session verification notes (2026-04-22)**
+
+These items were **not** exercised with matching live data or viewport in the Cursor session; treat them as **still required** for Extension QA where data allows.
+
+- **Wolt tracking link** — Not live-tested (no `delivery_orders.tracking_url` in the date range used). Presence/branching was checked via bundle inspection only.
+- **Scheduled `pending` orders** — Not live-tested (no such rows in range). Hint + Order Manager wiring checked via bundle inspection only.
+- **Pending new-order Accept / Prepare** — Not live-tested (no `pending` rows without `scheduled_for` in range). Accept/prepare paths and translation keys verified via bundle inspection only.
+- **Mobile viewport** — Not live-tested here (window resize was not effective in that environment). Desktop only at **1447×814**; Extension QA should still try ~393px width if possible.
+- **`OrderItemSummary` in bundle** — The component name string was not found verbatim in the minified bundle (expected rename/minification). **Modifier rendering** was confirmed live via DOM content on a row with modifiers.
 
 **Screenshots from Cursor verification (optional)**
 
