@@ -54,7 +54,7 @@
 
 **Commit** (Cursor session — filled for QA)
 
-- **SHA:** `6ec675ceb97e6eb69978bd110fa6855ad95da886`
+- **SHA:** `bbb126f55569e3239f00f8b68e7306dffc06bf97`
 - **Branch:** `session/2026-04-22-cursor-session`
 - **Deployed:** `sp.mings.az` — no (local QA only until you merge / deploy).
 
@@ -125,7 +125,7 @@ Use this block **after** the human or Cursor has run **`npm run deploy:local`** 
 
 **Build identity**
 - Branch: `session/2026-04-22-cursor-session`
-- Expected `gitSha` (must match `http://127.0.0.1:4175/build-meta.json`): `6ec675ceb97e6eb69978bd110fa6855ad95da886`
+- Expected `gitSha` (must match `http://127.0.0.1:4175/build-meta.json`): `bbb126f55569e3239f00f8b68e7306dffc06bf97`
 
 **Steps**
 1. Open `http://127.0.0.1:4175/build-meta.json` — confirm `gitSha` equals the value above. If not, stop (stale `dist/` or wrong repo).
