@@ -73,6 +73,10 @@ interface OrderCheckoutViewProps {
   submitError: string | null;
   canSubmit: boolean;
   onSubmit: () => void;
+  /** Last-call soft-close note above Place order. */
+  closingSoonNote?: string | null;
+  /** Extra classes on primary submit (e.g. pulse border). */
+  placeOrderButtonClassName?: string;
 
   onBack: () => void;
 
@@ -201,6 +205,8 @@ export function OrderCheckoutView({
   submitError,
   canSubmit,
   onSubmit,
+  closingSoonNote,
+  placeOrderButtonClassName,
   onBack,
   labels,
 }: OrderCheckoutViewProps) {
@@ -763,11 +769,16 @@ export function OrderCheckoutView({
                 </dd>
               </div>
             </dl>
+            {closingSoonNote ? (
+              <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                {closingSoonNote}
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={onSubmit}
               disabled={!canSubmit || submitting}
-              className="ming-btn-primary mt-5 w-full py-4"
+              className={`ming-btn-primary mt-5 w-full py-4 ${placeOrderButtonClassName ?? ''}`}
             >
               {submitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

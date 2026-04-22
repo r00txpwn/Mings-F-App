@@ -2,6 +2,12 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsPreflightResponse, jsonResponse } from '../_shared/cors.ts';
 import { pointInGeoJsonPolygon } from '../_shared/geo.ts';
 import { roundMoney } from '../_shared/money.ts';
+import {
+  acceptingKitchen,
+  getKitchenStatus,
+  isKitchenPaused,
+  type KitchenSettings,
+} from '../_shared/kitchenAcceptance.ts';
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
@@ -42,8 +48,13 @@ interface Body {
   tableLabel?: string;
 }
 
-function errorResponse(code: string, error: string, status = 400): Response {
-  return jsonResponse({ code, error }, status);
+function errorResponse(
+  code: string,
+  error: string,
+  status = 400,
+  extras?: Record<string, unknown>,
+): Response {
+  return jsonResponse({ code, error, ...extras }, status);
 }
 
 function normalizePhoneE164(input: string): string {
@@ -174,9 +185,6 @@ async function handleRequest(req: Request): Promise<Response> {
   if (!settings) {
     return errorResponse('ONLINE_NOT_CONFIGURED', 'Online ordering not configured', 503);
   }
-  if (settings.is_open === false) {
-    return errorResponse('KITCHEN_CLOSED', 'Kitchen is closed for online orders', 400);
-  }
 
   if (fulfillmentType === 'takeaway' && !settings.takeaway_enabled) {
     return errorResponse('TAKEAWAY_DISABLED', 'Takeaway ordering is disabled', 400);
@@ -194,6 +202,7 @@ async function handleRequest(req: Request): Promise<Response> {
     }
   }
 
+  const ks = settings as KitchenSettings;
   let scheduledAtIso: string | null = null;
   if (isScheduled) {
     if (!scheduledFor?.trim()) {
@@ -208,6 +217,28 @@ async function handleRequest(req: Request): Promise<Response> {
       return errorResponse('SCHEDULE_TIME_TOO_SOON', 'Scheduled time does not meet lead time', 400);
     }
     scheduledAtIso = parsed.toISOString();
+
+    if (!acceptingKitchen(ks, parsed, 'scheduled')) {
+      if (isKitchenPaused(ks, parsed)) {
+        return errorResponse('SCHEDULE_WHILE_PAUSED', 'That time is still within a kitchen pause', 400);
+      }
+      const st = getKitchenStatus(ks, parsed, { orderMode: 'scheduled' });
+      return errorResponse('SCHEDULE_OUTSIDE_HOURS', 'Scheduled time is outside kitchen hours', 400, {
+        nextOpenAt: st.nextOpenAt,
+      });
+    }
+  } else {
+    const st = getKitchenStatus(ks, new Date(), { orderMode: 'immediate' });
+    if (st.status === 'PAUSED') {
+      return errorResponse('KITCHEN_PAUSED', 'Kitchen is temporarily paused', 400, {
+        retryAt: settings.offline_until ?? undefined,
+      });
+    }
+    if (st.status === 'CLOSED') {
+      return errorResponse('KITCHEN_CLOSED', 'Kitchen is closed for online orders', 400, {
+        nextOpenAt: st.nextOpenAt,
+      });
+    }
   }
 
   const source = fulfillmentType === 'delivery' ? 'online_delivery' : 'online_takeaway';
@@ -728,6 +759,9 @@ async function handleRequest(req: Request): Promise<Response> {
     );
   }
 
+  const closingSoon =
+    !isScheduled && getKitchenStatus(ks, new Date(), { orderMode: 'immediate' }).status === 'CLOSING_SOON';
+
   return jsonResponse({
     saleId,
     trackToken,
@@ -737,5 +771,6 @@ async function handleRequest(req: Request): Promise<Response> {
     paymentMethod,
     paymentInitToken,
     nextStep: paymentMethod === 'epoint' ? 'epoint-create-payment' : 'track',
+    closingSoon,
   });
 }

@@ -18,6 +18,8 @@ export interface OnlineOrderCreateResponse {
   /** One-time-like secret used to initialize Epoint payment for this sale. */
   paymentInitToken?: string;
   nextStep: 'epoint-create-payment' | 'track';
+  /** True when order was placed during soft-close (last-call) window. */
+  closingSoon?: boolean;
 }
 
 export interface DeliveryZoneRow {
@@ -63,6 +65,10 @@ export interface OnlineSettingsRow {
   kitchen_lng?: number | null;
   loyalty_enabled?: boolean | null;
   loyalty_reward_every_orders?: number | null;
+  /** Timed pause end (UTC); used with is_open=false for 30/60 min presets. */
+  offline_until?: string | null;
+  /** Soft-close window in minutes before close; 0 = disabled. */
+  closing_soon_minutes?: number | null;
 }
 
 export interface CustomerProfileRow {

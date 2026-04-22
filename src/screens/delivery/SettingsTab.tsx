@@ -30,6 +30,11 @@ export interface SettingsTabTranslations {
   saving: string;
   saved: string;
   saveError: string;
+  closingSoonMinutesLabel: string;
+  closingSoonMinutesHint: string;
+  pauseActive: string;
+  cancelPause: string;
+  hoursInvalid: string;
   days: { mon: string; tue: string; wed: string; thu: string; fri: string; sat: string; sun: string };
 }
 
@@ -97,6 +102,7 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
   const [kitchenLng, setKitchenLng] = useState('');
   const [dispatchMode, setDispatchMode] = useState<DispatchMode>('auto');
   const [hours, setHours] = useState<HoursState>(() => readHoursJson(null));
+  const [closingSoonMinutes, setClosingSoonMinutes] = useState('0');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -113,6 +119,7 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
     setKitchenLng(settings.kitchen_lng != null ? String(settings.kitchen_lng) : '');
     setDispatchMode(settings.dispatch_mode === 'manual' ? 'manual' : 'auto');
     setHours(readHoursJson(settings.hours_json as Record<string, unknown>));
+    setClosingSoonMinutes(String(settings.closing_soon_minutes ?? 0));
   }, [settings]);
 
   const dayLabel = useMemo<Record<DayKey, string>>(
@@ -128,6 +135,8 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
     [t.days],
   );
 
+  const timeRe = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
   const handleSave = async () => {
     const lat = kitchenLat.trim() === '' ? null : Number(kitchenLat);
     const lng = kitchenLng.trim() === '' ? null : Number(kitchenLng);
@@ -136,6 +145,14 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
     if (!latValid || !lngValid) {
       onError(t.kitchenLocationInvalid);
       return;
+    }
+    for (const key of DAY_KEYS) {
+      const day = hours[key];
+      if (day.closed) continue;
+      if (!timeRe.test(day.open.trim()) || !timeRe.test(day.close.trim())) {
+        onError(t.hoursInvalid);
+        return;
+      }
     }
     setSaving(true);
     const { error } = await updateSettings({
@@ -149,6 +166,7 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
       kitchen_lng: lng,
       dispatch_mode: dispatchMode,
       hours_json: serialiseHoursJson(hours),
+      closing_soon_minutes: Math.max(0, Math.min(240, Math.floor(Number(closingSoonMinutes) || 0))),
     });
     setSaving(false);
     if (error) onError(`${t.saveError}: ${error.message}`);
@@ -193,6 +211,33 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
           />
         </button>
       </div>
+
+      {settings?.offline_until && new Date(settings.offline_until).getTime() > Date.now() ? (
+        <div className="flex flex-col gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <p>
+            {t.pauseActive.replace(
+              '{time}',
+              new Date(settings.offline_until).toLocaleString('en-GB', {
+                timeZone: 'Asia/Baku',
+                weekday: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              }),
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={() => void updateSettings({ is_open: true, offline_until: null }).then(({ error }) => {
+              if (error) onError(`${t.saveError}: ${error.message}`);
+              else onSaved(t.saved);
+            })}
+            className="self-start rounded-lg border border-amber-400/40 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold hover:bg-amber-500/30"
+          >
+            {t.cancelPause}
+          </button>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/40 px-3 py-3 text-sm">
@@ -284,6 +329,19 @@ export function SettingsTab({ settings, loading, updateSettings, t, onError, onS
           </select>
         </label>
       </div>
+
+      <label className="block space-y-1 text-xs">
+        <span className="font-medium text-slate-400">{t.closingSoonMinutesLabel}</span>
+        <input
+          type="number"
+          min={0}
+          max={240}
+          value={closingSoonMinutes}
+          onChange={(e) => setClosingSoonMinutes(e.target.value)}
+          className="w-full max-w-xs rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 focus:border-cockpit-500 focus:outline-none"
+        />
+        <span className="block text-[11px] text-slate-500">{t.closingSoonMinutesHint}</span>
+      </label>
 
       <div className="space-y-2">
         <div>

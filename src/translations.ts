@@ -602,6 +602,15 @@ export interface Translations {
   /** Shown before hours line when reopening info exists */
   kitchenClosedReopenHint: string;
   kitchenClosedBackToMenu: string;
+  kitchenPausedTitle: string;
+  kitchenPausedMessage: string;
+  orderClosedPausedUntil: string;
+  orderClosedUntilNextOpen: string;
+  orderClosedSchedulePromptTitle: string;
+  orderClosedSchedulePromptHint: string;
+  orderClosedScheduleAction: string;
+  closingSoonBanner: string;
+  closingSoonCheckoutNote: string;
   /** Cart contains items no longer available for online order */
   cartUnavailableTitle: string;
   cartUnavailableIntro: string;
@@ -657,6 +666,8 @@ export interface Translations {
   orderSmsResend: string;
   orderSmsResendWait: string;
   orderSmsCodeExpiredHint: string;
+  orderSmsEnterCodeHint: string;
+  orderSmsSendFailedHint: string;
   orderSmsCodeSentConfirmation: string;
   orderChangePhone: string;
   orderInvalidPhone: string;
@@ -724,6 +735,9 @@ export interface Translations {
   comboBuilderEmptyGroup: string;
   comboBuilderEmptyCombo: string;
   orderErrKitchenClosed: string;
+  orderErrKitchenPaused: string;
+  orderErrScheduleWhilePaused: string;
+  orderErrScheduleOutsideHours: string;
   orderPayCodDescription: string;
   orderPayCashDescription: string;
   orderPayEpointDescription: string;
@@ -837,6 +851,18 @@ export interface Translations {
   omSourceTakeaway: string;
   omSourceDelivery: string;
   omTitle: string;
+  omKitchenStatusTitle: string;
+  omKitchenStatusOnline: string;
+  omKitchenStatusPausedUntil: string;
+  omKitchenStatusOffline: string;
+  omKitchenStatusClosed: string;
+  omKitchenPause30: string;
+  omKitchenPause60: string;
+  omKitchenPauseUntilNextOpen: string;
+  omKitchenPauseIndefinite: string;
+  omKitchenResume: string;
+  omKitchenStatusHint: string;
+  omKitchenNoNextOpen: string;
   omReminderSet: string;
   omSelfDelivery: string;
   omWoltDrive: string;
@@ -938,6 +964,11 @@ export interface Translations {
   deliverySettingsSaving: string;
   deliverySettingsSaved: string;
   deliverySettingsSaveError: string;
+  deliverySettingsClosingSoonLabel: string;
+  deliverySettingsClosingSoonHint: string;
+  deliverySettingsPauseActive: string;
+  deliverySettingsCancelPause: string;
+  deliverySettingsHoursInvalid: string;
   deliverySettingsDayMon: string;
   deliverySettingsDayTue: string;
   deliverySettingsDayWed: string;
@@ -1542,6 +1573,18 @@ export const translations: Record<Language, Translations> = {
     kitchenClosedMessage: 'Online ordering is paused. Please check back when we reopen.',
     kitchenClosedReopenHint: 'Opening hours:',
     kitchenClosedBackToMenu: 'Back to menu',
+    kitchenPausedTitle: 'Kitchen paused',
+    kitchenPausedMessage:
+      'We are not taking immediate orders right now. You can still schedule for a later time when we are open.',
+    orderClosedPausedUntil: 'Back online around {time} (Baku time).',
+    orderClosedUntilNextOpen: 'Next opening: {when}',
+    orderClosedSchedulePromptTitle: 'Schedule your order',
+    orderClosedSchedulePromptHint: 'Pick a slot during our opening hours.',
+    orderClosedScheduleAction: 'Schedule for later',
+    closingSoonBanner:
+      'Our kitchen is wrapping up soon. Orders placed now may be subject to kitchen confirmation.',
+    closingSoonCheckoutNote:
+      'We are approaching closing time ({time}, Baku). We will do our best to fulfill your order.',
     cartUnavailableTitle: 'Some items are no longer available',
     cartUnavailableIntro: 'Remove unavailable items to continue.',
     cartUnavailableRemoveLine: 'Remove',
@@ -1595,6 +1638,9 @@ export const translations: Record<Language, Translations> = {
     orderSmsResend: 'Resend code',
     orderSmsResendWait: 'Resend in {seconds}s',
     orderSmsCodeExpiredHint: 'Code expired or invalid. Request a new SMS code.',
+    orderSmsEnterCodeHint: 'Enter the full code from your SMS (usually 6 digits).',
+    orderSmsSendFailedHint:
+      'We could not send an SMS. Check your number and try again, or sign in with email or Google.',
     orderSmsCodeSentConfirmation: 'Code sent!',
     orderChangePhone: 'Use a different number',
     orderInvalidPhone: 'Enter a valid number with country code (e.g. +994…).',
@@ -1682,6 +1728,9 @@ export const translations: Record<Language, Translations> = {
     orderErrScheduleTooSoon: 'Please choose a later time slot.',
     orderErrInvalidQuantity: 'One or more cart items have invalid quantity.',
     orderErrKitchenClosed: 'The kitchen is closed for online orders right now.',
+    orderErrKitchenPaused: 'The kitchen is temporarily paused. Try a scheduled time or check back soon.',
+    orderErrScheduleWhilePaused: 'That time is still within a kitchen pause. Pick a later slot.',
+    orderErrScheduleOutsideHours: 'That time is outside our opening hours. Pick another slot.',
     orderPayCodDescription: 'Pay on pickup or to the courier.',
     orderPayCashDescription: 'Cash in store.',
     orderPayEpointDescription: 'Secure card payment via E-point.',
@@ -1775,6 +1824,18 @@ export const translations: Record<Language, Translations> = {
     omSourceTakeaway: 'Online · Takeaway',
     omSourceDelivery: 'Online · Delivery',
     omTitle: 'Order Manager',
+    omKitchenStatusTitle: 'Online kitchen',
+    omKitchenStatusOnline: 'Accepting orders',
+    omKitchenStatusPausedUntil: 'Paused until {time}',
+    omKitchenStatusOffline: 'Offline (no new orders)',
+    omKitchenStatusClosed: 'Closed by hours',
+    omKitchenPause30: 'Pause 30 min',
+    omKitchenPause60: 'Pause 1 hour',
+    omKitchenPauseUntilNextOpen: 'Until next opening',
+    omKitchenPauseIndefinite: 'Offline until I turn back on',
+    omKitchenResume: 'Open now',
+    omKitchenStatusHint: 'Customers can still schedule after the pause if slots are available.',
+    omKitchenNoNextOpen: 'No next opening found in hours — set hours in Delivery settings.',
     omReminderSet: 'Reminder set',
     omSelfDelivery: 'Self Delivery',
     omWoltDrive: 'Wolt Drive',
@@ -1877,6 +1938,12 @@ export const translations: Record<Language, Translations> = {
     deliverySettingsSaving: 'Saving...',
     deliverySettingsSaved: 'Settings saved',
     deliverySettingsSaveError: 'Failed to save settings',
+    deliverySettingsClosingSoonLabel: 'Last-call window (minutes before close)',
+    deliverySettingsClosingSoonHint:
+      '0 disables. During this window, customers still submit orders but see a “closing soon” notice.',
+    deliverySettingsPauseActive: 'Timed pause active until {time} (Baku).',
+    deliverySettingsCancelPause: 'Cancel pause & open now',
+    deliverySettingsHoursInvalid: 'Each open day needs valid open and close times (HH:MM).',
     deliverySettingsDayMon: 'Mon',
     deliverySettingsDayTue: 'Tue',
     deliverySettingsDayWed: 'Wed',
@@ -2481,6 +2548,18 @@ export const translations: Record<Language, Translations> = {
     kitchenClosedMessage: 'Onlayn sifariş müvəqqəti dayandırılıb. Yenidən açılanda yoxlayın.',
     kitchenClosedReopenHint: 'İş saatları:',
     kitchenClosedBackToMenu: 'Menyuya qayıt',
+    kitchenPausedTitle: 'Mətbəx dayandırılıb',
+    kitchenPausedMessage:
+      'Hal-hazırda dərhal sifariş qəbul etmirik. Açıq olduğumuz vaxt üçün planlı slot seçə bilərsiniz.',
+    orderClosedPausedUntil: 'Təxminən {time} (Bakı vaxtı) yenidən onlayn.',
+    orderClosedUntilNextOpen: 'Növbəti açılış: {when}',
+    orderClosedSchedulePromptTitle: 'Sifarişi planlayın',
+    orderClosedSchedulePromptHint: 'İş saatlarımızda slot seçin.',
+    orderClosedScheduleAction: 'Sonra üçün planla',
+    closingSoonBanner:
+      'Mətbəx tezliklə bağlanır. İndi verilən sifarişlər mətbəxin təsdiqinə tabe ola bilər.',
+    closingSoonCheckoutNote:
+      'Bağlanış vaxtına yaxınlaşırıq ({time}, Bakı). Sifarişi yerinə yetirməyə çalışacağıq.',
     cartUnavailableTitle: 'Bəzi məhsullar artıq mövcud deyil',
     cartUnavailableIntro: 'Davam etmək üçün əlçatan olmayanları silin.',
     cartUnavailableRemoveLine: 'Sil',
@@ -2535,6 +2614,9 @@ export const translations: Record<Language, Translations> = {
     orderSmsResend: 'Kodu yenidən göndər',
     orderSmsResendWait: '{seconds}s sonra yenidən göndər',
     orderSmsCodeExpiredHint: 'Kodun vaxtı bitib və ya yanlışdır. Yeni SMS kodu istəyin.',
+    orderSmsEnterCodeHint: 'SMS-dən tam kodu daxil edin (adətən 6 rəqəm).',
+    orderSmsSendFailedHint:
+      'SMS göndərilmədi. Nömrəni yoxlayıb yenidən cəhd edin və ya e-poçt/Google ilə daxil olun.',
     orderSmsCodeSentConfirmation: 'Kod göndərildi!',
     orderChangePhone: 'Başqa nömrə',
     orderInvalidPhone: 'Ölkə kodu ilə düzgün nömrə daxil edin (məs. +994…).',
@@ -2621,6 +2703,9 @@ export const translations: Record<Language, Translations> = {
     orderErrScheduleTooSoon: 'Daha gec bir slot seçin.',
     orderErrInvalidQuantity: 'Səbətdəki bəzi məhsulların sayı etibarsızdır.',
     orderErrKitchenClosed: 'Mətbəx onlayn sifarişlər üçün hazırda bağlıdır.',
+    orderErrKitchenPaused: 'Mətbəx müvəqqəti dayandırılıb. Planlı vaxt sınayın və ya sonra yoxlayın.',
+    orderErrScheduleWhilePaused: 'Bu vaxt hələ dayanma müddətindədir. Daha sonrakı slot seçin.',
+    orderErrScheduleOutsideHours: 'Bu vaxt iş saatlarımızdan kənardır. Başqa slot seçin.',
     orderPayCodDescription: 'Götürmə zamanı və ya kuryerə nağd ödəniş.',
     orderPayCashDescription: 'Restoranda nağd.',
     orderPayEpointDescription: 'E-point ilə təhlükəsiz kart ödənişi.',
@@ -2714,6 +2799,18 @@ export const translations: Record<Language, Translations> = {
     omSourceTakeaway: 'Onlayn · Əlavə',
     omSourceDelivery: 'Onlayn · Çatdırılma',
     omTitle: 'Sifariş meneceri',
+    omKitchenStatusTitle: 'Onlayn mətbəx',
+    omKitchenStatusOnline: 'Sifariş qəbul edilir',
+    omKitchenStatusPausedUntil: '{time}-ə qədər dayanır',
+    omKitchenStatusOffline: 'Oflayn (yeni sifariş yox)',
+    omKitchenStatusClosed: 'Saatlara görə bağlı',
+    omKitchenPause30: '30 dəq dayan',
+    omKitchenPause60: '1 saat dayan',
+    omKitchenPauseUntilNextOpen: 'Növbəti açılışadək',
+    omKitchenPauseIndefinite: 'Yenidən açana qədər oflayn',
+    omKitchenResume: 'İndi aç',
+    omKitchenStatusHint: 'Dayanmadan sonra slotlar varsa müştərilər planlaya bilər.',
+    omKitchenNoNextOpen: 'Növbəti açılış tapılmadı — saatları Çatdırılma ayarlarında yoxlayın.',
     omReminderSet: 'Xatırlatma quruldu',
     omSelfDelivery: 'Öz çatdırılma',
     omWoltDrive: 'Wolt Drive',
@@ -2816,6 +2913,12 @@ export const translations: Record<Language, Translations> = {
     deliverySettingsSaving: 'Yadda saxlanır...',
     deliverySettingsSaved: 'Ayarlar yadda saxlanıldı',
     deliverySettingsSaveError: 'Ayarları yadda saxlamaq olmadı',
+    deliverySettingsClosingSoonLabel: 'Bağlanışdan əvvəl “son çağırış” pəncərəsi (dəqiqə)',
+    deliverySettingsClosingSoonHint:
+      '0 söndürür. Bu müddətdə müştərilər sifarişi təsdiqləyir, amma xəbərdarlıq görür.',
+    deliverySettingsPauseActive: 'Vaxtı dayanma aktivdir: {time} (Bakı).',
+    deliverySettingsCancelPause: 'Dayanmanı ləğv et və indi aç',
+    deliverySettingsHoursInvalid: 'Açıq günlərdə etibarlı açılış və bağlanış saatları (SS:DD) lazımdır.',
     deliverySettingsDayMon: 'B.e',
     deliverySettingsDayTue: 'Ç.a',
     deliverySettingsDayWed: 'Ç',
@@ -3421,6 +3524,18 @@ export const translations: Record<Language, Translations> = {
     kitchenClosedMessage: 'Онлайн-заказы временно недоступны. Загляните позже.',
     kitchenClosedReopenHint: 'Часы работы:',
     kitchenClosedBackToMenu: 'В меню',
+    kitchenPausedTitle: 'Кухня на паузе',
+    kitchenPausedMessage:
+      'Сейчас мы не принимаем срочные заказы. Вы можете выбрать время в часы работы.',
+    orderClosedPausedUntil: 'Снова онлайн примерно в {time} (время Баку).',
+    orderClosedUntilNextOpen: 'Следующее открытие: {when}',
+    orderClosedSchedulePromptTitle: 'Запланировать заказ',
+    orderClosedSchedulePromptHint: 'Выберите слот в часы работы.',
+    orderClosedScheduleAction: 'Запланировать на потом',
+    closingSoonBanner:
+      'Кухня скоро закроется. Заказы, оформленные сейчас, могут потребовать подтверждения кухней.',
+    closingSoonCheckoutNote:
+      'Мы приближаемся ко времени закрытия ({time}, Баку). Мы постараемся выполнить ваш заказ.',
     cartUnavailableTitle: 'Некоторые позиции больше недоступны',
     cartUnavailableIntro: 'Удалите недоступные позиции, чтобы продолжить.',
     cartUnavailableRemoveLine: 'Убрать',
@@ -3475,6 +3590,9 @@ export const translations: Record<Language, Translations> = {
     orderSmsResend: 'Отправить код снова',
     orderSmsResendWait: 'Повтор через {seconds}с',
     orderSmsCodeExpiredHint: 'Код истек или неверный. Запросите новый SMS-код.',
+    orderSmsEnterCodeHint: 'Введите полный код из SMS (обычно 6 цифр).',
+    orderSmsSendFailedHint:
+      'Не удалось отправить SMS. Проверьте номер и попробуйте снова или войдите через email или Google.',
     orderSmsCodeSentConfirmation: 'Код отправлен!',
     orderChangePhone: 'Другой номер',
     orderInvalidPhone: 'Укажите номер с кодом страны (например +994…).',
@@ -3562,6 +3680,9 @@ export const translations: Record<Language, Translations> = {
     orderErrScheduleTooSoon: 'Выберите более поздний слот.',
     orderErrInvalidQuantity: 'У одной или нескольких позиций в корзине неверное количество.',
     orderErrKitchenClosed: 'Кухня сейчас не принимает онлайн-заказы.',
+    orderErrKitchenPaused: 'Кухня временно на паузе. Попробуйте запланировать время или зайдите позже.',
+    orderErrScheduleWhilePaused: 'Это время ещё внутри паузы кухни. Выберите более поздний слот.',
+    orderErrScheduleOutsideHours: 'Это время вне часов работы. Выберите другой слот.',
     orderPayCodDescription: 'Оплата при получении или курьеру.',
     orderPayCashDescription: 'Наличные в ресторане.',
     orderPayEpointDescription: 'Безопасная оплата картой через E-point.',
@@ -3654,6 +3775,18 @@ export const translations: Record<Language, Translations> = {
     omSourceTakeaway: 'Онлайн · Самовывоз',
     omSourceDelivery: 'Онлайн · Доставка',
     omTitle: 'Менеджер заказов',
+    omKitchenStatusTitle: 'Онлайн-кухня',
+    omKitchenStatusOnline: 'Принимаем заказы',
+    omKitchenStatusPausedUntil: 'Пауза до {time}',
+    omKitchenStatusOffline: 'Офлайн (без новых заказов)',
+    omKitchenStatusClosed: 'Закрыто по часам',
+    omKitchenPause30: 'Пауза 30 мин',
+    omKitchenPause60: 'Пауза 1 час',
+    omKitchenPauseUntilNextOpen: 'До следующего открытия',
+    omKitchenPauseIndefinite: 'Офлайн до ручного включения',
+    omKitchenResume: 'Открыть сейчас',
+    omKitchenStatusHint: 'После паузы клиенты могут планировать, если есть слоты.',
+    omKitchenNoNextOpen: 'Следующее открытие не найдено — проверьте часы в настройках доставки.',
     omReminderSet: 'Напоминание установлено',
     omSelfDelivery: 'Своя доставка',
     omWoltDrive: 'Wolt Drive',
@@ -3756,6 +3889,12 @@ export const translations: Record<Language, Translations> = {
     deliverySettingsSaving: 'Сохранение...',
     deliverySettingsSaved: 'Настройки сохранены',
     deliverySettingsSaveError: 'Не удалось сохранить настройки',
+    deliverySettingsClosingSoonLabel: 'Окно «последний заказ» (минут до закрытия)',
+    deliverySettingsClosingSoonHint:
+      '0 — выкл. В этом окне заказы принимаются, но показывается предупреждение о скором закрытии.',
+    deliverySettingsPauseActive: 'Активна пауза до {time} (Баку).',
+    deliverySettingsCancelPause: 'Снять паузу и открыть сейчас',
+    deliverySettingsHoursInvalid: 'Для открытых дней укажите корректное время открытия и закрытия (ЧЧ:ММ).',
     deliverySettingsDayMon: 'Пн',
     deliverySettingsDayTue: 'Вт',
     deliverySettingsDayWed: 'Ср',

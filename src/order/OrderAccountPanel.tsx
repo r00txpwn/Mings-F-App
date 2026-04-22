@@ -72,6 +72,8 @@ interface OrderAccountPanelProps {
     orderSmsResend: string;
     orderSmsResendWait: string;
     orderSmsCodeExpiredHint: string;
+    orderSmsEnterCodeHint: string;
+    orderSmsSendFailedHint: string;
     orderSmsCodeSentConfirmation: string;
     orderChangePhone: string;
     orderInvalidPhone: string;
@@ -165,6 +167,7 @@ export function OrderAccountPanel({
       setOtpStep('phone');
       setOtp('');
       setOtpResendAfter(0);
+      setAuthErr('');
     }
   }, [user]);
 
@@ -184,13 +187,41 @@ export function OrderAccountPanel({
     return () => window.clearTimeout(noticeTimer);
   }, [authNotice, t.orderSmsCodeSentConfirmation]);
 
-  const mapAuthErrorMessage = (raw: string): string => {
+  /** SMS *send* (phone step) — never use OTP-expired copy; that is verify-only. */
+  const mapSendSmsError = (raw: string): string => {
     const msg = raw.toLowerCase();
     if (msg.includes('invalid phone')) return t.orderInvalidPhone;
     if (msg.includes('before requesting another code')) {
       return t.orderSmsResendWait.replace('{seconds}', String(Math.max(1, otpResendAfter || 1)));
     }
-    if (msg.includes('expired') || msg.includes('otp') || msg.includes('code')) {
+    if (msg.includes('error sending') && (msg.includes('sms') || msg.includes('otp'))) {
+      return t.orderSmsSendFailedHint;
+    }
+    return raw.trim() ? raw : t.orderSmsSendFailedHint;
+  };
+
+  /** SMS *verify* (code step) — wrong / expired OTP messaging. */
+  const mapVerifySmsError = (raw: string): string => {
+    const msg = raw.toLowerCase();
+    if (msg.includes('invalid phone')) return t.orderInvalidPhone;
+    if (msg.includes('before requesting another code')) {
+      return t.orderSmsResendWait.replace('{seconds}', String(Math.max(1, otpResendAfter || 1)));
+    }
+    if (msg.includes('enter the code from sms')) {
+      return t.orderSmsEnterCodeHint;
+    }
+    if (msg.includes('error sending') && (msg.includes('sms') || msg.includes('otp'))) {
+      return t.orderSmsSendFailedHint;
+    }
+    const looksLikeWrongOrExpiredOtp =
+      msg.includes('expired') ||
+      msg.includes('otp_expired') ||
+      msg.includes('invalid otp') ||
+      msg.includes('invalid token') ||
+      (msg.includes('token') && msg.includes('expired')) ||
+      (msg.includes('code') &&
+        (msg.includes('invalid') || msg.includes('wrong') || msg.includes('incorrect')));
+    if (looksLikeWrongOrExpiredOtp) {
       return t.orderSmsCodeExpiredHint;
     }
     return raw;
@@ -236,7 +267,7 @@ export function OrderAccountPanel({
       if (retryMatch) {
         setOtpResendAfter(Number(retryMatch[1]));
       }
-      setAuthErr(mapAuthErrorMessage(msg));
+      setAuthErr(mapSendSmsError(msg));
       setAuthBusy(false);
       return;
     }
@@ -256,7 +287,7 @@ export function OrderAccountPanel({
     const res = await verifyPhoneOtp(phoneInput, otp);
     if (res.error) {
       const msg = String((res.error as { message?: string }).message ?? res.error);
-      setAuthErr(mapAuthErrorMessage(msg));
+      setAuthErr(mapVerifySmsError(msg));
     }
     setAuthBusy(false);
     if (!res.error) void onReloadOrders();
@@ -309,7 +340,7 @@ export function OrderAccountPanel({
 
   if (recoveryMode) {
     return (
-      <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-md px-4 py-6 pb-28 sm:px-6">
         <div className="ming-card-raised relative overflow-hidden p-6">
           <p className="ming-eyebrow mb-2">Ming&apos;s · Security</p>
           <h2 className="ming-display text-[26px] leading-tight text-ming-bone">{t.orderResetPasswordTitle}</h2>
@@ -354,7 +385,7 @@ export function OrderAccountPanel({
 
   if (!user) {
     return (
-      <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-md px-4 py-6 pb-28 sm:px-6">
         <div className="ming-card-raised relative overflow-hidden p-6">
           <div aria-hidden className="pointer-events-none absolute -right-8 -top-12 h-28 w-28 rounded-full bg-ming-red/20 blur-3xl" />
 
@@ -397,16 +428,6 @@ export function OrderAccountPanel({
             <p className="mt-4 rounded-xl border border-ming-red/40 bg-ming-red/10 px-3 py-2 text-[13px] text-ming-red">
               {authErr}
             </p>
-          ) : null}
-          {authChannel === 'phone' && otpStep === 'otp' && authErr === t.orderSmsCodeExpiredHint ? (
-            <button
-              type="button"
-              className="ming-btn-ghost mt-2 w-full justify-center"
-              disabled={authBusy || !phoneInput.trim()}
-              onClick={() => void handleSendSms(true)}
-            >
-              {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t.orderSmsResend}
-            </button>
           ) : null}
           {authNotice ? (
             <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-300">
@@ -502,6 +523,22 @@ export function OrderAccountPanel({
                 >
                   {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t.orderSendSmsCode}
                 </button>
+                {authErr || otpResendAfter > 0 ? (
+                  <button
+                    type="button"
+                    className="ming-btn-ghost w-full justify-center"
+                    disabled={authBusy || otpResendAfter > 0 || !phoneInput.trim()}
+                    onClick={() => void handleSendSms(true)}
+                  >
+                    {authBusy ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : otpResendAfter > 0 ? (
+                      t.orderSmsResendWait.replace('{seconds}', String(otpResendAfter))
+                    ) : (
+                      t.orderSmsResend
+                    )}
+                  </button>
+                ) : null}
               </>
             ) : (
               <>
@@ -525,6 +562,20 @@ export function OrderAccountPanel({
                 </button>
                 <button
                   type="button"
+                  className="ming-btn-ghost w-full justify-center"
+                  disabled={authBusy || otpResendAfter > 0 || !phoneInput.trim()}
+                  onClick={() => void handleSendSms(true)}
+                >
+                  {authBusy ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : otpResendAfter > 0 ? (
+                    t.orderSmsResendWait.replace('{seconds}', String(otpResendAfter))
+                  ) : (
+                    t.orderSmsResend
+                  )}
+                </button>
+                <button
+                  type="button"
                   className="ming-btn-link w-full justify-center"
                   onClick={() => {
                     setOtpStep('phone');
@@ -533,16 +584,6 @@ export function OrderAccountPanel({
                   }}
                 >
                   {t.orderChangePhone}
-                </button>
-                <button
-                  type="button"
-                  className="ming-btn-link w-full justify-center"
-                  disabled={authBusy || otpResendAfter > 0}
-                  onClick={() => void handleSendSms()}
-                >
-                  {otpResendAfter > 0
-                    ? t.orderSmsResendWait.replace('{seconds}', String(otpResendAfter))
-                    : t.orderSmsResend}
                 </button>
               </>
             )}

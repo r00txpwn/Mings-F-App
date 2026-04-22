@@ -31,6 +31,13 @@ import type {
   OnlineSettingsRow,
 } from '../types/online';
 import { findZoneForPoint } from '../services/deliveryZones';
+import {
+  acceptingKitchen,
+  getKitchenStatus,
+  getSessionEndBaku,
+  scheduleSlots,
+  type KitchenSettings,
+} from '../lib/kitchenAcceptance';
 
 function generateCartItemKey(productId: string, modifiers: SelectedModifiers): string {
   const modKey = Object.entries(modifiers)
@@ -119,58 +126,32 @@ interface SavedCardRow {
   card_brand: string | null;
 }
 
-const SCHEDULE_DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
-type ScheduleDayKey = (typeof SCHEDULE_DAY_KEYS)[number];
-
-interface DayHoursConfig {
-  closed: boolean;
-  openMinutes: number;
-  closeMinutes: number;
+function formatBakuTimeShort(isoOrDate: string | Date, localeCode: string): string {
+  const d = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat(localeCode, {
+    timeZone: 'Asia/Baku',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d);
 }
 
-function parseTimeToMinutes(value: string): number | null {
-  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value.trim());
-  if (!match) return null;
-  return Number(match[1]) * 60 + Number(match[2]);
-}
-
-function getScheduleDayKey(date: Date): ScheduleDayKey {
-  return SCHEDULE_DAY_KEYS[date.getDay()];
-}
-
-function getDayHoursConfig(
-  hoursJson: Record<string, unknown> | undefined,
-  dayKey: ScheduleDayKey,
-): DayHoursConfig | null {
-  if (!hoursJson || typeof hoursJson !== 'object') return null;
-  const raw = hoursJson[dayKey];
-  if (!raw || typeof raw !== 'object') return null;
-  const dayObj = raw as Record<string, unknown>;
-  const openRaw = typeof dayObj.open === 'string' ? dayObj.open : null;
-  const closeRaw = typeof dayObj.close === 'string' ? dayObj.close : null;
-  const openMinutes = openRaw ? parseTimeToMinutes(openRaw) : null;
-  const closeMinutes = closeRaw ? parseTimeToMinutes(closeRaw) : null;
-  if (openMinutes == null || closeMinutes == null) return null;
-  return {
-    closed: Boolean(dayObj.closed),
-    openMinutes,
-    closeMinutes,
-  };
-}
-
-function isSlotInsideWorkingHours(date: Date, config: DayHoursConfig | null): boolean {
-  if (!config) return true;
-  if (config.closed) return false;
-  const minutes = date.getHours() * 60 + date.getMinutes();
-  if (config.openMinutes === config.closeMinutes) return true;
-  if (config.openMinutes < config.closeMinutes) {
-    return minutes >= config.openMinutes && minutes < config.closeMinutes;
-  }
-  return minutes >= config.openMinutes || minutes < config.closeMinutes;
+function formatBakuWeekdayTime(isoOrDate: string | Date, localeCode: string): string {
+  const d = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat(localeCode, {
+    timeZone: 'Asia/Baku',
+    weekday: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d);
 }
 
 function OrderContent() {
   const { t, language, setLanguage } = useLanguage();
+  const localeCode = language === 'az' ? 'az-AZ' : language === 'ru' ? 'ru-RU' : 'en-GB';
   const {
     user,
     session,
@@ -199,6 +180,7 @@ function OrderContent() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(ORDER_MENU_ALL_CATEGORY_ID);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const [settings, setSettings] = useState<OnlineSettingsRow | null>(null);
+  const [kitchenTick, setKitchenTick] = useState(0);
   const [zones, setZones] = useState<DeliveryZoneRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -265,6 +247,35 @@ function OrderContent() {
       if (s.data) setSettings(s.data as OnlineSettingsRow);
       if (z.data) setZones(z.data as DeliveryZoneRow[]);
     })();
+  }, []);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setKitchenTick((x) => x + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('order-online-settings')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'online_settings' },
+        (payload) => {
+          const row = payload.new as OnlineSettingsRow | null;
+          if (row && typeof row === 'object' && 'id' in row) {
+            setSettings(row);
+            return;
+          }
+          void (async () => {
+            const { data } = await supabase.from('online_settings').select('*').limit(1).maybeSingle();
+            if (data) setSettings(data as OnlineSettingsRow);
+          })();
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
@@ -469,28 +480,18 @@ function OrderContent() {
   }, [fulfillment, zoneMatch]);
 
   const availableScheduleSlots = useMemo(() => {
-    if (settings?.is_open === false) return [];
+    void kitchenTick;
+    if (!settings) return [];
     const now = new Date();
-    const lead = Number(settings?.scheduled_lead_minutes ?? settings?.default_prep_time_minutes ?? 45);
-    const slotMinutes = Math.max(5, Number(settings?.scheduled_slot_minutes ?? 15));
-    const slotMs = slotMinutes * 60_000;
-    const earliest = new Date(now.getTime() + lead * 60_000);
-    earliest.setSeconds(0, 0);
-    const roundedTs = Math.ceil(earliest.getTime() / slotMs) * slotMs;
-    const horizonTs = roundedTs + 7 * 24 * 60 * 60_000;
-    const slots: string[] = [];
-    const hoursJson = settings?.hours_json as Record<string, unknown> | undefined;
-
-    for (let ts = roundedTs; ts <= horizonTs && slots.length < 240; ts += slotMs) {
-      const slotDate = new Date(ts);
-      if (slotDate.getTime() < earliest.getTime()) continue;
-      const dayKey = getScheduleDayKey(slotDate);
-      const dayConfig = getDayHoursConfig(hoursJson, dayKey);
-      if (!isSlotInsideWorkingHours(slotDate, dayConfig)) continue;
-      slots.push(slotDate.toISOString());
-    }
-    return slots;
-  }, [settings]);
+    const lead = Number(settings.scheduled_lead_minutes ?? settings.default_prep_time_minutes ?? 45);
+    const slotMinutes = Math.max(5, Number(settings.scheduled_slot_minutes ?? 15));
+    const dates = scheduleSlots(settings as KitchenSettings, now, {
+      slotMinutes,
+      leadMinutes: lead,
+      maxSlots: 240,
+    });
+    return dates.map((d) => d.toISOString());
+  }, [settings, kitchenTick]);
 
   useEffect(() => {
     if (!isScheduled) return;
@@ -502,6 +503,57 @@ function OrderContent() {
       setScheduledFor(availableScheduleSlots[0]);
     }
   }, [isScheduled, scheduledFor, availableScheduleSlots]);
+
+  const kitchenImmediateStatus = useMemo(() => {
+    if (!settings) {
+      return { status: 'OPEN' as const, nextOpenAt: undefined as Date | undefined, minutesToClose: undefined as number | undefined };
+    }
+    void kitchenTick;
+    return getKitchenStatus(settings as KitchenSettings, new Date(), { orderMode: 'immediate' });
+  }, [settings, kitchenTick]);
+
+  const scheduleFallbackActive =
+    cart.length > 0 &&
+    (kitchenImmediateStatus.status === 'PAUSED' || kitchenImmediateStatus.status === 'CLOSED') &&
+    availableScheduleSlots.length > 0;
+
+  const sessionEndForClosingSoon = useMemo(() => {
+    void kitchenTick;
+    if (!settings) return null;
+    return getSessionEndBaku(new Date(), settings.hours_json as Record<string, unknown> | undefined);
+  }, [settings, kitchenTick]);
+
+  const closingSoonCheckoutNote = useMemo(() => {
+    if (flow !== 'checkout' || !settings || kitchenImmediateStatus.status !== 'CLOSING_SOON' || !sessionEndForClosingSoon) {
+      return null;
+    }
+    return t.closingSoonCheckoutNote.replace('{time}', formatBakuTimeShort(sessionEndForClosingSoon, localeCode));
+  }, [flow, settings, kitchenImmediateStatus.status, sessionEndForClosingSoon, t, localeCode]);
+
+  const orderWhen = useMemo(() => {
+    void kitchenTick;
+    if (isScheduled && scheduledFor) {
+      const d = new Date(scheduledFor);
+      return Number.isNaN(d.getTime()) ? new Date() : d;
+    }
+    return new Date();
+  }, [isScheduled, scheduledFor, kitchenTick]);
+
+  const canSubmit =
+    !submitting &&
+    !!user &&
+    cart.length > 0 &&
+    customerPhone.trim().length > 0 &&
+    consentAccepted &&
+    (!isScheduled || !!scheduledFor) &&
+    !(fulfillment === 'delivery' && !serverAllowsDelivery) &&
+    !(fulfillment === 'delivery' && (!zoneMatch || !deliveryAddress.trim())) &&
+    !!settings &&
+    acceptingKitchen(
+      settings as KitchenSettings,
+      orderWhen,
+      isScheduled ? 'scheduled' : 'immediate',
+    );
 
   const grandTotal = cartTotal + deliveryFee;
   const cartCount = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
@@ -687,6 +739,9 @@ function OrderContent() {
         SCHEDULE_TIME_INVALID: t.orderErrScheduleInvalid,
         SCHEDULE_TIME_TOO_SOON: t.orderErrScheduleTooSoon,
         KITCHEN_CLOSED: t.orderErrKitchenClosed,
+        KITCHEN_PAUSED: t.orderErrKitchenPaused,
+        SCHEDULE_WHILE_PAUSED: t.orderErrScheduleWhilePaused,
+        SCHEDULE_OUTSIDE_HOURS: t.orderErrScheduleOutsideHours,
       };
       return (code && byCode[code]) || fallback || t.orderErrGeneric;
     },
@@ -882,6 +937,13 @@ function OrderContent() {
       setNavTab('account');
       return;
     }
+    if (settings) {
+      const st = getKitchenStatus(settings as KitchenSettings, new Date(), { orderMode: 'immediate' }).status;
+      if ((st === 'PAUSED' || st === 'CLOSED') && availableScheduleSlots.length > 0) {
+        setIsScheduled(true);
+        setScheduledFor(availableScheduleSlots[0] ?? null);
+      }
+    }
     track('begin_checkout', {
       item_count: cartCount,
       value: grandTotal,
@@ -962,6 +1024,8 @@ function OrderContent() {
       orderSmsResend: t.orderSmsResend,
       orderSmsResendWait: t.orderSmsResendWait,
       orderSmsCodeExpiredHint: t.orderSmsCodeExpiredHint,
+      orderSmsEnterCodeHint: t.orderSmsEnterCodeHint,
+      orderSmsSendFailedHint: t.orderSmsSendFailedHint,
       orderSmsCodeSentConfirmation: t.orderSmsCodeSentConfirmation,
       orderChangePhone: t.orderChangePhone,
       orderInvalidPhone: t.orderInvalidPhone,
@@ -1138,18 +1202,80 @@ function OrderContent() {
     );
   }
 
-  const canSubmit =
-    !submitting &&
-    !!user &&
-    cart.length > 0 &&
-    customerPhone.trim().length > 0 &&
-    consentAccepted &&
-    (!isScheduled || !!scheduledFor) &&
-    !(fulfillment === 'delivery' && !serverAllowsDelivery) &&
-    !(fulfillment === 'delivery' && (!zoneMatch || !deliveryAddress.trim()));
-
   const showBottomNav = flow === 'browse';
   const showMobileStickyCart = flow === 'browse' && navTab === 'menu' && cartCount > 0;
+
+  const cartCheckoutPulse = kitchenImmediateStatus.status === 'CLOSING_SOON' && cart.length > 0;
+
+  const kitchenBanner =
+    flow === 'browse' && settings && kitchenImmediateStatus.status === 'PAUSED' ? (
+      <div
+        className="mx-auto mt-2 w-full max-w-3xl rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 sm:mx-4"
+        role="status"
+      >
+        <p className="font-semibold">{t.kitchenPausedTitle}</p>
+        <p className="mt-1 text-xs opacity-90">{t.kitchenPausedMessage}</p>
+        {settings.offline_until ? (
+          <p className="mt-2 text-xs font-medium">
+            {t.orderClosedPausedUntil.replace('{time}', formatBakuTimeShort(settings.offline_until, localeCode))}
+          </p>
+        ) : null}
+        {availableScheduleSlots[0] ? (
+          <button
+            type="button"
+            className="ming-btn-ghost mt-3 w-full border border-amber-500/30"
+            onClick={() => {
+              setIsScheduled(true);
+              setScheduledFor(availableScheduleSlots[0] ?? null);
+              setFlow('checkout');
+            }}
+          >
+            {t.orderClosedScheduleAction}
+          </button>
+        ) : null}
+      </div>
+    ) : flow === 'browse' && settings && kitchenImmediateStatus.status === 'CLOSED' ? (
+      <div
+        className="mx-auto mt-2 w-full max-w-3xl rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm text-ming-bone sm:mx-4"
+        role="status"
+      >
+        <p className="font-semibold">{t.kitchenClosedTitle}</p>
+        <p className="mt-1 text-xs text-ming-ash">{t.kitchenClosedMessage}</p>
+        {hoursLine ? (
+          <p className="mt-2 text-xs text-ming-ash">
+            {t.kitchenClosedReopenHint} {hoursLine}
+          </p>
+        ) : null}
+        {kitchenImmediateStatus.nextOpenAt ? (
+          <p className="mt-1 text-xs text-ming-ash">
+            {t.orderClosedUntilNextOpen.replace(
+              '{when}',
+              formatBakuWeekdayTime(kitchenImmediateStatus.nextOpenAt, localeCode),
+            )}
+          </p>
+        ) : null}
+        {availableScheduleSlots[0] ? (
+          <button
+            type="button"
+            className="ming-btn-primary mt-3 w-full"
+            onClick={() => {
+              setIsScheduled(true);
+              setScheduledFor(availableScheduleSlots[0] ?? null);
+              setFlow('checkout');
+            }}
+          >
+            {t.orderClosedScheduleAction}
+          </button>
+        ) : null}
+      </div>
+    ) : flow === 'browse' && settings && kitchenImmediateStatus.status === 'CLOSING_SOON' ? (
+      <div
+        className="mx-auto mt-2 w-full max-w-3xl rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-100 sm:mx-4"
+        role="status"
+      >
+        <p>{t.closingSoonBanner}</p>
+      </div>
+    ) : null;
 
   const paymentBanner = paymentReturn ? (
     <div
@@ -1200,6 +1326,8 @@ function OrderContent() {
       onUpdateNotes={updateNotes}
       onRemoveLine={removeLine}
       onCheckout={openCheckout}
+      checkoutCtaLabel={scheduleFallbackActive ? t.orderClosedScheduleAction : undefined}
+      checkoutCtaClassName={cartCheckoutPulse ? 'ming-cta-closing-soon' : undefined}
       userLoggedIn={!!user}
       onBackToMenu={() => setNavTab('menu')}
       labels={cartLabels}
@@ -1230,6 +1358,7 @@ function OrderContent() {
           />
 
           {paymentBanner}
+          {kitchenBanner}
 
           {navTab === 'menu' && (
             <>
@@ -1273,6 +1402,8 @@ function OrderContent() {
               onUpdateNotes={updateNotes}
               onRemoveLine={removeLine}
               onCheckout={openCheckout}
+              checkoutCtaLabel={scheduleFallbackActive ? t.orderClosedScheduleAction : undefined}
+              checkoutCtaClassName={cartCheckoutPulse ? 'ming-cta-closing-soon' : undefined}
               userLoggedIn={!!user}
               onBackToMenu={() => setNavTab('menu')}
               labels={cartLabels}
@@ -1371,6 +1502,10 @@ function OrderContent() {
           submitError={submitError}
           canSubmit={canSubmit}
           onSubmit={() => void handleSubmitOrder()}
+          closingSoonNote={closingSoonCheckoutNote}
+          placeOrderButtonClassName={
+            kitchenImmediateStatus.status === 'CLOSING_SOON' ? 'ming-cta-closing-soon' : undefined
+          }
           onBack={() => setFlow('browse')}
           labels={checkoutLabels}
         />

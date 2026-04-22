@@ -88,3 +88,5 @@ npm run supabase:deploy:web
 - `20260422200000_wolt_booking_lock_and_scheduled_guard.sql` — `delivery_orders.wolt_booking_locked_until` (persisted Wolt portal booking lock; filename is historical).
 - `20260422201000_kiosk_anon_update_cancellation_reason_bound.sql` — tighter `WITH CHECK` on anon kiosk `sales` updates for `cancellation_reason`.
 - `20260422210000_products_combo_soft_delete_scheduled_future.sql` — `products.is_deleted` / `combo_deals.is_deleted`, combo storefront policy, `sales` trigger so `scheduled_for` stays in the future when scheduling changes.
+- `20260422194244_ensure_rpc_request_phone_otp.sql` — idempotent **`otp_requests`** + **`rpc_request_phone_otp`** + `GRANT EXECUTE` (fixes **PGRST202** when `20260421174000_*` never ran on a host). Version matches Supabase MCP `apply_migration` record on the linked project.
+- `20260423120000_online_settings_kitchen_pause.sql` — `online_settings.offline_until`, `closing_soon_minutes` (default 0), and **`Staff can manage online settings`** RLS extended to include **`manager`**.

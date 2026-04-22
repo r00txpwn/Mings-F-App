@@ -11,6 +11,7 @@ import { StaffAccessDeniedScreen } from '../screens/StaffAccessDeniedScreen';
 import { ActiveOrdersTab } from './ActiveOrdersTab';
 import { MenuEditorTab } from './MenuEditorTab';
 import { PastOrdersTab } from './PastOrdersTab';
+import { KitchenStatusPanel } from './KitchenStatusPanel';
 
 type OrderManagerTab = 'active' | 'past' | 'menu';
 
@@ -80,6 +81,7 @@ function OrderManagerShell() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-3 pb-20">
+        <KitchenStatusPanel />
         {tab === 'active' ? <ActiveOrdersTab accessToken={session?.access_token ?? null} /> : null}
         {tab === 'past' ? <PastOrdersTab /> : null}
         {tab === 'menu' ? <MenuEditorTab /> : null}

@@ -11,6 +11,10 @@ interface OrderCartViewProps {
   onUpdateNotes: (cartItemKey: string, notes: string) => void;
   onRemoveLine: (cartItemKey: string) => void;
   onCheckout: () => void;
+  /** Overrides `labels.continueCheckout` (e.g. schedule fallback CTA). */
+  checkoutCtaLabel?: string;
+  /** Extra classes on checkout CTA (e.g. closing-soon pulse). */
+  checkoutCtaClassName?: string;
   userLoggedIn: boolean;
   onBackToMenu: () => void;
   labels: {
@@ -43,6 +47,8 @@ export function OrderCartView({
   onUpdateNotes,
   onRemoveLine,
   onCheckout,
+  checkoutCtaLabel,
+  checkoutCtaClassName,
   userLoggedIn,
   onBackToMenu,
   labels,
@@ -50,6 +56,7 @@ export function OrderCartView({
 }: OrderCartViewProps) {
   const isPanel = variant === 'panel';
   const isEmpty = cart.length === 0;
+  const checkoutLabel = checkoutCtaLabel ?? labels.continueCheckout;
 
   const summary = !isEmpty && (
     <div className="space-y-2.5">
@@ -222,9 +229,9 @@ export function OrderCartView({
             <button
               type="button"
               onClick={onCheckout}
-              className="ming-btn-primary mt-4 w-full"
+              className={`ming-btn-primary mt-4 w-full ${checkoutCtaClassName ?? ''}`}
             >
-              {labels.continueCheckout}
+              {checkoutLabel}
             </button>
           </div>
         ) : null}
@@ -249,8 +256,12 @@ export function OrderCartView({
               {labels.authRequired}
             </p>
           ) : null}
-          <button type="button" onClick={onCheckout} className="ming-btn-primary mt-5 w-full py-4">
-            {labels.continueCheckout} · {grandTotal.toFixed(2)} ₼
+          <button
+            type="button"
+            onClick={onCheckout}
+            className={`ming-btn-primary mt-5 w-full py-4 ${checkoutCtaClassName ?? ''}`}
+          >
+            {checkoutLabel} · {grandTotal.toFixed(2)} ₼
           </button>
         </div>
       ) : null}
