@@ -54,8 +54,8 @@
 
 **Commit** (Cursor session — filled for QA)
 
-- **SHA:** `bbb126f55569e3239f00f8b68e7306dffc06bf97`
 - **Branch:** `session/2026-04-22-cursor-session`
+- **SHA:** after `git checkout` + `git pull` on this branch, run **`git rev-parse HEAD`** — it **must** match `http://127.0.0.1:4175/build-meta.json` → `gitSha` immediately after **`npm run deploy:local`** on that same checkout (do not trust a stale SHA copied from an earlier message).
 - **Deployed:** `sp.mings.az` — no (local QA only until you merge / deploy).
 
 ---
@@ -125,7 +125,7 @@ Use this block **after** the human or Cursor has run **`npm run deploy:local`** 
 
 **Build identity**
 - Branch: `session/2026-04-22-cursor-session`
-- Expected `gitSha` (must match `http://127.0.0.1:4175/build-meta.json`): `bbb126f55569e3239f00f8b68e7306dffc06bf97`
+- Expected `gitSha`: run **`git rev-parse HEAD`** on that branch after pull — must match `http://127.0.0.1:4175/build-meta.json` after `npm run deploy:local`.
 
 **Steps**
 1. Open `http://127.0.0.1:4175/build-meta.json` — confirm `gitSha` equals the value above. If not, stop (stale `dist/` or wrong repo).
