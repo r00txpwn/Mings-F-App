@@ -139,8 +139,8 @@ function AppContent() {
 
   useEffect(() => {
     if (loading || staffRole !== 'staff') return;
-    if (currentScreen !== 'kiosk-orders') {
-      setCurrentScreen('kiosk-orders');
+    if (currentScreen !== 'order-support') {
+      setCurrentScreen('order-support');
     }
   }, [loading, staffRole, currentScreen]);
 
@@ -175,7 +175,10 @@ function AppContent() {
 
   const renderScreen = () => {
     if (staffRole === 'staff') {
-      return <KioskOrdersScreen />;
+      if (currentScreen === 'kiosk-orders' || currentScreen === 'order-support') {
+        return <AdminOrderSupportScreen />;
+      }
+      return <AdminOrderSupportScreen />;
     }
     switch (currentScreen) {
       case 'home':
@@ -238,7 +241,7 @@ function AppContent() {
 
   const navItems: CockpitNavItem[] = isStaffNavLimited
     ? [
-        screenNavItem('kiosk-orders', <Monitor className="h-5 w-5 shrink-0" />, t.kioskOrders),
+        screenNavItem('order-support', <ClipboardList className="h-5 w-5 shrink-0" />, t.orderSupport),
         {
           kind: 'kds-blank',
           id: 'kds',

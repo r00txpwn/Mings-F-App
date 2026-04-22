@@ -102,6 +102,39 @@ Deno.serve(async (req: Request) => {
     })();
 
     if (req.method === 'GET' && path === '/list') {
+      const { data: profiles, error: profilesError } = await supabaseAdmin
+        .from('users')
+        .select('id, username, role');
+
+      if (profilesError) {
+        return new Response(
+          JSON.stringify({ error: profilesError.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const staffProfiles = profiles ?? [];
+      if (staffProfiles.length === 0) {
+        return new Response(
+          JSON.stringify({ users: [] }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const staffIds = new Set(staffProfiles.map((p) => p.id));
+      const profileById = new Map<string, { role: 'admin' | 'manager' | 'staff' }>();
+      for (const profile of staffProfiles) {
+        profileById.set(profile.id, {
+          role: profile.role,
+        });
+      }
+
       const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
 
       if (error) {
@@ -114,43 +147,12 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      const visibleUsers = (users ?? []).filter((u) => {
-        const email = typeof u.email === 'string' ? u.email : '';
-        return email.includes('@');
-      });
-
-      const ids = visibleUsers.map((u) => u.id);
-      const profileById = new Map<string, { role: 'admin' | 'manager' | 'staff' }>();
-      if (ids.length > 0) {
-        const { data: profiles, error: profilesError } = await supabaseAdmin
-          .from('users')
-          .select('id, role')
-          .in('id', ids);
-
-        if (profilesError) {
-          return new Response(
-            JSON.stringify({ error: profilesError.message }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          );
-        }
-
-        for (const profile of profiles ?? []) {
-          profileById.set(profile.id, {
-            role: profile.role,
-          });
-        }
-      }
-
-      const mergedUsers = visibleUsers.map((u) => {
-        const profile = profileById.get(u.id);
-        return {
+      const mergedUsers = (users ?? [])
+        .filter((u) => staffIds.has(u.id))
+        .map((u) => ({
           ...u,
-          role: profile?.role ?? 'staff',
-        };
-      });
+          role: profileById.get(u.id)?.role ?? 'staff',
+        }));
 
       return new Response(
         JSON.stringify({ users: mergedUsers }),
