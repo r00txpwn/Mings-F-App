@@ -256,6 +256,14 @@ export interface Translations {
   never: string;
   user: string;
   createdAt: string;
+  changeRole: string;
+  resetPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+  passwordResetSuccess: string;
+  roleUpdated: string;
+  cannotChangeOwnRole: string;
+  passwordMinLength: string;
 
   // Login
   welcomeBack: string;
@@ -1083,6 +1091,14 @@ export const translations: Record<Language, Translations> = {
     never: 'Never',
     user: 'User',
     createdAt: 'Created',
+    changeRole: 'Change Role',
+    resetPassword: 'Reset Password',
+    newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    passwordResetSuccess: 'Password updated successfully',
+    roleUpdated: 'Role updated',
+    cannotChangeOwnRole: 'You cannot change your own role',
+    passwordMinLength: 'Password must be at least 8 characters',
 
     welcomeBack: 'Welcome Back',
     signInToAccount: 'Sign in to your account',
@@ -1892,6 +1908,14 @@ export const translations: Record<Language, Translations> = {
     never: 'Heç vaxt',
     user: 'İstifadəçi',
     createdAt: 'Yaradılıb',
+    changeRole: 'Rolu dəyiş',
+    resetPassword: 'Şifrəni sıfırla',
+    newPassword: 'Yeni şifrə',
+    confirmNewPassword: 'Yeni şifrəni təsdiqləyin',
+    passwordResetSuccess: 'Şifrə uğurla yeniləndi',
+    roleUpdated: 'Rol yeniləndi',
+    cannotChangeOwnRole: 'Öz rolunuzu dəyişə bilməzsiniz',
+    passwordMinLength: 'Şifrə ən az 8 simvol olmalıdır',
 
     welcomeBack: 'Xoş Gəlmisiniz',
     signInToAccount: 'Hesabınıza daxil olun',
@@ -2702,6 +2726,14 @@ export const translations: Record<Language, Translations> = {
     never: 'Никогда',
     user: 'Пользователь',
     createdAt: 'Создан',
+    changeRole: 'Изменить роль',
+    resetPassword: 'Сбросить пароль',
+    newPassword: 'Новый пароль',
+    confirmNewPassword: 'Подтвердите новый пароль',
+    passwordResetSuccess: 'Пароль успешно обновлён',
+    roleUpdated: 'Роль обновлена',
+    cannotChangeOwnRole: 'Нельзя изменить собственную роль',
+    passwordMinLength: 'Пароль должен содержать минимум 8 символов',
 
     welcomeBack: 'С Возвращением',
     signInToAccount: 'Войдите в свою учетную запись',

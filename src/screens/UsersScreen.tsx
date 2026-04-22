@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Users, Plus, Mail, Shield, Trash2, AlertCircle } from 'lucide-react';
+import { Fragment, useState, useEffect } from 'react';
+import { Users, Plus, Mail, Shield, Trash2, AlertCircle, Loader2, Check, Lock, KeyRound } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
 
@@ -22,6 +23,7 @@ interface UserManagementUser {
 
 export function UsersScreen() {
   const { t } = useLanguage();
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
@@ -31,6 +33,15 @@ export function UsersScreen() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [roleSavingByUserId, setRoleSavingByUserId] = useState<Record<string, boolean>>({});
+  const [roleSuccessByUserId, setRoleSuccessByUserId] = useState<Record<string, boolean>>({});
+  const [roleErrorByUserId, setRoleErrorByUserId] = useState<Record<string, string>>({});
+  const [resetOpenForUserId, setResetOpenForUserId] = useState<string | null>(null);
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [confirmNewPasswordInput, setConfirmNewPasswordInput] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -199,6 +210,129 @@ export function UsersScreen() {
     }
   };
 
+  const handleRoleChange = async (userId: string, nextRole: 'staff' | 'manager' | 'admin') => {
+    if (userId === currentUser?.id) {
+      setRoleErrorByUserId((prev) => ({ ...prev, [userId]: t.cannotChangeOwnRole }));
+      return;
+    }
+
+    const previousRole = users.find((u) => u.id === userId)?.role ?? 'staff';
+    setRoleErrorByUserId((prev) => ({ ...prev, [userId]: '' }));
+    setRoleSuccessByUserId((prev) => ({ ...prev, [userId]: false }));
+    setRoleSavingByUserId((prev) => ({ ...prev, [userId]: true }));
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: nextRole } : u)));
+
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: previousRole } : u)));
+        setRoleErrorByUserId((prev) => ({ ...prev, [userId]: t.notAuthenticated }));
+        return;
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/update-role`;
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, role: nextRole }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || result.error) {
+        setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: previousRole } : u)));
+        const msg = typeof result.error === 'string' ? result.error : t.errorOccurred;
+        setRoleErrorByUserId((prev) => ({ ...prev, [userId]: msg }));
+        return;
+      }
+
+      setRoleSuccessByUserId((prev) => ({ ...prev, [userId]: true }));
+      setTimeout(() => {
+        setRoleSuccessByUserId((prev) => ({ ...prev, [userId]: false }));
+      }, 2000);
+    } catch (err) {
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: previousRole } : u)));
+      setRoleErrorByUserId((prev) => ({
+        ...prev,
+        [userId]: err instanceof Error ? err.message : t.errorOccurred,
+      }));
+    } finally {
+      setRoleSavingByUserId((prev) => ({ ...prev, [userId]: false }));
+    }
+  };
+
+  const openResetForm = (userId: string) => {
+    setResetOpenForUserId(userId);
+    setNewPasswordInput('');
+    setConfirmNewPasswordInput('');
+    setResetError('');
+    setResetSuccess('');
+  };
+
+  const closeResetForm = () => {
+    setResetOpenForUserId(null);
+    setNewPasswordInput('');
+    setConfirmNewPasswordInput('');
+    setResetError('');
+    setResetSuccess('');
+  };
+
+  const handleResetPassword = async (targetUserId: string) => {
+    setResetError('');
+    setResetSuccess('');
+
+    if (!newPasswordInput || !confirmNewPasswordInput) {
+      setResetError(t.fillAllFields);
+      return;
+    }
+
+    if (newPasswordInput.length < 8) {
+      setResetError(t.passwordMinLength);
+      return;
+    }
+
+    if (newPasswordInput !== confirmNewPasswordInput) {
+      setResetError(t.passwordsDontMatch);
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setResetError(t.notAuthenticated);
+        return;
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/reset-password`;
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: targetUserId, newPassword: newPasswordInput }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || result.error) {
+        setResetError(typeof result.error === 'string' ? result.error : t.errorOccurred);
+        return;
+      }
+
+      setResetSuccess(t.passwordResetSuccess);
+      setTimeout(() => {
+        closeResetForm();
+      }, 800);
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : t.errorOccurred);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div className="animate-fadeIn">
       <PageHeader
@@ -322,40 +456,141 @@ export function UsersScreen() {
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="cockpit-tr">
-                    <td className="cockpit-td">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700">
-                          <Mail className="h-5 w-5 text-slate-600 dark:text-slate-300" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium text-slate-900 dark:text-white">{user.email}</p>
-                          <p className="font-mono text-xs text-slate-500 dark:text-slate-400">ID: {user.id.slice(0, 8)}…</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="cockpit-td font-mono text-sm tabular-nums text-slate-600 dark:text-slate-300">
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="cockpit-td font-mono text-sm tabular-nums text-slate-600 dark:text-slate-300">
-                      {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : t.never}
-                    </td>
-                    <td className="cockpit-td text-sm text-slate-700 dark:text-slate-200">
-                      {user.role}
-                    </td>
-                    <td className="cockpit-td text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="rounded-lg p-2 text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
-                        title={`${t.delete} ${t.user}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                users.map((user) => {
+                  const isCurrentUser = user.id === currentUser?.id;
+                  const roleSaving = Boolean(roleSavingByUserId[user.id]);
+                  const roleSaved = Boolean(roleSuccessByUserId[user.id]);
+                  const roleError = roleErrorByUserId[user.id] ?? '';
+                  const resetOpen = resetOpenForUserId === user.id;
+
+                  return (
+                    <Fragment key={user.id}>
+                      <tr className="cockpit-tr">
+                        <td className="cockpit-td">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700">
+                              <Mail className="h-5 w-5 text-slate-600 dark:text-slate-300" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-slate-900 dark:text-white">{user.email}</p>
+                              <p className="font-mono text-xs text-slate-500 dark:text-slate-400">ID: {user.id.slice(0, 8)}…</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="cockpit-td font-mono text-sm tabular-nums text-slate-600 dark:text-slate-300">
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="cockpit-td font-mono text-sm tabular-nums text-slate-600 dark:text-slate-300">
+                          {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : t.never}
+                        </td>
+                        <td className="cockpit-td text-sm text-slate-700 dark:text-slate-200">
+                          {isCurrentUser ? (
+                            <div>
+                              <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 dark:border-white/10 dark:text-slate-300">
+                                <Lock className="h-3.5 w-3.5" />
+                                <span>{user.role}</span>
+                              </div>
+                              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t.cannotChangeOwnRole}</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="inline-flex items-center gap-2">
+                                <select
+                                  value={user.role}
+                                  onChange={(e) => handleRoleChange(user.id, e.target.value as 'staff' | 'manager' | 'admin')}
+                                  disabled={roleSaving}
+                                  aria-label={t.changeRole}
+                                  className="cockpit-select min-w-[130px] py-1.5 text-sm"
+                                >
+                                  <option value="staff">{t.userRoleStaff}</option>
+                                  <option value="manager">{t.userRoleManager}</option>
+                                  <option value="admin">{t.userRoleAdmin}</option>
+                                </select>
+                                {roleSaving ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" /> : null}
+                                {roleSaved ? <Check className="h-4 w-4 text-emerald-500" /> : null}
+                              </div>
+                              {roleSaved ? <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">{t.roleUpdated}</p> : null}
+                              {roleError ? <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{roleError}</p> : null}
+                            </div>
+                          )}
+                        </td>
+                        <td className="cockpit-td text-right">
+                          <div className="flex justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={() => (resetOpen ? closeResetForm() : openResetForm(user.id))}
+                              className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-500/10 dark:text-slate-300"
+                              title={t.resetPassword}
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="rounded-lg p-2 text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
+                              title={`${t.delete} ${t.user}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {resetOpen ? (
+                        <tr className="cockpit-tr">
+                          <td colSpan={5} className="cockpit-td">
+                            <div className="rounded-lg border border-slate-200/80 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/40">
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <div>
+                                  <label className="cockpit-label mb-2">{t.newPassword}</label>
+                                  <input
+                                    type="password"
+                                    value={newPasswordInput}
+                                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                                    className="cockpit-input"
+                                    placeholder={t.newPassword}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="cockpit-label mb-2">{t.confirmNewPassword}</label>
+                                  <input
+                                    type="password"
+                                    value={confirmNewPasswordInput}
+                                    onChange={(e) => setConfirmNewPasswordInput(e.target.value)}
+                                    className="cockpit-input"
+                                    placeholder={t.confirmNewPassword}
+                                  />
+                                </div>
+                              </div>
+                              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t.passwordMinLength}</p>
+                              {resetError ? <p className="mt-2 text-sm text-rose-600 dark:text-rose-400">{resetError}</p> : null}
+                              {resetSuccess ? <p className="mt-2 text-sm text-emerald-600 dark:text-emerald-400">{resetSuccess}</p> : null}
+                              <div className="mt-3 flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleResetPassword(user.id)}
+                                  disabled={resetLoading}
+                                  className="cockpit-btn-primary disabled:opacity-40"
+                                >
+                                  {resetLoading ? (
+                                    <span className="inline-flex items-center gap-2">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      {t.saving}
+                                    </span>
+                                  ) : (
+                                    t.resetPassword
+                                  )}
+                                </button>
+                                <button type="button" onClick={closeResetForm} className="cockpit-btn-ghost">
+                                  {t.cancel}
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
+                  );
+                })
               )}
             </tbody>
           </table>

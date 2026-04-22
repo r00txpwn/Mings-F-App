@@ -55,13 +55,15 @@ Invoked from the browser (or webhooks):
 |----------|----------------|------|
 | `online-order-create` | `invokeEdgeFunction` POST (`OrderApp`) | Bearer: user JWT or anon key. |
 | `epoint-create-payment` | `invokeEdgeFunction` POST (`OrderApp`) | Same. |
-| `user-management` | `UsersScreen` GET `…/user-management/list`, POST `…/create`, DELETE `…/delete/:id` | Bearer: staff session JWT. **Admin-only** (role `admin` in `public.users` or JWT claim). |
+| `user-management` | `UsersScreen` GET `…/user-management/list`, POST `…/create`, DELETE `…/delete/:id`, PUT `…/update-role`, PUT `…/reset-password` | Bearer: staff session JWT. **Admin-only** (role `admin` in `public.users` or JWT claim). |
 | `epoint-webhook` | Server-to-server (E-point) | Not a browser route. |
 | `wolt-drive-*` | Backend / integrations | Not audited as SPA paths. |
 
 ### `user-management` path parsing
 
 Uses suffix after `/user-management` in `req.url` so both deployed URL shapes work (e.g. `…/functions/v1/user-management/list`).
+
+Token validation uses a user-scoped Supabase client (`SUPABASE_ANON_KEY` + `Authorization: Bearer <jwt>`) and `supabaseUser.auth.getUser()`, which supports ES256 JWTs.
 
 ### Logical risks
 

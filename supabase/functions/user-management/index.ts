@@ -38,7 +38,15 @@ Deno.serve(async (req: Request) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { autoRefreshToken: false, persistSession: false },
+      }
+    );
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
 
     if (authError || !user) {
       return new Response(
@@ -248,6 +256,111 @@ Deno.serve(async (req: Request) => {
 
       // Perform hard delete after profile cleanup.
       const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (req.method === 'PUT' && path === '/update-role') {
+      const body = await req.json();
+      const userId = typeof body.userId === 'string' ? body.userId : '';
+      const role = typeof body.role === 'string' ? body.role.toLowerCase() : '';
+
+      if (!userId || !role) {
+        return new Response(
+          JSON.stringify({ error: 'User ID and role are required' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      if (role !== 'admin' && role !== 'manager' && role !== 'staff') {
+        return new Response(
+          JSON.stringify({ error: 'Invalid role' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      if (userId === user.id) {
+        return new Response(
+          JSON.stringify({ error: 'Cannot change your own role' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const { error } = await supabaseAdmin
+        .from('users')
+        .update({ role })
+        .eq('id', userId);
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, role }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (req.method === 'PUT' && path === '/reset-password') {
+      const body = await req.json();
+      const userId = typeof body.userId === 'string' ? body.userId : '';
+      const newPassword = typeof body.newPassword === 'string' ? body.newPassword : '';
+
+      if (!userId || !newPassword) {
+        return new Response(
+          JSON.stringify({ error: 'User ID and new password are required' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      if (newPassword.length < 8) {
+        return new Response(
+          JSON.stringify({ error: 'Password must be at least 8 characters' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
 
       if (error) {
         return new Response(

@@ -262,7 +262,7 @@ Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
 
 | Function | Purpose |
 |----------|---------|
-| **user-management** | `GET` list users, `POST` create, `DELETE` by id — requires authenticated JWT; **admin** check (`app_metadata.role` / `users.role`) |
+| **user-management** | `GET` list users, `POST` create, `DELETE` by id, `PUT` update role, `PUT` reset password — requires authenticated JWT; **admin** check (`app_metadata.role` / `users.role`) |
 | **online-order-create** | `POST` JSON cart — validates prices/modifiers (per-group `min_select` / `max_select`), zones; inserts `sales` + line items (including combo selections and combo component modifiers) |
 | **epoint-create-payment** | Prepares `online_payments` row + placeholder checkout URL (configure real E-point per docs) |
 | **epoint-webhook** | Updates `online_payments` + `sales.payment_status`; verifies Epoint `data`+`signature` (SHA1) with `EPOINT_PRIVATE_KEY`, or optional legacy HMAC JSON with `EPOINT_WEBHOOK_SECRET` |
