@@ -706,6 +706,7 @@ export interface Translations {
   orderFavoriteAdd: string;
   orderFavoriteRemove: string;
   orderSearchNoResults: string;
+  orderCategoryEmpty: string;
   orderChooseOptions: string;
   orderDishSingle: string;
   orderDishPlural: string;
@@ -1526,6 +1527,7 @@ export const translations: Record<Language, Translations> = {
     orderFavoriteAdd: 'Add to favorites',
     orderFavoriteRemove: 'Remove from favorites',
     orderSearchNoResults: 'No dishes match your search.',
+    orderCategoryEmpty: 'No dishes in this category yet.',
     orderChooseOptions: 'Choose options',
     orderDishSingle: 'dish',
     orderDishPlural: 'dishes',
@@ -2347,6 +2349,7 @@ export const translations: Record<Language, Translations> = {
     orderFavoriteAdd: 'Sevimlilərə əlavə et',
     orderFavoriteRemove: 'Sevimlilərdən sil',
     orderSearchNoResults: 'Axtarışınıza uyğun yemək yoxdur.',
+    orderCategoryEmpty: 'Bu kateqoriyada hələ yemək yoxdur.',
     orderChooseOptions: 'Seçim et',
     orderDishSingle: 'yemək',
     orderDishPlural: 'yemək',
@@ -3168,6 +3171,7 @@ export const translations: Record<Language, Translations> = {
     orderFavoriteAdd: 'Добавить в избранное',
     orderFavoriteRemove: 'Убрать из избранного',
     orderSearchNoResults: 'Ничего не найдено.',
+    orderCategoryEmpty: 'В этой категории пока нет блюд.',
     orderChooseOptions: 'Выбрать опции',
     orderDishSingle: 'блюдо',
     orderDishPlural: 'блюда',

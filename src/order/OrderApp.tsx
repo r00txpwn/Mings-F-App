@@ -824,6 +824,7 @@ function OrderContent() {
       orderCustomizeItem: t.orderComboCustomize,
       orderChooseOptions: t.orderChooseOptions,
       orderSearchNoResults: t.orderSearchNoResults,
+      orderCategoryEmpty: t.orderCategoryEmpty,
       halalBadge: t.halal,
       favoriteAdd: t.orderFavoriteAdd,
       favoriteRemove: t.orderFavoriteRemove,
