@@ -181,6 +181,7 @@ async function handleRequest(req: Request): Promise<Response> {
     return errorResponse('PHONE_INVALID', 'Valid phone number required (E.164, e.g. +994...)', 400);
   }
 
+  await supabase.rpc('expire_online_kitchen_pause_if_due');
   const { data: settings } = await supabase.from('online_settings').select('*').limit(1).maybeSingle();
   if (!settings) {
     return errorResponse('ONLINE_NOT_CONFIGURED', 'Online ordering not configured', 503);

@@ -19,6 +19,7 @@ import { OrderCartView } from './OrderCartView';
 import { OrderCheckoutView } from './OrderCheckoutView';
 import { OrderConfirmationView } from './OrderConfirmationView';
 import {
+  expireOnlineKitchenPauseIfDue,
   formatVenueHoursLine,
   getOnlineFulfillmentVisibility,
   isDeliveryEnabledInSettings,
@@ -240,6 +241,7 @@ function OrderContent() {
 
   useEffect(() => {
     void (async () => {
+      await expireOnlineKitchenPauseIfDue(supabase);
       const [s, z] = await Promise.all([
         supabase.from('online_settings').select('*').limit(1).maybeSingle(),
         supabase.from('delivery_zones').select('*').eq('is_active', true),
@@ -253,6 +255,15 @@ function OrderContent() {
     const id = window.setInterval(() => setKitchenTick((x) => x + 1), 30_000);
     return () => window.clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (kitchenTick === 0) return;
+    void (async () => {
+      await expireOnlineKitchenPauseIfDue(supabase);
+      const { data } = await supabase.from('online_settings').select('*').limit(1).maybeSingle();
+      if (data) setSettings(data as OnlineSettingsRow);
+    })();
+  }, [kitchenTick]);
 
   useEffect(() => {
     const channel = supabase

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getKitchenStatus, nextOpenBoundary, type KitchenSettings } from '../lib/kitchenAcceptance';
 import type { OnlineSettingsRow } from '../types/online';
+import { expireOnlineKitchenPauseIfDue } from '../order/orderOnlineSettings';
 
 function formatBaku(iso: string, localeCode: string): string {
   const d = new Date(iso);
@@ -27,6 +28,7 @@ export function KitchenStatusPanel() {
   const [tick, setTick] = useState(0);
 
   const reload = useCallback(async () => {
+    await expireOnlineKitchenPauseIfDue(supabase);
     const { data, error } = await supabase
       .from('online_settings')
       .select('id, is_open, hours_json, offline_until, closing_soon_minutes')
@@ -68,9 +70,15 @@ export function KitchenStatusPanel() {
   }, [reload]);
 
   useEffect(() => {
-    const id = window.setInterval(() => setTick((x) => x + 1), 15_000);
+    const id = window.setInterval(() => {
+      setTick((x) => x + 1);
+      void (async () => {
+        await expireOnlineKitchenPauseIfDue(supabase);
+        await reload();
+      })();
+    }, 15_000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [reload]);
 
   const ks = settings as KitchenSettings | null;
   void tick;

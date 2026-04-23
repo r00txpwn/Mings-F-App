@@ -214,7 +214,13 @@ export function getKitchenStatus(
   const orderMode = options.orderMode ?? 'immediate';
   const hoursJson = settings.hours_json as Record<string, unknown> | undefined;
 
-  if (isKitchenPaused(settings, when)) {
+  // Immediate orders: staff toggle `is_open === false` always blocks until DB is opened again
+  // (or `expire_online_kitchen_pause_if_due` lifts a finished timed pause).
+  if (orderMode === 'immediate') {
+    if (settings.is_open === false) {
+      return { status: 'PAUSED' };
+    }
+  } else if (isKitchenPaused(settings, when)) {
     return { status: 'PAUSED' };
   }
 

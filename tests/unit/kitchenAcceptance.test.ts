@@ -52,13 +52,24 @@ describe('kitchenAcceptance', () => {
     expect(getKitchenStatus(s, when).status).toBe('PAUSED');
   });
 
-  it('not PAUSED after offline_until even if is_open still false (hours gate only)', () => {
+  it('immediate orders stay PAUSED when is_open false even after offline_until (until row is reopened)', () => {
     const s = baseSettings({
       is_open: false,
       offline_until: '2026-06-15T06:00:00.000Z',
     });
     const when = bakuWallToUtcDate(2026, 6, 15, 12, 0, 0);
-    expect(getKitchenStatus(s, when).status).toBe('OPEN');
+    expect(getKitchenStatus(s, when, { orderMode: 'immediate' }).status).toBe('PAUSED');
+    expect(acceptingKitchen(s, when, 'immediate')).toBe(false);
+  });
+
+  it('scheduled inside hours after offline_until is OPEN while is_open still false', () => {
+    const s = baseSettings({
+      is_open: false,
+      offline_until: '2026-06-15T06:00:00.000Z',
+    });
+    const when = bakuWallToUtcDate(2026, 6, 15, 12, 0, 0);
+    expect(getKitchenStatus(s, when, { orderMode: 'scheduled' }).status).toBe('OPEN');
+    expect(acceptingKitchen(s, when, 'scheduled')).toBe(true);
   });
 
   it('CLOSED outside configured hours', () => {

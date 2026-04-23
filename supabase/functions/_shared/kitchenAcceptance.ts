@@ -213,7 +213,11 @@ export function getKitchenStatus(
   const orderMode = options.orderMode ?? 'immediate';
   const hoursJson = settings.hours_json as Record<string, unknown> | undefined;
 
-  if (isKitchenPaused(settings, when)) {
+  if (orderMode === 'immediate') {
+    if (settings.is_open === false) {
+      return { status: 'PAUSED' };
+    }
+  } else if (isKitchenPaused(settings, when)) {
     return { status: 'PAUSED' };
   }
 

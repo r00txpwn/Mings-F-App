@@ -25,6 +25,8 @@
     "qa:result": "ts-node scripts/qa-result.ts",
     "qa": "node scripts/qa-orchestrator.mjs",
     "supabase:push": "npx --yes supabase@latest db push",
+    "mcp:bundle:online-order-create": "node scripts/mcp-bundle-online-order-create.mjs test-results/mcp-deploy-online-order-create.json",
+    "mcp:bundle:inline:online-order-create": "node scripts/build-inline-online-order-create.mjs test-results/mcp-deploy-online-order-create-inline.json",
     "supabase:deploy:order": "npx --yes supabase@latest functions deploy online-order-create --no-verify-jwt",
     "supabase:deploy:epoint": "npx --yes supabase@latest functions deploy epoint-create-payment --no-verify-jwt",
     "supabase:deploy:web": "npm run supabase:deploy:order && npm run supabase:deploy:epoint",
