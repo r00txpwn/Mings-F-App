@@ -3,7 +3,7 @@ import { Clock, Loader2, LogOut, Mail, MapPin, Phone, Plus, UserCircle2 } from '
 import type { User } from '@supabase/supabase-js';
 import type { CustomerAddressRow, CustomerProfileRow } from '../types/online';
 import type { Sale } from '../lib/supabase';
-import { normalizePhoneE164 } from '../lib/phoneE164';
+import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
 import { supabase } from '../lib/supabase';
 
@@ -139,6 +139,18 @@ export function OrderAccountPanel({
   const [addrLng, setAddrLng] = useState<number | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingAddr, setSavingAddr] = useState(false);
+  const [phoneSmsBlurred, setPhoneSmsBlurred] = useState(false);
+  const [phoneProfileBlurred, setPhoneProfileBlurred] = useState(false);
+
+  const smsPhoneNorm = normalizePhoneE164(phoneInput.trim());
+  const smsPhoneInvalid = phoneInput.trim().length > 0 && !isLikelyE164(smsPhoneNorm);
+  const smsShowInvalidHint = phoneSmsBlurred && smsPhoneInvalid && !authErr;
+  const smsInputError = phoneSmsBlurred && smsPhoneInvalid;
+
+  const profilePhoneNorm = normalizePhoneE164(phoneEdit.trim());
+  const profilePhoneInvalid = phoneEdit.trim().length > 0 && !isLikelyE164(profilePhoneNorm);
+  const profileShowInvalidHint = phoneProfileBlurred && profilePhoneInvalid;
+  const profileInputError = phoneProfileBlurred && profilePhoneInvalid;
 
   useEffect(() => {
     if (profile) {
@@ -156,6 +168,12 @@ export function OrderAccountPanel({
       setOtp('');
     }
   }, [user]);
+
+  useEffect(() => {
+    if (otpStep === 'phone') {
+      setPhoneSmsBlurred(false);
+    }
+  }, [otpStep]);
 
   useEffect(() => {
     const detectRecoveryMode = () => {
@@ -428,12 +446,17 @@ export function OrderAccountPanel({
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
-                  className="ming-input"
+                  className={`ming-input-focus-neutral${smsInputError ? ' ming-input-error' : ''}`}
                   placeholder="+994 50 123 45 67"
                   value={phoneInput}
                   onChange={(e) => setPhoneInput(e.target.value)}
+                  onFocus={() => setPhoneSmsBlurred(false)}
+                  onBlur={() => setPhoneSmsBlurred(true)}
+                  aria-invalid={smsInputError}
                 />
-                <p className="text-[12px] text-ming-mute">{t.orderInvalidPhone}</p>
+                {smsShowInvalidHint ? (
+                  <p className="text-[12px] text-ming-gold">{t.orderInvalidPhone}</p>
+                ) : null}
                 <button
                   type="button"
                   disabled={authBusy || !phoneInput.trim()}
@@ -527,11 +550,20 @@ export function OrderAccountPanel({
               <div>
                 <label className="ming-label mb-1.5 block">{t.orderAccountPhone}</label>
                 <input
-                  className="ming-input"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  className={`ming-input-focus-neutral${profileInputError ? ' ming-input-error' : ''}`}
                   value={phoneEdit}
                   onChange={(e) => setPhoneEdit(e.target.value)}
+                  onFocus={() => setPhoneProfileBlurred(false)}
+                  onBlur={() => setPhoneProfileBlurred(true)}
                   placeholder={t.orderYourPhone}
+                  aria-invalid={profileInputError}
                 />
+                {profileShowInvalidHint ? (
+                  <p className="text-[12px] text-ming-gold">{t.orderInvalidPhone}</p>
+                ) : null}
               </div>
               <button
                 type="button"

@@ -970,6 +970,7 @@ function OrderContent() {
       contactVerify: t.orderVerifySms,
       contactChangePhone: t.orderChangePhone,
       contactAuthErrorFallback: t.orderAuthErrorFallback,
+      phoneFormatHint: t.orderInvalidPhone,
     }),
     [t]
   );

@@ -11,7 +11,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { CustomerAddressRow, DeliveryZoneRow, OnlineFulfillmentType, OnlinePaymentMethod } from '../types/online';
-import { normalizePhoneE164 } from '../lib/phoneE164';
+import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
 
 function toLocalDayKey(date: Date): string {
@@ -173,6 +173,8 @@ export interface CheckoutLabels {
   contactVerify: string;
   contactChangePhone: string;
   contactAuthErrorFallback: string;
+  /** Shown under phone when blurred and format is invalid (same meaning as account invalid-phone hint). */
+  phoneFormatHint: string;
 }
 
 export function OrderCheckoutView({
@@ -239,6 +241,12 @@ export function OrderCheckoutView({
   const [otpCode, setOtpCode] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [checkoutPhoneBlurred, setCheckoutPhoneBlurred] = useState(false);
+
+  const checkoutPhoneInvalid =
+    checkoutPhoneBlurred &&
+    customerPhone.trim().length > 0 &&
+    !isLikelyE164(normalizePhoneE164(customerPhone.trim()));
 
   const addressStep = 2;
   const timingStep = fulfillment === 'delivery' ? 3 : 2;
@@ -325,6 +333,12 @@ export function OrderCheckoutView({
       setAuthError('');
     }
   }, [userLoggedIn]);
+
+  useEffect(() => {
+    if (authStep === 'phone') {
+      setCheckoutPhoneBlurred(false);
+    }
+  }, [authStep]);
 
   const StepHeading = ({ n, title, optional }: { n: number; title: string; optional?: boolean }) => (
     <div className="mb-3 flex items-center gap-3">
@@ -658,14 +672,22 @@ export function OrderCheckoutView({
                 </label>
                 <input
                   id="ming-phone"
-                  className="ming-input"
+                  className={`ming-input-focus-neutral${checkoutPhoneInvalid ? ' ming-input-error' : ''}`}
                   value={customerPhone}
                   onChange={(e) => onCustomerPhoneChange(normalizePhoneE164(e.target.value))}
-                  onBlur={(e) => onCustomerPhoneChange(normalizePhoneE164(e.target.value))}
+                  onFocus={() => setCheckoutPhoneBlurred(false)}
+                  onBlur={(e) => {
+                    setCheckoutPhoneBlurred(true);
+                    onCustomerPhoneChange(normalizePhoneE164(e.target.value));
+                  }}
                   placeholder="+994..."
                   autoComplete="tel"
                   inputMode="tel"
+                  aria-invalid={checkoutPhoneInvalid}
                 />
+                {checkoutPhoneInvalid && !authError ? (
+                  <p className="mt-1 text-[12px] text-ming-gold">{labels.phoneFormatHint}</p>
+                ) : null}
               </div>
               <div>
                 <label className="ming-label mb-1.5 block" htmlFor="ming-name">
