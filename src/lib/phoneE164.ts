@@ -30,3 +30,8 @@ export function isLikelyE164(phone: string): boolean {
   const n = normalizePhoneE164(phone);
   return n.length >= 10 && n.startsWith('+');
 }
+
+/** Display/storage: same normalization as auth and SMS (empty stays empty). */
+export function formatPhoneDisplayE164(raw: string | null | undefined): string {
+  return normalizePhoneE164((raw ?? '').trim());
+}

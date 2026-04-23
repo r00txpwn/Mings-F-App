@@ -3,6 +3,7 @@ import { Clock, Loader2, LogOut, Mail, MapPin, Phone, Plus, UserCircle2 } from '
 import type { User } from '@supabase/supabase-js';
 import type { CustomerAddressRow, CustomerProfileRow } from '../types/online';
 import type { Sale } from '../lib/supabase';
+import { normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
 import { supabase } from '../lib/supabase';
 
@@ -35,6 +36,7 @@ interface OrderAccountPanelProps {
   /** When set, address form uses map + Places (same as checkout). */
   googleMapsApiKey?: string;
   t: {
+    orderNavAccount: string;
     orderSignIn: string;
     orderSignUp: string;
     orderSignOut: string;
@@ -141,7 +143,7 @@ export function OrderAccountPanel({
   useEffect(() => {
     if (profile) {
       setNameEdit(profile.full_name ?? '');
-      setPhoneEdit(profile.phone ?? '');
+      setPhoneEdit(profile.phone ? normalizePhoneE164(profile.phone) : '');
     } else {
       setNameEdit('');
       setPhoneEdit('');
@@ -188,7 +190,7 @@ export function OrderAccountPanel({
     setAuthErr('');
     setAuthNotice('');
     setAuthBusy(true);
-    const res = await sendPhoneOtp(phoneInput);
+    const res = await sendPhoneOtp(normalizePhoneE164(phoneInput.trim()));
     if (res.error) {
       const msg = String((res.error as { message?: string }).message ?? res.error);
       setAuthErr(msg.includes('Invalid phone') ? t.orderInvalidPhone : msg);
@@ -204,7 +206,7 @@ export function OrderAccountPanel({
     setAuthErr('');
     setAuthNotice('');
     setAuthBusy(true);
-    const res = await verifyPhoneOtp(phoneInput, otp);
+    const res = await verifyPhoneOtp(normalizePhoneE164(phoneInput.trim()), otp);
     if (res.error) setAuthErr(String((res.error as { message?: string }).message ?? res.error));
     setAuthBusy(false);
     if (!res.error) void onReloadOrders();
@@ -306,9 +308,9 @@ export function OrderAccountPanel({
         <div className="ming-card-raised relative overflow-hidden p-6">
           <div aria-hidden className="pointer-events-none absolute -right-8 -top-12 h-28 w-28 rounded-full bg-ming-red/20 blur-3xl" />
 
-          <p className="ming-eyebrow mb-2">Ming&apos;s · Sign in</p>
+          <p className="ming-eyebrow mb-2">Ming&apos;s · {t.orderNavAccount}</p>
           <h2 className="ming-display text-[26px] leading-tight text-ming-bone">
-            Welcome back
+            {t.orderNavAccount}
           </h2>
           <p className="mt-1.5 text-sm text-ming-ash">{t.orderCreateAccountHint}</p>
 
@@ -536,7 +538,10 @@ export function OrderAccountPanel({
                 disabled={savingProfile}
                 onClick={async () => {
                   setSavingProfile(true);
-                  await onSaveProfile({ full_name: nameEdit.trim() || null, phone: phoneEdit.trim() || null });
+                  await onSaveProfile({
+                    full_name: nameEdit.trim() || null,
+                    phone: phoneEdit.trim() === '' ? null : normalizePhoneE164(phoneEdit),
+                  });
                   setSavingProfile(false);
                 }}
                 className="ming-btn-ghost"

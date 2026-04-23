@@ -30,6 +30,7 @@ import type {
   OnlinePaymentMethod,
   OnlineSettingsRow,
 } from '../types/online';
+import { normalizePhoneE164 } from '../lib/phoneE164';
 import { findZoneForPoint } from '../services/deliveryZones';
 
 function generateCartItemKey(productId: string, modifiers: SelectedModifiers): string {
@@ -143,7 +144,6 @@ function OrderContent() {
   const [fulfillment, setFulfillment] = useState<OnlineFulfillmentType>('takeaway');
   const [paymentMethod, setPaymentMethod] = useState<OnlinePaymentMethod>('cod');
   const [customerName, setCustomerName] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
@@ -314,7 +314,9 @@ function OrderContent() {
   useEffect(() => {
     if (!user || !profile) return;
     setCustomerName((n) => (n.trim() ? n : profile.full_name ?? ''));
-    setCustomerPhone((p) => (p.trim() ? p : profile.phone ?? ''));
+    setCustomerPhone((p) =>
+      p.trim() ? normalizePhoneE164(p) : normalizePhoneE164(profile.phone ?? '')
+    );
   }, [user, profile]);
 
   useEffect(() => {
@@ -586,17 +588,11 @@ function OrderContent() {
   const handleSubmitOrder = async () => {
     if (!user) {
       setSubmitError(t.orderAuthRequired);
-      setFlow('browse');
-      setNavTab('account');
       return;
     }
     if (cart.length === 0) return;
     if (!consentAccepted) {
       setSubmitError(t.orderConsentRequired);
-      return;
-    }
-    if (customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
-      setSubmitError(t.orderErrInvalidEmail);
       return;
     }
     setSubmitting(true);
@@ -722,10 +718,6 @@ function OrderContent() {
   };
 
   const openCheckout = () => {
-    if (!user) {
-      setNavTab('account');
-      return;
-    }
     track('begin_checkout', {
       item_count: cartCount,
       value: grandTotal,
@@ -770,6 +762,7 @@ function OrderContent() {
   const accountPanelT = useMemo(
     () => ({
       orderSignIn: t.orderSignIn,
+      orderNavAccount: t.orderNavAccount,
       orderSignUp: t.orderSignUp,
       orderSignOut: t.orderSignOut,
       orderMyOrders: t.orderMyOrders,
@@ -828,10 +821,17 @@ function OrderContent() {
       orderVenueAddress: t.orderVenueAddress,
       orderVenuePhone: t.orderVenuePhone,
       orderAddToCart: t.orderAddToCart,
+      orderCustomizeItem: t.orderComboCustomize,
+      orderChooseOptions: t.orderChooseOptions,
       orderSearchNoResults: t.orderSearchNoResults,
       halalBadge: t.halal,
       favoriteAdd: t.orderFavoriteAdd,
       favoriteRemove: t.orderFavoriteRemove,
+      menuLabel: t.orderNavMenu,
+      categoriesLabel: t.categories,
+      clearSearch: t.clear,
+      itemCountSingle: t.orderDishSingle,
+      itemCountPlural: t.orderDishPlural,
     }),
     [t]
   );
@@ -845,7 +845,7 @@ function OrderContent() {
       deliveryFee: t.orderDeliveryFeeRow,
       total: t.orderTotal,
       continueCheckout: t.orderCheckout,
-      authRequired: t.orderAuthRequired,
+      authRequired: t.orderAuthInlineHint,
       itemNotes: t.orderItemNotes,
       itemNotesPlaceholder: t.orderItemNotesPlaceholder,
       removeLine: t.orderRemoveLine,
@@ -856,11 +856,46 @@ function OrderContent() {
     [t]
   );
 
+  const submitBlockers = useMemo(() => {
+    const blockers: string[] = [];
+    if (!user) blockers.push(t.orderAuthRequired);
+    if (cart.length === 0) blockers.push(t.orderErrCartEmpty);
+    if (customerPhone.trim().length === 0) blockers.push(t.orderErrPhoneRequired);
+    if (!consentAccepted) blockers.push(t.orderConsentRequired);
+    if (isScheduled && !scheduledFor) blockers.push(t.orderErrScheduleRequired);
+    if (fulfillment === 'delivery' && !serverAllowsDelivery) blockers.push(t.orderDeliveryDisabledInSettings);
+    if (fulfillment === 'delivery' && !deliveryAddress.trim()) blockers.push(t.orderErrAddressRequired);
+    if (fulfillment === 'delivery' && deliveryAddress.trim() && !zoneMatch) {
+      blockers.push(t.orderSubmitDisabledOutsideZone);
+    }
+    return blockers;
+  }, [
+    user,
+    cart.length,
+    customerPhone,
+    consentAccepted,
+    isScheduled,
+    scheduledFor,
+    fulfillment,
+    serverAllowsDelivery,
+    deliveryAddress,
+    zoneMatch,
+    t,
+  ]);
+
+  const canSubmit = !submitting && submitBlockers.length === 0;
+
   const checkoutLabels = useMemo(
     () => ({
       back: t.back,
       checkout: t.orderCheckout,
       contact: t.orderStepContact,
+      stepFulfillment: t.orderStepFulfillment,
+      stepAddress: t.orderStepAddress,
+      stepTiming: t.orderStepTiming,
+      stepPayment: t.orderStepPayment,
+      stepReview: t.orderStepReview,
+      optional: t.optional,
       phone: t.orderPhone,
       email: t.orderEmail,
       nameOptional: t.orderNameOptional,
@@ -909,6 +944,32 @@ function OrderContent() {
       privacy: t.orderPrivacy,
       refundPolicy: t.orderRefundPolicy,
       retry: t.retry,
+      summaryTitle: t.orderSummaryTitle,
+      fulfillmentTakeawayHint: t.orderFulfillmentTakeawayHint,
+      fulfillmentDeliveryHint: t.orderFulfillmentDeliveryHint,
+      paymentCodHint: t.orderPaymentCodHint,
+      paymentCashHint: t.orderPaymentCashHint,
+      paymentEpointHint: t.orderPaymentEpointHint,
+      paymentExtras: t.orderPaymentExtras,
+      paymentExtrasShow: t.orderPaymentExtrasShow,
+      paymentExtrasHide: t.orderPaymentExtrasHide,
+      promoPlaceholder: t.orderPromoPlaceholder,
+      reviewHint: t.orderReviewHint,
+      reviewFulfillment: t.orderReviewFulfillment,
+      reviewTiming: t.orderReviewTiming,
+      reviewContact: t.orderReviewContact,
+      reviewPayment: t.orderReviewPayment,
+      reviewAddress: t.orderReviewAddress,
+      reviewAsap: t.orderReviewAsap,
+      reviewMissing: t.orderReviewMissing,
+      contactSignedIn: t.orderContactSignedIn,
+      contactGuestHint: t.orderContactGuestHint,
+      contactVerifyHint: t.orderContactVerifyHint,
+      contactSendCode: t.orderSendSmsCode,
+      contactCode: t.orderSmsCode,
+      contactVerify: t.orderVerifySms,
+      contactChangePhone: t.orderChangePhone,
+      contactAuthErrorFallback: t.orderAuthErrorFallback,
     }),
     [t]
   );
@@ -957,16 +1018,6 @@ function OrderContent() {
       </div>
     );
   }
-
-  const canSubmit =
-    !submitting &&
-    !!user &&
-    cart.length > 0 &&
-    customerPhone.trim().length > 0 &&
-    consentAccepted &&
-    (!isScheduled || !!scheduledFor) &&
-    !(fulfillment === 'delivery' && !serverAllowsDelivery) &&
-    !(fulfillment === 'delivery' && (!zoneMatch || !deliveryAddress.trim()));
 
   const showBottomNav = flow === 'browse';
   const showMobileStickyCart = flow === 'browse' && navTab === 'menu' && cartCount > 0;
@@ -1136,12 +1187,12 @@ function OrderContent() {
           onFulfillmentChange={setFulfillment}
           serverAllowsDelivery={serverAllowsDelivery}
           customerPhone={customerPhone}
-          customerEmail={customerEmail}
-          onCustomerEmailChange={setCustomerEmail}
           customerName={customerName}
           onCustomerPhoneChange={setCustomerPhone}
           onCustomerNameChange={setCustomerName}
           userLoggedIn={!!user}
+          sendPhoneOtp={sendPhoneOtp}
+          verifyPhoneOtp={verifyPhoneOtp}
           savedAddresses={addresses}
           selectedSavedAddressId={selectedSavedAddressId}
           onSelectSavedAddressId={setSelectedSavedAddressId}
@@ -1188,6 +1239,7 @@ function OrderContent() {
           grandTotal={grandTotal}
           submitting={submitting}
           submitError={submitError}
+          submitBlockers={submitBlockers}
           canSubmit={canSubmit}
           onSubmit={() => void handleSubmitOrder()}
           onBack={() => setFlow('browse')}
