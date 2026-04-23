@@ -1,9 +1,20 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { OnlineSettingsRow } from '../types/online';
 
 /**
  * Coerce booleans from PostgREST / JSON (sometimes strings in edge cases).
  * Missing / null → default `true` so new or partial `online_settings` rows still show both modes.
  */
+/**
+ * When a timed pause (`is_open=false` + `offline_until`) has passed, sets `is_open=true`
+ * and clears `offline_until`. Indefinite close (`offline_until` null) is unchanged.
+ * Safe to call on every load; requires migration `expire_online_kitchen_pause_if_due`.
+ */
+export async function expireOnlineKitchenPauseIfDue(client: SupabaseClient): Promise<void> {
+  const { error } = await client.rpc('expire_online_kitchen_pause_if_due');
+  if (error) console.warn('expire_online_kitchen_pause_if_due', error.message);
+}
+
 export function readOnlineBool(value: unknown, whenMissing: boolean): boolean {
   if (value === undefined || value === null) return whenMissing;
   if (typeof value === 'boolean') return value;

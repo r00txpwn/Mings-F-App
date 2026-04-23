@@ -8,12 +8,12 @@ All **customer-facing** time comparisons for online ordering use **Asia/Baku** w
 |--------|---------|
 | `OPEN` | Inside `hours_json`, not paused, not in soft-close window (or soft-close disabled). |
 | `CLOSING_SOON` | Inside hours, `closing_soon_minutes > 0`, and within that many minutes of the session end. Immediate orders still submit; UI shows last-call copy. **Scheduled** evaluation never returns this (treated as `OPEN`). |
-| `PAUSED` | `is_open === false` and (`offline_until` is null **or** current time is before `offline_until`). Blocks immediate orders; scheduled slots after `offline_until` may still be valid if inside hours. |
+| `PAUSED` | **Immediate:** `is_open === false` always blocks until the row is opened again (or `expire_online_kitchen_pause_if_due` lifts a finished timed pause). **Scheduled:** paused while `is_open === false` and (`offline_until` is null or the slot time is before `offline_until`). |
 | `CLOSED` | Outside `hours_json` for the current Baku instant. |
 
 ## Database
 
-- `online_settings.offline_until` — optional timestamptz; with `is_open = false`, defines a **timed** pause until that instant. After it passes, acceptance uses hours only (pause lifted for gating) until staff sets `is_open` true again.
+- `online_settings.offline_until` — optional timestamptz; with `is_open = false`, defines a **timed** pause until that instant. When it passes, RPC **`expire_online_kitchen_pause_if_due()`** sets `is_open = true` and clears `offline_until` (called from Order App, staff Delivery admin, Order Manager kitchen panel, and `online-order-create`). **Indefinite** close keeps `offline_until` null until staff taps Open / Resume.
 - `online_settings.closing_soon_minutes` — integer, default **0** (disabled). Admin: Delivery → Settings.
 
 ## Staff surfaces

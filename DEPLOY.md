@@ -97,9 +97,31 @@ Recent online-order schema additions included in this repo:
 
 If you see **“Remote migration versions not found in local migrations directory”**, fix history first: **[docs/MIGRATION_HISTORY.md](docs/MIGRATION_HISTORY.md)** (`npm run supabase:repair:remote` then push again).
 
-**Kitchen hours + pause + soft-close:** migrations add `online_settings.offline_until` and `closing_soon_minutes` (see `20260423120000_online_settings_kitchen_pause.sql`). Customer and edge validation share **[docs/KITCHEN_HOURS.md](docs/KITCHEN_HOURS.md)**. After changing **`online-order-create`** or **`supabase/functions/_shared/kitchenAcceptance.ts`**, redeploy **`online-order-create`** (same command as below).
+**Kitchen hours + pause + soft-close:** migrations add `online_settings.offline_until` and `closing_soon_minutes` (see `20260423120000_online_settings_kitchen_pause.sql`), plus RPC **`expire_online_kitchen_pause_if_due`** (`20260423180000_expire_online_kitchen_pause_rpc.sql`) so timed pauses auto-open in the DB. Customer and edge validation share **[docs/KITCHEN_HOURS.md](docs/KITCHEN_HOURS.md)**. After changing **`online-order-create`** or **`supabase/functions/_shared/kitchenAcceptance.ts`**, redeploy **`online-order-create`** (same command as below).
 
 ### Edge Functions (deploy each)
+
+**Cursor Supabase MCP (preferred when the CLI is not logged in):** for **`online-order-create`** only, you can deploy the exact repo bundle without `supabase login`:
+
+1. Regenerate the MCP payload (UTF-8 one-line JSON):
+
+   ```bash
+   npm run mcp:bundle:online-order-create
+   ```
+
+   **Smaller payload (single `files[]` entry, inlined `_shared` + handler):** use when your MCP UI struggles with the multi-file JSON (~43 KB):
+
+   ```bash
+   npm run mcp:bundle:inline:online-order-create
+   ```
+
+   That writes `test-results/mcp-deploy-online-order-create-inline.json` (also generates `test-results/online-order-create-inline.ts` for review).
+
+2. Open **Cursor → MCP → Supabase** (or the Supabase MCP panel), run **`deploy_edge_function`**, and paste the **entire contents** of `test-results/mcp-deploy-online-order-create.json` **or** `test-results/mcp-deploy-online-order-create-inline.json` as the tool **`arguments`** object (it already includes `name`, `entrypoint_path`: `functions/online-order-create/index.ts`, `verify_jwt`: `false`, and `files`).
+
+3. Confirm with **`get_edge_function`** (`function_slug`: `online-order-create`): the active version should increment and the bundled `index.ts` must include real logic (e.g. `roundMoney`, `kitchenAcceptance`, `expire_online_kitchen_pause_if_due`) — **not** a stub like `mcp-deploy-test`.
+
+Agent automation cannot reliably pass multi‑tens‑of‑KB JSON into MCP from chat alone; use the steps above or the CLI below.
 
 ```bash
 supabase functions deploy online-order-create
