@@ -7,6 +7,15 @@ import { formatMoneyWithSymbol } from '../lib/money';
 
 const ALL = '__all__';
 
+function normalizeCategoryLabel(input: string): string {
+  const raw = String(input ?? '').trim();
+  if (!raw) return '';
+  return raw
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export interface OrderMenuBrowseLabels {
   allCategories: string;
   orderChooseFulfillmentTitle: string;
@@ -207,7 +216,7 @@ export function OrderMenuBrowseView({
 
   const categoryNameById = useMemo(() => {
     const m = new Map<string, string>();
-    for (const c of categories) m.set(c.id, c.name);
+    for (const c of categories) m.set(c.id, normalizeCategoryLabel(c.name));
     return m;
   }, [categories]);
 
@@ -289,7 +298,7 @@ export function OrderMenuBrowseView({
                 className="scroll-mt-[168px] lg:scroll-mt-24"
               >
                 <div className="mb-4 flex items-end justify-between gap-3">
-                  <h2 className="ming-section-title">{cat.name}</h2>
+                  <h2 className="ming-section-title">{normalizeCategoryLabel(cat.name)}</h2>
                   <span className="hidden text-[11px] font-bold uppercase tracking-[0.14em] text-ming-mute sm:block">
                     {list.length} {list.length === 1 ? labels.itemCountSingle : labels.itemCountPlural}
                   </span>
@@ -360,7 +369,7 @@ export function OrderMenuBrowseView({
             role="tablist"
           >
             {chip(ALL, labels.allCategories)}
-            {categories.map((c) => chip(c.id, c.name))}
+            {categories.map((c) => chip(c.id, normalizeCategoryLabel(c.name)))}
           </div>
           <div
             aria-hidden
@@ -396,7 +405,7 @@ export function OrderMenuBrowseView({
                     : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
                 }`}
               >
-                {c.name}
+                {normalizeCategoryLabel(c.name)}
               </button>
             ))}
           </nav>
