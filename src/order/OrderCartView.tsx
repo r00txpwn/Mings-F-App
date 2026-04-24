@@ -148,7 +148,12 @@ export function OrderCartView({
                 </button>
               </div>
               {modNames ? (
-                <p className="mt-0.5 line-clamp-1 text-[12px] text-ming-ash">{modNames}</p>
+                <p
+                  className="mt-0.5 whitespace-normal break-words text-[12px] leading-relaxed text-ming-ash"
+                  title={modNames}
+                >
+                  {modNames}
+                </p>
               ) : null}
               <label className="mt-2 block">
                 <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-ming-ash">
