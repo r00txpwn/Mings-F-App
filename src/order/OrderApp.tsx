@@ -57,6 +57,21 @@ interface SavedCardRow {
   card_brand: string | null;
 }
 
+interface ConfirmationLine {
+  name: string;
+  quantity: number;
+  lineTotal: number;
+  customizations: string[];
+}
+
+interface ConfirmationSnapshot {
+  lines: ConfirmationLine[];
+  subtotal: number;
+  total: number;
+  fulfillment: OnlineFulfillmentType;
+  etaText: string;
+}
+
 const SCHEDULE_DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 type ScheduleDayKey = (typeof SCHEDULE_DAY_KEYS)[number];
 
@@ -162,6 +177,7 @@ function OrderContent() {
   const [savedCards, setSavedCards] = useState<SavedCardRow[]>([]);
 
   const [result, setResult] = useState<OnlineOrderCreateResponse | null>(null);
+  const [confirmationSnapshot, setConfirmationSnapshot] = useState<ConfirmationSnapshot | null>(null);
   const [paymentReturn, setPaymentReturn] = useState<'success' | 'error' | null>(null);
   const [paymentReturnDetail, setPaymentReturnDetail] = useState<string | null>(null);
   const [favoriteProductIds, setFavoriteProductIds] = useState<string[]>([]);
@@ -310,6 +326,10 @@ function OrderContent() {
     if (!settings) return;
     if (!settings.takeaway_enabled && settings.delivery_enabled) setFulfillment('delivery');
   }, [settings]);
+
+  useEffect(() => {
+    if (paymentMethod === 'cash') setPaymentMethod('cod');
+  }, [paymentMethod]);
 
   useEffect(() => {
     if (!user || !profile) return;
@@ -505,7 +525,8 @@ function OrderContent() {
   };
 
   const handlePaymentMethodChange = (method: OnlinePaymentMethod) => {
-    setPaymentMethod(method);
+    // Keep backend compatibility but expose a single cash choice in UI.
+    setPaymentMethod(method === 'cash' ? 'cod' : method);
     track('select_payment_method', { payment_method: method });
   };
 
@@ -677,6 +698,37 @@ function OrderContent() {
         }
       }
 
+      const confirmationLines: ConfirmationLine[] = cart.map((item) => {
+        const modifierRows = Object.values(item.selectedModifiers).flat();
+        const modTotal = modifierRows.reduce((sum, mod) => sum + Number(mod.price_adjustment ?? 0), 0);
+        const lineTotal = (Number(item.product.selling_price) + modTotal) * item.quantity;
+        const customizations = modifierRows.map((mod) => mod.name);
+        return {
+          name: item.product.name,
+          quantity: item.quantity,
+          lineTotal,
+          customizations,
+        };
+      });
+
+      const etaText =
+        isScheduled && scheduledFor
+          ? new Date(scheduledFor).toLocaleString(undefined, {
+              hour: '2-digit',
+              minute: '2-digit',
+              day: '2-digit',
+              month: 'short',
+            })
+          : t.orderConfirmationEtaFallback;
+
+      setConfirmationSnapshot({
+        lines: confirmationLines,
+        subtotal: cartTotal,
+        total: grandTotal,
+        fulfillment,
+        etaText,
+      });
+
       if (
         user &&
         fulfillment === 'delivery' &&
@@ -796,6 +848,8 @@ function OrderContent() {
       orderSmsCode: t.orderSmsCode,
       orderVerifySms: t.orderVerifySms,
       orderSmsSentHint: t.orderSmsSentHint,
+      orderSmsResend: t.orderSmsResend,
+      orderSmsResendWait: t.orderSmsResendWait,
       orderChangePhone: t.orderChangePhone,
       orderInvalidPhone: t.orderInvalidPhone,
       orderAccountPhone: t.orderAccountPhone,
@@ -862,7 +916,6 @@ function OrderContent() {
     if (!user) blockers.push(t.orderAuthRequired);
     if (cart.length === 0) blockers.push(t.orderErrCartEmpty);
     if (customerPhone.trim().length === 0) blockers.push(t.orderErrPhoneRequired);
-    if (!consentAccepted) blockers.push(t.orderConsentRequired);
     if (isScheduled && !scheduledFor) blockers.push(t.orderErrScheduleRequired);
     if (fulfillment === 'delivery' && !serverAllowsDelivery) blockers.push(t.orderDeliveryDisabledInSettings);
     if (fulfillment === 'delivery' && !deliveryAddress.trim()) blockers.push(t.orderErrAddressRequired);
@@ -874,7 +927,6 @@ function OrderContent() {
     user,
     cart.length,
     customerPhone,
-    consentAccepted,
     isScheduled,
     scheduledFor,
     fulfillment,
@@ -913,7 +965,7 @@ function OrderContent() {
       subtotal: t.orderSubtotal,
       total: t.orderTotal,
       payment: t.orderPayment,
-      payCod: t.orderPayCod,
+      payCod: fulfillment === 'delivery' ? t.orderPayCashUnifiedDelivery : t.orderPayCashUnifiedTakeaway,
       payCash: t.orderPayCash,
       payEpoint: t.orderPayEpoint,
       payCardWithWallet: t.orderPayCardWithWallet,
@@ -948,12 +1000,13 @@ function OrderContent() {
       summaryTitle: t.orderSummaryTitle,
       fulfillmentTakeawayHint: t.orderFulfillmentTakeawayHint,
       fulfillmentDeliveryHint: t.orderFulfillmentDeliveryHint,
-      paymentCodHint: t.orderPaymentCodHint,
+      paymentCodHint:
+        fulfillment === 'delivery'
+          ? t.orderPaymentCashUnifiedHintDelivery
+          : t.orderPaymentCashUnifiedHintTakeaway,
       paymentCashHint: t.orderPaymentCashHint,
       paymentEpointHint: t.orderPaymentEpointHint,
       paymentExtras: t.orderPaymentExtras,
-      paymentExtrasShow: t.orderPaymentExtrasShow,
-      paymentExtrasHide: t.orderPaymentExtrasHide,
       promoPlaceholder: t.orderPromoPlaceholder,
       reviewHint: t.orderReviewHint,
       reviewFulfillment: t.orderReviewFulfillment,
@@ -971,9 +1024,13 @@ function OrderContent() {
       contactVerify: t.orderVerifySms,
       contactChangePhone: t.orderChangePhone,
       contactAuthErrorFallback: t.orderAuthErrorFallback,
+      smsSentHint: t.orderSmsSentHint,
+      smsResend: t.orderSmsResend,
+      smsResendWait: t.orderSmsResendWait,
       phoneFormatHint: t.orderInvalidPhone,
+      consentRequired: t.orderConsentRequired,
     }),
-    [t]
+    [t, fulfillment]
   );
 
   if (authLoading || loading) {
@@ -1010,11 +1067,22 @@ function OrderContent() {
         <OrderConfirmationView
           displayNumber={result.displayNumber}
           trackUrl={trackUrl}
+          snapshot={confirmationSnapshot}
           labels={{
             title: t.orderPlacedTitle,
             subtitle: t.orderPlacedSubtitle,
             trackHint: t.orderTrackHint,
             openTracking: t.orderOpenTracking,
+            copyTracking: t.orderCopyTrackingLink,
+            copiedTracking: t.orderCopyTrackingDone,
+            orderNumber: t.orderConfirmationOrderNumber,
+            summaryTitle: t.orderConfirmationSummaryTitle,
+            subtotal: t.orderSubtotal,
+            total: t.orderTotal,
+            fulfillment: t.orderReviewFulfillment,
+            eta: t.orderConfirmationEtaLabel,
+            fulfillmentTakeaway: t.orderFulfillmentTakeaway,
+            fulfillmentDelivery: t.orderFulfillmentDelivery,
           }}
         />
       </div>
@@ -1172,6 +1240,7 @@ function OrderContent() {
               ordersLoading={ordersLoading}
               onReloadOrders={reloadOrders}
               onReorder={handleReorder}
+              fulfillment={fulfillment}
               loyaltyEnabled={Boolean(settings?.loyalty_enabled)}
               loyaltyRewardEveryOrders={Number(settings?.loyalty_reward_every_orders ?? 10)}
               googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}

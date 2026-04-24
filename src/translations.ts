@@ -624,6 +624,8 @@ export interface Translations {
   orderPayment: string;
   orderPayCod: string;
   orderPayCash: string;
+  orderPayCashUnifiedTakeaway: string;
+  orderPayCashUnifiedDelivery: string;
   orderPayEpoint: string;
   orderPayCardWithWallet: string;
   orderSaveCardForFuture: string;
@@ -632,6 +634,12 @@ export interface Translations {
   orderPlacedSubtitle: string;
   orderTrackHint: string;
   orderOpenTracking: string;
+  orderCopyTrackingLink: string;
+  orderCopyTrackingDone: string;
+  orderConfirmationOrderNumber: string;
+  orderConfirmationSummaryTitle: string;
+  orderConfirmationEtaLabel: string;
+  orderConfirmationEtaFallback: string;
   orderCheckout: string;
   orderStepFulfillment: string;
   orderStepAddress: string;
@@ -712,6 +720,8 @@ export interface Translations {
   orderOrderNotes: string;
   orderPaymentCodHint: string;
   orderPaymentCashHint: string;
+  orderPaymentCashUnifiedHintTakeaway: string;
+  orderPaymentCashUnifiedHintDelivery: string;
   orderPaymentEpointHint: string;
   orderPaymentExtras: string;
   orderPaymentExtrasShow: string;
@@ -1632,6 +1642,8 @@ export const translations: Record<Language, Translations> = {
     orderPayment: 'Payment',
     orderPayCod: 'Cash on pickup / delivery',
     orderPayCash: 'Cash',
+    orderPayCashUnifiedTakeaway: 'Pay with cash at pickup',
+    orderPayCashUnifiedDelivery: 'Pay with cash on delivery',
     orderPayEpoint: 'Card (E-point)',
     orderPayCardWithWallet: 'Use Apple Pay / Google Pay when available',
     orderSaveCardForFuture: 'Save card for future orders',
@@ -1640,6 +1652,12 @@ export const translations: Record<Language, Translations> = {
     orderPlacedSubtitle: "We've received your order and will start preparing it shortly.",
     orderTrackHint: 'Track status',
     orderOpenTracking: 'Open tracking',
+    orderCopyTrackingLink: 'Copy tracking link',
+    orderCopyTrackingDone: 'Tracking link copied.',
+    orderConfirmationOrderNumber: 'Order number',
+    orderConfirmationSummaryTitle: 'Order summary',
+    orderConfirmationEtaLabel: 'Estimated time',
+    orderConfirmationEtaFallback: "We'll start preparing shortly",
     orderCheckout: 'Checkout',
     orderStepFulfillment: 'Fulfillment',
     orderStepAddress: 'Address',
@@ -1680,7 +1698,7 @@ export const translations: Record<Language, Translations> = {
     orderSendSmsCode: 'Send code',
     orderSmsCode: 'SMS code',
     orderVerifySms: 'Verify & sign in',
-    orderSmsSentHint: 'We sent a code to your phone. Enter it below.',
+    orderSmsSentHint: 'Code sent to {phone}. Enter it below.',
     orderSmsResend: 'Resend code',
     orderSmsResendWait: 'Resend in {seconds}s',
     orderSmsCodeExpiredHint: 'Code expired or invalid. Request a new SMS code.',
@@ -1719,6 +1737,8 @@ export const translations: Record<Language, Translations> = {
     orderOrderNotes: 'Order notes',
     orderPaymentCodHint: 'Pay with cash on pickup or delivery',
     orderPaymentCashHint: 'Pay cash at the counter',
+    orderPaymentCashUnifiedHintTakeaway: "Pay in cash when you collect from Ming's",
+    orderPaymentCashUnifiedHintDelivery: 'Pay in cash to the courier on arrival',
     orderPaymentEpointHint: 'Pay securely online with card',
     orderPaymentExtras: 'Promo, tip, and notes',
     orderPaymentExtrasShow: 'Show optional payment details',
@@ -2642,6 +2662,8 @@ export const translations: Record<Language, Translations> = {
     orderPayment: 'Ödəniş',
     orderPayCod: 'Nağd (götürmə/çatdırılma)',
     orderPayCash: 'Nağd',
+    orderPayCashUnifiedTakeaway: 'Götürmədə nağd ödə',
+    orderPayCashUnifiedDelivery: 'Çatdırılmada nağd ödə',
     orderPayEpoint: 'Kart (E-point)',
     orderPayCardWithWallet: 'Mövcuddursa Apple Pay / Google Pay istifadə et',
     orderSaveCardForFuture: 'Kartı növbəti sifarişlər üçün yadda saxla',
@@ -2650,6 +2672,12 @@ export const translations: Record<Language, Translations> = {
     orderPlacedSubtitle: 'Sifarişinizi qəbul etdik və tezliklə hazırlamağa başlayacağıq.',
     orderTrackHint: 'Statusu izlə',
     orderOpenTracking: 'İzləməni aç',
+    orderCopyTrackingLink: 'İzləmə linkini kopyala',
+    orderCopyTrackingDone: 'İzləmə linki kopyalandı.',
+    orderConfirmationOrderNumber: 'Sifariş nömrəsi',
+    orderConfirmationSummaryTitle: 'Sifariş xülasəsi',
+    orderConfirmationEtaLabel: 'Təxmini vaxt',
+    orderConfirmationEtaFallback: 'Hazırlığa tezliklə başlayacağıq',
     orderCheckout: 'Ödənişə keç',
     orderStepFulfillment: 'Təhvil üsulu',
     orderStepAddress: 'Ünvan',
@@ -2690,7 +2718,7 @@ export const translations: Record<Language, Translations> = {
     orderSendSmsCode: 'Kod göndər',
     orderSmsCode: 'SMS kodu',
     orderVerifySms: 'Təsdiqlə və daxil ol',
-    orderSmsSentHint: 'Telefonunuza kod göndərildi. Aşağıya daxil edin.',
+    orderSmsSentHint: 'Kod {phone} nömrəsinə göndərildi. Aşağıya daxil edin.',
     orderSmsResend: 'Kodu yenidən göndər',
     orderSmsResendWait: '{seconds}s sonra yenidən göndər',
     orderSmsCodeExpiredHint: 'Kodun vaxtı bitib və ya yanlışdır. Yeni SMS kodu istəyin.',
@@ -2729,6 +2757,8 @@ export const translations: Record<Language, Translations> = {
     orderOrderNotes: 'Sifariş qeydi',
     orderPaymentCodHint: 'Götürmədə və ya çatdırılmada nağd ödə',
     orderPaymentCashHint: 'Məntəqədə nağd ödə',
+    orderPaymentCashUnifiedHintTakeaway: "Ming's-dən götürəndə nağd ödəniş edin",
+    orderPaymentCashUnifiedHintDelivery: 'Kuryer çatdıranda nağd ödəniş edin',
     orderPaymentEpointHint: 'Kartla təhlükəsiz onlayn ödəniş',
     orderPaymentExtras: 'Promo, bəxşiş və qeyd',
     orderPaymentExtrasShow: 'Əlavə seçimləri göstər',
@@ -3652,6 +3682,8 @@ export const translations: Record<Language, Translations> = {
     orderPayment: 'Оплата',
     orderPayCod: 'Наличные при получении',
     orderPayCash: 'Наличные',
+    orderPayCashUnifiedTakeaway: 'Оплата наличными при самовывозе',
+    orderPayCashUnifiedDelivery: 'Оплата наличными при доставке',
     orderPayEpoint: 'Карта (E-point)',
     orderPayCardWithWallet: 'Использовать Apple Pay / Google Pay при наличии',
     orderSaveCardForFuture: 'Сохранить карту для следующих заказов',
@@ -3660,6 +3692,12 @@ export const translations: Record<Language, Translations> = {
     orderPlacedSubtitle: 'Мы получили ваш заказ и скоро начнём его готовить.',
     orderTrackHint: 'Статус заказа',
     orderOpenTracking: 'Открыть отслеживание',
+    orderCopyTrackingLink: 'Скопировать ссылку отслеживания',
+    orderCopyTrackingDone: 'Ссылка скопирована.',
+    orderConfirmationOrderNumber: 'Номер заказа',
+    orderConfirmationSummaryTitle: 'Состав заказа',
+    orderConfirmationEtaLabel: 'Ориентировочное время',
+    orderConfirmationEtaFallback: 'Скоро начнем готовить',
     orderCheckout: 'Оформить',
     orderStepFulfillment: 'Формат заказа',
     orderStepAddress: 'Адрес',
@@ -3700,7 +3738,7 @@ export const translations: Record<Language, Translations> = {
     orderSendSmsCode: 'Отправить код',
     orderSmsCode: 'Код из SMS',
     orderVerifySms: 'Подтвердить и войти',
-    orderSmsSentHint: 'Мы отправили код на ваш телефон. Введите его ниже.',
+    orderSmsSentHint: 'Код отправлен на {phone}. Введите его ниже.',
     orderSmsResend: 'Отправить код снова',
     orderSmsResendWait: 'Повтор через {seconds}с',
     orderSmsCodeExpiredHint: 'Код истек или неверный. Запросите новый SMS-код.',
@@ -3739,6 +3777,8 @@ export const translations: Record<Language, Translations> = {
     orderOrderNotes: 'Комментарий к заказу',
     orderPaymentCodHint: 'Оплата наличными при получении',
     orderPaymentCashHint: 'Оплата наличными на кассе',
+    orderPaymentCashUnifiedHintTakeaway: 'Оплатите наличными при получении в Ming’s',
+    orderPaymentCashUnifiedHintDelivery: 'Оплатите наличными курьеру при доставке',
     orderPaymentEpointHint: 'Безопасная онлайн-оплата картой',
     orderPaymentExtras: 'Промокод, чаевые и комментарий',
     orderPaymentExtrasShow: 'Показать дополнительные опции',

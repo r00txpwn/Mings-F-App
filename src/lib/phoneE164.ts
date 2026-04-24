@@ -35,3 +35,19 @@ export function isLikelyE164(phone: string): boolean {
 export function formatPhoneDisplayE164(raw: string | null | undefined): string {
   return normalizePhoneE164((raw ?? '').trim());
 }
+
+/** Masked OTP helper, e.g. +994 50 ••• ••36 */
+export function maskPhoneForOtp(raw: string | null | undefined): string {
+  const normalized = normalizePhoneE164(raw ?? '');
+  if (!normalized) return '';
+  const digits = normalized.replace(/\D/g, '');
+  if (digits.length < 6) return normalized;
+
+  const country = normalized.startsWith('+994') ? '+994' : `+${digits.slice(0, Math.min(3, digits.length - 4))}`;
+  const local = normalized.startsWith('+994') ? digits.slice(3) : digits.slice(country.length - 1);
+
+  if (local.length < 6) return normalized;
+  const prefix = local.slice(0, 2);
+  const suffix = local.slice(-2);
+  return `${country} ${prefix} ••• ••${suffix}`;
+}

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Clock, Loader2, LogOut, Mail, MapPin, Phone, Plus, UserCircle2 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
-import type { CustomerAddressRow, CustomerProfileRow } from '../types/online';
+import type { CustomerAddressRow, CustomerProfileRow, OnlineFulfillmentType } from '../types/online';
 import type { Sale } from '../lib/supabase';
-import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
+import { isLikelyE164, maskPhoneForOtp, normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
 import { supabase } from '../lib/supabase';
 
@@ -31,6 +31,7 @@ interface OrderAccountPanelProps {
   ordersLoading: boolean;
   onReloadOrders: () => void;
   onReorder: (order: Sale) => void;
+  fulfillment: OnlineFulfillmentType;
   loyaltyEnabled?: boolean;
   loyaltyRewardEveryOrders?: number;
   /** When set, address form uses map + Places (same as checkout). */
@@ -71,6 +72,8 @@ interface OrderAccountPanelProps {
     orderSmsCode: string;
     orderVerifySms: string;
     orderSmsSentHint: string;
+    orderSmsResend: string;
+    orderSmsResendWait: string;
     orderChangePhone: string;
     orderInvalidPhone: string;
     orderAccountPhone: string;
@@ -113,6 +116,7 @@ export function OrderAccountPanel({
   ordersLoading,
   onReloadOrders,
   onReorder,
+  fulfillment,
   loyaltyEnabled = false,
   loyaltyRewardEveryOrders = 10,
   googleMapsApiKey,
@@ -141,6 +145,8 @@ export function OrderAccountPanel({
   const [savingAddr, setSavingAddr] = useState(false);
   const [phoneSmsBlurred, setPhoneSmsBlurred] = useState(false);
   const [phoneProfileBlurred, setPhoneProfileBlurred] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(30);
+  const [showAnonAuthForm, setShowAnonAuthForm] = useState(false);
 
   const smsPhoneNorm = normalizePhoneE164(phoneInput.trim());
   const smsPhoneInvalid = phoneInput.trim().length > 0 && !isLikelyE164(smsPhoneNorm);
@@ -166,14 +172,24 @@ export function OrderAccountPanel({
     if (!user) {
       setOtpStep('phone');
       setOtp('');
+      setResendSeconds(30);
     }
   }, [user]);
 
   useEffect(() => {
     if (otpStep === 'phone') {
       setPhoneSmsBlurred(false);
+      setResendSeconds(30);
     }
   }, [otpStep]);
+
+  useEffect(() => {
+    if (otpStep !== 'otp' || resendSeconds <= 0) return;
+    const id = window.setInterval(() => {
+      setResendSeconds((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [otpStep, resendSeconds]);
 
   useEffect(() => {
     const detectRecoveryMode = () => {
@@ -218,6 +234,7 @@ export function OrderAccountPanel({
     setAuthBusy(false);
     setOtpStep('otp');
     setOtp('');
+    setResendSeconds(30);
   };
 
   const handleVerifySms = async () => {
@@ -332,6 +349,23 @@ export function OrderAccountPanel({
           </h2>
           <p className="mt-1.5 text-sm text-ming-ash">{t.orderCreateAccountHint}</p>
 
+          {!showAnonAuthForm ? (
+            <div className="mt-5 space-y-3">
+              <p className="text-sm text-ming-ash">
+                {t.orderCreateAccountHint}
+              </p>
+              <button
+                type="button"
+                className="ming-btn-primary w-full justify-center"
+                onClick={() => setShowAnonAuthForm(true)}
+              >
+                {t.orderSignIn}
+              </button>
+            </div>
+          ) : null}
+
+          {showAnonAuthForm ? (
+            <>
           <div className="ming-segmented mt-5 w-full">
             <button
               type="button"
@@ -468,7 +502,9 @@ export function OrderAccountPanel({
               </>
             ) : (
               <>
-                <p className="text-sm text-ming-ash">{t.orderSmsSentHint}</p>
+                <p className="text-sm text-ming-ash">
+                  {t.orderSmsSentHint.replace('{phone}', maskPhoneForOtp(phoneInput))}
+                </p>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -488,7 +524,17 @@ export function OrderAccountPanel({
                 </button>
                 <button
                   type="button"
-                  className="ming-btn-link w-full justify-center"
+                  className="inline-flex w-full justify-center rounded-lg px-2 py-1.5 text-xs font-semibold text-ming-ash transition-colors hover:text-ming-bone disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={authBusy || resendSeconds > 0}
+                  onClick={() => void handleSendSms()}
+                >
+                  {resendSeconds > 0
+                    ? t.orderSmsResendWait.replace('{seconds}', String(resendSeconds))
+                    : t.orderSmsResend}
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex w-full justify-center rounded-lg px-2 py-1.5 text-xs font-medium text-ming-ash transition-colors hover:text-ming-bone"
                   onClick={() => {
                     setOtpStep('phone');
                     setOtp('');
@@ -500,6 +546,8 @@ export function OrderAccountPanel({
               </>
             )}
           </div>
+            </>
+          ) : null}
         </div>
       </div>
     );
@@ -583,8 +631,9 @@ export function OrderAccountPanel({
             </div>
           </section>
 
-          {/* Addresses */}
-          <section className="ming-card p-5">
+          {/* Addresses (delivery-only surface) */}
+          {fulfillment === 'delivery' ? (
+            <section className="ming-card p-5">
             <p className="ming-eyebrow mb-3 flex items-center gap-2">
               <MapPin className="h-3 w-3" />
               {t.orderSavedAddresses}
@@ -673,7 +722,8 @@ export function OrderAccountPanel({
                 )}
               </button>
             </div>
-          </section>
+            </section>
+          ) : null}
 
           {/* Orders */}
           <section className="ming-card p-5">

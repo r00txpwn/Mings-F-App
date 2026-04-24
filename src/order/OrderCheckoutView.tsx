@@ -11,7 +11,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { CustomerAddressRow, DeliveryZoneRow, OnlineFulfillmentType, OnlinePaymentMethod } from '../types/online';
-import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
+import { isLikelyE164, maskPhoneForOtp, normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
 
 function toLocalDayKey(date: Date): string {
@@ -154,8 +154,6 @@ export interface CheckoutLabels {
   paymentCashHint: string;
   paymentEpointHint: string;
   paymentExtras: string;
-  paymentExtrasShow: string;
-  paymentExtrasHide: string;
   promoPlaceholder: string;
   reviewHint: string;
   reviewFulfillment: string;
@@ -173,8 +171,13 @@ export interface CheckoutLabels {
   contactVerify: string;
   contactChangePhone: string;
   contactAuthErrorFallback: string;
+  smsSentHint: string;
+  smsResend: string;
+  smsResendWait: string;
   /** Shown under phone when blurred and format is invalid (same meaning as account invalid-phone hint). */
   phoneFormatHint: string;
+  /** Inline helper shown next to terms consent when missing. */
+  consentRequired: string;
 }
 
 export function OrderCheckoutView({
@@ -242,6 +245,7 @@ export function OrderCheckoutView({
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState('');
   const [checkoutPhoneBlurred, setCheckoutPhoneBlurred] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(30);
 
   const checkoutPhoneInvalid =
     checkoutPhoneBlurred &&
@@ -337,8 +341,17 @@ export function OrderCheckoutView({
   useEffect(() => {
     if (authStep === 'phone') {
       setCheckoutPhoneBlurred(false);
+      setResendSeconds(30);
     }
   }, [authStep]);
+
+  useEffect(() => {
+    if (authStep !== 'otp' || resendSeconds <= 0) return;
+    const id = window.setInterval(() => {
+      setResendSeconds((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [authStep, resendSeconds]);
 
   const StepHeading = ({ n, title, optional }: { n: number; title: string; optional?: boolean }) => (
     <div className="mb-3 flex items-center gap-3">
@@ -386,7 +399,7 @@ export function OrderCheckoutView({
   );
 
   const paymentOption = (value: OnlinePaymentMethod, title: string, sub: string, Icon: typeof CreditCard) => {
-    const selected = paymentMethod === value;
+    const selected = value === 'cod' ? paymentMethod === 'cod' || paymentMethod === 'cash' : paymentMethod === value;
     return (
       <button
         key={value}
@@ -727,12 +740,16 @@ export function OrderCheckoutView({
                       }
                       setAuthStep('otp');
                       setOtpCode('');
+                      setResendSeconds(30);
                     }}
                   >
                     {authBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : labels.contactSendCode}
                   </button>
                 ) : (
                   <div className="space-y-2">
+                    <p className="text-xs text-ming-ash">
+                      {labels.smsSentHint.replace('{phone}', maskPhoneForOtp(customerPhone))}
+                    </p>
                     <p className="text-xs text-ming-ash">{labels.contactVerifyHint}</p>
                     <input
                       className="ming-input ming-mono text-center tracking-[0.45em]"
@@ -764,7 +781,28 @@ export function OrderCheckoutView({
                     </button>
                     <button
                       type="button"
-                      className="ming-btn-link w-full justify-center"
+                      className="inline-flex w-full justify-center rounded-lg px-2 py-1.5 text-xs font-semibold text-ming-ash transition-colors hover:text-ming-bone disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={authBusy || resendSeconds > 0}
+                      onClick={async () => {
+                        setAuthError('');
+                        setAuthBusy(true);
+                        const res = await sendPhoneOtp(customerPhone.trim());
+                        setAuthBusy(false);
+                        if (res.error) {
+                          const msg = String((res.error as { message?: string }).message ?? res.error);
+                          setAuthError(msg || labels.contactAuthErrorFallback);
+                          return;
+                        }
+                        setResendSeconds(30);
+                      }}
+                    >
+                      {resendSeconds > 0
+                        ? labels.smsResendWait.replace('{seconds}', String(resendSeconds))
+                        : labels.smsResend}
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex w-full justify-center rounded-lg px-2 py-1.5 text-xs font-medium text-ming-ash transition-colors hover:text-ming-bone"
                       onClick={() => {
                         setAuthStep('phone');
                         setOtpCode('');
@@ -787,7 +825,6 @@ export function OrderCheckoutView({
             <StepHeading n={paymentStep} title={labels.stepPayment} />
             <div className="space-y-2">
               {paymentOption('cod', labels.payCod, labels.paymentCodHint, Wallet)}
-              {paymentOption('cash', labels.payCash, labels.paymentCashHint, Wallet)}
               {paymentOption('epoint', labels.payEpoint, labels.paymentEpointHint, CreditCard)}
               {paymentMethod === 'epoint' ? (
                 <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-ming-ash">
@@ -854,13 +891,6 @@ export function OrderCheckoutView({
                   </div>
                 </div>
               </ExpandableCheckoutOption>
-              <button
-                type="button"
-                onClick={() => setShowPaymentExtras((v) => !v)}
-                className="ming-btn-link px-0 py-0 text-sm"
-              >
-                {showPaymentExtras ? labels.paymentExtrasHide : labels.paymentExtrasShow}
-              </button>
             </div>
           </section>
 
@@ -904,9 +934,7 @@ export function OrderCheckoutView({
                 <dd className="font-semibold text-ming-bone">
                   {paymentMethod === 'epoint'
                     ? labels.payEpoint
-                    : paymentMethod === 'cash'
-                      ? labels.payCash
-                      : labels.payCod}
+                    : labels.payCod}
                 </dd>
               </div>
             </dl>
@@ -933,6 +961,9 @@ export function OrderCheckoutView({
                 .
               </span>
             </label>
+            {!consentAccepted ? (
+              <p className="mt-2 text-xs text-ming-gold">{labels.consentRequired}</p>
+            ) : null}
             {submitError ? (
               <div className="mt-3 rounded-xl border border-ming-red/40 bg-ming-red/10 px-4 py-3 text-sm text-ming-red">
                 <p>{submitError}</p>
@@ -952,19 +983,34 @@ export function OrderCheckoutView({
                 </ul>
               </div>
             ) : null}
-            <button
-              type="button"
-              onClick={onSubmit}
-              disabled={!canSubmit || submitting}
-              className="ming-btn-primary mt-4 w-full py-4 lg:hidden"
-            >
-              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : `${labels.placeOrder} · ${grandTotal.toFixed(2)} ₼`}
-            </button>
-            {submitBlockers.length > 0 ? (
-              <div className="mt-2 rounded-lg border border-ming-gold/35 bg-ming-gold/10 px-3 py-2 text-xs text-ming-gold lg:hidden">
-                {submitBlockers[0]}
-              </div>
-            ) : null}
+            {(() => {
+              const disabledReason = !consentAccepted ? labels.consentRequired : submitBlockers[0] ?? null;
+              return (
+                <>
+                  <button
+                    type="button"
+                    onClick={onSubmit}
+                    disabled={!canSubmit || submitting}
+                    aria-describedby={disabledReason ? 'order-place-disabled-reason-mobile' : undefined}
+                    className="ming-btn-primary mt-4 w-full py-4 lg:hidden"
+                  >
+                    {submitting ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      `${labels.placeOrder} · ${grandTotal.toFixed(2)} ₼`
+                    )}
+                  </button>
+                  {disabledReason ? (
+                    <div
+                      id="order-place-disabled-reason-mobile"
+                      className="mt-2 rounded-lg border border-ming-gold/35 bg-ming-gold/10 px-3 py-2 text-xs text-ming-gold lg:hidden"
+                    >
+                      {disabledReason}
+                    </div>
+                  ) : null}
+                </>
+              );
+            })()}
             {!userLoggedIn ? (
               <p className="mt-3 rounded-xl border border-ming-gold/40 bg-ming-gold/10 px-4 py-3 text-sm text-ming-gold">
                 {labels.authRequired}
@@ -997,29 +1043,40 @@ export function OrderCheckoutView({
                 </dd>
               </div>
             </dl>
-            <button
-              type="button"
-              onClick={onSubmit}
-              disabled={!canSubmit || submitting}
-              className="ming-btn-primary mt-5 hidden w-full py-4 lg:flex"
-            >
-              {submitting ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
+            {(() => {
+              const disabledReason = !consentAccepted ? labels.consentRequired : submitBlockers[0] ?? null;
+              return (
                 <>
-                  {labels.placeOrder} · {grandTotal.toFixed(2)} ₼
+                  <button
+                    type="button"
+                    onClick={onSubmit}
+                    disabled={!canSubmit || submitting}
+                    aria-describedby={disabledReason ? 'order-place-disabled-reason-desktop' : undefined}
+                    className="ming-btn-primary mt-5 hidden w-full py-4 lg:flex"
+                  >
+                    {submitting ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <>
+                        {labels.placeOrder} · {grandTotal.toFixed(2)} ₼
+                      </>
+                    )}
+                  </button>
+                  {disabledReason ? (
+                    <div
+                      id="order-place-disabled-reason-desktop"
+                      className="mt-2 rounded-lg border border-ming-gold/35 bg-ming-gold/10 px-3 py-2 text-xs text-ming-gold"
+                    >
+                      {disabledReason}
+                    </div>
+                  ) : null}
                 </>
-              )}
-            </button>
+              );
+            })()}
             {submitError ? (
               <p className="mt-2 rounded-lg border border-ming-red/35 bg-ming-red/10 px-3 py-2 text-xs text-ming-red">
                 {submitError}
               </p>
-            ) : null}
-            {submitBlockers.length > 0 ? (
-              <div className="mt-2 rounded-lg border border-ming-gold/35 bg-ming-gold/10 px-3 py-2 text-xs text-ming-gold">
-                {submitBlockers[0]}
-              </div>
             ) : null}
           </div>
         </aside>
