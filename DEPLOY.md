@@ -154,7 +154,7 @@ Set at least: `APP_BASE_URL` (your live site URL). Add E-point / Wolt secrets wh
 
 ### Epoint (card payments on `/order`)
 
-1. Run migrations (`npm run supabase:push`) so `online_payments` and `saved_cards` exist with Epoint columns.
+1. Run migrations (`npm run supabase:push`) so `online_payments` and `saved_cards` exist with Epoint columns. New hosts also get **`payment_reconciliation_log`** (empty until a future reconciler writes rows; EPoint webhook behavior unchanged).
 2. Edge Function secrets:
    - **`EPOINT_PUBLIC_KEY`**, **`EPOINT_PRIVATE_KEY`** — from epoint.az (sandbox first).
    - **`APP_BASE_URL`** — canonical **online order** site origin (must match where customers return after pay; used for Epoint success/error return URLs).

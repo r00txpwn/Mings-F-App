@@ -28,6 +28,7 @@ Use this checklist when validating releases (especially after changes to orderin
 ## Database / policies
 
 - Run new migrations on staging before prod: `delivery_orders.wolt_booking_locked_until`, tightened anon kiosk `UPDATE` on `sales` for `cancellation_reason`.
+- **Payment reconciliation log** (`payment_reconciliation_log`): table exists for future reconcilers; until those jobs ship and write rows, regression focus stays on **EPoint webhook** + **`online_payments` / `sales`** behavior (unchanged by the empty log).
 
 ## Related docs
 
