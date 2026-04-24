@@ -59,7 +59,6 @@ function ProductCard({
   product,
   addLabel,
   customizeLabel,
-  chooseOptionsLabel,
   halalLabel,
   favoriteAddLabel,
   favoriteRemoveLabel,
@@ -70,7 +69,6 @@ function ProductCard({
   product: Product;
   addLabel: string;
   customizeLabel: string;
-  chooseOptionsLabel: string;
   halalLabel: string;
   favoriteAddLabel: string;
   favoriteRemoveLabel: string;
@@ -81,7 +79,7 @@ function ProductCard({
   const hasMods = (product.modifier_groups?.length ?? 0) > 0;
   return (
     <article
-      className="ming-product group cursor-pointer"
+      className={`ming-product group cursor-pointer ${hasMods ? 'border-ming-gold/35 bg-ming-gold/[0.03]' : ''}`}
       onClick={onAdd}
       role="button"
       tabIndex={0}
@@ -128,16 +126,15 @@ function ProductCard({
               valueClassName="ming-price"
               symbolClassName="text-sm font-semibold text-ming-red"
             />
-            {hasMods ? (
-              <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ming-mute">
-                {chooseOptionsLabel}
-              </span>
-            ) : null}
           </div>
           <button
             type="button"
             aria-label={addLabel}
-            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-ming-red px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-ming transition-all hover:bg-ming-red-700 hover:shadow-ming-glow active:scale-95"
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider shadow-ming transition-all active:scale-95 ${
+              hasMods
+                ? 'bg-ming-gold text-ming-ink hover:bg-ming-gold/90'
+                : 'bg-ming-red text-white hover:bg-ming-red-700 hover:shadow-ming-glow'
+            }`}
             onClick={(e) => {
               e.stopPropagation();
               onAdd();
@@ -272,7 +269,6 @@ export function OrderMenuBrowseView({
               product={p}
               addLabel={labels.orderAddToCart}
               customizeLabel={labels.orderCustomizeItem}
-              chooseOptionsLabel={labels.orderChooseOptions}
               halalLabel={labels.halalBadge}
               favoriteAddLabel={labels.favoriteAdd}
               favoriteRemoveLabel={labels.favoriteRemove}
@@ -310,7 +306,6 @@ export function OrderMenuBrowseView({
                       product={p}
                       addLabel={labels.orderAddToCart}
                       customizeLabel={labels.orderCustomizeItem}
-                      chooseOptionsLabel={labels.orderChooseOptions}
                       halalLabel={labels.halalBadge}
                       favoriteAddLabel={labels.favoriteAdd}
                       favoriteRemoveLabel={labels.favoriteRemove}
@@ -344,7 +339,6 @@ export function OrderMenuBrowseView({
                 product={p}
                 addLabel={labels.orderAddToCart}
                 customizeLabel={labels.orderCustomizeItem}
-                chooseOptionsLabel={labels.orderChooseOptions}
                 halalLabel={labels.halalBadge}
                 favoriteAddLabel={labels.favoriteAdd}
                 favoriteRemoveLabel={labels.favoriteRemove}
