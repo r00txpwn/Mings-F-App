@@ -23,7 +23,7 @@ Do not remove, rename, repoint, or silently change behavior of existing routes u
 
 ```ts
 // ✅ Keep legacy path behavior while adding new behavior
-if (path === '/order-manager') return renderStaffApp();
+if (path === '/order-manager') return renderOrderManagerApp();
 if (path === '/order') return renderOrderApp();
 ```
 

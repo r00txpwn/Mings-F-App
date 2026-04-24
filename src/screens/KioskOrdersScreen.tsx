@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Monitor, RefreshCw, ExternalLink, Search } from 'lucide-react';
+import { ClipboardList, Monitor, RefreshCw, ExternalLink, Search } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
@@ -137,6 +137,16 @@ export function KioskOrdersScreen() {
             >
               <ExternalLink className="h-4 w-4" />
               {t.viewKiosk}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                window.location.assign(`${window.location.origin}/order-manager`);
+              }}
+              className="cockpit-btn-ghost rounded-xl border border-slate-200 dark:border-white/10"
+            >
+              <ClipboardList className="h-4 w-4" />
+              {t.omTitle}
             </button>
             <button
               type="button"

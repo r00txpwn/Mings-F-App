@@ -1,10 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
-import { parseStaffRole, type StaffRole } from '../lib/staffRole';
-
-export type { StaffRole };
 
 interface AuthContextType {
   user: User | null;
@@ -12,8 +9,11 @@ interface AuthContextType {
   loading: boolean;
   /** True when a row exists in `public.users` (staff/admin). False for customer-only auth.users. */
   isStaff: boolean;
-  /** From `public.users.role` when `isStaff`; otherwise `null`. */
-  staffRole: StaffRole | null;
+  /**
+   * True when this user may call the `user-management` Edge Function (same rules as the function:
+   * JWT `app_metadata.role === 'admin'`, else `public.users.role === 'admin'`).
+   */
+  isAdminUser: boolean;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   /** SMS OTP via Supabase Auth (Twilio configured in project dashboard). */
@@ -31,18 +31,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function fetchStaffState(userId: string): Promise<{ isStaff: boolean; staffRole: StaffRole | null }> {
+async function fetchStaffRow(userId: string): Promise<{ isStaff: boolean; role: string | null }> {
   const { data, error } = await supabase.from('users').select('id, role').eq('id', userId).maybeSingle();
   if (error) {
     if (import.meta.env.DEV) {
-      console.warn('[auth] fetchStaffState failed:', error.message);
+      console.warn('[auth] fetchStaffRow failed:', error.message);
     }
-    return { isStaff: false, staffRole: null };
+    return { isStaff: false, role: null };
   }
-  if (!data) {
-    return { isStaff: false, staffRole: null };
+  if (!data) return { isStaff: false, role: null };
+  const roleRaw = (data as { role?: string | null }).role;
+  const role = typeof roleRaw === 'string' && roleRaw.length > 0 ? roleRaw : 'staff';
+  return { isStaff: true, role };
+}
+
+/** Mirrors `supabase/functions/user-management` admin gate (JWT claim first, then DB role). */
+function isAdminForUserManagement(user: User | null, dbRole: string | null): boolean {
+  if (!user) return false;
+  const claimed = user.app_metadata?.role;
+  if (claimed === 'admin') return true;
+  if (claimed === undefined || claimed === null || claimed === '') {
+    return dbRole === 'admin';
   }
-  return { isStaff: true, staffRole: parseStaffRole(data.role) };
+  return false;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -50,38 +61,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isStaff, setIsStaff] = useState(false);
-  const [staffRole, setStaffRole] = useState<StaffRole | null>(null);
+  const [staffDbRole, setStaffDbRole] = useState<string | null>(null);
+
+  const isAdminUser = useMemo(() => isAdminForUserManagement(user, staffDbRole), [user, staffDbRole]);
 
   useEffect(() => {
     let cancelled = false;
-    /** Suppresses stale `fetchStaffState` results when `getSession` and `onAuthStateChange` overlap. */
-    let latestApplyId = 0;
 
     const applySession = async (nextSession: Session | null) => {
-      const applyId = ++latestApplyId;
       setSession(nextSession);
       const nextUser = nextSession?.user ?? null;
       setUser(nextUser);
-
-      if (!nextUser) {
-        if (!cancelled && applyId === latestApplyId) {
-          setIsStaff(false);
-          setStaffRole(null);
+      if (nextUser) {
+        const row = await fetchStaffRow(nextUser.id);
+        if (!cancelled) {
+          setIsStaff(row.isStaff);
+          setStaffDbRole(row.isStaff ? row.role : null);
         }
-        if (!cancelled && applyId === latestApplyId) {
-          setLoading(false);
-        }
-        return;
+      } else if (!cancelled) {
+        setIsStaff(false);
+        setStaffDbRole(null);
       }
-
-      const { isStaff: staff, staffRole: role } = await fetchStaffState(nextUser.id);
-      if (cancelled || applyId !== latestApplyId) {
-        return;
-      }
-
-      setIsStaff(staff);
-      setStaffRole(staff ? role : null);
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {
@@ -191,12 +192,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const uid = s?.user?.id;
     if (!uid) {
       setIsStaff(false);
-      setStaffRole(null);
+      setStaffDbRole(null);
       return;
     }
-    const { isStaff: staff, staffRole: role } = await fetchStaffState(uid);
-    setIsStaff(staff);
-    setStaffRole(staff ? role : null);
+    const row = await fetchStaffRow(uid);
+    setIsStaff(row.isStaff);
+    setStaffDbRole(row.isStaff ? row.role : null);
   }, []);
 
   return (
@@ -206,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         loading,
         isStaff,
-        staffRole,
+        isAdminUser,
         signIn,
         signUp,
         sendPhoneOtp,

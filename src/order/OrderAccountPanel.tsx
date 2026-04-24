@@ -3,6 +3,7 @@ import { Clock, Loader2, LogOut, Mail, MapPin, Phone, Plus, UserCircle2 } from '
 import type { User } from '@supabase/supabase-js';
 import type { CustomerAddressRow, CustomerProfileRow } from '../types/online';
 import type { Sale } from '../lib/supabase';
+import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
 import { supabase } from '../lib/supabase';
 
@@ -35,6 +36,7 @@ interface OrderAccountPanelProps {
   /** When set, address form uses map + Places (same as checkout). */
   googleMapsApiKey?: string;
   t: {
+    orderNavAccount: string;
     orderSignIn: string;
     orderSignUp: string;
     orderSignOut: string;
@@ -69,12 +71,6 @@ interface OrderAccountPanelProps {
     orderSmsCode: string;
     orderVerifySms: string;
     orderSmsSentHint: string;
-    orderSmsResend: string;
-    orderSmsResendWait: string;
-    orderSmsCodeExpiredHint: string;
-    orderSmsEnterCodeHint: string;
-    orderSmsSendFailedHint: string;
-    orderSmsCodeSentConfirmation: string;
     orderChangePhone: string;
     orderInvalidPhone: string;
     orderAccountPhone: string;
@@ -84,13 +80,6 @@ interface OrderAccountPanelProps {
     orderMapUnavailable: string;
     orderDeliveryAddress: string;
     orderReorder: string;
-    orderMapNoResults: string;
-    orderMapSearchFailed: string;
-    orderMapSelectFailed: string;
-    orderMapLoadFailed: string;
-    orderProfileSection: string;
-    orderAddressDefaultBadge: string;
-    orderAddressHomeLabel: string;
   };
 }
 
@@ -138,7 +127,6 @@ export function OrderAccountPanel({
   const [authErr, setAuthErr] = useState('');
   const [authNotice, setAuthNotice] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
-  const [otpResendAfter, setOtpResendAfter] = useState(0);
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -151,11 +139,23 @@ export function OrderAccountPanel({
   const [addrLng, setAddrLng] = useState<number | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingAddr, setSavingAddr] = useState(false);
+  const [phoneSmsBlurred, setPhoneSmsBlurred] = useState(false);
+  const [phoneProfileBlurred, setPhoneProfileBlurred] = useState(false);
+
+  const smsPhoneNorm = normalizePhoneE164(phoneInput.trim());
+  const smsPhoneInvalid = phoneInput.trim().length > 0 && !isLikelyE164(smsPhoneNorm);
+  const smsShowInvalidHint = phoneSmsBlurred && smsPhoneInvalid && !authErr;
+  const smsInputError = phoneSmsBlurred && smsPhoneInvalid;
+
+  const profilePhoneNorm = normalizePhoneE164(phoneEdit.trim());
+  const profilePhoneInvalid = phoneEdit.trim().length > 0 && !isLikelyE164(profilePhoneNorm);
+  const profileShowInvalidHint = phoneProfileBlurred && profilePhoneInvalid;
+  const profileInputError = phoneProfileBlurred && profilePhoneInvalid;
 
   useEffect(() => {
     if (profile) {
       setNameEdit(profile.full_name ?? '');
-      setPhoneEdit(profile.phone ?? '');
+      setPhoneEdit(profile.phone ? normalizePhoneE164(profile.phone) : '');
     } else {
       setNameEdit('');
       setPhoneEdit('');
@@ -166,66 +166,14 @@ export function OrderAccountPanel({
     if (!user) {
       setOtpStep('phone');
       setOtp('');
-      setOtpResendAfter(0);
-      setAuthErr('');
     }
   }, [user]);
 
   useEffect(() => {
-    if (otpResendAfter <= 0) return;
-    const id = window.setInterval(() => {
-      setOtpResendAfter((prev) => Math.max(0, prev - 1));
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [otpResendAfter]);
-
-  useEffect(() => {
-    if (authNotice !== t.orderSmsCodeSentConfirmation) return;
-    const noticeTimer = window.setTimeout(() => {
-      setAuthNotice('');
-    }, 2000);
-    return () => window.clearTimeout(noticeTimer);
-  }, [authNotice, t.orderSmsCodeSentConfirmation]);
-
-  /** SMS *send* (phone step) — never use OTP-expired copy; that is verify-only. */
-  const mapSendSmsError = (raw: string): string => {
-    const msg = raw.toLowerCase();
-    if (msg.includes('invalid phone')) return t.orderInvalidPhone;
-    if (msg.includes('before requesting another code')) {
-      return t.orderSmsResendWait.replace('{seconds}', String(Math.max(1, otpResendAfter || 1)));
+    if (otpStep === 'phone') {
+      setPhoneSmsBlurred(false);
     }
-    if (msg.includes('error sending') && (msg.includes('sms') || msg.includes('otp'))) {
-      return t.orderSmsSendFailedHint;
-    }
-    return raw.trim() ? raw : t.orderSmsSendFailedHint;
-  };
-
-  /** SMS *verify* (code step) — wrong / expired OTP messaging. */
-  const mapVerifySmsError = (raw: string): string => {
-    const msg = raw.toLowerCase();
-    if (msg.includes('invalid phone')) return t.orderInvalidPhone;
-    if (msg.includes('before requesting another code')) {
-      return t.orderSmsResendWait.replace('{seconds}', String(Math.max(1, otpResendAfter || 1)));
-    }
-    if (msg.includes('enter the code from sms')) {
-      return t.orderSmsEnterCodeHint;
-    }
-    if (msg.includes('error sending') && (msg.includes('sms') || msg.includes('otp'))) {
-      return t.orderSmsSendFailedHint;
-    }
-    const looksLikeWrongOrExpiredOtp =
-      msg.includes('expired') ||
-      msg.includes('otp_expired') ||
-      msg.includes('invalid otp') ||
-      msg.includes('invalid token') ||
-      (msg.includes('token') && msg.includes('expired')) ||
-      (msg.includes('code') &&
-        (msg.includes('invalid') || msg.includes('wrong') || msg.includes('incorrect')));
-    if (looksLikeWrongOrExpiredOtp) {
-      return t.orderSmsCodeExpiredHint;
-    }
-    return raw;
-  };
+  }, [otpStep]);
 
   useEffect(() => {
     const detectRecoveryMode = () => {
@@ -256,39 +204,28 @@ export function OrderAccountPanel({
     if (!res.error) void onReloadOrders();
   };
 
-  const handleSendSms = async (resend = false) => {
+  const handleSendSms = async () => {
     setAuthErr('');
     setAuthNotice('');
     setAuthBusy(true);
-    const res = await sendPhoneOtp(phoneInput);
+    const res = await sendPhoneOtp(normalizePhoneE164(phoneInput.trim()));
     if (res.error) {
       const msg = String((res.error as { message?: string }).message ?? res.error);
-      const retryMatch = /wait\s+(\d+)s/i.exec(msg);
-      if (retryMatch) {
-        setOtpResendAfter(Number(retryMatch[1]));
-      }
-      setAuthErr(mapSendSmsError(msg));
+      setAuthErr(msg.includes('Invalid phone') ? t.orderInvalidPhone : msg);
       setAuthBusy(false);
       return;
     }
     setAuthBusy(false);
     setOtpStep('otp');
     setOtp('');
-    setOtpResendAfter(45);
-    if (resend) {
-      setAuthNotice(t.orderSmsCodeSentConfirmation);
-    }
   };
 
   const handleVerifySms = async () => {
     setAuthErr('');
     setAuthNotice('');
     setAuthBusy(true);
-    const res = await verifyPhoneOtp(phoneInput, otp);
-    if (res.error) {
-      const msg = String((res.error as { message?: string }).message ?? res.error);
-      setAuthErr(mapVerifySmsError(msg));
-    }
+    const res = await verifyPhoneOtp(normalizePhoneE164(phoneInput.trim()), otp);
+    if (res.error) setAuthErr(String((res.error as { message?: string }).message ?? res.error));
     setAuthBusy(false);
     if (!res.error) void onReloadOrders();
   };
@@ -340,7 +277,7 @@ export function OrderAccountPanel({
 
   if (recoveryMode) {
     return (
-      <div className="mx-auto w-full max-w-md px-4 py-6 pb-28 sm:px-6">
+      <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6">
         <div className="ming-card-raised relative overflow-hidden p-6">
           <p className="ming-eyebrow mb-2">Ming&apos;s · Security</p>
           <h2 className="ming-display text-[26px] leading-tight text-ming-bone">{t.orderResetPasswordTitle}</h2>
@@ -385,13 +322,13 @@ export function OrderAccountPanel({
 
   if (!user) {
     return (
-      <div className="mx-auto w-full max-w-md px-4 py-6 pb-28 sm:px-6">
+      <div className="mx-auto w-full max-w-md px-4 py-6 sm:px-6">
         <div className="ming-card-raised relative overflow-hidden p-6">
           <div aria-hidden className="pointer-events-none absolute -right-8 -top-12 h-28 w-28 rounded-full bg-ming-red/20 blur-3xl" />
 
-          <p className="ming-eyebrow mb-2">Ming&apos;s · Sign in</p>
+          <p className="ming-eyebrow mb-2">Ming&apos;s · {t.orderNavAccount}</p>
           <h2 className="ming-display text-[26px] leading-tight text-ming-bone">
-            Welcome back
+            {t.orderNavAccount}
           </h2>
           <p className="mt-1.5 text-sm text-ming-ash">{t.orderCreateAccountHint}</p>
 
@@ -509,12 +446,17 @@ export function OrderAccountPanel({
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
-                  className="ming-input"
+                  className={`ming-input-focus-neutral${smsInputError ? ' ming-input-error' : ''}`}
                   placeholder="+994 50 123 45 67"
                   value={phoneInput}
                   onChange={(e) => setPhoneInput(e.target.value)}
+                  onFocus={() => setPhoneSmsBlurred(false)}
+                  onBlur={() => setPhoneSmsBlurred(true)}
+                  aria-invalid={smsInputError}
                 />
-                <p className="text-[12px] text-ming-mute">{t.orderInvalidPhone}</p>
+                {smsShowInvalidHint ? (
+                  <p className="text-[12px] text-ming-gold">{t.orderInvalidPhone}</p>
+                ) : null}
                 <button
                   type="button"
                   disabled={authBusy || !phoneInput.trim()}
@@ -523,22 +465,6 @@ export function OrderAccountPanel({
                 >
                   {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t.orderSendSmsCode}
                 </button>
-                {authErr || otpResendAfter > 0 ? (
-                  <button
-                    type="button"
-                    className="ming-btn-ghost w-full justify-center"
-                    disabled={authBusy || otpResendAfter > 0 || !phoneInput.trim()}
-                    onClick={() => void handleSendSms(true)}
-                  >
-                    {authBusy ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : otpResendAfter > 0 ? (
-                      t.orderSmsResendWait.replace('{seconds}', String(otpResendAfter))
-                    ) : (
-                      t.orderSmsResend
-                    )}
-                  </button>
-                ) : null}
               </>
             ) : (
               <>
@@ -559,20 +485,6 @@ export function OrderAccountPanel({
                   className="ming-btn-primary w-full"
                 >
                   {authBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : t.orderVerifySms}
-                </button>
-                <button
-                  type="button"
-                  className="ming-btn-ghost w-full justify-center"
-                  disabled={authBusy || otpResendAfter > 0 || !phoneInput.trim()}
-                  onClick={() => void handleSendSms(true)}
-                >
-                  {authBusy ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : otpResendAfter > 0 ? (
-                    t.orderSmsResendWait.replace('{seconds}', String(otpResendAfter))
-                  ) : (
-                    t.orderSmsResend
-                  )}
                 </button>
                 <button
                   type="button"
@@ -624,7 +536,7 @@ export function OrderAccountPanel({
         <div className="space-y-6">
           {/* Profile */}
           <section className="ming-card p-5">
-            <p className="ming-eyebrow mb-3">{t.orderProfileSection}</p>
+            <p className="ming-eyebrow mb-3">Profile</p>
             <div className="space-y-3">
               <div>
                 <label className="ming-label mb-1.5 block">{t.orderYourName}</label>
@@ -638,18 +550,30 @@ export function OrderAccountPanel({
               <div>
                 <label className="ming-label mb-1.5 block">{t.orderAccountPhone}</label>
                 <input
-                  className="ming-input"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  className={`ming-input-focus-neutral${profileInputError ? ' ming-input-error' : ''}`}
                   value={phoneEdit}
                   onChange={(e) => setPhoneEdit(e.target.value)}
+                  onFocus={() => setPhoneProfileBlurred(false)}
+                  onBlur={() => setPhoneProfileBlurred(true)}
                   placeholder={t.orderYourPhone}
+                  aria-invalid={profileInputError}
                 />
+                {profileShowInvalidHint ? (
+                  <p className="text-[12px] text-ming-gold">{t.orderInvalidPhone}</p>
+                ) : null}
               </div>
               <button
                 type="button"
                 disabled={savingProfile}
                 onClick={async () => {
                   setSavingProfile(true);
-                  await onSaveProfile({ full_name: nameEdit.trim() || null, phone: phoneEdit.trim() || null });
+                  await onSaveProfile({
+                    full_name: nameEdit.trim() || null,
+                    phone: phoneEdit.trim() === '' ? null : normalizePhoneE164(phoneEdit),
+                  });
                   setSavingProfile(false);
                 }}
                 className="ming-btn-ghost"
@@ -679,7 +603,7 @@ export function OrderAccountPanel({
                     </div>
                     {a.is_default ? (
                       <span className="shrink-0 rounded-full bg-ming-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ming-gold">
-                        {t.orderAddressDefaultBadge}
+                        Default
                       </span>
                     ) : null}
                   </li>
@@ -707,10 +631,6 @@ export function OrderAccountPanel({
                   }}
                   onAddressChange={(v) => setAddrLine(v)}
                   searchPlaceholder={t.orderMapSearchPlaceholder}
-                  noResultsLabel={t.orderMapNoResults}
-                  searchFailedLabel={t.orderMapSearchFailed}
-                  selectFailedLabel={t.orderMapSelectFailed}
-                  mapsLoadFailedLabel={t.orderMapLoadFailed}
                   pinHint={t.orderMapPinHint}
                   loadingLabel={t.orderMapLoading}
                   unavailableLabel={t.orderMapUnavailable}
@@ -730,7 +650,7 @@ export function OrderAccountPanel({
                 onClick={async () => {
                   setSavingAddr(true);
                   await onSaveAddress({
-                    label: addrLabel.trim() || t.orderAddressHomeLabel,
+                    label: addrLabel.trim() || 'Home',
                     line1: addrLine.trim(),
                     lat: addrLat,
                     lng: addrLng,

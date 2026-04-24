@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Home,
   ShoppingCart,
@@ -42,7 +42,6 @@ import { DeliveryScreen } from './screens/DeliveryScreen';
 import { CombosScreen } from './screens/CombosScreen';
 import { AdminOrderSupportScreen } from './screens/AdminOrderSupportScreen';
 import { MingsWordmark } from './components/MingsWordmark';
-import { normalizePathname } from './lib/adminPath';
 
 type Screen =
   | 'home'
@@ -63,7 +62,6 @@ type Screen =
 
 const SCREEN_QUERY_KEY = 'screen';
 const DEFAULT_SCREEN: Screen = 'home';
-const ORDER_MANAGER_PATH = '/order-manager';
 const ALL_SCREENS: Screen[] = [
   'home',
   'sales',
@@ -86,22 +84,11 @@ function isScreen(value: string | null): value is Screen {
   return Boolean(value) && ALL_SCREENS.includes(value as Screen);
 }
 
-type CockpitNavItem = { id: Screen; icon: ReactNode; label: string };
-
-function screenNavItem(
-  id: Screen,
-  icon: ReactNode,
-  label: string
-): CockpitNavItem {
-  return { id, icon, label };
-}
-
 function readScreenFromUrl(): Screen {
   const params = new URLSearchParams(window.location.search);
   const raw = params.get(SCREEN_QUERY_KEY);
   if (isScreen(raw)) return raw;
-  const p = normalizePathname(window.location.pathname);
-  return p === ORDER_MANAGER_PATH || p === '/order-management' ? 'kiosk-orders' : DEFAULT_SCREEN;
+  return DEFAULT_SCREEN;
 }
 
 function writeScreenToUrl(screen: Screen) {
@@ -114,7 +101,7 @@ function writeScreenToUrl(screen: Screen) {
 function AppContent() {
   const { t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  const { user, loading, signOut, isStaff } = useAuth();
+  const { user, loading, signOut, isStaff, isAdminUser } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>(() => readScreenFromUrl());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isDark = theme === 'dark';
@@ -133,6 +120,14 @@ function AppContent() {
       writeScreenToUrl(currentScreen);
     }
   }, [currentScreen]);
+
+  /** Users screen calls admin-only `user-management`; keep URL in sync with access doc. */
+  useEffect(() => {
+    if (currentScreen === 'users' && !isAdminUser) {
+      setCurrentScreen('home');
+      writeScreenToUrl('home');
+    }
+  }, [currentScreen, isAdminUser]);
 
   if (loading) {
     return (
@@ -192,7 +187,7 @@ function AppContent() {
       case 'payouts':
         return <PayoutsScreen />;
       case 'users':
-        return <UsersScreen />;
+        return isAdminUser ? <UsersScreen /> : <HomeScreen />;
       case 'settings':
         return <SettingsScreen />;
       default:
@@ -205,25 +200,24 @@ function AppContent() {
     setIsMobileMenuOpen(false);
   };
 
-  const fullNavItems: CockpitNavItem[] = [
-    screenNavItem('home', <Home className="h-5 w-5 shrink-0" />, t.home),
-    screenNavItem('sales', <ShoppingCart className="h-5 w-5 shrink-0" />, t.sales),
-    screenNavItem('kiosk-orders', <Monitor className="h-5 w-5 shrink-0" />, t.kioskOrders),
-    screenNavItem('order-support', <ClipboardList className="h-5 w-5 shrink-0" />, t.orderSupport),
-    screenNavItem('delivery', <Truck className="h-5 w-5 shrink-0" />, t.deliveryScreenTitle),
-    screenNavItem('menu-builder', <UtensilsCrossed className="h-5 w-5 shrink-0" />, t.menuBuilder),
-    screenNavItem('combos', <Flame className="h-5 w-5 shrink-0" />, t.combosScreenTitle),
-    screenNavItem('products', <Package className="h-5 w-5 shrink-0" />, t.products),
-    screenNavItem('suppliers', <Truck className="h-5 w-5 shrink-0" />, t.suppliers),
-    screenNavItem('expenses', <DollarSign className="h-5 w-5 shrink-0" />, t.expenses),
-    screenNavItem('payouts', <Banknote className="h-5 w-5 shrink-0" />, t.payouts),
-    screenNavItem('money', <Wallet className="h-5 w-5 shrink-0" />, t.money),
-    screenNavItem('reports', <BarChart3 className="h-5 w-5 shrink-0" />, t.reports),
-    screenNavItem('users', <Users className="h-5 w-5 shrink-0" />, t.users),
-    screenNavItem('settings', <Settings className="h-5 w-5 shrink-0" />, t.more),
+  const allNavItems: { id: Screen; icon: React.ReactNode; label: string }[] = [
+    { id: 'home', icon: <Home className="h-5 w-5 shrink-0" />, label: t.home },
+    { id: 'sales', icon: <ShoppingCart className="h-5 w-5 shrink-0" />, label: t.sales },
+    { id: 'kiosk-orders', icon: <Monitor className="h-5 w-5 shrink-0" />, label: t.kioskOrders },
+    { id: 'order-support', icon: <ClipboardList className="h-5 w-5 shrink-0" />, label: t.orderSupport },
+    { id: 'delivery', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.deliveryScreenTitle },
+    { id: 'menu-builder', icon: <UtensilsCrossed className="h-5 w-5 shrink-0" />, label: t.menuBuilder },
+    { id: 'combos', icon: <Flame className="h-5 w-5 shrink-0" />, label: t.combosScreenTitle },
+    { id: 'products', icon: <Package className="h-5 w-5 shrink-0" />, label: t.products },
+    { id: 'suppliers', icon: <Truck className="h-5 w-5 shrink-0" />, label: t.suppliers },
+    { id: 'expenses', icon: <DollarSign className="h-5 w-5 shrink-0" />, label: t.expenses },
+    { id: 'payouts', icon: <Banknote className="h-5 w-5 shrink-0" />, label: t.payouts },
+    { id: 'money', icon: <Wallet className="h-5 w-5 shrink-0" />, label: t.money },
+    { id: 'reports', icon: <BarChart3 className="h-5 w-5 shrink-0" />, label: t.reports },
+    { id: 'users', icon: <Users className="h-5 w-5 shrink-0" />, label: t.users },
+    { id: 'settings', icon: <Settings className="h-5 w-5 shrink-0" />, label: t.more },
   ];
-
-  const navItems: CockpitNavItem[] = fullNavItems;
+  const navItems = allNavItems.filter((item) => item.id !== 'users' || isAdminUser);
 
   return (
     <div

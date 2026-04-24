@@ -3,10 +3,10 @@ import type { Language } from '../translations';
 import type { OnlineFulfillmentType } from '../types/online';
 import { OrderFulfillmentPicker } from './OrderFulfillmentPicker';
 
-const LANGUAGES: { code: Language; label: string }[] = [
-  { code: 'en', label: 'EN' },
-  { code: 'az', label: 'AZ' },
-  { code: 'ru', label: 'RU' },
+const LANGUAGES: { code: Language; srLabel: string; flag: string }[] = [
+  { code: 'en', srLabel: 'English', flag: '🇬🇧' },
+  { code: 'az', srLabel: 'Azerbaijani', flag: '🇦🇿' },
+  { code: 'ru', srLabel: 'Russian', flag: '🇷🇺' },
 ];
 
 interface OrderOnlineTopBarProps {
@@ -85,14 +85,15 @@ export function OrderOnlineTopBar({
                   key={lang.code}
                   type="button"
                   onClick={() => onLanguageChange(lang.code)}
+                  aria-label={lang.srLabel}
                   aria-pressed={active}
-                  className={`rounded-lg px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors sm:px-2.5 ${
+                  className={`rounded-lg px-2 py-1.5 text-base leading-none transition-colors sm:px-2.5 ${
                     active
                       ? 'bg-ming-red/25 text-ming-bone ring-1 ring-ming-red/60'
                       : 'text-ming-ash hover:bg-white/[0.08] hover:text-ming-bone'
                   }`}
                 >
-                  {lang.label}
+                  <span aria-hidden>{lang.flag}</span>
                 </button>
               );
             })}

@@ -17,10 +17,18 @@ export interface OrderMenuBrowseLabels {
   orderVenueAddress: string;
   orderVenuePhone: string;
   orderAddToCart: string;
+  orderCustomizeItem: string;
+  orderChooseOptions: string;
   orderSearchNoResults: string;
+  orderCategoryEmpty: string;
   halalBadge: string;
   favoriteAdd: string;
   favoriteRemove: string;
+  menuLabel: string;
+  categoriesLabel: string;
+  clearSearch: string;
+  itemCountSingle: string;
+  itemCountPlural: string;
 }
 
 interface OrderMenuBrowseViewProps {
@@ -49,6 +57,8 @@ interface OrderMenuBrowseViewProps {
 function ProductCard({
   product,
   addLabel,
+  customizeLabel,
+  chooseOptionsLabel,
   halalLabel,
   favoriteAddLabel,
   favoriteRemoveLabel,
@@ -58,6 +68,8 @@ function ProductCard({
 }: {
   product: Product;
   addLabel: string;
+  customizeLabel: string;
+  chooseOptionsLabel: string;
   halalLabel: string;
   favoriteAddLabel: string;
   favoriteRemoveLabel: string;
@@ -117,7 +129,7 @@ function ProductCard({
             </div>
             {hasMods ? (
               <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ming-mute">
-                +options
+                {chooseOptionsLabel}
               </span>
             ) : null}
           </div>
@@ -131,7 +143,7 @@ function ProductCard({
             }}
           >
             <Plus className="h-3.5 w-3.5" />
-            {addLabel}
+            {hasMods ? customizeLabel : addLabel}
           </button>
           {onToggleFavorite ? (
             <button
@@ -258,6 +270,8 @@ export function OrderMenuBrowseView({
               key={p.id}
               product={p}
               addLabel={labels.orderAddToCart}
+              customizeLabel={labels.orderCustomizeItem}
+              chooseOptionsLabel={labels.orderChooseOptions}
               halalLabel={labels.halalBadge}
               favoriteAddLabel={labels.favoriteAdd}
               favoriteRemoveLabel={labels.favoriteRemove}
@@ -285,7 +299,7 @@ export function OrderMenuBrowseView({
                 <div className="mb-4 flex items-end justify-between gap-3">
                   <h2 className="ming-section-title">{cat.name}</h2>
                   <span className="hidden text-[11px] font-bold uppercase tracking-[0.14em] text-ming-mute sm:block">
-                    {list.length} {list.length === 1 ? 'dish' : 'dishes'}
+                    {list.length} {list.length === 1 ? labels.itemCountSingle : labels.itemCountPlural}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
@@ -294,6 +308,8 @@ export function OrderMenuBrowseView({
                       key={p.id}
                       product={p}
                       addLabel={labels.orderAddToCart}
+                      customizeLabel={labels.orderCustomizeItem}
+                      chooseOptionsLabel={labels.orderChooseOptions}
                       halalLabel={labels.halalBadge}
                       favoriteAddLabel={labels.favoriteAdd}
                       favoriteRemoveLabel={labels.favoriteRemove}
@@ -317,7 +333,7 @@ export function OrderMenuBrowseView({
         <h2 className="ming-section-title mb-4">{title}</h2>
         {list.length === 0 ? (
           <p className="rounded-2xl border border-white/[0.06] bg-ming-charcoal p-8 text-center text-sm text-ming-ash">
-            {labels.orderSearchNoResults}
+            {labels.orderCategoryEmpty}
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
@@ -326,6 +342,8 @@ export function OrderMenuBrowseView({
                 key={p.id}
                 product={p}
                 addLabel={labels.orderAddToCart}
+                customizeLabel={labels.orderCustomizeItem}
+                chooseOptionsLabel={labels.orderChooseOptions}
                 halalLabel={labels.halalBadge}
                 favoriteAddLabel={labels.favoriteAdd}
                 favoriteRemoveLabel={labels.favoriteRemove}
@@ -348,7 +366,7 @@ export function OrderMenuBrowseView({
           <div
             ref={chipsRef}
             className="no-scrollbar flex snap-x gap-2 overflow-x-auto px-4 py-3 sm:px-5"
-            aria-label="Categories"
+            aria-label={labels.categoriesLabel}
             role="tablist"
           >
             {chip(ALL, labels.allCategories)}
@@ -364,8 +382,8 @@ export function OrderMenuBrowseView({
       {/* Desktop left rail */}
       <aside className="hidden shrink-0 pt-6 lg:block lg:w-60 lg:pt-8">
         <div className="sticky top-20 space-y-2">
-          <p className="ming-eyebrow mb-3 px-2">Menu</p>
-          <nav aria-label="Categories" className="flex flex-col gap-1">
+          <p className="ming-eyebrow mb-3 px-2">{labels.menuLabel}</p>
+          <nav aria-label={labels.categoriesLabel} className="flex flex-col gap-1">
             <button
               type="button"
               onClick={() => handlePickCategory(ALL)}
@@ -417,7 +435,7 @@ export function OrderMenuBrowseView({
                 type="button"
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-ming-ash hover:text-ming-bone"
-                aria-label="Clear"
+                aria-label={labels.clearSearch}
               >
                 <X className="h-4 w-4" />
               </button>

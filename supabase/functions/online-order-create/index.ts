@@ -1,13 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsPreflightResponse, jsonResponse } from '../_shared/cors.ts';
 import { pointInGeoJsonPolygon } from '../_shared/geo.ts';
-import { roundMoney } from '../_shared/money.ts';
-import {
-  acceptingKitchen,
-  getKitchenStatus,
-  isKitchenPaused,
-  type KitchenSettings,
-} from '../_shared/kitchenAcceptance.ts';
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
@@ -48,13 +41,8 @@ interface Body {
   tableLabel?: string;
 }
 
-function errorResponse(
-  code: string,
-  error: string,
-  status = 400,
-  extras?: Record<string, unknown>,
-): Response {
-  return jsonResponse({ code, error, ...extras }, status);
+function errorResponse(code: string, error: string, status = 400): Response {
+  return jsonResponse({ code, error }, status);
 }
 
 function normalizePhoneE164(input: string): string {
@@ -181,7 +169,6 @@ async function handleRequest(req: Request): Promise<Response> {
     return errorResponse('PHONE_INVALID', 'Valid phone number required (E.164, e.g. +994...)', 400);
   }
 
-  await supabase.rpc('expire_online_kitchen_pause_if_due');
   const { data: settings } = await supabase.from('online_settings').select('*').limit(1).maybeSingle();
   if (!settings) {
     return errorResponse('ONLINE_NOT_CONFIGURED', 'Online ordering not configured', 503);
@@ -203,7 +190,6 @@ async function handleRequest(req: Request): Promise<Response> {
     }
   }
 
-  const ks = settings as KitchenSettings;
   let scheduledAtIso: string | null = null;
   if (isScheduled) {
     if (!scheduledFor?.trim()) {
@@ -218,28 +204,6 @@ async function handleRequest(req: Request): Promise<Response> {
       return errorResponse('SCHEDULE_TIME_TOO_SOON', 'Scheduled time does not meet lead time', 400);
     }
     scheduledAtIso = parsed.toISOString();
-
-    if (!acceptingKitchen(ks, parsed, 'scheduled')) {
-      if (isKitchenPaused(ks, parsed)) {
-        return errorResponse('SCHEDULE_WHILE_PAUSED', 'That time is still within a kitchen pause', 400);
-      }
-      const st = getKitchenStatus(ks, parsed, { orderMode: 'scheduled' });
-      return errorResponse('SCHEDULE_OUTSIDE_HOURS', 'Scheduled time is outside kitchen hours', 400, {
-        nextOpenAt: st.nextOpenAt,
-      });
-    }
-  } else {
-    const st = getKitchenStatus(ks, new Date(), { orderMode: 'immediate' });
-    if (st.status === 'PAUSED') {
-      return errorResponse('KITCHEN_PAUSED', 'Kitchen is temporarily paused', 400, {
-        retryAt: settings.offline_until ?? undefined,
-      });
-    }
-    if (st.status === 'CLOSED') {
-      return errorResponse('KITCHEN_CLOSED', 'Kitchen is closed for online orders', 400, {
-        nextOpenAt: st.nextOpenAt,
-      });
-    }
   }
 
   const source = fulfillmentType === 'delivery' ? 'online_delivery' : 'online_takeaway';
@@ -337,21 +301,16 @@ async function handleRequest(req: Request): Promise<Response> {
   const resolvedLines: Array<ResolvedProductLine | ResolvedComboLine> = [];
 
   for (const line of cart) {
-    const qtyRaw = Number(line.quantity);
-    if (!Number.isFinite(qtyRaw) || !Number.isInteger(qtyRaw) || qtyRaw < 1) {
-      return errorResponse('INVALID_QUANTITY', 'Invalid item quantity', 400);
-    }
-    const qty = qtyRaw;
+    const qty = Math.max(1, Math.floor(Number(line.quantity) || 0));
 
     if (line.isCombo && line.comboId) {
       const { data: deal, error: dealErr } = await supabase
         .from('combo_deals')
-        .select('id, name, base_price, is_active, is_deleted')
+        .select('id, name, base_price, is_active')
         .eq('id', line.comboId)
         .maybeSingle();
 
-      const d = deal as { is_active?: boolean; is_deleted?: boolean } | null;
-      if (dealErr || !d || !d.is_active || d.is_deleted === true) {
+      if (dealErr || !deal || !(deal as { is_active?: boolean }).is_active) {
         return jsonResponse({ error: 'Invalid combo deal' }, 400);
       }
 
@@ -443,7 +402,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
       const base = Number((deal as { base_price: number }).base_price);
       const comboName = String((deal as { name: string }).name);
-      subtotal += roundMoney(base * qty);
+      subtotal += base * qty;
 
       resolvedLines.push({
         kind: 'combo',
@@ -529,8 +488,8 @@ async function handleRequest(req: Request): Promise<Response> {
       });
     }
 
-    const unitPrice = roundMoney(base + modAdjust);
-    subtotal += roundMoney(unitPrice * qty);
+    const unitPrice = base + modAdjust;
+    subtotal += unitPrice * qty;
 
     const modSummary = modifierRows.map((m) => m.optionName).join(', ');
     const noteParts = [line.notes, modSummary].filter(Boolean).join(' | ');
@@ -574,12 +533,11 @@ async function handleRequest(req: Request): Promise<Response> {
     } else {
       discount = Number(promo.discount_value ?? 0);
     }
-    discount = roundMoney(Math.max(0, Math.min(discount, subtotal)));
+    discount = Math.max(0, Math.min(discount, subtotal));
     promoCodeApplied = normalizedCode;
   }
 
-  subtotal = roundMoney(subtotal);
-  const totalWithAdjustments = roundMoney(subtotal + deliveryFee - discount + tip);
+  const totalWithAdjustments = subtotal + deliveryFee - discount + tip;
   // Combos remain bundled pricing lines and should stay outside discount arithmetic by default.
   const minOrder = Number(settings.min_order_amount ?? 0);
   if (totalWithAdjustments < minOrder) {
@@ -598,9 +556,12 @@ async function handleRequest(req: Request): Promise<Response> {
     }
   }
 
-  const isCardPayment = paymentMethod === 'epoint';
-  const paymentStatus = isCardPayment ? 'pending' : 'unpaid';
-  const initialOrderStatus = isCardPayment ? 'awaiting_payment' : 'pending';
+  let paymentStatus: string;
+  if (paymentMethod === 'epoint') {
+    paymentStatus = 'pending';
+  } else {
+    paymentStatus = 'unpaid';
+  }
 
   const itemCount = resolvedLines.reduce((s, l) => s + l.quantity, 0);
 
@@ -610,45 +571,74 @@ async function handleRequest(req: Request): Promise<Response> {
       ? deliveryNotes.trim()
       : '';
 
-  const { data: saleRow, error: saleErr } = await supabase
-    .from('sales')
-    .insert({
-      source,
-      order_status: initialOrderStatus,
-      payment_status: paymentStatus,
-      sales_channel_id: channel.id,
-      total_price: totalWithAdjustments,
-      discount_amount: discount,
-      tip_amount: tip,
-      promo_code: promoCodeApplied,
-      quantity: itemCount,
-      unit_price: itemCount > 0 ? totalWithAdjustments / itemCount : totalWithAdjustments,
-      daily_order_number: dailyNumber,
-      display_number: displayNumber,
-      track_token: trackToken,
-      is_scheduled: Boolean(isScheduled && scheduledAtIso),
-      scheduled_for: scheduledAtIso,
-      sale_date: new Date().toISOString(),
-      notes: [tableNote, orderNotes?.trim(), courierNote ? `Courier: ${courierNote}` : '']
-        .filter(Boolean)
-        .join(' | '),
-      delivery_notes: courierNote || null,
-      online_payment_method: paymentMethod,
-      customer_name: customerName?.trim() || null,
-      customer_phone: normalizedPhone,
-      delivery_address: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,
-      delivery_apartment:
-        fulfillmentType === 'delivery' ? deliveryApartment?.trim() || null : null,
-      delivery_floor: fulfillmentType === 'delivery' ? deliveryFloor?.trim() || null : null,
-      delivery_lat: fulfillmentType === 'delivery' ? deliveryLat ?? null : null,
-      delivery_lng: fulfillmentType === 'delivery' ? deliveryLng ?? null : null,
-      delivery_fee: deliveryFee,
-      delivery_zone_id: zoneId,
-      customer_user_id: customerUserId,
-      payment_init_token: paymentInitToken,
-    })
-    .select('id')
-    .single();
+  const saleInsertBase: Record<string, unknown> = {
+    source,
+    order_status: 'pending',
+    payment_status: paymentStatus,
+    sales_channel_id: channel.id,
+    total_price: totalWithAdjustments,
+    quantity: itemCount,
+    unit_price: itemCount > 0 ? totalWithAdjustments / itemCount : totalWithAdjustments,
+    daily_order_number: dailyNumber,
+    display_number: displayNumber,
+    track_token: trackToken,
+    is_scheduled: Boolean(isScheduled && scheduledAtIso),
+    scheduled_for: scheduledAtIso,
+    sale_date: new Date().toISOString(),
+    notes: [tableNote, orderNotes?.trim(), courierNote ? `Courier: ${courierNote}` : '']
+      .filter(Boolean)
+      .join(' | '),
+    delivery_notes: courierNote || null,
+    online_payment_method: paymentMethod,
+    customer_name: customerName?.trim() || null,
+    customer_phone: normalizedPhone,
+    delivery_address: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,
+    delivery_apartment:
+      fulfillmentType === 'delivery' ? deliveryApartment?.trim() || null : null,
+    delivery_floor: fulfillmentType === 'delivery' ? deliveryFloor?.trim() || null : null,
+    delivery_lat: fulfillmentType === 'delivery' ? deliveryLat ?? null : null,
+    delivery_lng: fulfillmentType === 'delivery' ? deliveryLng ?? null : null,
+    delivery_fee: deliveryFee,
+    delivery_zone_id: zoneId,
+    customer_user_id: customerUserId,
+    payment_init_token: paymentInitToken,
+  };
+
+  const saleInsertWithDiscount: Record<string, unknown> = {
+    ...saleInsertBase,
+    discount_amount: discount,
+    tip_amount: tip,
+    promo_code: promoCodeApplied,
+  };
+
+  // Backward-compatible insert for environments where some sales columns
+  // are not yet present or schema cache is stale.
+  let insertPayload: Record<string, unknown> = { ...saleInsertWithDiscount };
+  let saleRow: { id: string } | null = null;
+  let saleErr: { message?: string } | null = null;
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const { data, error } = await supabase
+      .from('sales')
+      .insert(insertPayload)
+      .select('id')
+      .single();
+
+    if (!error && data) {
+      saleRow = data as { id: string };
+      saleErr = null;
+      break;
+    }
+
+    saleErr = error as { message?: string } | null;
+    const msg = error?.message ?? '';
+    const missingColMatch = /Could not find the '([^']+)' column of 'sales'/.exec(msg);
+    if (!missingColMatch) break;
+
+    const missingCol = missingColMatch[1];
+    if (!(missingCol in insertPayload)) break;
+    delete insertPayload[missingCol];
+  }
 
   if (saleErr || !saleRow) {
     return jsonResponse({ error: saleErr?.message ?? 'Failed to create sale' }, 500);
@@ -760,9 +750,6 @@ async function handleRequest(req: Request): Promise<Response> {
     );
   }
 
-  const closingSoon =
-    !isScheduled && getKitchenStatus(ks, new Date(), { orderMode: 'immediate' }).status === 'CLOSING_SOON';
-
   return jsonResponse({
     saleId,
     trackToken,
@@ -772,6 +759,5 @@ async function handleRequest(req: Request): Promise<Response> {
     paymentMethod,
     paymentInitToken,
     nextStep: paymentMethod === 'epoint' ? 'epoint-create-payment' : 'track',
-    closingSoon,
   });
 }

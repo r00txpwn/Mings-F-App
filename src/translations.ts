@@ -629,12 +629,22 @@ export interface Translations {
   orderSaveCardForFuture: string;
   orderSavedCardsAvailable: string;
   orderPlacedTitle: string;
+  orderPlacedSubtitle: string;
   orderTrackHint: string;
   orderOpenTracking: string;
   orderCheckout: string;
+  orderStepFulfillment: string;
+  orderStepAddress: string;
+  orderStepTiming: string;
+  orderStepContact: string;
+  orderStepPayment: string;
+  orderStepReview: string;
   orderFulfillmentTakeawayDisabled: string;
+  orderFulfillmentTakeawayHint: string;
+  orderFulfillmentDeliveryHint: string;
   orderOnlineDisabled: string;
   orderViewCart: string;
+  orderSummaryTitle: string;
   orderAddressLabel: string;
   orderAddressStreet: string;
   orderLanguage: string;
@@ -644,6 +654,8 @@ export interface Translations {
   orderYourCart: string;
   /** Shown in cart/checkout when sign-in is required before order placement. */
   orderAuthRequired: string;
+  /** Shown in cart before checkout to indicate auth happens in checkout. */
+  orderAuthInlineHint: string;
   orderAuthEmail: string;
   orderAuthSms: string;
   orderAuthGoogle: string;
@@ -695,8 +707,27 @@ export interface Translations {
   orderScheduleTime: string;
   orderScheduleNoSlots: string;
   orderPromoCode: string;
+  orderPromoPlaceholder: string;
   orderTip: string;
   orderOrderNotes: string;
+  orderPaymentCodHint: string;
+  orderPaymentCashHint: string;
+  orderPaymentEpointHint: string;
+  orderPaymentExtras: string;
+  orderPaymentExtrasShow: string;
+  orderPaymentExtrasHide: string;
+  orderReviewHint: string;
+  orderReviewFulfillment: string;
+  orderReviewTiming: string;
+  orderReviewContact: string;
+  orderReviewPayment: string;
+  orderReviewAddress: string;
+  orderReviewAsap: string;
+  orderReviewMissing: string;
+  orderContactSignedIn: string;
+  orderContactGuestHint: string;
+  orderContactVerifyHint: string;
+  orderAuthErrorFallback: string;
   orderConsentLabel: string;
   orderTerms: string;
   orderPrivacy: string;
@@ -715,6 +746,10 @@ export interface Translations {
   orderFavoriteAdd: string;
   orderFavoriteRemove: string;
   orderSearchNoResults: string;
+  orderCategoryEmpty: string;
+  orderChooseOptions: string;
+  orderDishSingle: string;
+  orderDishPlural: string;
   orderDeliveryDisabledInSettings: string;
   orderCombosSection: string;
   orderComboCustomize: string;
@@ -1602,12 +1637,22 @@ export const translations: Record<Language, Translations> = {
     orderSaveCardForFuture: 'Save card for future orders',
     orderSavedCardsAvailable: '{count} saved cards available in your account.',
     orderPlacedTitle: 'Order placed',
+    orderPlacedSubtitle: "We've received your order and will start preparing it shortly.",
     orderTrackHint: 'Track status',
     orderOpenTracking: 'Open tracking',
     orderCheckout: 'Checkout',
+    orderStepFulfillment: 'Fulfillment',
+    orderStepAddress: 'Address',
+    orderStepTiming: 'Timing',
+    orderStepContact: 'Contact',
+    orderStepPayment: 'Payment',
+    orderStepReview: 'Review',
     orderFulfillmentTakeawayDisabled: 'Takeaway disabled — delivery only.',
+    orderFulfillmentTakeawayHint: "Pick up from Ming's kitchen",
+    orderFulfillmentDeliveryHint: 'Delivered to your address',
     orderOnlineDisabled: 'Online ordering is turned off.',
     orderViewCart: 'View cart',
+    orderSummaryTitle: 'Summary',
     orderAddressLabel: 'Label',
     orderAddressStreet: 'Street, building, apt',
     orderLanguage: 'Language',
@@ -1616,6 +1661,7 @@ export const translations: Record<Language, Translations> = {
     orderLoadingMenu: 'Loading menu…',
     orderYourCart: 'Your cart',
     orderAuthRequired: 'Please sign in to continue to checkout.',
+    orderAuthInlineHint: 'Sign in at checkout before placing your order.',
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Continue with Google',
@@ -1668,8 +1714,27 @@ export const translations: Record<Language, Translations> = {
     orderScheduleTime: 'Time',
     orderScheduleNoSlots: 'No schedule slots available right now.',
     orderPromoCode: 'Promo code',
+    orderPromoPlaceholder: 'Enter promo code',
     orderTip: 'Tip',
     orderOrderNotes: 'Order notes',
+    orderPaymentCodHint: 'Pay with cash on pickup or delivery',
+    orderPaymentCashHint: 'Pay cash at the counter',
+    orderPaymentEpointHint: 'Pay securely online with card',
+    orderPaymentExtras: 'Promo, tip, and notes',
+    orderPaymentExtrasShow: 'Show optional payment details',
+    orderPaymentExtrasHide: 'Hide optional payment details',
+    orderReviewHint: 'Please review everything before placing your order.',
+    orderReviewFulfillment: 'Fulfillment',
+    orderReviewTiming: 'Timing',
+    orderReviewContact: 'Contact',
+    orderReviewPayment: 'Payment',
+    orderReviewAddress: 'Address',
+    orderReviewAsap: 'ASAP',
+    orderReviewMissing: 'Missing',
+    orderContactSignedIn: 'Signed in. Your order can be placed now.',
+    orderContactGuestHint: 'Please verify your phone to place the order.',
+    orderContactVerifyHint: 'Enter the SMS code sent to your phone.',
+    orderAuthErrorFallback: 'Could not verify right now. Please try again.',
     orderConsentLabel: 'I agree to the',
     orderTerms: 'Terms',
     orderPrivacy: 'Privacy',
@@ -1688,6 +1753,10 @@ export const translations: Record<Language, Translations> = {
     orderFavoriteAdd: 'Add to favorites',
     orderFavoriteRemove: 'Remove from favorites',
     orderSearchNoResults: 'No dishes match your search.',
+    orderCategoryEmpty: 'No dishes in this category yet.',
+    orderChooseOptions: 'Choose options',
+    orderDishSingle: 'dish',
+    orderDishPlural: 'dishes',
     orderDeliveryDisabledInSettings:
       'Delivery is turned off in your database. Set online_settings.delivery_enabled = true in Supabase (or run the latest migration), or choose pickup.',
     orderCombosSection: 'Combos',
@@ -2578,12 +2647,22 @@ export const translations: Record<Language, Translations> = {
     orderSaveCardForFuture: 'Kartı növbəti sifarişlər üçün yadda saxla',
     orderSavedCardsAvailable: 'Hesabınızda {count} saxlanmış kart var.',
     orderPlacedTitle: 'Sifariş verildi',
+    orderPlacedSubtitle: 'Sifarişinizi qəbul etdik və tezliklə hazırlamağa başlayacağıq.',
     orderTrackHint: 'Statusu izlə',
     orderOpenTracking: 'İzləməni aç',
     orderCheckout: 'Ödənişə keç',
+    orderStepFulfillment: 'Təhvil üsulu',
+    orderStepAddress: 'Ünvan',
+    orderStepTiming: 'Vaxt',
+    orderStepContact: 'Əlaqə',
+    orderStepPayment: 'Ödəniş',
+    orderStepReview: 'Yoxlama',
     orderFulfillmentTakeawayDisabled: 'Götürmə söndürülüb — yalnız çatdırılma.',
+    orderFulfillmentTakeawayHint: "Ming's mətbəxindən götür",
+    orderFulfillmentDeliveryHint: 'Ünvana çatdırılma',
     orderOnlineDisabled: 'Onlayn sifariş söndürülüb.',
     orderViewCart: 'Səbətə bax',
+    orderSummaryTitle: 'Xülasə',
     orderAddressLabel: 'Etiket',
     orderAddressStreet: 'Küçə, bina, mənzil',
     orderLanguage: 'Dil',
@@ -2592,6 +2671,7 @@ export const translations: Record<Language, Translations> = {
     orderLoadingMenu: 'Menyu yüklənir…',
     orderYourCart: 'Səbətiniz',
     orderAuthRequired: 'Checkout üçün davam etməkdən əvvəl daxil olun.',
+    orderAuthInlineHint: 'Sifarişi təsdiqləməzdən əvvəl checkout-da daxil olun.',
     orderAuthEmail: 'E-poçt',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Google ilə davam et',
@@ -2644,8 +2724,27 @@ export const translations: Record<Language, Translations> = {
     orderScheduleTime: 'Saat',
     orderScheduleNoSlots: 'Hazırda planlı slot mövcud deyil.',
     orderPromoCode: 'Promo kod',
+    orderPromoPlaceholder: 'Promo kodu daxil edin',
     orderTip: 'Bəxşiş',
     orderOrderNotes: 'Sifariş qeydi',
+    orderPaymentCodHint: 'Götürmədə və ya çatdırılmada nağd ödə',
+    orderPaymentCashHint: 'Məntəqədə nağd ödə',
+    orderPaymentEpointHint: 'Kartla təhlükəsiz onlayn ödəniş',
+    orderPaymentExtras: 'Promo, bəxşiş və qeyd',
+    orderPaymentExtrasShow: 'Əlavə seçimləri göstər',
+    orderPaymentExtrasHide: 'Əlavə seçimləri gizlət',
+    orderReviewHint: 'Sifarişi təsdiqləmədən əvvəl məlumatları yoxlayın.',
+    orderReviewFulfillment: 'Təhvil üsulu',
+    orderReviewTiming: 'Vaxt',
+    orderReviewContact: 'Əlaqə',
+    orderReviewPayment: 'Ödəniş',
+    orderReviewAddress: 'Ünvan',
+    orderReviewAsap: 'İndi',
+    orderReviewMissing: 'Daxil edilməyib',
+    orderContactSignedIn: 'Daxil olmusunuz. Sifarişi təsdiqləyə bilərsiniz.',
+    orderContactGuestHint: 'Sifariş üçün telefonunuzu təsdiqləyin.',
+    orderContactVerifyHint: 'Telefonunuza göndərilən SMS kodunu daxil edin.',
+    orderAuthErrorFallback: 'Hazırda təsdiqləmə alınmadı. Yenidən cəhd edin.',
     orderConsentLabel: 'Mən razıyam:',
     orderTerms: 'Şərtlər',
     orderPrivacy: 'Məxfilik',
@@ -2664,6 +2763,10 @@ export const translations: Record<Language, Translations> = {
     orderFavoriteAdd: 'Sevimlilərə əlavə et',
     orderFavoriteRemove: 'Sevimlilərdən sil',
     orderSearchNoResults: 'Axtarışınıza uyğun yemək yoxdur.',
+    orderCategoryEmpty: 'Bu kateqoriyada hələ yemək yoxdur.',
+    orderChooseOptions: 'Seçim et',
+    orderDishSingle: 'yemək',
+    orderDishPlural: 'yemək',
     orderDeliveryDisabledInSettings:
       'Çatdırılma verilənlər bazasında söndürülüb. Supabase-də online_settings.delivery_enabled = true edin və ya götürmə seçin.',
     orderCombosSection: 'Kombolar',
@@ -3554,12 +3657,22 @@ export const translations: Record<Language, Translations> = {
     orderSaveCardForFuture: 'Сохранить карту для следующих заказов',
     orderSavedCardsAvailable: 'В аккаунте сохранено карт: {count}.',
     orderPlacedTitle: 'Заказ оформлен',
+    orderPlacedSubtitle: 'Мы получили ваш заказ и скоро начнём его готовить.',
     orderTrackHint: 'Статус заказа',
     orderOpenTracking: 'Открыть отслеживание',
     orderCheckout: 'Оформить',
+    orderStepFulfillment: 'Формат заказа',
+    orderStepAddress: 'Адрес',
+    orderStepTiming: 'Время',
+    orderStepContact: 'Контакты',
+    orderStepPayment: 'Оплата',
+    orderStepReview: 'Проверка',
     orderFulfillmentTakeawayDisabled: 'Самовывоз отключён — только доставка.',
+    orderFulfillmentTakeawayHint: 'Заберу из кухни Ming’s',
+    orderFulfillmentDeliveryHint: 'Доставим по вашему адресу',
     orderOnlineDisabled: 'Онлайн-заказ отключён.',
     orderViewCart: 'К корзине',
+    orderSummaryTitle: 'Сводка',
     orderAddressLabel: 'Метка',
     orderAddressStreet: 'Улица, дом, кв.',
     orderLanguage: 'Язык',
@@ -3568,6 +3681,7 @@ export const translations: Record<Language, Translations> = {
     orderLoadingMenu: 'Загрузка меню…',
     orderYourCart: 'Ваша корзина',
     orderAuthRequired: 'Войдите в аккаунт, чтобы продолжить к оформлению.',
+    orderAuthInlineHint: 'Войдите на шаге checkout перед подтверждением заказа.',
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Продолжить через Google',
@@ -3620,8 +3734,27 @@ export const translations: Record<Language, Translations> = {
     orderScheduleTime: 'Время',
     orderScheduleNoSlots: 'Сейчас нет доступных слотов.',
     orderPromoCode: 'Промокод',
+    orderPromoPlaceholder: 'Введите промокод',
     orderTip: 'Чаевые',
     orderOrderNotes: 'Комментарий к заказу',
+    orderPaymentCodHint: 'Оплата наличными при получении',
+    orderPaymentCashHint: 'Оплата наличными на кассе',
+    orderPaymentEpointHint: 'Безопасная онлайн-оплата картой',
+    orderPaymentExtras: 'Промокод, чаевые и комментарий',
+    orderPaymentExtrasShow: 'Показать дополнительные опции',
+    orderPaymentExtrasHide: 'Скрыть дополнительные опции',
+    orderReviewHint: 'Проверьте детали перед подтверждением заказа.',
+    orderReviewFulfillment: 'Формат заказа',
+    orderReviewTiming: 'Время',
+    orderReviewContact: 'Контакты',
+    orderReviewPayment: 'Оплата',
+    orderReviewAddress: 'Адрес',
+    orderReviewAsap: 'Как можно скорее',
+    orderReviewMissing: 'Не указано',
+    orderContactSignedIn: 'Вы вошли в аккаунт. Заказ можно оформить.',
+    orderContactGuestHint: 'Подтвердите телефон, чтобы оформить заказ.',
+    orderContactVerifyHint: 'Введите SMS-код, отправленный на телефон.',
+    orderAuthErrorFallback: 'Не удалось подтвердить сейчас. Попробуйте снова.',
     orderConsentLabel: 'Я принимаю',
     orderTerms: 'Условия',
     orderPrivacy: 'Конфиденциальность',
@@ -3640,6 +3773,10 @@ export const translations: Record<Language, Translations> = {
     orderFavoriteAdd: 'Добавить в избранное',
     orderFavoriteRemove: 'Убрать из избранного',
     orderSearchNoResults: 'Ничего не найдено.',
+    orderCategoryEmpty: 'В этой категории пока нет блюд.',
+    orderChooseOptions: 'Выбрать опции',
+    orderDishSingle: 'блюдо',
+    orderDishPlural: 'блюда',
     orderDeliveryDisabledInSettings:
       'Доставка отключена в базе. Включите online_settings.delivery_enabled = true в Supabase или выберите самовывоз.',
     orderCombosSection: 'Комбо',

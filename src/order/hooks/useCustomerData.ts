@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { normalizePhoneE164 } from '../../lib/phoneE164';
 import { supabase } from '../../lib/supabase';
 import type { CustomerAddressRow, CustomerProfileRow } from '../../types/online';
 
@@ -31,7 +32,8 @@ export function useCustomerData(userId: string | undefined) {
       if (!profileRow) {
         const { data: authData } = await supabase.auth.getUser();
         const authUser = authData.user;
-        const phone = authUser?.phone ?? null;
+        const rawPhone = authUser?.phone ?? null;
+        const phone = rawPhone ? normalizePhoneE164(rawPhone) : null;
         const meta = (authUser?.user_metadata ?? {}) as {
           full_name?: string;
           name?: string;
@@ -56,7 +58,15 @@ export function useCustomerData(userId: string | undefined) {
         }
       }
 
-      setProfile(profileRow);
+      if (profileRow) {
+        const p = profileRow as CustomerProfileRow;
+        setProfile({
+          ...p,
+          phone: p.phone ? normalizePhoneE164(String(p.phone)) : null,
+        });
+      } else {
+        setProfile(null);
+      }
       setAddresses((a.data as CustomerAddressRow[]) ?? []);
     } finally {
       setLoading(false);
@@ -72,11 +82,20 @@ export function useCustomerData(userId: string | undefined) {
   const saveProfile = async (patch: Partial<Pick<CustomerProfileRow, 'full_name' | 'phone'>>) => {
     if (!userId) return;
     const now = new Date().toISOString();
+    const nextPhone =
+      patch.phone !== undefined
+        ? (() => {
+            const t = String(patch.phone).trim();
+            return t === '' ? null : normalizePhoneE164(t);
+          })()
+        : profile?.phone
+          ? normalizePhoneE164(profile.phone)
+          : null;
     const res = await supabase.from('customer_profiles').upsert(
       {
         id: userId,
         full_name: patch.full_name ?? profile?.full_name ?? null,
-        phone: patch.phone ?? profile?.phone ?? null,
+        phone: nextPhone,
         updated_at: now,
         created_at: profile?.created_at ?? now,
       },

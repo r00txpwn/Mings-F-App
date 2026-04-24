@@ -14,8 +14,6 @@ interface OrderConfirmationViewProps {
 export function OrderConfirmationView({ displayNumber, trackUrl, labels }: OrderConfirmationViewProps) {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center px-5 py-10">
-      <div aria-hidden className="ming-stripes absolute left-0 right-0 top-0 h-1.5" />
-
       <div className="ming-anim-up w-full max-w-md text-center">
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-ming-red shadow-ming-glow">
           <Check className="h-9 w-9 text-white" strokeWidth={3} />

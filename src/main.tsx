@@ -18,11 +18,27 @@ async function renderApp() {
   assertAdminPathDoesNotCollide();
 
   const root = createRoot(document.getElementById('root')!);
-  const hostSurface = resolveHostedSurface(window.location.hostname);
-  const isAdminEntrypoint = isAdminPath(pathNorm);
 
-  // Admin path always renders the cockpit shell.
-  if (isAdminEntrypoint) {
+  /** Mobile-first Wolt-style order ops — separate from the cockpit (`App`). */
+  if (pathNorm === '/order-manager') {
+    const { OrderManagerApp } = await import('./order-manager/OrderManagerApp');
+    root.render(
+      <StrictMode>
+        <ConfigCheck>
+          <ErrorBoundary>
+            <OrderManagerApp />
+          </ErrorBoundary>
+        </ConfigCheck>
+      </StrictMode>
+    );
+    return;
+  }
+
+  const hostSurface = resolveHostedSurface(window.location.hostname);
+  const isStaffEntrypoint = isAdminPath(pathNorm);
+
+  // Admin cockpit (`/spec-ops` or override) — always this shell, including on order.* hosts.
+  if (isStaffEntrypoint) {
     root.render(
       <StrictMode>
         <ConfigCheck>
@@ -56,17 +72,6 @@ async function renderApp() {
           <ConfigCheck>
             <ErrorBoundary>
               <TrackingApp />
-            </ErrorBoundary>
-          </ConfigCheck>
-        </StrictMode>
-      );
-    } else if (pathNorm === '/order-management' || pathNorm === '/order-manager') {
-      const { OrderManagerApp } = await import('./order-manager/OrderManagerApp');
-      root.render(
-        <StrictMode>
-          <ConfigCheck>
-            <ErrorBoundary>
-              <OrderManagerApp />
             </ErrorBoundary>
           </ConfigCheck>
         </StrictMode>
@@ -169,17 +174,6 @@ async function renderApp() {
         <ConfigCheck>
           <ErrorBoundary>
             <TrackingApp />
-          </ErrorBoundary>
-        </ConfigCheck>
-      </StrictMode>
-    );
-  } else if (pathNorm === '/order-management' || pathNorm === '/order-manager') {
-    const { OrderManagerApp } = await import('./order-manager/OrderManagerApp');
-    root.render(
-      <StrictMode>
-        <ConfigCheck>
-          <ErrorBoundary>
-            <OrderManagerApp />
           </ErrorBoundary>
         </ConfigCheck>
       </StrictMode>

@@ -34,7 +34,6 @@ export function OrderBrandHeader({ tagline, heroImageUrl, title }: OrderBrandHea
             ) : null}
           </div>
         </div>
-        <div className="ming-stripes h-1.5 w-full" aria-hidden />
       </header>
     );
   }
@@ -55,7 +54,6 @@ export function OrderBrandHeader({ tagline, heroImageUrl, title }: OrderBrandHea
           ) : null}
         </div>
       </div>
-      <div className="ming-stripes h-1.5 w-full" aria-hidden />
     </header>
   );
 }
