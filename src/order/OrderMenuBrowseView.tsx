@@ -16,6 +16,18 @@ function normalizeCategoryLabel(input: string): string {
     .join(' ');
 }
 
+function categoryIllustration(categoryLabel: string): { emoji: string; tint: string } {
+  const value = categoryLabel.toLowerCase();
+  if (value.includes('drink') || value.includes('beverage')) return { emoji: '🥤', tint: 'from-sky-500/30' };
+  if (value.includes('dessert') || value.includes('sweet')) return { emoji: '🍰', tint: 'from-pink-500/30' };
+  if (value.includes('pizza')) return { emoji: '🍕', tint: 'from-orange-500/30' };
+  if (value.includes('salad')) return { emoji: '🥗', tint: 'from-emerald-500/30' };
+  if (value.includes('soup')) return { emoji: '🍲', tint: 'from-amber-500/30' };
+  if (value.includes('rice')) return { emoji: '🍚', tint: 'from-lime-500/30' };
+  if (value.includes('noodle') || value.includes('pasta')) return { emoji: '🍜', tint: 'from-yellow-500/30' };
+  return { emoji: '🍽️', tint: 'from-ming-red/30' };
+}
+
 export interface OrderMenuBrowseLabels {
   allCategories: string;
   orderChooseFulfillmentTitle: string;
@@ -74,6 +86,7 @@ function ProductCard({
   isFavorite,
   onToggleFavorite,
   onAdd,
+  categoryLabel,
 }: {
   product: Product;
   addLabel: string;
@@ -84,8 +97,10 @@ function ProductCard({
   isFavorite: boolean;
   onToggleFavorite?: () => void;
   onAdd: () => void;
+  categoryLabel: string;
 }) {
   const hasMods = (product.modifier_groups?.length ?? 0) > 0;
+  const illustration = categoryIllustration(categoryLabel);
   return (
     <article
       className={`ming-product group cursor-pointer ${hasMods ? 'border-ming-gold/35 bg-ming-gold/[0.03]' : ''}`}
@@ -108,8 +123,13 @@ function ProductCard({
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-ming-mute">
-            <Package className="h-10 w-10" />
+          <div className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${illustration.tint} to-transparent text-ming-mute`}>
+            <div className="flex flex-col items-center gap-1.5">
+              <span className="text-2xl" aria-hidden>
+                {illustration.emoji}
+              </span>
+              <Package className="h-5 w-5 opacity-75" />
+            </div>
           </div>
         )}
       </div>
@@ -187,6 +207,11 @@ export function OrderMenuBrowseView({
   venuePhone,
   sideSlot,
 }: OrderMenuBrowseViewProps) {
+  const getCategoryLabelForProduct = (product: Product): string => {
+    const key = product.master_category_id ?? '';
+    return categoryNameById.get(key) ?? '';
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const chipsRef = useRef<HTMLDivElement | null>(null);
 
@@ -290,6 +315,7 @@ export function OrderMenuBrowseView({
               isFavorite={favoriteProductIds.includes(p.id)}
               onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
               onAdd={() => onAddProduct(p)}
+              categoryLabel={getCategoryLabelForProduct(p)}
             />
           ))}
         </div>
@@ -327,6 +353,7 @@ export function OrderMenuBrowseView({
                       isFavorite={favoriteProductIds.includes(p.id)}
                       onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
                       onAdd={() => onAddProduct(p)}
+                      categoryLabel={getCategoryLabelForProduct(p)}
                     />
                   ))}
                 </div>
@@ -360,6 +387,7 @@ export function OrderMenuBrowseView({
                 isFavorite={favoriteProductIds.includes(p.id)}
                 onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
                 onAdd={() => onAddProduct(p)}
+                categoryLabel={getCategoryLabelForProduct(p)}
               />
             ))}
           </div>
