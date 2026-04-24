@@ -165,10 +165,10 @@ function ProductCard({
             <button
               type="button"
               aria-label={isFavorite ? favoriteRemoveLabel : favoriteAddLabel}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+              className={`inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
                 isFavorite
-                  ? 'border-ming-red/60 bg-ming-red/20 text-ming-red'
-                  : 'border-white/10 bg-white/[0.04] text-ming-ash hover:text-ming-bone'
+                  ? 'border-ming-red/35 bg-ming-red/10 text-ming-red'
+                  : 'border-white/[0.08] bg-transparent text-ming-mute hover:border-white/[0.16] hover:bg-white/[0.02] hover:text-ming-ash'
               }`}
               onClick={(e) => {
                 e.stopPropagation();
