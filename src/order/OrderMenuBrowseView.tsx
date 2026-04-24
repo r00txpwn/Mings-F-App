@@ -220,6 +220,17 @@ export function OrderMenuBrowseView({
     return m;
   }, [categories]);
 
+  const visibleCategories = useMemo(() => {
+    const productCategoryIds = new Set(products.map((p) => p.master_category_id));
+    return categories.filter((c) => productCategoryIds.has(c.id));
+  }, [categories, products]);
+
+  useEffect(() => {
+    if (selectedCategoryId === ALL) return;
+    if (visibleCategories.some((c) => c.id === selectedCategoryId)) return;
+    onSelectCategory(ALL);
+  }, [selectedCategoryId, visibleCategories, onSelectCategory]);
+
   useEffect(() => {
     if (selectedCategoryId === ALL) return;
     const host = chipsRef.current;
@@ -288,7 +299,7 @@ export function OrderMenuBrowseView({
     if (selectedCategoryId === ALL) {
       return (
         <div className="space-y-10">
-          {categories.map((cat) => {
+          {visibleCategories.map((cat) => {
             const list = searchFiltered.filter((p) => p.master_category_id === cat.id);
             if (list.length === 0) return null;
             return (
@@ -369,7 +380,7 @@ export function OrderMenuBrowseView({
             role="tablist"
           >
             {chip(ALL, labels.allCategories)}
-            {categories.map((c) => chip(c.id, normalizeCategoryLabel(c.name)))}
+            {visibleCategories.map((c) => chip(c.id, normalizeCategoryLabel(c.name)))}
           </div>
           <div
             aria-hidden
@@ -394,7 +405,7 @@ export function OrderMenuBrowseView({
             >
               {labels.allCategories}
             </button>
-            {categories.map((c) => (
+            {visibleCategories.map((c) => (
               <button
                 key={c.id}
                 type="button"
