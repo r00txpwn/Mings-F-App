@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Heart, Package, Plus, Search, X } from 'lucide-react';
+import { CakeSlice, Coffee, Heart, Package, Plus, Search, Utensils, type LucideIcon, X } from 'lucide-react';
 import type { Category, Product } from '../lib/supabase';
 import type { OnlineFulfillmentType } from '../types/online';
 import { OrderVenueInfo } from './OrderVenueInfo';
@@ -16,16 +16,14 @@ function normalizeCategoryLabel(input: string): string {
     .join(' ');
 }
 
-function categoryIllustration(categoryLabel: string): { emoji: string; tint: string } {
+function categoryIllustration(categoryLabel: string): { Icon: LucideIcon; iconClassName: string } {
   const value = categoryLabel.toLowerCase();
-  if (value.includes('drink') || value.includes('beverage')) return { emoji: '🥤', tint: 'from-sky-500/30' };
-  if (value.includes('dessert') || value.includes('sweet')) return { emoji: '🍰', tint: 'from-pink-500/30' };
-  if (value.includes('pizza')) return { emoji: '🍕', tint: 'from-orange-500/30' };
-  if (value.includes('salad')) return { emoji: '🥗', tint: 'from-emerald-500/30' };
-  if (value.includes('soup')) return { emoji: '🍲', tint: 'from-amber-500/30' };
-  if (value.includes('rice')) return { emoji: '🍚', tint: 'from-lime-500/30' };
-  if (value.includes('noodle') || value.includes('pasta')) return { emoji: '🍜', tint: 'from-yellow-500/30' };
-  return { emoji: '🍽️', tint: 'from-ming-red/30' };
+  if (value.includes('drink') || value.includes('beverage')) return { Icon: Coffee, iconClassName: 'text-ming-ash' };
+  if (value.includes('dessert') || value.includes('sweet')) return { Icon: CakeSlice, iconClassName: 'text-ming-ash' };
+  if (value.includes('noodle') || value.includes('rice') || value.includes('soup')) {
+    return { Icon: Utensils, iconClassName: 'text-ming-ash' };
+  }
+  return { Icon: Package, iconClassName: 'text-ming-mute' };
 }
 
 export interface OrderMenuBrowseLabels {
@@ -101,6 +99,7 @@ function ProductCard({
 }) {
   const hasMods = (product.modifier_groups?.length ?? 0) > 0;
   const illustration = categoryIllustration(categoryLabel);
+  const FallbackIcon = illustration.Icon;
   return (
     <article
       className={`ming-product group cursor-pointer ${hasMods ? 'border-ming-gold/35 bg-ming-gold/[0.03]' : ''}`}
@@ -123,13 +122,8 @@ function ProductCard({
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
           />
         ) : (
-          <div className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${illustration.tint} to-transparent text-ming-mute`}>
-            <div className="flex flex-col items-center gap-1.5">
-              <span className="text-2xl" aria-hidden>
-                {illustration.emoji}
-              </span>
-              <Package className="h-5 w-5 opacity-75" />
-            </div>
+          <div className="flex h-full w-full items-center justify-center bg-ming-graphite/80">
+            <FallbackIcon className={`h-8 w-8 opacity-80 ${illustration.iconClassName}`} strokeWidth={1.8} />
           </div>
         )}
       </div>
