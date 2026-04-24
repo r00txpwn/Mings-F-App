@@ -1,0 +1,67 @@
+---
+name: Low-context agent brief
+description: Reduce token usage by forcing narrow scope, evidence-first reads, and concise owner-facing outputs
+alwaysApply: false
+---
+
+# Low-context Agent Brief
+
+Use this rule to reduce guesswork and token waste in Cursor sessions.
+
+## Default Behavior
+
+- Start from the user's stated surface, phase, or issue. Do not scan the whole repo first.
+- Start with files directly named by the user, active plan, or failing error, then expand only when evidence requires it.
+- If the task is about `/order`, prefer these files first:
+  - `src/order/OrderApp.tsx`
+  - `src/order/OrderCheckoutView.tsx`
+  - `src/order/OrderMenuBrowseView.tsx`
+  - `src/order/OrderCartView.tsx`
+  - `src/order/OrderAccountPanel.tsx`
+  - `src/order/OrderConfirmationView.tsx`
+  - `src/translations.ts`
+- If the task is about routes/access, read `docs/URL_ROUTING_AUDIT.md` before code.
+- If the task is about payments/orders, read `docs/OWNER_FRIDAY_NIGHT_CHECKLIST.md`, `docs/RELIABILITY_QA_PRIORITIES.md`, and the relevant Edge Function only.
+
+## Anti-guesswork Questions
+
+Ask at most one clarifying question only when one of these is unknown:
+
+- target surface (`/order`, `/order-manager`, staff cockpit, KDS, kiosk)
+- desired phase or Linear issue
+- whether to implement now or only plan
+- whether production deploy/push is allowed
+
+Otherwise, make a conservative assumption and state it in one sentence.
+
+## Output Format
+
+Keep updates short and structured:
+
+1. Current finding
+2. Files to touch
+3. Exact next action
+4. Validation command
+
+Avoid long architecture explanations unless the user asks for them.
+
+## Implementation Discipline
+
+- `docs-stay-updated.mdc` remains authoritative for documentation requirements.
+- One logical fix per commit when the user requests phased work.
+- If previous phase changes are uncommitted, stop and ask whether to commit or continue dirty.
+- Do not mix planning, implementation, docs cleanup, and deployment in one response.
+- Do not manually edit generated docs; hook-generated timestamp updates are acceptable when they appear.
+- Do not edit `docs/QA_STATUS.md` manually.
+
+## Owner-friendly Final Answer
+
+Every final answer should include:
+
+- what changed, in plain English
+- where it changed, using file paths
+- what was verified
+- what the user should click/check manually
+
+Keep technical details below owner impact.
+
