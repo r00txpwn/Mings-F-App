@@ -127,6 +127,7 @@ Agent automation cannot reliably pass multi‑tens‑of‑KB JSON into MCP from 
 supabase functions deploy online-order-create
 supabase functions deploy epoint-create-payment
 supabase functions deploy epoint-webhook
+supabase functions deploy payment-reconcile
 supabase functions deploy wolt-drive-check
 supabase functions deploy wolt-drive-create
 supabase functions deploy wolt-drive-cancel
@@ -164,6 +165,43 @@ Set at least: `APP_BASE_URL` (your live site URL). Add E-point / Wolt secrets wh
    - `https://<project-ref>.supabase.co/functions/v1/epoint-webhook`
 4. Deploy: `supabase functions deploy epoint-create-payment` and `supabase functions deploy epoint-webhook` (see [`supabase/config.toml`](supabase/config.toml): both skip JWT; webhook verifies `data` + `signature` with the private key).
 5. **`EPOINT_WEBHOOK_SECRET`** — only for legacy internal tests (JSON body + `X-Epoint-Signature` HMAC-SHA256). Production Epoint uses **SHA1 signature on `data`**; the private key must match the merchant account.
+
+### Manual payment reconcile (`payment-reconcile`)
+
+Ops-only Edge Function to **read** EPoint `/get-status` and align `online_payments` / `sales` with the shared apply helper. It does **not** create new charges or refunds — it only updates local rows to match the provider (same semantics as a late webhook).
+
+1. Set **`PAYMENT_RECONCILE_SECRET`** (strong random string) in Edge secrets.
+2. Deploy: `supabase functions deploy payment-reconcile` (see [`supabase/config.toml`](supabase/config.toml): `verify_jwt = false`; auth is **`Authorization: Bearer <PAYMENT_RECONCILE_SECRET>`**).
+3. Body: **exactly one** of `{ "sale_id": "<uuid>" }` or `{ "online_payment_id": "<uuid>" }`. For `sale_id`, the function picks `sales.online_payment_id` when it matches the latest `online_payments` row for that sale; otherwise it always uses the **latest** `online_payments` row (`created_at` desc, `id` desc) so an older attempt is never reconciled when a newer one exists.
+4. Every attributed run writes **`payment_reconciliation_log`** (including noops and provider errors).
+
+**Example `curl` (replace project ref, secret, and UUIDs):**
+
+```bash
+# Wrong secret → 401 AUTH_INVALID
+curl -sS -X POST "https://<project-ref>.supabase.co/functions/v1/payment-reconcile" \
+  -H "Authorization: Bearer wrong" \
+  -H "Content-Type: application/json" \
+  -d "{\"sale_id\":\"00000000-0000-0000-0000-000000000001\"}"
+
+# Bad id → 404 NOT_FOUND (after migrate so table exists)
+curl -sS -X POST "https://<project-ref>.supabase.co/functions/v1/payment-reconcile" \
+  -H "Authorization: Bearer $PAYMENT_RECONCILE_SECRET" \
+  -H "Content-Type: application/json" \
+  -d "{\"sale_id\":\"00000000-0000-0000-0000-000000000001\"}"
+
+# Already success (EPoint agrees) → 200 noop + log_id
+curl -sS -X POST "https://<project-ref>.supabase.co/functions/v1/payment-reconcile" \
+  -H "Authorization: Bearer $PAYMENT_RECONCILE_SECRET" \
+  -H "Content-Type: application/json" \
+  -d "{\"online_payment_id\":\"<paid-online-payment-uuid>\"}"
+
+# Pending row where EPoint reports success → 200 applied_success + log_id (local DB catch-up)
+curl -sS -X POST "https://<project-ref>.supabase.co/functions/v1/payment-reconcile" \
+  -H "Authorization: Bearer $PAYMENT_RECONCILE_SECRET" \
+  -H "Content-Type: application/json" \
+  -d "{\"sale_id\":\"<sale-uuid>\"}"
+```
 
 **Sandbox checklist (after keys are set):**
 

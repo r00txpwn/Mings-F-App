@@ -4,7 +4,8 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 export type PaymentReconciliationLogInsert = {
   sale_id: string;
   online_payment_id?: string | null;
-  provider: PaymentReconciliationProvider;
+  /** DB column is free text; use `online_payments.provider` or `epoint` / `upay` when known. */
+  provider: string;
   reconcile_trigger: string;
   candidate_reason?: string | null;
   action: string;
@@ -73,10 +74,14 @@ function str(cb: Record<string, unknown>, ...keys: string[]): string | undefined
   return undefined;
 }
 
+export type ApplyEpointPaymentResult =
+  | { ok: true }
+  | { ok: false; step: string; message: string };
+
 /**
  * Applies the same `online_payments` + `sales` updates as the historical EPoint signed-callback
  * webhook path (success / failed / pending + order_status guard). Intended for `epoint-webhook`
- * and future `payment-reconcile` jobs so semantics stay in one place.
+ * and `payment-reconcile`. Checks Supabase errors on every write.
  */
 export async function applyEpointWebhookPaymentRowAndSale(
   supabase: SupabaseClient,
@@ -85,7 +90,7 @@ export async function applyEpointWebhookPaymentRowAndSale(
   callbackData: Record<string, unknown>,
   success: boolean,
   failed: boolean
-): Promise<void> {
+): Promise<ApplyEpointPaymentResult> {
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = {
     epoint_transaction: str(callbackData, 'transaction'),
@@ -109,16 +114,46 @@ export async function applyEpointWebhookPaymentRowAndSale(
     patch.status = 'pending';
   }
 
-  await supabase.from('online_payments').update(patch).eq('id', payId);
+  const upPay = await supabase.from('online_payments').update(patch).eq('id', payId);
+  if (upPay.error) {
+    return { ok: false, step: 'online_payments_update', message: upPay.error.message };
+  }
 
   if (success) {
-    await supabase.from('sales').update({ payment_status: 'paid' }).eq('id', saleId);
-    await supabase
+    const upSalePaid = await supabase.from('sales').update({ payment_status: 'paid' }).eq('id', saleId);
+    if (upSalePaid.error) {
+      return { ok: false, step: 'sales_payment_status_paid', message: upSalePaid.error.message };
+    }
+    const upOrder = await supabase
       .from('sales')
       .update({ order_status: 'pending' })
       .eq('id', saleId)
       .eq('order_status', 'awaiting_payment');
+    if (upOrder.error) {
+      return { ok: false, step: 'sales_order_status_pending', message: upOrder.error.message };
+    }
   } else if (failed) {
-    await supabase.from('sales').update({ payment_status: 'failed' }).eq('id', saleId);
+    const upSaleFailed = await supabase.from('sales').update({ payment_status: 'failed' }).eq('id', saleId);
+    if (upSaleFailed.error) {
+      return { ok: false, step: 'sales_payment_status_failed', message: upSaleFailed.error.message };
+    }
   }
+
+  return { ok: true };
+}
+
+export async function insertPaymentReconciliationLog(
+  supabase: SupabaseClient,
+  row: PaymentReconciliationLogInsert
+): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+  const ins = await supabase
+    .from('payment_reconciliation_log')
+    .insert(row as never)
+    .select('id')
+    .single();
+  if (ins.error || !ins.data) {
+    return { ok: false, message: ins.error?.message ?? 'insert returned no row' };
+  }
+  const id = (ins.data as { id: string }).id;
+  return { ok: true, id };
 }

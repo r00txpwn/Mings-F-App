@@ -181,7 +181,17 @@ async function handleStandardPayment(
   if (success && pay.status === 'success') {
     return;
   }
-  await applyEpointWebhookPaymentRowAndSale(supabase, pay.id, pay.sale_id, callbackData, success, failed);
+  const applied = await applyEpointWebhookPaymentRowAndSale(
+    supabase,
+    pay.id,
+    pay.sale_id,
+    callbackData,
+    success,
+    failed
+  );
+  if (!applied.ok) {
+    console.error(`epoint-webhook: applyEpointWebhookPaymentRowAndSale failed: ${applied.step}: ${applied.message}`);
+  }
 }
 
 async function handleCardRegistrationOnly(

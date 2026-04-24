@@ -13,3 +13,7 @@ verify_jwt = false
 # Epoint server callbacks: no Supabase JWT; verify with data+signature (EPOINT_PRIVATE_KEY).
 [functions."epoint-webhook"]
 verify_jwt = false
+
+# Internal manual reconcile: Bearer PAYMENT_RECONCILE_SECRET (no browser / customer use).
+[functions."payment-reconcile"]
+verify_jwt = false
