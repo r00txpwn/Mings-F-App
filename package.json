@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy:local": "npm run build && vite preview --host 127.0.0.1 --port 4175 --strictPort",
+    "deploy:local": "npm run verify-env && npm run build && vite preview --host 0.0.0.0 --port 4175 --strictPort",
     "prepare": "git config core.hooksPath .githooks || true",
     "routes": "node scripts/generate-route-chart.js",
     "verify-env": "node scripts/verify-env.mjs",

@@ -8,8 +8,7 @@ Mings-F-App
 npm run deploy:local
 ```
 
-Runs `npm run build` then `vite preview` on **127.0.0.1:4175** with strict port enforcement.
-If `4175` is busy, stop the existing preview process first (do not start a second instance on another port).
+Runs `verify-env`, `npm run build`, then `vite preview` on **port 4175** (`--host 0.0.0.0` so **http://127.0.0.1:4175** and **http://localhost:4175** both work). If you still see **React #310** or an old “configuration” error page, stop any existing preview, run this command again, then hard-refresh the browser (cache). Cursor’s in-app browser often cannot reach your PC’s localhost; use Chrome or Edge for this URL.
 
 ## Deploy
 

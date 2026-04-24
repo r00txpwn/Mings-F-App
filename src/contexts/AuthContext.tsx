@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
@@ -9,6 +9,11 @@ interface AuthContextType {
   loading: boolean;
   /** True when a row exists in `public.users` (staff/admin). False for customer-only auth.users. */
   isStaff: boolean;
+  /**
+   * True when this user may call the `user-management` Edge Function (same rules as the function:
+   * JWT `app_metadata.role === 'admin'`, else `public.users.role === 'admin'`).
+   */
+  isAdminUser: boolean;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   /** SMS OTP via Supabase Auth (Twilio configured in project dashboard). */
@@ -26,15 +31,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function fetchIsStaff(userId: string): Promise<boolean> {
-  const { data, error } = await supabase.from('users').select('id').eq('id', userId).maybeSingle();
+async function fetchStaffRow(userId: string): Promise<{ isStaff: boolean; role: string | null }> {
+  const { data, error } = await supabase.from('users').select('id, role').eq('id', userId).maybeSingle();
   if (error) {
     if (import.meta.env.DEV) {
-      console.warn('[auth] fetchIsStaff failed:', error.message);
+      console.warn('[auth] fetchStaffRow failed:', error.message);
     }
-    return false;
+    return { isStaff: false, role: null };
   }
-  return Boolean(data);
+  if (!data) return { isStaff: false, role: null };
+  const roleRaw = (data as { role?: string | null }).role;
+  const role = typeof roleRaw === 'string' && roleRaw.length > 0 ? roleRaw : 'staff';
+  return { isStaff: true, role };
+}
+
+/** Mirrors `supabase/functions/user-management` admin gate (JWT claim first, then DB role). */
+function isAdminForUserManagement(user: User | null, dbRole: string | null): boolean {
+  if (!user) return false;
+  const claimed = user.app_metadata?.role;
+  if (claimed === 'admin') return true;
+  if (claimed === undefined || claimed === null || claimed === '') {
+    return dbRole === 'admin';
+  }
+  return false;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -42,6 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isStaff, setIsStaff] = useState(false);
+  const [staffDbRole, setStaffDbRole] = useState<string | null>(null);
+
+  const isAdminUser = useMemo(() => isAdminForUserManagement(user, staffDbRole), [user, staffDbRole]);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,10 +73,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const nextUser = nextSession?.user ?? null;
       setUser(nextUser);
       if (nextUser) {
-        const staff = await fetchIsStaff(nextUser.id);
-        if (!cancelled) setIsStaff(staff);
+        const row = await fetchStaffRow(nextUser.id);
+        if (!cancelled) {
+          setIsStaff(row.isStaff);
+          setStaffDbRole(row.isStaff ? row.role : null);
+        }
       } else if (!cancelled) {
         setIsStaff(false);
+        setStaffDbRole(null);
       }
       if (!cancelled) setLoading(false);
     };
@@ -166,10 +192,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const uid = s?.user?.id;
     if (!uid) {
       setIsStaff(false);
+      setStaffDbRole(null);
       return;
     }
-    const staff = await fetchIsStaff(uid);
-    setIsStaff(staff);
+    const row = await fetchStaffRow(uid);
+    setIsStaff(row.isStaff);
+    setStaffDbRole(row.isStaff ? row.role : null);
   }, []);
 
   return (
@@ -179,6 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         loading,
         isStaff,
+        isAdminUser,
         signIn,
         signUp,
         sendPhoneOtp,

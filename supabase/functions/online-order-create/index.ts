@@ -571,45 +571,74 @@ async function handleRequest(req: Request): Promise<Response> {
       ? deliveryNotes.trim()
       : '';
 
-  const { data: saleRow, error: saleErr } = await supabase
-    .from('sales')
-    .insert({
-      source,
-      order_status: 'pending',
-      payment_status: paymentStatus,
-      sales_channel_id: channel.id,
-      total_price: totalWithAdjustments,
-      discount_amount: discount,
-      tip_amount: tip,
-      promo_code: promoCodeApplied,
-      quantity: itemCount,
-      unit_price: itemCount > 0 ? totalWithAdjustments / itemCount : totalWithAdjustments,
-      daily_order_number: dailyNumber,
-      display_number: displayNumber,
-      track_token: trackToken,
-      is_scheduled: Boolean(isScheduled && scheduledAtIso),
-      scheduled_for: scheduledAtIso,
-      sale_date: new Date().toISOString(),
-      notes: [tableNote, orderNotes?.trim(), courierNote ? `Courier: ${courierNote}` : '']
-        .filter(Boolean)
-        .join(' | '),
-      delivery_notes: courierNote || null,
-      online_payment_method: paymentMethod,
-      customer_name: customerName?.trim() || null,
-      customer_phone: normalizedPhone,
-      delivery_address: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,
-      delivery_apartment:
-        fulfillmentType === 'delivery' ? deliveryApartment?.trim() || null : null,
-      delivery_floor: fulfillmentType === 'delivery' ? deliveryFloor?.trim() || null : null,
-      delivery_lat: fulfillmentType === 'delivery' ? deliveryLat ?? null : null,
-      delivery_lng: fulfillmentType === 'delivery' ? deliveryLng ?? null : null,
-      delivery_fee: deliveryFee,
-      delivery_zone_id: zoneId,
-      customer_user_id: customerUserId,
-      payment_init_token: paymentInitToken,
-    })
-    .select('id')
-    .single();
+  const saleInsertBase: Record<string, unknown> = {
+    source,
+    order_status: 'pending',
+    payment_status: paymentStatus,
+    sales_channel_id: channel.id,
+    total_price: totalWithAdjustments,
+    quantity: itemCount,
+    unit_price: itemCount > 0 ? totalWithAdjustments / itemCount : totalWithAdjustments,
+    daily_order_number: dailyNumber,
+    display_number: displayNumber,
+    track_token: trackToken,
+    is_scheduled: Boolean(isScheduled && scheduledAtIso),
+    scheduled_for: scheduledAtIso,
+    sale_date: new Date().toISOString(),
+    notes: [tableNote, orderNotes?.trim(), courierNote ? `Courier: ${courierNote}` : '']
+      .filter(Boolean)
+      .join(' | '),
+    delivery_notes: courierNote || null,
+    online_payment_method: paymentMethod,
+    customer_name: customerName?.trim() || null,
+    customer_phone: normalizedPhone,
+    delivery_address: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,
+    delivery_apartment:
+      fulfillmentType === 'delivery' ? deliveryApartment?.trim() || null : null,
+    delivery_floor: fulfillmentType === 'delivery' ? deliveryFloor?.trim() || null : null,
+    delivery_lat: fulfillmentType === 'delivery' ? deliveryLat ?? null : null,
+    delivery_lng: fulfillmentType === 'delivery' ? deliveryLng ?? null : null,
+    delivery_fee: deliveryFee,
+    delivery_zone_id: zoneId,
+    customer_user_id: customerUserId,
+    payment_init_token: paymentInitToken,
+  };
+
+  const saleInsertWithDiscount: Record<string, unknown> = {
+    ...saleInsertBase,
+    discount_amount: discount,
+    tip_amount: tip,
+    promo_code: promoCodeApplied,
+  };
+
+  // Backward-compatible insert for environments where some sales columns
+  // are not yet present or schema cache is stale.
+  let insertPayload: Record<string, unknown> = { ...saleInsertWithDiscount };
+  let saleRow: { id: string } | null = null;
+  let saleErr: { message?: string } | null = null;
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const { data, error } = await supabase
+      .from('sales')
+      .insert(insertPayload)
+      .select('id')
+      .single();
+
+    if (!error && data) {
+      saleRow = data as { id: string };
+      saleErr = null;
+      break;
+    }
+
+    saleErr = error as { message?: string } | null;
+    const msg = error?.message ?? '';
+    const missingColMatch = /Could not find the '([^']+)' column of 'sales'/.exec(msg);
+    if (!missingColMatch) break;
+
+    const missingCol = missingColMatch[1];
+    if (!(missingCol in insertPayload)) break;
+    delete insertPayload[missingCol];
+  }
 
   if (saleErr || !saleRow) {
     return jsonResponse({ error: saleErr?.message ?? 'Failed to create sale' }, 500);

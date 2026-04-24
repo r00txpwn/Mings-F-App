@@ -42,7 +42,6 @@ import { DeliveryScreen } from './screens/DeliveryScreen';
 import { CombosScreen } from './screens/CombosScreen';
 import { AdminOrderSupportScreen } from './screens/AdminOrderSupportScreen';
 import { MingsWordmark } from './components/MingsWordmark';
-import { normalizePathname } from './lib/adminPath';
 
 type Screen =
   | 'home'
@@ -63,7 +62,6 @@ type Screen =
 
 const SCREEN_QUERY_KEY = 'screen';
 const DEFAULT_SCREEN: Screen = 'home';
-const ORDER_MANAGER_PATH = '/order-manager';
 const ALL_SCREENS: Screen[] = [
   'home',
   'sales',
@@ -90,7 +88,7 @@ function readScreenFromUrl(): Screen {
   const params = new URLSearchParams(window.location.search);
   const raw = params.get(SCREEN_QUERY_KEY);
   if (isScreen(raw)) return raw;
-  return normalizePathname(window.location.pathname) === ORDER_MANAGER_PATH ? 'kiosk-orders' : DEFAULT_SCREEN;
+  return DEFAULT_SCREEN;
 }
 
 function writeScreenToUrl(screen: Screen) {
@@ -103,7 +101,7 @@ function writeScreenToUrl(screen: Screen) {
 function AppContent() {
   const { t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  const { user, loading, signOut, isStaff } = useAuth();
+  const { user, loading, signOut, isStaff, isAdminUser } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>(() => readScreenFromUrl());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isDark = theme === 'dark';
@@ -122,6 +120,14 @@ function AppContent() {
       writeScreenToUrl(currentScreen);
     }
   }, [currentScreen]);
+
+  /** Users screen calls admin-only `user-management`; keep URL in sync with access doc. */
+  useEffect(() => {
+    if (currentScreen === 'users' && !isAdminUser) {
+      setCurrentScreen('home');
+      writeScreenToUrl('home');
+    }
+  }, [currentScreen, isAdminUser]);
 
   if (loading) {
     return (
@@ -181,7 +187,7 @@ function AppContent() {
       case 'payouts':
         return <PayoutsScreen />;
       case 'users':
-        return <UsersScreen />;
+        return isAdminUser ? <UsersScreen /> : <HomeScreen />;
       case 'settings':
         return <SettingsScreen />;
       default:
@@ -194,7 +200,7 @@ function AppContent() {
     setIsMobileMenuOpen(false);
   };
 
-  const navItems: { id: Screen; icon: React.ReactNode; label: string }[] = [
+  const allNavItems: { id: Screen; icon: React.ReactNode; label: string }[] = [
     { id: 'home', icon: <Home className="h-5 w-5 shrink-0" />, label: t.home },
     { id: 'sales', icon: <ShoppingCart className="h-5 w-5 shrink-0" />, label: t.sales },
     { id: 'kiosk-orders', icon: <Monitor className="h-5 w-5 shrink-0" />, label: t.kioskOrders },
@@ -211,6 +217,7 @@ function AppContent() {
     { id: 'users', icon: <Users className="h-5 w-5 shrink-0" />, label: t.users },
     { id: 'settings', icon: <Settings className="h-5 w-5 shrink-0" />, label: t.more },
   ];
+  const navItems = allNavItems.filter((item) => item.id !== 'users' || isAdminUser);
 
   return (
     <div

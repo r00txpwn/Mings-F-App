@@ -5,16 +5,16 @@ alwaysApply: true
 
 # Local build + preview — fixed port 4175
 
-When you **build and serve the production bundle locally**, use a single fixed URL: **http://127.0.0.1:4175/**.
+When you **build and serve the production bundle locally**, use port **4175** on the loopback interface: **http://127.0.0.1:4175/** or **http://localhost:4175/** (same machine; `vite preview` uses `--host 0.0.0.0` so both resolve).
 
 ## Commands
 
-- **`npm run deploy:local`** runs `npm run build` then `vite preview --host 127.0.0.1 --port 4175 --strictPort`.
+- **`npm run deploy:local`** runs `npm run verify-env`, `npm run build`, then `vite preview --host 0.0.0.0 --port 4175 --strictPort`.
 - This command must stay single-port and single-instance (no automatic fallback to other ports).
 
 ## What to do
 
-1. Start or reuse preview at **`http://127.0.0.1:4175/`** only.
+1. Start or reuse preview at **`http://127.0.0.1:4175/`** (or **`http://localhost:4175/`**) only.
 2. If port `4175` is occupied, stop the running preview instead of launching another instance.
 3. When sharing a local deploy link, always use **`http://127.0.0.1:4175/`**.
 

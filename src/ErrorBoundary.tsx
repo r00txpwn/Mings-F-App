@@ -25,6 +25,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const msg = this.state.error?.message ?? '';
+      const looksLikeConfig =
+        /VITE_SUPABASE_(URL|ANON_KEY)/i.test(msg) ||
+        /missing environment variables/i.test(msg) ||
+        /configuration issue/i.test(msg);
+
       return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
           <div className="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
@@ -35,41 +41,58 @@ export class ErrorBoundary extends Component<Props, State> {
                 </svg>
               </div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Configuration Error
+                {looksLikeConfig ? 'Configuration error' : 'Application error'}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                The application failed to start due to a configuration issue.
+                {looksLikeConfig
+                  ? 'The application failed to start due to a configuration issue.'
+                  : 'Something went wrong while rendering this page. The technical message below can help developers find the cause.'}
               </p>
             </div>
 
             <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
               <p className="text-sm font-mono text-red-800 dark:text-red-300 break-all">
-                {this.state.error?.message}
+                {msg}
               </p>
-            </div>
-
-            <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300">
-              <div>
-                <h2 className="font-semibold mb-2">To fix this issue:</h2>
-                <ol className="list-decimal list-inside space-y-2 ml-2">
-                  <li>Go to your hosting platform dashboard (Netlify, Vercel, etc.)</li>
-                  <li>Navigate to Environment Variables or Build Settings</li>
-                  <li>Add the following variables:
-                    <div className="mt-2 bg-gray-100 dark:bg-gray-700 p-3 rounded font-mono text-xs space-y-1">
-                      <div>VITE_SUPABASE_URL=your_supabase_url</div>
-                      <div>VITE_SUPABASE_ANON_KEY=your_supabase_anon_key</div>
-                    </div>
-                  </li>
-                  <li>Redeploy your application</li>
-                </ol>
-              </div>
-
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  These values can be found in your Supabase project settings under API.
+              {!looksLikeConfig && /Minified React error #310/i.test(msg) ? (
+                <p className="mt-3 text-xs text-red-700 dark:text-red-400">
+                  React #310 usually means a hook was called in a different order between renders (for example a{' '}
+                  <code className="rounded bg-red-100/80 px-1 dark:bg-red-950/50">useMemo</code> placed after an early{' '}
+                  <code className="rounded bg-red-100/80 px-1 dark:bg-red-950/50">return</code>). Reproduce with{' '}
+                  <code className="rounded bg-red-100/80 px-1 dark:bg-red-950/50">npm run dev</code> for a full stack trace.
                 </p>
-              </div>
+              ) : null}
             </div>
+
+            {looksLikeConfig ? (
+              <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300">
+                <div>
+                  <h2 className="font-semibold mb-2">To fix this issue:</h2>
+                  <ol className="list-decimal list-inside space-y-2 ml-2">
+                    <li>Go to your hosting platform dashboard (Netlify, Vercel, etc.)</li>
+                    <li>Navigate to Environment Variables or Build Settings</li>
+                    <li>Add the following variables:
+                      <div className="mt-2 bg-gray-100 dark:bg-gray-700 p-3 rounded font-mono text-xs space-y-1">
+                        <div>VITE_SUPABASE_URL=your_supabase_url</div>
+                        <div>VITE_SUPABASE_ANON_KEY=your_supabase_anon_key</div>
+                      </div>
+                    </li>
+                    <li>Redeploy your application</li>
+                  </ol>
+                </div>
+
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    These values can be found in your Supabase project settings under API.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                If this persists after refresh, try a development build or check the browser console for the first error
+                before this screen.
+              </p>
+            )}
 
             <button
               onClick={() => window.location.reload()}
