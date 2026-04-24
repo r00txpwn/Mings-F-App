@@ -9,7 +9,7 @@ interface PageHeaderProps {
   actions?: ReactNode;
 }
 
-export function PageHeader({ title, description, eyebrow, icon: Icon, actions }: PageHeaderProps) {
+export function PageHeader({ title, eyebrow, icon: Icon, actions }: PageHeaderProps) {
   return (
     <div className="neon-card mb-8 p-5 sm:p-6">
       {eyebrow ? <p className="cockpit-eyebrow">{eyebrow}</p> : null}
@@ -22,7 +22,6 @@ export function PageHeader({ title, description, eyebrow, icon: Icon, actions }:
           ) : null}
           <div className="min-w-0">
             <h1 className="cockpit-page-title">{title}</h1>
-            {description ? <p className="cockpit-page-sub max-w-2xl">{description}</p> : null}
           </div>
         </div>
         {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">{actions}</div> : null}

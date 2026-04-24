@@ -1,6 +1,6 @@
 # URL & path audit (client routes, Edge Functions, logical risks)
 
-Last reviewed: 2026-03-26
+Last reviewed: 2026-04-22
 
 ## 1. SPA entry (`src/main.tsx`)
 
@@ -9,7 +9,8 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | Host match (env) | Path | App |
 |------------------|------|-----|
 | `VITE_SURFACE_ADMIN_HOSTS` | any | `App` (cockpit) |
-| `VITE_SURFACE_ORDER_HOSTS` | not `/track` | `OrderApp` |
+| `VITE_SURFACE_ORDER_HOSTS` | `/order-manager` or `/order-management` | `OrderManagerApp` |
+| `VITE_SURFACE_ORDER_HOSTS` | not `/track` and not order-manager paths | `OrderApp` |
 | `VITE_SURFACE_ORDER_HOSTS` | `/track` | `TrackingApp` |
 | `VITE_SURFACE_KIOSK_HOSTS` | any | `KioskApp` |
 | `VITE_SURFACE_KDS_HOSTS` | any | `KitchenDisplay` |
@@ -23,9 +24,10 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | `/kiosk` | `KioskApp` | Uses `pathNorm` (trailing slash OK). |
 | `/kds` | `KitchenDisplay` | Uses `pathNorm` (fixed: was `pathname`, so `/kds/` was broken). |
 | `/order` | `OrderApp` | Public ordering. |
+| `/order-manager` | `OrderManagerApp` | Staff workflow (auth-gated). Top of main: **Kitchen status** strip (pause 30m / 1h / until next open / indefinite + Open now) updating `online_settings`. Bottom nav: Active + Past for every staff user; **Menu Editor** tab only when `public.users.role` is `admin` or `manager` (hidden for `staff`). The shell re-reads `users.role` after auth so the tab list matches the same Supabase row QA inspects on `/rest/v1/users`. |
+| `/order-management` | `OrderManagerApp` | Alias to `/order-manager`. Same tab rules as `/order-manager`. |
 | `/track` | `TrackingApp` | Query `?token=` for status. |
 | `/spec-ops` | `App` (cockpit) | Default admin URL. Optional `VITE_ADMIN_APP_PATH` overrides. |
-| `/order-manager` | `OrderManagerApp` | Staff mobile-first order ops (active / past / menu). **Not** the cockpit shell — separate bundle entry in `main.tsx`. |
 | **Anything else** | `PublicNotFound` | No hints about admin URL. |
 
 ### Logical notes
@@ -41,7 +43,7 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | Location | Behavior | Risk / note |
 |----------|----------|-------------|
 | `App.tsx` | Non-staff logged-in users → `StaffAccessDeniedScreen` (no auto-redirect to `/order`). | OK. |
-| `App.tsx` | **Users** (`UsersScreen` / `user-management` API) is **admin-only** per §3. Staff and managers use the rest of the cockpit; the **Users** nav item and `?screen=users` are shown only when `isAdminUser` (JWT `app_metadata.role === 'admin'` or `public.users.role === 'admin'`). | Matches Edge Function gate. |
+| `App.tsx` | On the **admin host** or at **`/spec-ops`** (default local admin path), `?screen=order-support` (and nav) → `AdminOrderSupportScreen`: order list + side drawer with line items, customer/delivery, and workflow actions on `sales`. | **Local QA URL:** `http://127.0.0.1:4175/spec-ops?screen=order-support` — not root `/?screen=…` (see `getResolvedAdminPath()`). |
 | `OrderApp.tsx` | E-point success → external `checkoutUrl`. Done screen → `/track?token=`. | External URL must be trusted (payment provider). |
 | `PublicNotFound.tsx` | Denied/404 messaging for root + unknown paths. | No storefront auto-redirect from `/` or invalid paths. |
 | `StaffAccessDeniedScreen.tsx` | Link via `getPublicOrderUrl()` (`VITE_PUBLIC_ORDER_URL` or same-origin `/order`). | OK. |
@@ -57,13 +59,15 @@ Invoked from the browser (or webhooks):
 |----------|----------------|------|
 | `online-order-create` | `invokeEdgeFunction` POST (`OrderApp`) | Bearer: user JWT or anon key. |
 | `epoint-create-payment` | `invokeEdgeFunction` POST (`OrderApp`) | Same. |
-| `user-management` | `UsersScreen` GET `…/user-management/list`, POST `…/create`, DELETE `…/delete/:id` | Bearer: staff session JWT. **Admin-only** (role `admin` in `public.users` or JWT claim). |
+| `user-management` | `UsersScreen` GET `…/user-management/list`, POST `…/create`, DELETE `…/delete/:id`, PUT `…/update-role`, PUT `…/reset-password` | Bearer: staff session JWT. **Admin-only** (role `admin` in `public.users` or JWT claim). |
 | `epoint-webhook` | Server-to-server (E-point) | Not a browser route. |
 | `wolt-drive-*` | Backend / integrations | Not audited as SPA paths. |
 
 ### `user-management` path parsing
 
 Uses suffix after `/user-management` in `req.url` so both deployed URL shapes work (e.g. `…/functions/v1/user-management/list`).
+
+Token validation uses a user-scoped Supabase client (`SUPABASE_ANON_KEY` + `Authorization: Bearer <jwt>`) and `supabaseUser.auth.getUser()`, which supports ES256 JWTs.
 
 ### Logical risks
 

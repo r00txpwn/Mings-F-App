@@ -7,9 +7,9 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
-  // Local production preview: always the same port (fails fast if 4173 is taken)
+  // Align with `npm run deploy:local` (4175) so plain `vite preview` / `npm run preview` is not stuck on 4173.
   preview: {
-    port: 4173,
+    port: 4175,
     strictPort: true,
     host: '127.0.0.1',
   },

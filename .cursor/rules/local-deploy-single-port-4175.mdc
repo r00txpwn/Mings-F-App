@@ -9,7 +9,7 @@ When running local production preview, use only port `4175` and do not create mu
 
 ## Required behavior
 
-- Always use `http://127.0.0.1:4175/` or `http://localhost:4175/` for local deploy preview (same port; bind `0.0.0.0`).
+- Always use `http://127.0.0.1:4175/` for local deploy preview.
 - Do not use auto-port fallback (`--strictPort false`).
 - Before starting a new preview server, check for an existing running preview and reuse it, or stop it first.
 - Never leave multiple `vite preview` instances running in parallel.
@@ -17,11 +17,12 @@ When running local production preview, use only port `4175` and do not create mu
 ## Command standard
 
 ```bash
-# ✅ Required (see package.json — prefer this script)
+# ✅ Required (build + build-meta + preview on 4175)
 npm run deploy:local
 ```
 
 ```bash
 # ❌ Not allowed for local deploy
 vite preview --host 127.0.0.1 --strictPort false
+# `vite preview` without a fresh `npm run build` first (serves stale dist/)
 ```

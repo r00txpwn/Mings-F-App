@@ -41,6 +41,9 @@ export interface AddressAutocompleteProps {
   placeholder?: string;
   disabled?: boolean;
   noResultsLabel?: string;
+  searchFailedLabel?: string;
+  selectFailedLabel?: string;
+  mapsLoadFailedLabel?: string;
   /** Optional CSS class to merge onto the input wrapper (for layout tweaks). */
   className?: string;
 }
@@ -70,6 +73,9 @@ export function AddressAutocomplete({
   placeholder,
   disabled = false,
   noResultsLabel,
+  searchFailedLabel,
+  selectFailedLabel,
+  mapsLoadFailedLabel,
   className,
 }: AddressAutocompleteProps) {
   const [query, setQuery] = useState(initialQuery);
@@ -79,6 +85,7 @@ export function AddressAutocomplete({
   const [activeIdx, setActiveIdx] = useState(-1);
   const [sdkReady, setSdkReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -106,14 +113,16 @@ export function AddressAutocomplete({
       })
       .catch((err) => {
         if (!cancelled) {
-          setLoadError(err instanceof Error ? err.message : 'Maps load failed');
+          setLoadError(
+            err instanceof Error ? err.message : (mapsLoadFailedLabel ?? 'Map search unavailable right now.')
+          );
           setSdkReady(false);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [apiKey]);
+  }, [apiKey, mapsLoadFailedLabel]);
 
   const ensureToken = useCallback(() => {
     if (!tokenRef.current && sdkReady) {
@@ -160,6 +169,7 @@ export function AddressAutocomplete({
 
     const seq = ++fetchSeqRef.current;
     setLoading(true);
+    setSearchError(null);
 
     try {
       const request: google.maps.places.AutocompleteRequest = {
@@ -195,6 +205,7 @@ export function AddressAutocomplete({
       console.error('[AddressAutocomplete] fetchAutocompleteSuggestions failed:', err);
       setSuggestions([]);
       setOpen(false);
+      setSearchError(searchFailedLabel ?? 'Could not search addresses. Please try again.');
     } finally {
       if (seq === fetchSeqRef.current) setLoading(false);
     }
@@ -240,11 +251,12 @@ export function AddressAutocomplete({
         onSelect({ address, lat, lng, placeId: place.id ?? null, components });
       } catch (err) {
         console.error('[AddressAutocomplete] Place.fetchFields failed:', err);
+        setSearchError(selectFailedLabel ?? 'Could not resolve this address. Try another result.');
       } finally {
         setLoading(false);
       }
     },
-    [onSelect, refreshToken],
+    [onSelect, refreshToken, selectFailedLabel],
   );
 
   // 4) Keyboard nav.
@@ -354,16 +366,21 @@ export function AddressAutocomplete({
             </li>
           ))}
         </ul>
-      ) : open && !loading && query.trim().length >= 2 ? (
+      ) : open && !loading && query.trim().length >= 2 && !searchError ? (
         <div
           className="animate-scaleIn absolute left-0 right-0 top-[calc(100%+4px)] z-20 origin-top rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-xs text-slate-500 shadow-xl"
           role="status"
         >
-          {noResultsLabel ?? 'No matches in Baku.'}
+          {noResultsLabel ?? '…'}
         </div>
       ) : null}
 
       {loadError ? <p className="mt-1 text-xs text-rose-400">{loadError}</p> : null}
+      {searchError ? (
+        <p className="mt-1 text-xs text-amber-300" role="alert">
+          {searchError}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -133,19 +133,35 @@ Deno.serve(async (req: Request) => {
   return jsonResponse({ received: true, error: 'Unrecognized callback format' }, 200);
 });
 
-async function findLatestPayment(
+async function findPaymentForCallback(
   supabase: SupabaseClient,
-  saleId: string
-): Promise<{ id: string; sale_id: string } | null> {
+  saleId: string,
+  callbackData: Record<string, unknown>
+): Promise<{ id: string; sale_id: string; status: string | null; epoint_transaction: string | null } | null> {
+  const transaction = str(callbackData, 'transaction');
+  if (transaction) {
+    const byTx = await supabase
+      .from('online_payments')
+      .select('id, sale_id, status, epoint_transaction')
+      .eq('sale_id', saleId)
+      .eq('epoint_transaction', transaction)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!byTx.error && byTx.data) {
+      return byTx.data as { id: string; sale_id: string; status: string | null; epoint_transaction: string | null };
+    }
+  }
+
   const { data, error } = await supabase
     .from('online_payments')
-    .select('id, sale_id')
+    .select('id, sale_id, status, epoint_transaction')
     .eq('sale_id', saleId)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error || !data) return null;
-  return data as { id: string; sale_id: string };
+  return data as { id: string; sale_id: string; status: string | null; epoint_transaction: string | null };
 }
 
 async function applyPaymentUpdate(
@@ -183,6 +199,11 @@ async function applyPaymentUpdate(
 
   if (success) {
     await supabase.from('sales').update({ payment_status: 'paid' }).eq('id', saleId);
+    await supabase
+      .from('sales')
+      .update({ order_status: 'pending' })
+      .eq('id', saleId)
+      .eq('order_status', 'awaiting_payment');
   } else if (failed) {
     await supabase.from('sales').update({ payment_status: 'failed' }).eq('id', saleId);
   }
@@ -193,7 +214,7 @@ async function handleStandardPayment(
   callbackData: Record<string, unknown>,
   orderId: string
 ): Promise<void> {
-  const pay = await findLatestPayment(supabase, orderId);
+  const pay = await findPaymentForCallback(supabase, orderId, callbackData);
   if (!pay) {
     console.error(`epoint-webhook: payment not found for sale ${orderId}`);
     return;
@@ -201,6 +222,9 @@ async function handleStandardPayment(
   const st = (str(callbackData, 'status') ?? '').toLowerCase();
   const success = st === 'success';
   const failed = st === 'error' || st === 'failed' || st === 'returned';
+  if (success && pay.status === 'success') {
+    return;
+  }
   await applyPaymentUpdate(supabase, pay.id, pay.sale_id, callbackData, success, failed);
 }
 

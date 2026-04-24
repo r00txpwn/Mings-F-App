@@ -25,5 +25,8 @@ supabase/.temp/
 .vercel
 .playwright-mcp/
 pw-*.png
+# QA / verify output at repo root only (do not match tests/screenshots/*.ts)
+/screenshots/
+test-results/
 .cursor/skills/
 **/__pycache__/

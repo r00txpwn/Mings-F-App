@@ -256,6 +256,14 @@ export interface Translations {
   never: string;
   user: string;
   createdAt: string;
+  changeRole: string;
+  resetPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+  passwordResetSuccess: string;
+  roleUpdated: string;
+  cannotChangeOwnRole: string;
+  passwordMinLength: string;
 
   // Login
   welcomeBack: string;
@@ -388,6 +396,18 @@ export interface Translations {
   kdsCourierNoteLabel: string;
 
   // Kiosk Admin
+  orderManagerTitle: string;
+  orderManagerDescription: string;
+  openOnlineOrder: string;
+  refreshOrders: string;
+  totalOrders: string;
+  ordersInQueue: string;
+  todayRevenue: string;
+  searchOrderManagerPlaceholder: string;
+  allSources: string;
+  allPayments: string;
+  unpaidOnly: string;
+  paidOnly: string;
   kioskOrders: string;
   confirmPayment: string;
   printAgain: string;
@@ -582,6 +602,15 @@ export interface Translations {
   /** Shown before hours line when reopening info exists */
   kitchenClosedReopenHint: string;
   kitchenClosedBackToMenu: string;
+  kitchenPausedTitle: string;
+  kitchenPausedMessage: string;
+  orderClosedPausedUntil: string;
+  orderClosedUntilNextOpen: string;
+  orderClosedSchedulePromptTitle: string;
+  orderClosedSchedulePromptHint: string;
+  orderClosedScheduleAction: string;
+  closingSoonBanner: string;
+  closingSoonCheckoutNote: string;
   /** Cart contains items no longer available for online order */
   cartUnavailableTitle: string;
   cartUnavailableIntro: string;
@@ -646,10 +675,21 @@ export interface Translations {
   orderSmsCode: string;
   orderVerifySms: string;
   orderSmsSentHint: string;
+  orderSmsResend: string;
+  orderSmsResendWait: string;
+  orderSmsCodeExpiredHint: string;
+  orderSmsEnterCodeHint: string;
+  orderSmsSendFailedHint: string;
+  orderSmsCodeSentConfirmation: string;
   orderChangePhone: string;
   orderInvalidPhone: string;
   orderAccountPhone: string;
   orderMapSearchPlaceholder: string;
+  orderMapNoResults: string;
+  orderMapSearchFailed: string;
+  orderMapSelectFailed: string;
+  orderMapLoadFailed: string;
+  orderZonePillIn: string;
   orderMapPinHint: string;
   orderMapLoading: string;
   orderMapUnavailable: string;
@@ -727,6 +767,22 @@ export interface Translations {
   comboBuilderAddToCart: string;
   comboBuilderNext: string;
   comboBuilderPickOne: string;
+  comboBuilderEmptyGroup: string;
+  comboBuilderEmptyCombo: string;
+  orderErrKitchenClosed: string;
+  orderErrKitchenPaused: string;
+  orderErrScheduleWhilePaused: string;
+  orderErrScheduleOutsideHours: string;
+  orderPayCodDescription: string;
+  orderPayCashDescription: string;
+  orderPayEpointDescription: string;
+  orderCheckoutSummary: string;
+  orderCheckoutBrand: string;
+  orderProfileSection: string;
+  orderAddressDefaultBadge: string;
+  orderAddressHomeLabel: string;
+  orderPromoCodePlaceholder: string;
+  orderZonePillChecking: string;
   orderErrGeneric: string;
   orderErrAuthRequired: string;
   orderErrCartEmpty: string;
@@ -744,6 +800,7 @@ export interface Translations {
   orderErrScheduleRequired: string;
   orderErrScheduleInvalid: string;
   orderErrScheduleTooSoon: string;
+  orderErrInvalidQuantity: string;
 
   // Customer tracking (/track)
   trackingPageTitle: string;
@@ -816,6 +873,7 @@ export interface Translations {
   omLast7Days: string;
   omThisMonth: string;
   omLastMonth: string;
+  omAll: string;
   omProducts: string;
   omCombos: string;
   omKioskToggle: string;
@@ -828,6 +886,18 @@ export interface Translations {
   omSourceTakeaway: string;
   omSourceDelivery: string;
   omTitle: string;
+  omKitchenStatusTitle: string;
+  omKitchenStatusOnline: string;
+  omKitchenStatusPausedUntil: string;
+  omKitchenStatusOffline: string;
+  omKitchenStatusClosed: string;
+  omKitchenPause30: string;
+  omKitchenPause60: string;
+  omKitchenPauseUntilNextOpen: string;
+  omKitchenPauseIndefinite: string;
+  omKitchenResume: string;
+  omKitchenStatusHint: string;
+  omKitchenNoNextOpen: string;
   omReminderSet: string;
   omSelfDelivery: string;
   omWoltDrive: string;
@@ -847,6 +917,118 @@ export interface Translations {
   omRejectConfirm: string;
   omRejectCancel: string;
   omRejectSelectReason: string;
+  orderSupport: string;
+  orderSupportDescription: string;
+  orderSupportOpenOrderPage: string;
+  orderSupportFilter_all: string;
+  orderSupportFilter_active: string;
+  orderSupportFilter_dispatched: string;
+  orderSupportFilter_completed: string;
+  orderSupportFilter_cancelled: string;
+  orderSupportOrdersFound: string;
+  orderSupportSourceAll: string;
+  orderSupportSearch: string;
+  orderSupportNoOrders: string;
+  orderSupportColTime: string;
+  orderSupportColCustomer: string;
+  orderSupportColItems: string;
+  orderSupportColTotal: string;
+  orderSupportColStatus: string;
+  orderSupportOrderActions: string;
+  orderSupportPrepareQuick: string;
+  orderSupportScheduledHint: string;
+  deliveryScreenTitle: string;
+  deliveryScreenDescription: string;
+  deliveryRefresh: string;
+  deliveryTabZones: string;
+  deliveryTabSettings: string;
+  deliveryTabDispatch: string;
+  deliveryZonesTitle: string;
+  deliveryZonesDescription: string;
+  deliveryZonesNew: string;
+  deliveryZonesEmptyTitle: string;
+  deliveryZonesEmptyHint: string;
+  deliveryZonesColName: string;
+  deliveryZonesColVertices: string;
+  deliveryZonesColFee: string;
+  deliveryZonesColMinOrder: string;
+  deliveryZonesColActive: string;
+  deliveryZonesColActions: string;
+  deliveryZoneNewTitle: string;
+  deliveryZoneEditTitle: string;
+  deliveryZoneFieldName: string;
+  deliveryZoneFieldFee: string;
+  deliveryZoneFieldMinOrder: string;
+  deliveryZoneFieldFreeThreshold: string;
+  deliveryZoneFieldSortOrder: string;
+  deliveryZoneFieldActive: string;
+  deliveryZoneFieldPolygon: string;
+  deliveryZonePolygonHint: string;
+  deliveryZoneClearShape: string;
+  deliveryZonePolygonRequired: string;
+  deliveryZonePreview: string;
+  deliveryZonePreviewLoading: string;
+  deliveryZonePreviewUnavailable: string;
+  deliveryZonePreviewEmpty: string;
+  deliveryZoneVertices: string;
+  deliveryZoneSave: string;
+  deliveryZoneSaving: string;
+  deliveryZoneSaveError: string;
+  deliveryZoneDeleteConfirm: string;
+  deliveryZoneDeleteError: string;
+  deliveryZoneToggleError: string;
+  deliverySettingsTitle: string;
+  deliverySettingsDescription: string;
+  deliverySettingsKitchenOpen: string;
+  deliverySettingsKitchenOpenHint: string;
+  deliverySettingsDeliveryEnabled: string;
+  deliverySettingsTakeawayEnabled: string;
+  deliverySettingsGlobalMinOrder: string;
+  deliverySettingsDefaultPrep: string;
+  deliverySettingsDefaultPrepHint: string;
+  deliverySettingsGlobalFreeThreshold: string;
+  deliverySettingsDispatchMode: string;
+  deliverySettingsDispatchAuto: string;
+  deliverySettingsDispatchManual: string;
+  deliverySettingsHours: string;
+  deliverySettingsHoursHint: string;
+  deliverySettingsClosed: string;
+  deliverySettingsOpenAt: string;
+  deliverySettingsCloseAt: string;
+  deliverySettingsSave: string;
+  deliverySettingsSaving: string;
+  deliverySettingsSaved: string;
+  deliverySettingsSaveError: string;
+  deliverySettingsClosingSoonLabel: string;
+  deliverySettingsClosingSoonHint: string;
+  deliverySettingsPauseActive: string;
+  deliverySettingsCancelPause: string;
+  deliverySettingsHoursInvalid: string;
+  deliverySettingsDayMon: string;
+  deliverySettingsDayTue: string;
+  deliverySettingsDayWed: string;
+  deliverySettingsDayThu: string;
+  deliverySettingsDayFri: string;
+  deliverySettingsDaySat: string;
+  deliverySettingsDaySun: string;
+  deliveryDispatchTitle: string;
+  deliveryDispatchDescription: string;
+  deliveryDispatchEmpty: string;
+  deliveryDispatchColOrder: string;
+  deliveryDispatchColCustomer: string;
+  deliveryDispatchColAddress: string;
+  deliveryDispatchColStatus: string;
+  deliveryDispatchColActions: string;
+  deliveryDispatchNoWolt: string;
+  deliveryDispatchManuallyDispatched: string;
+  deliveryDispatchTrackOpen: string;
+  deliveryDispatchTrackCopy: string;
+  deliveryDispatchTrackCopied: string;
+  deliveryDispatchActionDispatch: string;
+  deliveryDispatchActionMarkManual: string;
+  deliveryDispatchActionCancel: string;
+  deliveryDispatchInvokeError: string;
+  deliveryDispatchInvokeOk: string;
   deliverySettingsKitchenLocationTitle: string;
   deliverySettingsKitchenLocationHint: string;
   deliverySettingsKitchenLatitude: string;
@@ -1096,6 +1278,14 @@ export const translations: Record<Language, Translations> = {
     never: 'Never',
     user: 'User',
     createdAt: 'Created',
+    changeRole: 'Change Role',
+    resetPassword: 'Reset Password',
+    newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    passwordResetSuccess: 'Password updated successfully',
+    roleUpdated: 'Role updated',
+    cannotChangeOwnRole: 'You cannot change your own role',
+    passwordMinLength: 'Password must be at least 8 characters',
 
     welcomeBack: 'Welcome Back',
     signInToAccount: 'Sign in to your account',
@@ -1223,6 +1413,18 @@ export const translations: Record<Language, Translations> = {
     kdsBusyKitchenHint: 'Busy kitchen? 20 min is suggested.',
     kdsCourierNoteLabel: 'Courier',
 
+    orderManagerTitle: 'Order Manager',
+    orderManagerDescription: 'Monitor and act on kiosk and online orders in one queue',
+    openOnlineOrder: 'Open Online Order',
+    refreshOrders: 'Refresh orders',
+    totalOrders: 'Total orders',
+    ordersInQueue: 'Orders in queue',
+    todayRevenue: 'Today revenue',
+    searchOrderManagerPlaceholder: 'Search order #, phone, or ID',
+    allSources: 'All sources',
+    allPayments: 'All payments',
+    unpaidOnly: 'Unpaid only',
+    paidOnly: 'Paid only',
     kioskOrders: 'Kiosk Orders',
     confirmPayment: 'Confirm Payment',
     printAgain: 'Print Again',
@@ -1406,6 +1608,18 @@ export const translations: Record<Language, Translations> = {
     kitchenClosedMessage: 'Online ordering is paused. Please check back when we reopen.',
     kitchenClosedReopenHint: 'Opening hours:',
     kitchenClosedBackToMenu: 'Back to menu',
+    kitchenPausedTitle: 'Kitchen paused',
+    kitchenPausedMessage:
+      'We are not taking immediate orders right now. You can still schedule for a later time when we are open.',
+    orderClosedPausedUntil: 'Back online around {time} (Baku time).',
+    orderClosedUntilNextOpen: 'Next opening: {when}',
+    orderClosedSchedulePromptTitle: 'Schedule your order',
+    orderClosedSchedulePromptHint: 'Pick a slot during our opening hours.',
+    orderClosedScheduleAction: 'Schedule for later',
+    closingSoonBanner:
+      'Our kitchen is wrapping up soon. Orders placed now may be subject to kitchen confirmation.',
+    closingSoonCheckoutNote:
+      'We are approaching closing time ({time}, Baku). We will do our best to fulfill your order.',
     cartUnavailableTitle: 'Some items are no longer available',
     cartUnavailableIntro: 'Remove unavailable items to continue.',
     cartUnavailableRemoveLine: 'Remove',
@@ -1467,10 +1681,22 @@ export const translations: Record<Language, Translations> = {
     orderSmsCode: 'SMS code',
     orderVerifySms: 'Verify & sign in',
     orderSmsSentHint: 'We sent a code to your phone. Enter it below.',
+    orderSmsResend: 'Resend code',
+    orderSmsResendWait: 'Resend in {seconds}s',
+    orderSmsCodeExpiredHint: 'Code expired or invalid. Request a new SMS code.',
+    orderSmsEnterCodeHint: 'Enter the full code from your SMS (usually 6 digits).',
+    orderSmsSendFailedHint:
+      'We could not send an SMS. Check your number and try again, or sign in with email or Google.',
+    orderSmsCodeSentConfirmation: 'Code sent!',
     orderChangePhone: 'Use a different number',
     orderInvalidPhone: 'Enter a valid number with country code (e.g. +994…).',
     orderAccountPhone: 'Phone',
     orderMapSearchPlaceholder: 'Search for a street or place…',
+    orderMapNoResults: 'No matches in Baku.',
+    orderMapSearchFailed: 'Could not search addresses. Please try again.',
+    orderMapSelectFailed: 'Could not resolve this address. Try another result.',
+    orderMapLoadFailed: 'Map search is unavailable right now.',
+    orderZonePillIn: 'Delivering to {zone} · ₼{fee}',
     orderMapPinHint: 'Drag the pin or search — we use the pin location for delivery.',
     orderMapLoading: 'Loading map…',
     orderMapUnavailable: 'Map preview unavailable. Type your address or use device location.',
@@ -1550,6 +1776,8 @@ export const translations: Record<Language, Translations> = {
     comboBuilderAddToCart: 'Add combo to cart',
     comboBuilderNext: 'Next',
     comboBuilderPickOne: 'Choose one option',
+    comboBuilderEmptyGroup: 'This combo step is currently unavailable.',
+    comboBuilderEmptyCombo: 'This combo has no steps configured.',
     orderErrGeneric: 'Could not place your order. Please try again.',
     orderErrAuthRequired: 'Please sign in to place your order.',
     orderErrCartEmpty: 'Your cart is empty.',
@@ -1567,6 +1795,21 @@ export const translations: Record<Language, Translations> = {
     orderErrScheduleRequired: 'Please choose a scheduled time.',
     orderErrScheduleInvalid: 'Scheduled time is invalid.',
     orderErrScheduleTooSoon: 'Please choose a later time slot.',
+    orderErrInvalidQuantity: 'One or more cart items have invalid quantity.',
+    orderErrKitchenClosed: 'The kitchen is closed for online orders right now.',
+    orderErrKitchenPaused: 'The kitchen is temporarily paused. Try a scheduled time or check back soon.',
+    orderErrScheduleWhilePaused: 'That time is still within a kitchen pause. Pick a later slot.',
+    orderErrScheduleOutsideHours: 'That time is outside our opening hours. Pick another slot.',
+    orderPayCodDescription: 'Pay on pickup or to the courier.',
+    orderPayCashDescription: 'Cash in store.',
+    orderPayEpointDescription: 'Secure card payment via E-point.',
+    orderCheckoutSummary: 'Summary',
+    orderCheckoutBrand: "Ming's",
+    orderProfileSection: 'Profile',
+    orderAddressDefaultBadge: 'Default',
+    orderAddressHomeLabel: 'Home',
+    orderPromoCodePlaceholder: 'MINGS10',
+    orderZonePillChecking: 'Checking delivery zone…',
 
     trackingPageTitle: 'Order status',
     trackingOrderLabel: 'Order',
@@ -1637,6 +1880,7 @@ export const translations: Record<Language, Translations> = {
     omLast7Days: 'Last 7 days',
     omThisMonth: 'This month',
     omLastMonth: 'Last month',
+    omAll: 'All',
     omProducts: 'Products',
     omCombos: 'Combos',
     omKioskToggle: 'Kiosk',
@@ -1649,6 +1893,18 @@ export const translations: Record<Language, Translations> = {
     omSourceTakeaway: 'Online · Takeaway',
     omSourceDelivery: 'Online · Delivery',
     omTitle: 'Order Manager',
+    omKitchenStatusTitle: 'Online kitchen',
+    omKitchenStatusOnline: 'Accepting orders',
+    omKitchenStatusPausedUntil: 'Paused until {time}',
+    omKitchenStatusOffline: 'Offline (no new orders)',
+    omKitchenStatusClosed: 'Closed by hours',
+    omKitchenPause30: 'Pause 30 min',
+    omKitchenPause60: 'Pause 1 hour',
+    omKitchenPauseUntilNextOpen: 'Until next opening',
+    omKitchenPauseIndefinite: 'Offline until I turn back on',
+    omKitchenResume: 'Open now',
+    omKitchenStatusHint: 'Customers can still schedule after the pause if slots are available.',
+    omKitchenNoNextOpen: 'No next opening found in hours — set hours in Delivery settings.',
     omReminderSet: 'Reminder set',
     omSelfDelivery: 'Self Delivery',
     omWoltDrive: 'Wolt Drive',
@@ -1668,6 +1924,120 @@ export const translations: Record<Language, Translations> = {
     omRejectConfirm: 'Confirm Reject',
     omRejectCancel: 'Cancel',
     omRejectSelectReason: 'Select a reason...',
+    orderSupport: 'Order Support',
+    orderSupportDescription: 'Monitor and support order operations in real time',
+    orderSupportOpenOrderPage: 'Open Order Page',
+    orderSupportFilter_all: 'All',
+    orderSupportFilter_active: 'Active',
+    orderSupportFilter_dispatched: 'Dispatched',
+    orderSupportFilter_completed: 'Completed',
+    orderSupportFilter_cancelled: 'Cancelled',
+    orderSupportOrdersFound: 'orders found',
+    orderSupportSourceAll: 'All sources',
+    orderSupportSearch: 'Search by order #, customer, phone',
+    orderSupportNoOrders: 'No orders found for this filter',
+    orderSupportColTime: 'Time',
+    orderSupportColCustomer: 'Customer',
+    orderSupportColItems: 'Items',
+    orderSupportColTotal: 'Total',
+    orderSupportColStatus: 'Status',
+    orderSupportOrderActions: 'Order actions',
+    orderSupportPrepareQuick: 'Prepare (15 min)',
+    orderSupportScheduledHint:
+      'This order is scheduled. Reminder timing is safest from Order Manager; you can still view details here.',
+    deliveryScreenTitle: 'Delivery',
+    deliveryScreenDescription: 'Manage zones, kitchen rules, and manual dispatch',
+    deliveryRefresh: 'Refresh delivery data',
+    deliveryTabZones: 'Zones',
+    deliveryTabSettings: 'Settings',
+    deliveryTabDispatch: 'Dispatch',
+    deliveryZonesTitle: 'Delivery zones',
+    deliveryZonesDescription: 'Configure active coverage polygons and pricing rules.',
+    deliveryZonesNew: 'New zone',
+    deliveryZonesEmptyTitle: 'No delivery zones yet',
+    deliveryZonesEmptyHint: 'Create your first zone to enable address-based delivery pricing.',
+    deliveryZonesColName: 'Name',
+    deliveryZonesColVertices: 'Vertices',
+    deliveryZonesColFee: 'Fee',
+    deliveryZonesColMinOrder: 'Min order',
+    deliveryZonesColActive: 'Active',
+    deliveryZonesColActions: 'Actions',
+    deliveryZoneNewTitle: 'Create delivery zone',
+    deliveryZoneEditTitle: 'Edit delivery zone',
+    deliveryZoneFieldName: 'Zone name',
+    deliveryZoneFieldFee: 'Delivery fee',
+    deliveryZoneFieldMinOrder: 'Minimum order',
+    deliveryZoneFieldFreeThreshold: 'Free delivery threshold',
+    deliveryZoneFieldSortOrder: 'Sort order',
+    deliveryZoneFieldActive: 'Active',
+    deliveryZoneFieldPolygon: 'Zone polygon',
+    deliveryZonePolygonHint: 'Draw at least 3 points on the map to define the zone.',
+    deliveryZoneClearShape: 'Clear shape',
+    deliveryZonePolygonRequired: 'Polygon is required',
+    deliveryZonePreview: 'Zone preview',
+    deliveryZonePreviewLoading: 'Loading map...',
+    deliveryZonePreviewUnavailable: 'Map unavailable',
+    deliveryZonePreviewEmpty: 'No polygon yet',
+    deliveryZoneVertices: 'vertices',
+    deliveryZoneSave: 'Save zone',
+    deliveryZoneSaving: 'Saving...',
+    deliveryZoneSaveError: 'Failed to save zone',
+    deliveryZoneDeleteConfirm: 'Delete zone {name}?',
+    deliveryZoneDeleteError: 'Failed to delete zone',
+    deliveryZoneToggleError: 'Failed to update zone status',
+    deliverySettingsTitle: 'Delivery settings',
+    deliverySettingsDescription: 'Control kitchen availability, prep defaults, and dispatch behavior.',
+    deliverySettingsKitchenOpen: 'Kitchen is open',
+    deliverySettingsKitchenOpenHint: 'When closed, online ordering is disabled for customers.',
+    deliverySettingsDeliveryEnabled: 'Delivery enabled',
+    deliverySettingsTakeawayEnabled: 'Takeaway enabled',
+    deliverySettingsGlobalMinOrder: 'Global minimum order',
+    deliverySettingsDefaultPrep: 'Default prep time (minutes)',
+    deliverySettingsDefaultPrepHint: 'Used when no order-specific prep estimate is set.',
+    deliverySettingsGlobalFreeThreshold: 'Global free delivery threshold',
+    deliverySettingsDispatchMode: 'Dispatch mode',
+    deliverySettingsDispatchAuto: 'Auto (dispatch via provider)',
+    deliverySettingsDispatchManual: 'Manual (staff dispatches)',
+    deliverySettingsHours: 'Operating hours',
+    deliverySettingsHoursHint: 'Set open and close times for each weekday.',
+    deliverySettingsClosed: 'Closed',
+    deliverySettingsOpenAt: 'Open',
+    deliverySettingsCloseAt: 'Close',
+    deliverySettingsSave: 'Save settings',
+    deliverySettingsSaving: 'Saving...',
+    deliverySettingsSaved: 'Settings saved',
+    deliverySettingsSaveError: 'Failed to save settings',
+    deliverySettingsClosingSoonLabel: 'Last-call window (minutes before close)',
+    deliverySettingsClosingSoonHint:
+      '0 disables. During this window, customers still submit orders but see a “closing soon” notice.',
+    deliverySettingsPauseActive: 'Timed pause active until {time} (Baku).',
+    deliverySettingsCancelPause: 'Cancel pause & open now',
+    deliverySettingsHoursInvalid: 'Each open day needs valid open and close times (HH:MM).',
+    deliverySettingsDayMon: 'Mon',
+    deliverySettingsDayTue: 'Tue',
+    deliverySettingsDayWed: 'Wed',
+    deliverySettingsDayThu: 'Thu',
+    deliverySettingsDayFri: 'Fri',
+    deliverySettingsDaySat: 'Sat',
+    deliverySettingsDaySun: 'Sun',
+    deliveryDispatchTitle: 'Dispatch center',
+    deliveryDispatchDescription: 'Manage active deliveries and dispatch actions.',
+    deliveryDispatchEmpty: 'No dispatchable orders for this range.',
+    deliveryDispatchColOrder: 'Order',
+    deliveryDispatchColCustomer: 'Customer',
+    deliveryDispatchColAddress: 'Address',
+    deliveryDispatchColStatus: 'Status',
+    deliveryDispatchColActions: 'Actions',
+    deliveryDispatchNoWolt: 'No Wolt task',
+    deliveryDispatchManuallyDispatched: 'Marked manual',
+    deliveryDispatchTrackOpen: 'Open tracking',
+    deliveryDispatchTrackCopy: 'Copy tracking URL',
+    deliveryDispatchTrackCopied: 'Copied',
+    deliveryDispatchActionDispatch: 'Dispatch',
+    deliveryDispatchActionMarkManual: 'Mark manual',
+    deliveryDispatchActionCancel: 'Cancel task',
+    deliveryDispatchInvokeError: 'Dispatch action failed',
+    deliveryDispatchInvokeOk: 'Dispatch action completed',
     deliverySettingsKitchenLocationTitle: 'Kitchen location',
     deliverySettingsKitchenLocationHint:
       'Used for distance, ETA, and self-delivery recommendations. Leave empty to use default location.',
@@ -1917,6 +2287,14 @@ export const translations: Record<Language, Translations> = {
     never: 'Heç vaxt',
     user: 'İstifadəçi',
     createdAt: 'Yaradılıb',
+    changeRole: 'Rolu dəyiş',
+    resetPassword: 'Şifrəni sıfırla',
+    newPassword: 'Yeni şifrə',
+    confirmNewPassword: 'Yeni şifrəni təsdiqləyin',
+    passwordResetSuccess: 'Şifrə uğurla yeniləndi',
+    roleUpdated: 'Rol yeniləndi',
+    cannotChangeOwnRole: 'Öz rolunuzu dəyişə bilməzsiniz',
+    passwordMinLength: 'Şifrə ən az 8 simvol olmalıdır',
 
     welcomeBack: 'Xoş Gəlmisiniz',
     signInToAccount: 'Hesabınıza daxil olun',
@@ -2044,6 +2422,18 @@ export const translations: Record<Language, Translations> = {
     kdsBusyKitchenHint: 'Mətbəx yüklüdür? 20 dəq tövsiyə olunur.',
     kdsCourierNoteLabel: 'Kuryer',
 
+    orderManagerTitle: 'Sifariş Meneceri',
+    orderManagerDescription: 'Kiosk və onlayn sifarişləri bir növbədə izləyin və idarə edin',
+    openOnlineOrder: 'Onlayn sifarişi aç',
+    refreshOrders: 'Sifarişləri yenilə',
+    totalOrders: 'Ümumi sifarişlər',
+    ordersInQueue: 'Növbədə olan sifarişlər',
+    todayRevenue: 'Bugünkü gəlir',
+    searchOrderManagerPlaceholder: 'Sifariş #, telefon və ya ID axtar',
+    allSources: 'Bütün mənbələr',
+    allPayments: 'Bütün ödənişlər',
+    unpaidOnly: 'Yalnız ödənilməmiş',
+    paidOnly: 'Yalnız ödənilmiş',
     kioskOrders: 'Kiosk Sifarişləri',
     confirmPayment: 'Ödənişi təsdiq et',
     printAgain: 'Yenidən çap et',
@@ -2227,6 +2617,18 @@ export const translations: Record<Language, Translations> = {
     kitchenClosedMessage: 'Onlayn sifariş müvəqqəti dayandırılıb. Yenidən açılanda yoxlayın.',
     kitchenClosedReopenHint: 'İş saatları:',
     kitchenClosedBackToMenu: 'Menyuya qayıt',
+    kitchenPausedTitle: 'Mətbəx dayandırılıb',
+    kitchenPausedMessage:
+      'Hal-hazırda dərhal sifariş qəbul etmirik. Açıq olduğumuz vaxt üçün planlı slot seçə bilərsiniz.',
+    orderClosedPausedUntil: 'Təxminən {time} (Bakı vaxtı) yenidən onlayn.',
+    orderClosedUntilNextOpen: 'Növbəti açılış: {when}',
+    orderClosedSchedulePromptTitle: 'Sifarişi planlayın',
+    orderClosedSchedulePromptHint: 'İş saatlarımızda slot seçin.',
+    orderClosedScheduleAction: 'Sonra üçün planla',
+    closingSoonBanner:
+      'Mətbəx tezliklə bağlanır. İndi verilən sifarişlər mətbəxin təsdiqinə tabe ola bilər.',
+    closingSoonCheckoutNote:
+      'Bağlanış vaxtına yaxınlaşırıq ({time}, Bakı). Sifarişi yerinə yetirməyə çalışacağıq.',
     cartUnavailableTitle: 'Bəzi məhsullar artıq mövcud deyil',
     cartUnavailableIntro: 'Davam etmək üçün əlçatan olmayanları silin.',
     cartUnavailableRemoveLine: 'Sil',
@@ -2289,10 +2691,22 @@ export const translations: Record<Language, Translations> = {
     orderSmsCode: 'SMS kodu',
     orderVerifySms: 'Təsdiqlə və daxil ol',
     orderSmsSentHint: 'Telefonunuza kod göndərildi. Aşağıya daxil edin.',
+    orderSmsResend: 'Kodu yenidən göndər',
+    orderSmsResendWait: '{seconds}s sonra yenidən göndər',
+    orderSmsCodeExpiredHint: 'Kodun vaxtı bitib və ya yanlışdır. Yeni SMS kodu istəyin.',
+    orderSmsEnterCodeHint: 'SMS-dən tam kodu daxil edin (adətən 6 rəqəm).',
+    orderSmsSendFailedHint:
+      'SMS göndərilmədi. Nömrəni yoxlayıb yenidən cəhd edin və ya e-poçt/Google ilə daxil olun.',
+    orderSmsCodeSentConfirmation: 'Kod göndərildi!',
     orderChangePhone: 'Başqa nömrə',
     orderInvalidPhone: 'Ölkə kodu ilə düzgün nömrə daxil edin (məs. +994…).',
     orderAccountPhone: 'Telefon',
     orderMapSearchPlaceholder: 'Küçə və ya yer axtarın…',
+    orderMapNoResults: 'Bakıda uyğun nəticə tapılmadı.',
+    orderMapSearchFailed: 'Ünvan axtarışı alınmadı. Yenidən cəhd edin.',
+    orderMapSelectFailed: 'Bu ünvan təsdiqlənmədi. Başqa nəticəni seçin.',
+    orderMapLoadFailed: 'Xəritə axtarışı hazırda əlçatan deyil.',
+    orderZonePillIn: '{zone} üçün çatdırılma · ₼{fee}',
     orderMapPinHint: 'İşarəni sürüyün və ya axtarın — çatdırılma üçün məkan işarədən götürülür.',
     orderMapLoading: 'Xəritə yüklənir…',
     orderMapUnavailable: 'Xəritə əlçatan deyil. Ünvanı yazın və ya cihaz məkanından istifadə edin.',
@@ -2371,6 +2785,8 @@ export const translations: Record<Language, Translations> = {
     comboBuilderAddToCart: 'Kombonu səbətə əlavə et',
     comboBuilderNext: 'Növbəti',
     comboBuilderPickOne: 'Bir seçim edin',
+    comboBuilderEmptyGroup: 'Bu kombo addımı hazırda əlçatan deyil.',
+    comboBuilderEmptyCombo: 'Bu kombo üçün addımlar konfiqurasiya edilməyib.',
     orderErrGeneric: 'Sifarişi tamamlamaq olmadı. Yenidən cəhd edin.',
     orderErrAuthRequired: 'Sifariş vermək üçün daxil olun.',
     orderErrCartEmpty: 'Səbət boşdur.',
@@ -2388,6 +2804,21 @@ export const translations: Record<Language, Translations> = {
     orderErrScheduleRequired: 'Planlı sifariş üçün vaxt seçin.',
     orderErrScheduleInvalid: 'Seçilən vaxt etibarsızdır.',
     orderErrScheduleTooSoon: 'Daha gec bir slot seçin.',
+    orderErrInvalidQuantity: 'Səbətdəki bəzi məhsulların sayı etibarsızdır.',
+    orderErrKitchenClosed: 'Mətbəx onlayn sifarişlər üçün hazırda bağlıdır.',
+    orderErrKitchenPaused: 'Mətbəx müvəqqəti dayandırılıb. Planlı vaxt sınayın və ya sonra yoxlayın.',
+    orderErrScheduleWhilePaused: 'Bu vaxt hələ dayanma müddətindədir. Daha sonrakı slot seçin.',
+    orderErrScheduleOutsideHours: 'Bu vaxt iş saatlarımızdan kənardır. Başqa slot seçin.',
+    orderPayCodDescription: 'Götürmə zamanı və ya kuryerə nağd ödəniş.',
+    orderPayCashDescription: 'Restoranda nağd.',
+    orderPayEpointDescription: 'E-point ilə təhlükəsiz kart ödənişi.',
+    orderCheckoutSummary: 'Xülasə',
+    orderCheckoutBrand: "Ming's",
+    orderProfileSection: 'Profil',
+    orderAddressDefaultBadge: 'Defolt',
+    orderAddressHomeLabel: 'Ev',
+    orderPromoCodePlaceholder: 'MINGS10',
+    orderZonePillChecking: 'Çatdırılma zonası yoxlanır…',
 
     trackingPageTitle: 'Sifariş statusu',
     trackingOrderLabel: 'Sifariş',
@@ -2458,6 +2889,7 @@ export const translations: Record<Language, Translations> = {
     omLast7Days: 'Son 7 gün',
     omThisMonth: 'Bu ay',
     omLastMonth: 'Ötən ay',
+    omAll: 'Hamısı',
     omProducts: 'Məhsullar',
     omCombos: 'Kombolar',
     omKioskToggle: 'Kiosk',
@@ -2470,6 +2902,18 @@ export const translations: Record<Language, Translations> = {
     omSourceTakeaway: 'Onlayn · Əlavə',
     omSourceDelivery: 'Onlayn · Çatdırılma',
     omTitle: 'Sifariş meneceri',
+    omKitchenStatusTitle: 'Onlayn mətbəx',
+    omKitchenStatusOnline: 'Sifariş qəbul edilir',
+    omKitchenStatusPausedUntil: '{time}-ə qədər dayanır',
+    omKitchenStatusOffline: 'Oflayn (yeni sifariş yox)',
+    omKitchenStatusClosed: 'Saatlara görə bağlı',
+    omKitchenPause30: '30 dəq dayan',
+    omKitchenPause60: '1 saat dayan',
+    omKitchenPauseUntilNextOpen: 'Növbəti açılışadək',
+    omKitchenPauseIndefinite: 'Yenidən açana qədər oflayn',
+    omKitchenResume: 'İndi aç',
+    omKitchenStatusHint: 'Dayanmadan sonra slotlar varsa müştərilər planlaya bilər.',
+    omKitchenNoNextOpen: 'Növbəti açılış tapılmadı — saatları Çatdırılma ayarlarında yoxlayın.',
     omReminderSet: 'Xatırlatma quruldu',
     omSelfDelivery: 'Öz çatdırılma',
     omWoltDrive: 'Wolt Drive',
@@ -2489,6 +2933,120 @@ export const translations: Record<Language, Translations> = {
     omRejectConfirm: 'Rədd etməni təsdiqlə',
     omRejectCancel: 'Ləğv et',
     omRejectSelectReason: 'Səbəb seçin...',
+    orderSupport: 'Sifariş Dəstəyi',
+    orderSupportDescription: 'Sifariş əməliyyatlarını real vaxtda izləyin və dəstəkləyin',
+    orderSupportOpenOrderPage: 'Sifariş səhifəsini aç',
+    orderSupportFilter_all: 'Hamısı',
+    orderSupportFilter_active: 'Aktiv',
+    orderSupportFilter_dispatched: 'Yola salınıb',
+    orderSupportFilter_completed: 'Tamamlanıb',
+    orderSupportFilter_cancelled: 'Ləğv edilib',
+    orderSupportOrdersFound: 'sifariş tapıldı',
+    orderSupportSourceAll: 'Bütün mənbələr',
+    orderSupportSearch: 'Sifariş #, müştəri, telefon ilə axtar',
+    orderSupportNoOrders: 'Bu filtr üçün sifariş tapılmadı',
+    orderSupportColTime: 'Vaxt',
+    orderSupportColCustomer: 'Müştəri',
+    orderSupportColItems: 'Məhsullar',
+    orderSupportColTotal: 'Cəmi',
+    orderSupportColStatus: 'Status',
+    orderSupportOrderActions: 'Sifariş əməliyyatları',
+    orderSupportPrepareQuick: 'Hazırlığa başla (15 dəq)',
+    orderSupportScheduledHint:
+      'Bu sifariş planlıdır. Xatırlatma üçün Sifariş Meneceri daha təhlükəsizdir; detalları burada görə bilərsiniz.',
+    deliveryScreenTitle: 'Çatdırılma',
+    deliveryScreenDescription: 'Zonaları, mətbəx qaydalarını və əl ilə yola salmanı idarə edin',
+    deliveryRefresh: 'Çatdırılma məlumatını yenilə',
+    deliveryTabZones: 'Zonalar',
+    deliveryTabSettings: 'Ayarlar',
+    deliveryTabDispatch: 'Yola salma',
+    deliveryZonesTitle: 'Çatdırılma zonaları',
+    deliveryZonesDescription: 'Aktiv xidmət poliqonlarını və qiymət qaydalarını tənzimləyin.',
+    deliveryZonesNew: 'Yeni zona',
+    deliveryZonesEmptyTitle: 'Hələ çatdırılma zonası yoxdur',
+    deliveryZonesEmptyHint: 'Ünvan əsaslı qiymətləndirmə üçün ilk zonanı yaradın.',
+    deliveryZonesColName: 'Ad',
+    deliveryZonesColVertices: 'Nöqtələr',
+    deliveryZonesColFee: 'Haqq',
+    deliveryZonesColMinOrder: 'Min sifariş',
+    deliveryZonesColActive: 'Aktiv',
+    deliveryZonesColActions: 'Əməliyyatlar',
+    deliveryZoneNewTitle: 'Çatdırılma zonası yarat',
+    deliveryZoneEditTitle: 'Çatdırılma zonasını redaktə et',
+    deliveryZoneFieldName: 'Zona adı',
+    deliveryZoneFieldFee: 'Çatdırılma haqqı',
+    deliveryZoneFieldMinOrder: 'Minimum sifariş',
+    deliveryZoneFieldFreeThreshold: 'Pulsuz çatdırılma həddi',
+    deliveryZoneFieldSortOrder: 'Sıralama',
+    deliveryZoneFieldActive: 'Aktiv',
+    deliveryZoneFieldPolygon: 'Zona poliqonu',
+    deliveryZonePolygonHint: 'Zonanı təyin etmək üçün xəritədə ən azı 3 nöqtə qeyd edin.',
+    deliveryZoneClearShape: 'Formanı təmizlə',
+    deliveryZonePolygonRequired: 'Poliqon tələb olunur',
+    deliveryZonePreview: 'Zona önizləməsi',
+    deliveryZonePreviewLoading: 'Xəritə yüklənir...',
+    deliveryZonePreviewUnavailable: 'Xəritə əlçatan deyil',
+    deliveryZonePreviewEmpty: 'Hələ poliqon yoxdur',
+    deliveryZoneVertices: 'nöqtə',
+    deliveryZoneSave: 'Zonanı yadda saxla',
+    deliveryZoneSaving: 'Yadda saxlanır...',
+    deliveryZoneSaveError: 'Zonanı yadda saxlamaq olmadı',
+    deliveryZoneDeleteConfirm: '{name} zonası silinsin?',
+    deliveryZoneDeleteError: 'Zonanı silmək olmadı',
+    deliveryZoneToggleError: 'Zona statusunu yeniləmək olmadı',
+    deliverySettingsTitle: 'Çatdırılma ayarları',
+    deliverySettingsDescription: 'Mətbəx əlçatanlığını, hazırlıq vaxtını və yola salma rejimini idarə edin.',
+    deliverySettingsKitchenOpen: 'Mətbəx açıqdır',
+    deliverySettingsKitchenOpenHint: 'Bağlı olduqda, onlayn sifariş müştərilər üçün deaktiv edilir.',
+    deliverySettingsDeliveryEnabled: 'Çatdırılma aktivdir',
+    deliverySettingsTakeawayEnabled: 'Götürmə aktivdir',
+    deliverySettingsGlobalMinOrder: 'Qlobal minimum sifariş',
+    deliverySettingsDefaultPrep: 'Standart hazırlıq vaxtı (dəqiqə)',
+    deliverySettingsDefaultPrepHint: 'Sifarişə xüsusi hazırlıq vaxtı olmadıqda istifadə olunur.',
+    deliverySettingsGlobalFreeThreshold: 'Qlobal pulsuz çatdırılma həddi',
+    deliverySettingsDispatchMode: 'Yola salma rejimi',
+    deliverySettingsDispatchAuto: 'Avto (provayder ilə)',
+    deliverySettingsDispatchManual: 'Əl ilə (personal yola salır)',
+    deliverySettingsHours: 'İş saatları',
+    deliverySettingsHoursHint: 'Həftənin hər günü üçün açılış və bağlanış saatlarını təyin edin.',
+    deliverySettingsClosed: 'Bağlı',
+    deliverySettingsOpenAt: 'Açılır',
+    deliverySettingsCloseAt: 'Bağlanır',
+    deliverySettingsSave: 'Ayarları yadda saxla',
+    deliverySettingsSaving: 'Yadda saxlanır...',
+    deliverySettingsSaved: 'Ayarlar yadda saxlanıldı',
+    deliverySettingsSaveError: 'Ayarları yadda saxlamaq olmadı',
+    deliverySettingsClosingSoonLabel: 'Bağlanışdan əvvəl “son çağırış” pəncərəsi (dəqiqə)',
+    deliverySettingsClosingSoonHint:
+      '0 söndürür. Bu müddətdə müştərilər sifarişi təsdiqləyir, amma xəbərdarlıq görür.',
+    deliverySettingsPauseActive: 'Vaxtı dayanma aktivdir: {time} (Bakı).',
+    deliverySettingsCancelPause: 'Dayanmanı ləğv et və indi aç',
+    deliverySettingsHoursInvalid: 'Açıq günlərdə etibarlı açılış və bağlanış saatları (SS:DD) lazımdır.',
+    deliverySettingsDayMon: 'B.e',
+    deliverySettingsDayTue: 'Ç.a',
+    deliverySettingsDayWed: 'Ç',
+    deliverySettingsDayThu: 'C.a',
+    deliverySettingsDayFri: 'C',
+    deliverySettingsDaySat: 'Ş',
+    deliverySettingsDaySun: 'B',
+    deliveryDispatchTitle: 'Yola salma mərkəzi',
+    deliveryDispatchDescription: 'Aktiv çatdırılmaları və yola salma əməliyyatlarını idarə edin.',
+    deliveryDispatchEmpty: 'Bu aralıq üçün yola salınacaq sifariş yoxdur.',
+    deliveryDispatchColOrder: 'Sifariş',
+    deliveryDispatchColCustomer: 'Müştəri',
+    deliveryDispatchColAddress: 'Ünvan',
+    deliveryDispatchColStatus: 'Status',
+    deliveryDispatchColActions: 'Əməliyyatlar',
+    deliveryDispatchNoWolt: 'Wolt tapşırığı yoxdur',
+    deliveryDispatchManuallyDispatched: 'Əl ilə işarələnib',
+    deliveryDispatchTrackOpen: 'İzləməni aç',
+    deliveryDispatchTrackCopy: 'İzləmə URL-ni kopyala',
+    deliveryDispatchTrackCopied: 'Kopyalandı',
+    deliveryDispatchActionDispatch: 'Yola sal',
+    deliveryDispatchActionMarkManual: 'Əl ilə işarələ',
+    deliveryDispatchActionCancel: 'Tapşırığı ləğv et',
+    deliveryDispatchInvokeError: 'Yola salma əməliyyatı uğursuz oldu',
+    deliveryDispatchInvokeOk: 'Yola salma əməliyyatı tamamlandı',
     deliverySettingsKitchenLocationTitle: 'Mətbəx məkanı',
     deliverySettingsKitchenLocationHint:
       'Məsafə, ETA və öz kuryer tövsiyəsi üçün istifadə olunur. Boş saxlasanız standart məkan istifadə ediləcək.',
@@ -2739,6 +3297,14 @@ export const translations: Record<Language, Translations> = {
     never: 'Никогда',
     user: 'Пользователь',
     createdAt: 'Создан',
+    changeRole: 'Изменить роль',
+    resetPassword: 'Сбросить пароль',
+    newPassword: 'Новый пароль',
+    confirmNewPassword: 'Подтвердите новый пароль',
+    passwordResetSuccess: 'Пароль успешно обновлён',
+    roleUpdated: 'Роль обновлена',
+    cannotChangeOwnRole: 'Нельзя изменить собственную роль',
+    passwordMinLength: 'Пароль должен содержать минимум 8 символов',
 
     welcomeBack: 'С Возвращением',
     signInToAccount: 'Войдите в свою учетную запись',
@@ -2847,7 +3413,7 @@ export const translations: Record<Language, Translations> = {
     wouldYouLikeToAdd: 'Хотите добавить?',
     menu: 'Меню',
 
-    kitchenDisplay: 'Кухонный Дисплей',
+    kitchenDisplay: 'Экран кухни',
     startPreparing: 'Начать готовить',
     markReady: 'Готово',
     markCompleted: 'Завершить',
@@ -2866,6 +3432,18 @@ export const translations: Record<Language, Translations> = {
     kdsBusyKitchenHint: 'Загруженная кухня? Рекомендуем 20 мин.',
     kdsCourierNoteLabel: 'Курьер',
 
+    orderManagerTitle: 'Менеджер заказов',
+    orderManagerDescription: 'Отслеживайте и обрабатывайте киоск и онлайн-заказы в единой очереди',
+    openOnlineOrder: 'Открыть онлайн-заказ',
+    refreshOrders: 'Обновить заказы',
+    totalOrders: 'Всего заказов',
+    ordersInQueue: 'Заказы в очереди',
+    todayRevenue: 'Выручка за сегодня',
+    searchOrderManagerPlaceholder: 'Поиск по заказу #, телефону или ID',
+    allSources: 'Все источники',
+    allPayments: 'Все оплаты',
+    unpaidOnly: 'Только неоплаченные',
+    paidOnly: 'Только оплаченные',
     kioskOrders: 'Заказы с Киоска',
     confirmPayment: 'Подтвердить оплату',
     printAgain: 'Печать повторно',
@@ -3049,6 +3627,18 @@ export const translations: Record<Language, Translations> = {
     kitchenClosedMessage: 'Онлайн-заказы временно недоступны. Загляните позже.',
     kitchenClosedReopenHint: 'Часы работы:',
     kitchenClosedBackToMenu: 'В меню',
+    kitchenPausedTitle: 'Кухня на паузе',
+    kitchenPausedMessage:
+      'Сейчас мы не принимаем срочные заказы. Вы можете выбрать время в часы работы.',
+    orderClosedPausedUntil: 'Снова онлайн примерно в {time} (время Баку).',
+    orderClosedUntilNextOpen: 'Следующее открытие: {when}',
+    orderClosedSchedulePromptTitle: 'Запланировать заказ',
+    orderClosedSchedulePromptHint: 'Выберите слот в часы работы.',
+    orderClosedScheduleAction: 'Запланировать на потом',
+    closingSoonBanner:
+      'Кухня скоро закроется. Заказы, оформленные сейчас, могут потребовать подтверждения кухней.',
+    closingSoonCheckoutNote:
+      'Мы приближаемся ко времени закрытия ({time}, Баку). Мы постараемся выполнить ваш заказ.',
     cartUnavailableTitle: 'Некоторые позиции больше недоступны',
     cartUnavailableIntro: 'Удалите недоступные позиции, чтобы продолжить.',
     cartUnavailableRemoveLine: 'Убрать',
@@ -3111,10 +3701,22 @@ export const translations: Record<Language, Translations> = {
     orderSmsCode: 'Код из SMS',
     orderVerifySms: 'Подтвердить и войти',
     orderSmsSentHint: 'Мы отправили код на ваш телефон. Введите его ниже.',
+    orderSmsResend: 'Отправить код снова',
+    orderSmsResendWait: 'Повтор через {seconds}с',
+    orderSmsCodeExpiredHint: 'Код истек или неверный. Запросите новый SMS-код.',
+    orderSmsEnterCodeHint: 'Введите полный код из SMS (обычно 6 цифр).',
+    orderSmsSendFailedHint:
+      'Не удалось отправить SMS. Проверьте номер и попробуйте снова или войдите через email или Google.',
+    orderSmsCodeSentConfirmation: 'Код отправлен!',
     orderChangePhone: 'Другой номер',
     orderInvalidPhone: 'Укажите номер с кодом страны (например +994…).',
     orderAccountPhone: 'Телефон',
     orderMapSearchPlaceholder: 'Поиск улицы или места…',
+    orderMapNoResults: 'По Баку ничего не найдено.',
+    orderMapSearchFailed: 'Не удалось выполнить поиск адреса. Повторите попытку.',
+    orderMapSelectFailed: 'Не удалось определить этот адрес. Выберите другой вариант.',
+    orderMapLoadFailed: 'Поиск по карте сейчас недоступен.',
+    orderZonePillIn: 'Доставляем в {zone} · ₼{fee}',
     orderMapPinHint: 'Перетащите метку или найдите адрес — доставка по положению метки.',
     orderMapLoading: 'Загрузка карты…',
     orderMapUnavailable: 'Карта недоступна. Введите адрес или используйте геолокацию.',
@@ -3193,6 +3795,8 @@ export const translations: Record<Language, Translations> = {
     comboBuilderAddToCart: 'Добавить комбо в корзину',
     comboBuilderNext: 'Далее',
     comboBuilderPickOne: 'Выберите один вариант',
+    comboBuilderEmptyGroup: 'Этот шаг комбо сейчас недоступен.',
+    comboBuilderEmptyCombo: 'Для этого комбо не настроены шаги.',
 
     orderErrGeneric: 'Не удалось оформить заказ. Попробуйте снова.',
     orderErrAuthRequired: 'Войдите в аккаунт, чтобы оформить заказ.',
@@ -3211,6 +3815,22 @@ export const translations: Record<Language, Translations> = {
     orderErrScheduleRequired: 'Выберите время для запланированного заказа.',
     orderErrScheduleInvalid: 'Выбранное время недействительно.',
     orderErrScheduleTooSoon: 'Выберите более поздний слот.',
+    orderErrInvalidQuantity: 'У одной или нескольких позиций в корзине неверное количество.',
+    orderErrKitchenClosed: 'Кухня сейчас не принимает онлайн-заказы.',
+    orderErrKitchenPaused: 'Кухня временно на паузе. Попробуйте запланировать время или зайдите позже.',
+    orderErrScheduleWhilePaused: 'Это время ещё внутри паузы кухни. Выберите более поздний слот.',
+    orderErrScheduleOutsideHours: 'Это время вне часов работы. Выберите другой слот.',
+    orderPayCodDescription: 'Оплата при получении или курьеру.',
+    orderPayCashDescription: 'Наличные в ресторане.',
+    orderPayEpointDescription: 'Безопасная оплата картой через E-point.',
+    orderCheckoutSummary: 'Итого',
+    orderCheckoutBrand: "Ming's",
+    orderProfileSection: 'Профиль',
+    orderAddressDefaultBadge: 'По умолчанию',
+    orderAddressHomeLabel: 'Дом',
+    orderPromoCodePlaceholder: 'MINGS10',
+    orderZonePillChecking: 'Проверяем зону доставки…',
+
     trackingPageTitle: 'Статус заказа',
     trackingOrderLabel: 'Заказ',
     trackingKitchenStatus: 'Статус кухни',
@@ -3279,6 +3899,7 @@ export const translations: Record<Language, Translations> = {
     omLast7Days: 'Последние 7 дней',
     omThisMonth: 'Этот месяц',
     omLastMonth: 'Прошлый месяц',
+    omAll: 'Все',
     omProducts: 'Продукты',
     omCombos: 'Комбо',
     omKioskToggle: 'Киоск',
@@ -3291,6 +3912,18 @@ export const translations: Record<Language, Translations> = {
     omSourceTakeaway: 'Онлайн · Самовывоз',
     omSourceDelivery: 'Онлайн · Доставка',
     omTitle: 'Менеджер заказов',
+    omKitchenStatusTitle: 'Онлайн-кухня',
+    omKitchenStatusOnline: 'Принимаем заказы',
+    omKitchenStatusPausedUntil: 'Пауза до {time}',
+    omKitchenStatusOffline: 'Офлайн (без новых заказов)',
+    omKitchenStatusClosed: 'Закрыто по часам',
+    omKitchenPause30: 'Пауза 30 мин',
+    omKitchenPause60: 'Пауза 1 час',
+    omKitchenPauseUntilNextOpen: 'До следующего открытия',
+    omKitchenPauseIndefinite: 'Офлайн до ручного включения',
+    omKitchenResume: 'Открыть сейчас',
+    omKitchenStatusHint: 'После паузы клиенты могут планировать, если есть слоты.',
+    omKitchenNoNextOpen: 'Следующее открытие не найдено — проверьте часы в настройках доставки.',
     omReminderSet: 'Напоминание установлено',
     omSelfDelivery: 'Своя доставка',
     omWoltDrive: 'Wolt Drive',
@@ -3310,6 +3943,120 @@ export const translations: Record<Language, Translations> = {
     omRejectConfirm: 'Подтвердить отказ',
     omRejectCancel: 'Отмена',
     omRejectSelectReason: 'Выберите причину...',
+    orderSupport: 'Поддержка заказов',
+    orderSupportDescription: 'Отслеживайте и поддерживайте операции заказов в реальном времени',
+    orderSupportOpenOrderPage: 'Открыть страницу заказа',
+    orderSupportFilter_all: 'Все',
+    orderSupportFilter_active: 'Активные',
+    orderSupportFilter_dispatched: 'Отправлено',
+    orderSupportFilter_completed: 'Завершено',
+    orderSupportFilter_cancelled: 'Отменено',
+    orderSupportOrdersFound: 'заказов найдено',
+    orderSupportSourceAll: 'Все источники',
+    orderSupportSearch: 'Поиск по заказу #, клиенту, телефону',
+    orderSupportNoOrders: 'Для этого фильтра заказы не найдены',
+    orderSupportColTime: 'Время',
+    orderSupportColCustomer: 'Клиент',
+    orderSupportColItems: 'Позиции',
+    orderSupportColTotal: 'Сумма',
+    orderSupportColStatus: 'Статус',
+    orderSupportOrderActions: 'Действия по заказу',
+    orderSupportPrepareQuick: 'Начать готовку (15 мин)',
+    orderSupportScheduledHint:
+      'Заказ по расписанию. Настройку напоминаний лучше делать в менеджере заказов; здесь можно просмотреть детали.',
+    deliveryScreenTitle: 'Доставка',
+    deliveryScreenDescription: 'Управляйте зонами, правилами кухни и ручной отправкой',
+    deliveryRefresh: 'Обновить данные доставки',
+    deliveryTabZones: 'Зоны',
+    deliveryTabSettings: 'Настройки',
+    deliveryTabDispatch: 'Отправка',
+    deliveryZonesTitle: 'Зоны доставки',
+    deliveryZonesDescription: 'Настройте активные полигоны покрытия и правила тарификации.',
+    deliveryZonesNew: 'Новая зона',
+    deliveryZonesEmptyTitle: 'Пока нет зон доставки',
+    deliveryZonesEmptyHint: 'Создайте первую зону для расчета доставки по адресу.',
+    deliveryZonesColName: 'Название',
+    deliveryZonesColVertices: 'Вершины',
+    deliveryZonesColFee: 'Стоимость',
+    deliveryZonesColMinOrder: 'Мин. заказ',
+    deliveryZonesColActive: 'Активно',
+    deliveryZonesColActions: 'Действия',
+    deliveryZoneNewTitle: 'Создать зону доставки',
+    deliveryZoneEditTitle: 'Редактировать зону доставки',
+    deliveryZoneFieldName: 'Название зоны',
+    deliveryZoneFieldFee: 'Стоимость доставки',
+    deliveryZoneFieldMinOrder: 'Минимальный заказ',
+    deliveryZoneFieldFreeThreshold: 'Порог бесплатной доставки',
+    deliveryZoneFieldSortOrder: 'Порядок сортировки',
+    deliveryZoneFieldActive: 'Активно',
+    deliveryZoneFieldPolygon: 'Полигон зоны',
+    deliveryZonePolygonHint: 'Нарисуйте на карте минимум 3 точки для определения зоны.',
+    deliveryZoneClearShape: 'Очистить форму',
+    deliveryZonePolygonRequired: 'Полигон обязателен',
+    deliveryZonePreview: 'Предпросмотр зоны',
+    deliveryZonePreviewLoading: 'Загрузка карты...',
+    deliveryZonePreviewUnavailable: 'Карта недоступна',
+    deliveryZonePreviewEmpty: 'Полигона пока нет',
+    deliveryZoneVertices: 'вершин',
+    deliveryZoneSave: 'Сохранить зону',
+    deliveryZoneSaving: 'Сохранение...',
+    deliveryZoneSaveError: 'Не удалось сохранить зону',
+    deliveryZoneDeleteConfirm: 'Удалить зону {name}?',
+    deliveryZoneDeleteError: 'Не удалось удалить зону',
+    deliveryZoneToggleError: 'Не удалось обновить статус зоны',
+    deliverySettingsTitle: 'Настройки доставки',
+    deliverySettingsDescription: 'Управляйте доступностью кухни, временем готовки и режимом отправки.',
+    deliverySettingsKitchenOpen: 'Кухня открыта',
+    deliverySettingsKitchenOpenHint: 'Когда кухня закрыта, онлайн-заказы отключены для клиентов.',
+    deliverySettingsDeliveryEnabled: 'Доставка включена',
+    deliverySettingsTakeawayEnabled: 'Самовывоз включен',
+    deliverySettingsGlobalMinOrder: 'Глобальный минимальный заказ',
+    deliverySettingsDefaultPrep: 'Время готовки по умолчанию (мин)',
+    deliverySettingsDefaultPrepHint: 'Используется, если для заказа не задано отдельное время.',
+    deliverySettingsGlobalFreeThreshold: 'Глобальный порог бесплатной доставки',
+    deliverySettingsDispatchMode: 'Режим отправки',
+    deliverySettingsDispatchAuto: 'Авто (через провайдера)',
+    deliverySettingsDispatchManual: 'Вручную (персонал отправляет)',
+    deliverySettingsHours: 'Часы работы',
+    deliverySettingsHoursHint: 'Укажите время открытия и закрытия для каждого дня недели.',
+    deliverySettingsClosed: 'Закрыто',
+    deliverySettingsOpenAt: 'Открытие',
+    deliverySettingsCloseAt: 'Закрытие',
+    deliverySettingsSave: 'Сохранить настройки',
+    deliverySettingsSaving: 'Сохранение...',
+    deliverySettingsSaved: 'Настройки сохранены',
+    deliverySettingsSaveError: 'Не удалось сохранить настройки',
+    deliverySettingsClosingSoonLabel: 'Окно «последний заказ» (минут до закрытия)',
+    deliverySettingsClosingSoonHint:
+      '0 — выкл. В этом окне заказы принимаются, но показывается предупреждение о скором закрытии.',
+    deliverySettingsPauseActive: 'Активна пауза до {time} (Баку).',
+    deliverySettingsCancelPause: 'Снять паузу и открыть сейчас',
+    deliverySettingsHoursInvalid: 'Для открытых дней укажите корректное время открытия и закрытия (ЧЧ:ММ).',
+    deliverySettingsDayMon: 'Пн',
+    deliverySettingsDayTue: 'Вт',
+    deliverySettingsDayWed: 'Ср',
+    deliverySettingsDayThu: 'Чт',
+    deliverySettingsDayFri: 'Пт',
+    deliverySettingsDaySat: 'Сб',
+    deliverySettingsDaySun: 'Вс',
+    deliveryDispatchTitle: 'Центр отправки',
+    deliveryDispatchDescription: 'Управляйте активными доставками и действиями отправки.',
+    deliveryDispatchEmpty: 'Нет заказов для отправки в этом диапазоне.',
+    deliveryDispatchColOrder: 'Заказ',
+    deliveryDispatchColCustomer: 'Клиент',
+    deliveryDispatchColAddress: 'Адрес',
+    deliveryDispatchColStatus: 'Статус',
+    deliveryDispatchColActions: 'Действия',
+    deliveryDispatchNoWolt: 'Нет задачи Wolt',
+    deliveryDispatchManuallyDispatched: 'Отмечено вручную',
+    deliveryDispatchTrackOpen: 'Открыть трекинг',
+    deliveryDispatchTrackCopy: 'Скопировать URL трекинга',
+    deliveryDispatchTrackCopied: 'Скопировано',
+    deliveryDispatchActionDispatch: 'Отправить',
+    deliveryDispatchActionMarkManual: 'Отметить вручную',
+    deliveryDispatchActionCancel: 'Отменить задачу',
+    deliveryDispatchInvokeError: 'Ошибка действия отправки',
+    deliveryDispatchInvokeOk: 'Действие отправки выполнено',
     deliverySettingsKitchenLocationTitle: 'Локация кухни',
     deliverySettingsKitchenLocationHint:
       'Используется для расстояния, ETA и рекомендаций по собственной доставке. Если пусто — используется локация по умолчанию.',

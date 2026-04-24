@@ -82,3 +82,12 @@ npm run supabase:deploy:web
 - `20260418191000_combo_discount_fields.sql` — combo discount config foundation columns (`discount_*`) with non-negative constraint.
 - `20260418200000_add_scheduled_orders.sql` — adds `sales.scheduled_for` and `sales.reminder_at` for order-manager scheduled flow.
 - `20260419120000_online_settings_is_open_sales_cancellation_reason.sql` — `online_settings.is_open` (kitchen closed gate for `/order` checkout) and `sales.cancellation_reason` (customer-facing cancel reason on `/track`).
+- `20260422100500_fix_staff_sales_update_policy.sql` — `sales` RLS: **`Staff, manager, admin can update sales`** (staff no longer limited to rows they created); adds `enforce_staff_sales_workflow_update` trigger (initial allowed columns).
+- `20260422103000_expand_staff_workflow_update_columns.sql` — extends staff workflow column allowlist (`ready_at`, `dispatched_at`, `completed_at`, `reminder_at`, `cancellation_reason`, `payment_status`, …).
+- `20260422104500_allow_staff_complete_orders.sql` — staff may set `order_status` to **`completed`** (picked up / delivered).
+- `20260422200000_wolt_booking_lock_and_scheduled_guard.sql` — `delivery_orders.wolt_booking_locked_until` (persisted Wolt portal booking lock; filename is historical).
+- `20260422201000_kiosk_anon_update_cancellation_reason_bound.sql` — tighter `WITH CHECK` on anon kiosk `sales` updates for `cancellation_reason`.
+- `20260422210000_products_combo_soft_delete_scheduled_future.sql` — `products.is_deleted` / `combo_deals.is_deleted`, combo storefront policy, `sales` trigger so `scheduled_for` stays in the future when scheduling changes.
+- `20260422194244_ensure_rpc_request_phone_otp.sql` — idempotent **`otp_requests`** + **`rpc_request_phone_otp`** + `GRANT EXECUTE` (fixes **PGRST202** when `20260421174000_*` never ran on a host). Version matches Supabase MCP `apply_migration` record on the linked project.
+- `20260423120000_online_settings_kitchen_pause.sql` — `online_settings.offline_until`, `closing_soon_minutes` (default 0), and **`Staff can manage online settings`** RLS extended to include **`manager`**.
+- `20260423180000_expire_online_kitchen_pause_rpc.sql` — **`expire_online_kitchen_pause_if_due()`** (SECURITY DEFINER): when a timed pause has ended, sets `is_open=true` and clears `offline_until`; keeps indefinite close unchanged. Granted to **`anon`**, **`authenticated`**, **`service_role`** so Order App and edge can run it before reads.

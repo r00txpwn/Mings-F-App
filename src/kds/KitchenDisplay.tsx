@@ -78,6 +78,9 @@ function KdsContent() {
     channel.subscribe((status) => {
       setChannelHealth(status);
       setRealtimeStatus(status === 'SUBSCRIBED' ? 'connected' : 'reconnecting');
+      if (status === 'SUBSCRIBED') {
+        void loadOrders();
+      }
     });
 
     return () => {

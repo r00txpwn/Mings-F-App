@@ -25,7 +25,8 @@ alwaysApply: true
 ## For agents
 
 - **Do not** run production deploy commands on behalf of the user unless production deploy is explicitly requested **and** changes are already **pushed** (or the user explicitly confirms an exception).
-- If the user asks to “deploy to production,” **default** to: ensure work is committed and pushed; prefer **git-triggered** deploys over **CLI upload** deploys.
+- **Do not `git push` to `main` (or any default production branch) unless the user explicitly asked you to in the current task.** Pushing to shared default branches is risky; leave merges and release pushes to the human unless they clearly delegate it.
+- If the user asks to “deploy to production,” **default** to: ensure work is committed; give them a clear summary and let them push/merge via their normal PR flow; prefer **git-triggered** deploys over **CLI upload** deploys.
 
 ## Why
 

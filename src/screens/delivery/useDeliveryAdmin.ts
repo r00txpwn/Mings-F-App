@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { expireOnlineKitchenPauseIfDue } from '../../order/orderOnlineSettings';
 import type {
   DeliveryZoneRow,
   OnlineSettingsRow,
@@ -67,6 +68,7 @@ export function useDeliveryAdmin() {
   }, [setIfMounted]);
 
   const loadSettings = useCallback(async () => {
+    await expireOnlineKitchenPauseIfDue(supabase);
     const { data, error } = await supabase
       .from('online_settings')
       .select('*')

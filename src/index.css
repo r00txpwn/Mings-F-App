@@ -16,6 +16,23 @@
 }
 
 @layer utilities {
+  @keyframes ming-amber-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    }
+  }
+
+  .ming-cta-closing-soon {
+    animation: ming-amber-pulse 2s ease-out infinite;
+    border: 2px solid rgba(245, 158, 11, 0.85);
+  }
+
   @keyframes fadeIn {
     from {
       opacity: 0;

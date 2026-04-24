@@ -119,6 +119,11 @@ export function DeliveryScreen() {
       saving: t.deliverySettingsSaving,
       saved: t.deliverySettingsSaved,
       saveError: t.deliverySettingsSaveError,
+      closingSoonMinutesLabel: t.deliverySettingsClosingSoonLabel,
+      closingSoonMinutesHint: t.deliverySettingsClosingSoonHint,
+      pauseActive: t.deliverySettingsPauseActive,
+      cancelPause: t.deliverySettingsCancelPause,
+      hoursInvalid: t.deliverySettingsHoursInvalid,
       days: {
         mon: t.deliverySettingsDayMon,
         tue: t.deliverySettingsDayTue,

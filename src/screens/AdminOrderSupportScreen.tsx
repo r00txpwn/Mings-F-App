@@ -10,12 +10,20 @@ import {
   Truck,
   ShoppingBag,
   UtensilsCrossed,
+  User,
+  Phone,
+  MapPin,
+  Clock3,
+  Loader2,
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
+import type { SaleItem } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { getOrderAppUrl } from '../lib/surfaceRouting';
+import { OrderItemSummary } from '../order-manager/OrderItemSummary';
+import { getCustomerDisplayName, type OrderManagerOrder } from '../order-manager/types';
 
 type OrderSupportStatus =
   | 'pending'
@@ -26,18 +34,6 @@ type OrderSupportStatus =
   | 'cancelled';
 
 type OrderSource = 'kiosk' | 'online_delivery' | 'online_takeaway';
-
-interface SaleItem {
-  id: string;
-  product_name?: string | null;
-  quantity?: number | null;
-  unit_price?: number | null;
-  is_combo?: boolean | null;
-  sale_item_modifiers?: Array<{
-    id: string;
-    modifier_name?: string | null;
-  }> | null;
-}
 
 interface DeliveryOrder {
   sale_id: string;
@@ -73,6 +69,7 @@ interface AdminOrder {
   ready_at?: string | null;
   dispatched_at?: string | null;
   completed_at?: string | null;
+  scheduled_for?: string | null;
   track_token?: string | null;
   sale_items?: SaleItem[] | null;
   delivery_order?: DeliveryOrder | null;
@@ -89,12 +86,22 @@ const STATUS_FILTERS: StatusFilter[] = [
   'cancelled',
 ];
 
+const PREP_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
+
 function fmtTime(ts: string | null | undefined): string {
   if (!ts) return '—';
   return new Date(ts).toLocaleTimeString('az-AZ', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+  });
+}
+
+function fmtDateTime(ts: string | null | undefined): string {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
   });
 }
 
@@ -117,6 +124,25 @@ function statusBadgeClass(status: OrderSupportStatus): string {
   }
 }
 
+function orderStatusLabel(t: ReturnType<typeof useLanguage>['t'], status: OrderSupportStatus): string {
+  switch (status) {
+    case 'pending':
+      return t.pending;
+    case 'preparing':
+      return t.preparing;
+    case 'ready':
+      return t.ready;
+    case 'dispatched':
+      return t.dispatched;
+    case 'completed':
+      return t.completed;
+    case 'cancelled':
+      return t.cancelled;
+    default:
+      return status;
+  }
+}
+
 function SourceIcon({ source }: { source: OrderSource }) {
   if (source === 'online_delivery') return <Truck className="h-3.5 w-3.5 text-blue-400" />;
   if (source === 'online_takeaway') return <ShoppingBag className="h-3.5 w-3.5 text-cockpit-400" />;
@@ -132,6 +158,418 @@ function itemsSummary(items: SaleItem[] | null | undefined): string {
   return names.join(', ') + extra;
 }
 
+function isPendingOnlinePayment(order: AdminOrder): boolean {
+  const src = order.source;
+  if (src !== 'online_delivery' && src !== 'online_takeaway') return false;
+  if ((order.online_payment_method ?? '') !== 'epoint') return false;
+  const st = String(order.payment_status ?? '');
+  return st !== 'paid' && st !== 'completed';
+}
+
+type OrderSupportDrawerProps = {
+  order: AdminOrder;
+  onClose: () => void;
+  /** Reload list and return the same sale row if it still exists (otherwise null). */
+  refreshOrder: () => Promise<AdminOrder | null>;
+};
+
+function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportDrawerProps) {
+  const { t } = useLanguage();
+  const [prepMinutes, setPrepMinutes] = useState<number>(15);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [showReject, setShowReject] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectNote, setRejectNote] = useState('');
+
+  const omOrder = order as OrderManagerOrder;
+  const customerDisplay = getCustomerDisplayName(omOrder);
+  const pendingPay = isPendingOnlinePayment(order);
+  const isScheduledPending = order.order_status === 'pending' && Boolean(order.scheduled_for);
+  const isTerminal = order.order_status === 'completed' || order.order_status === 'cancelled';
+  const trackingUrl = order.delivery_order?.tracking_url ?? '';
+
+  const runUpdate = async (patch: Record<string, unknown>) => {
+    setBusy(true);
+    setActionError(null);
+    try {
+      const { error } = await supabase.from('sales').update(patch).eq('id', order.id);
+      if (error) {
+        setActionError(`${t.errorOccurred}: ${error.message}`);
+        return;
+      }
+      const next = await refreshOrder();
+      if (!next) onClose();
+    } catch (e) {
+      setActionError(`${t.errorOccurred}: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const acceptWithPrep = async (minutes: number) => {
+    const nowIso = new Date().toISOString();
+    const etaIso = new Date(Date.now() + minutes * 60_000).toISOString();
+    await runUpdate({
+      order_status: 'preparing',
+      prep_started_at: nowIso,
+      estimated_ready_at: etaIso,
+    });
+  };
+
+  const confirmReject = async () => {
+    if (!rejectReason) return;
+    const reasonLabels: Record<string, string> = {
+      item_unavailable: 'Item unavailable',
+      too_busy: 'Kitchen is too busy right now',
+      zone_issue: 'Outside our delivery zone',
+      customer_request: 'Cancelled by customer request',
+      other: rejectNote.trim() || 'Order cancelled',
+    };
+    await runUpdate({
+      order_status: 'cancelled',
+      cancellation_reason: reasonLabels[rejectReason] ?? 'Order cancelled',
+    });
+    setShowReject(false);
+    setRejectReason('');
+    setRejectNote('');
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" data-testid="order-support-drawer">
+      <div
+        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+        onClick={() => !busy && onClose()}
+        aria-hidden
+      />
+      <aside
+        className="relative z-10 flex h-full w-full max-w-lg flex-col border-l border-white/10 bg-slate-900 shadow-2xl"
+        data-testid="order-support-drawer-panel"
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <div className="flex items-start gap-2">
+            <SourceIcon source={order.source} />
+            <div>
+              <p className="font-mono text-lg font-bold text-white">#{order.display_number ?? '—'}</p>
+              <p className="text-xs text-slate-500">
+                <Clock3 className="mr-1 inline h-3 w-3" />
+                {fmtDateTime(order.created_at)}
+              </p>
+              <span
+                className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusBadgeClass(order.order_status)}`}
+              >
+                {orderStatusLabel(t, order.order_status)}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => !busy && onClose()}
+            disabled={busy}
+            className="rounded-lg p-2 text-slate-500 hover:bg-white/5 hover:text-slate-300 disabled:opacity-50"
+            aria-label={t.cancel}
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex-1 space-y-4 overflow-y-auto p-5" data-testid="order-support-drawer-content">
+            {actionError ? (
+              <div className="rounded-lg border border-rose-500/35 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                {actionError}
+              </div>
+            ) : null}
+
+            {customerDisplay ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{t.orderSupportColCustomer}</p>
+                <p className="mt-1 inline-flex items-center gap-2 text-sm text-slate-100">
+                  <User className="h-4 w-4 text-slate-400" />
+                  {customerDisplay}
+                </p>
+                {order.customer_phone ? (
+                  <p className="mt-2 inline-flex items-center gap-2 text-xs text-slate-400">
+                    <Phone className="h-3.5 w-3.5" />
+                    {order.customer_phone}
+                  </p>
+                ) : null}
+              </div>
+            ) : order.customer_phone ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{t.orderSupportColCustomer}</p>
+                <p className="mt-1 inline-flex items-center gap-2 text-sm text-slate-100">
+                  <Phone className="h-4 w-4 text-slate-400" />
+                  {order.customer_phone}
+                </p>
+              </div>
+            ) : null}
+
+            {order.source === 'online_delivery' && order.delivery_address ? (
+              <div className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-blue-200/80">{t.woltCopyAddress}</p>
+                <p className="mt-1 inline-flex items-start gap-2 text-sm text-blue-100">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
+                  <span>{order.delivery_address}</span>
+                </p>
+                {order.delivery_notes ? (
+                  <p className="mt-2 text-xs text-blue-200/90">
+                    {t.woltCopyNotes}: {order.delivery_notes}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {(order.notes || order.admin_notes) && (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-300">
+                {order.notes ? <p className="whitespace-pre-wrap">{order.notes}</p> : null}
+                {order.admin_notes ? (
+                  <p className="mt-2 whitespace-pre-wrap text-slate-400">{order.admin_notes}</p>
+                ) : null}
+              </div>
+            )}
+
+            <div>
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">{t.orderDetails}</p>
+              <div data-testid="order-support-drawer-items">
+                <OrderItemSummary items={order.sale_items ?? []} />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-end justify-between gap-3 border-t border-white/10 pt-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{t.orderSupportColTotal}</p>
+                <p className="font-mono text-xl font-bold text-white">₼{Number(order.total_price ?? 0).toFixed(2)}</p>
+                {order.delivery_fee != null && Number(order.delivery_fee) > 0 ? (
+                  <p className="text-xs text-slate-500">
+                    {t.deliveryZoneFieldFee}: ₼{Number(order.delivery_fee).toFixed(2)}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            {trackingUrl ? (
+              <a
+                href={trackingUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-cockpit-300 hover:text-cockpit-200"
+              >
+                <ExternalLink className="h-4 w-4" />
+                {t.trackOnWolt}
+              </a>
+            ) : null}
+          </div>
+
+          {!isTerminal ? (
+            <div className="border-t border-white/10 bg-slate-950/80 p-4">
+              <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                {t.orderSupportOrderActions}
+              </p>
+              {busy ? (
+                <div className="flex justify-center py-2">
+                  <Loader2 className="h-6 w-6 animate-spin text-cockpit-400" />
+                </div>
+              ) : (
+                <div className="space-y-3" data-testid="order-support-drawer-actions">
+                  {isScheduledPending ? (
+                    <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                      <p className="text-xs text-amber-100/95">{t.orderSupportScheduledHint}</p>
+                      <button
+                        type="button"
+                        onClick={() => window.open(getOrderAppUrl('/order-manager'), '_blank')}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/40 bg-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-50 hover:bg-amber-500/30"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        {t.adminAccessGoToOrderManager}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {order.order_status === 'pending' && !isScheduledPending ? (
+                    <>
+                      {pendingPay ? (
+                        <button
+                          type="button"
+                          onClick={() => void runUpdate({ payment_status: 'paid' })}
+                          className="w-full rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-sm font-semibold text-amber-100 hover:bg-amber-500/25"
+                        >
+                          {t.confirmPayment}
+                        </button>
+                      ) : null}
+                      {!pendingPay ? (
+                        <>
+                          <div>
+                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                              {t.omPrepTime}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {PREP_OPTIONS.map((v) => (
+                                <button
+                                  key={v}
+                                  type="button"
+                                  onClick={() => setPrepMinutes(v)}
+                                  className={`min-h-[40px] min-w-[44px] rounded-md px-2 py-1.5 text-sm font-semibold transition-colors ${
+                                    prepMinutes === v
+                                      ? 'bg-cockpit-500 text-white'
+                                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                                  }`}
+                                >
+                                  {v}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2 sm:flex-row">
+                            <button
+                              type="button"
+                              onClick={() => void acceptWithPrep(prepMinutes)}
+                              className="flex-1 rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-teal-500"
+                            >
+                              {t.omAccept}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void acceptWithPrep(15)}
+                              className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-semibold text-slate-100 hover:bg-white/10"
+                            >
+                              {t.orderSupportPrepareQuick}
+                            </button>
+                          </div>
+                        </>
+                      ) : null}
+                      {!showReject ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowReject(true)}
+                          className="w-full text-left text-xs text-rose-400 underline underline-offset-2 hover:text-rose-300"
+                        >
+                          {t.omRejectOrder}
+                        </button>
+                      ) : (
+                        <div className="space-y-2 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3">
+                          <select
+                            value={rejectReason}
+                            onChange={(e) => {
+                              setRejectReason(e.target.value);
+                              if (e.target.value !== 'other') setRejectNote('');
+                            }}
+                            className="cockpit-select w-full"
+                          >
+                            <option value="" disabled>
+                              {t.omRejectSelectReason}
+                            </option>
+                            <option value="item_unavailable">{t.omRejectReasonItemUnavailable}</option>
+                            <option value="too_busy">{t.omRejectReasonTooBusy}</option>
+                            <option value="zone_issue">{t.omRejectReasonZoneIssue}</option>
+                            <option value="customer_request">{t.omRejectReasonCustomerRequest}</option>
+                            <option value="other">{t.omRejectReasonOther}</option>
+                          </select>
+                          {rejectReason === 'other' ? (
+                            <textarea
+                              value={rejectNote}
+                              onChange={(e) => setRejectNote(e.target.value.slice(0, 200))}
+                              placeholder={t.omRejectNotePlaceholder}
+                              rows={2}
+                              maxLength={200}
+                              className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cockpit-500 focus:outline-none"
+                            />
+                          ) : null}
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowReject(false);
+                                setRejectReason('');
+                                setRejectNote('');
+                              }}
+                              className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 hover:bg-white/10"
+                            >
+                              {t.omRejectCancel}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!rejectReason}
+                              onClick={() => void confirmReject()}
+                              className="flex-1 rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-500 disabled:opacity-50"
+                            >
+                              {t.omRejectConfirm}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : null}
+
+                  {order.order_status === 'preparing' ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void runUpdate({
+                          order_status: 'ready',
+                          ready_at: new Date().toISOString(),
+                        })
+                      }
+                      className="w-full rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500"
+                    >
+                      {t.omMarkReady}
+                    </button>
+                  ) : null}
+
+                  {order.order_status === 'ready' ? (
+                    order.source === 'online_delivery' ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void runUpdate({
+                            order_status: 'dispatched',
+                            dispatched_at: new Date().toISOString(),
+                          })
+                        }
+                        className="w-full rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-teal-500"
+                      >
+                        {t.omConfirmSelfDispatch}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void runUpdate({
+                            order_status: 'completed',
+                            completed_at: new Date().toISOString(),
+                          })
+                        }
+                        className="w-full rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-teal-500"
+                      >
+                        {t.omPickedUp}
+                      </button>
+                    )
+                  ) : null}
+
+                  {order.order_status === 'dispatched' ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void runUpdate({
+                          order_status: 'completed',
+                          completed_at: new Date().toISOString(),
+                        })
+                      }
+                      className="w-full rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500"
+                    >
+                      {t.omDelivered}
+                    </button>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </aside>
+    </div>
+  );
+}
+
 export function AdminOrderSupportScreen() {
   const { t } = useLanguage();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -145,7 +583,7 @@ export function AdminOrderSupportScreen() {
     return { start: today, end: today };
   });
 
-  const loadOrders = useCallback(async () => {
+  const loadOrders = useCallback(async (): Promise<AdminOrder[]> => {
     setLoading(true);
     const { data } = await supabase
       .from('sales')
@@ -155,6 +593,7 @@ export function AdminOrderSupportScreen() {
       .lte('created_at', `${dateRange.end}T23:59:59.999Z`)
       .order('created_at', { ascending: false });
 
+    let next: AdminOrder[] = [];
     if (data?.length) {
       const ids = data.map((s) => s.id);
       const { data: dels } = await supabase
@@ -162,15 +601,16 @@ export function AdminOrderSupportScreen() {
         .select('sale_id, status, tracking_url, wolt_delivery_id, manually_dispatched')
         .in('sale_id', ids);
       const map = new Map((dels ?? []).map((d) => [d.sale_id as string, d]));
-      const merged = data.map((s) => ({
+      next = data.map((s) => ({
         ...s,
         delivery_order: map.get(s.id) ?? null,
       })) as AdminOrder[];
-      setOrders(merged);
+      setOrders(next);
     } else {
       setOrders([]);
     }
     setLoading(false);
+    return next;
   }, [dateRange.start, dateRange.end]);
 
   useEffect(() => {
@@ -186,6 +626,15 @@ export function AdminOrderSupportScreen() {
       supabase.removeChannel(channel);
     };
   }, [loadOrders]);
+
+  const refreshSelectedOrder = useCallback(async (): Promise<AdminOrder | null> => {
+    const id = selectedOrder?.id;
+    if (!id) return null;
+    const list = await loadOrders();
+    const next = list.find((o) => o.id === id) ?? null;
+    setSelectedOrder(next);
+    return next;
+  }, [loadOrders, selectedOrder?.id]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
@@ -261,9 +710,7 @@ export function AdminOrderSupportScreen() {
               type="button"
               onClick={() => setStatusFilter(f)}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                statusFilter === f
-                  ? 'bg-cockpit-500 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+                statusFilter === f ? 'bg-cockpit-500 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               {filterLabel(f)}
@@ -332,14 +779,14 @@ export function AdminOrderSupportScreen() {
               <button
                 key={order.id}
                 type="button"
+                data-order-row
+                data-order-id={order.id}
                 onClick={() => setSelectedOrder(order)}
                 className="grid w-full grid-cols-[auto_1fr_1fr_1fr_auto_auto_auto] items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-white/5"
               >
                 <div className="flex items-center gap-1.5">
                   <SourceIcon source={order.source} />
-                  <span className="font-mono text-xs font-bold text-white">
-                    #{order.display_number ?? '—'}
-                  </span>
+                  <span className="font-mono text-xs font-bold text-white">#{order.display_number ?? '—'}</span>
                 </div>
 
                 <span className="text-xs text-slate-400">{fmtTime(order.created_at)}</span>
@@ -353,9 +800,7 @@ export function AdminOrderSupportScreen() {
                   )}
                 </div>
 
-                <span className="truncate text-xs text-slate-400">
-                  {itemsSummary(order.sale_items)}
-                </span>
+                <span className="truncate text-xs text-slate-400">{itemsSummary(order.sale_items)}</span>
 
                 <span className="font-mono text-xs font-semibold text-white">
                   ₼{Number(order.total_price ?? 0).toFixed(2)}
@@ -364,7 +809,7 @@ export function AdminOrderSupportScreen() {
                 <span
                   className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusBadgeClass(order.order_status)}`}
                 >
-                  {order.order_status}
+                  {orderStatusLabel(t, order.order_status)}
                 </span>
 
                 <ChevronRight className="h-4 w-4 text-slate-600" />
@@ -374,38 +819,13 @@ export function AdminOrderSupportScreen() {
         </div>
       )}
 
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-            onClick={() => setSelectedOrder(null)}
-            aria-hidden
-          />
-          <div className="relative z-10 flex h-full w-full max-w-lg flex-col border-l border-white/10 bg-slate-900 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-              <div>
-                <p className="font-mono text-lg font-bold text-white">
-                  #{selectedOrder.display_number ?? '—'}
-                </p>
-                <p className="text-xs text-slate-500">{fmtTime(selectedOrder.created_at)}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedOrder(null)}
-                className="rounded-lg p-2 text-slate-500 hover:bg-white/5 hover:text-slate-300"
-                aria-label={t.cancel}
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-5">
-              <p className="py-8 text-center text-sm text-slate-400">
-                {t.orderSupportDrawerComingSoon}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {selectedOrder ? (
+        <OrderSupportOrderDrawer
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+          refreshOrder={refreshSelectedOrder}
+        />
+      ) : null}
     </div>
   );
 }

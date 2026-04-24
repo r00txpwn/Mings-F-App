@@ -20,6 +20,7 @@ Pick **one** of:
    - Optional public links from staff: `VITE_PUBLIC_ORDER_URL`, `VITE_PUBLIC_KIOSK_URL` (full URLs).
 
 `vercel.json` in this repo configures SPA rewrites so `/order`, `/track`, `/kiosk`, `/kds` work.
+It also sets a global CSP header; keep `connect-src` allowing both `https://*.supabase.co` and `wss://*.supabase.co` so Supabase Realtime WebSocket connections work.
 
 PWA assets are served from `public/manifest.webmanifest` and `public/sw.js`. Ensure these files are included in your static deploy output.
 
@@ -90,10 +91,37 @@ Recent online-order schema additions included in this repo:
 - `20260421174000_checkout_promos_loyalty_errors.sql` (`sales.discount_amount`, `sales.tip_amount`, `sales.promo_code`, `promo_codes`, `dispatch_failures`, OTP rate-limit RPC)
 - `20260421182500_customer_favorites.sql` (`customer_favorites`)
 - `20260421194000_online_settings_kitchen_location.sql` (`online_settings.kitchen_lat`, `online_settings.kitchen_lng`)
+- `20260422200000_wolt_booking_lock_and_scheduled_guard.sql` (`delivery_orders.wolt_booking_locked_until` — Wolt portal booking lock)
+- `20260422201000_kiosk_anon_update_cancellation_reason_bound.sql` (tighter anon `UPDATE` on kiosk `sales` for `cancellation_reason`)
+- `20260422210000_products_combo_soft_delete_scheduled_future.sql` (`products.is_deleted`, `combo_deals.is_deleted`, combo read policy, `sales` trigger for future `scheduled_for`)
 
 If you see **“Remote migration versions not found in local migrations directory”**, fix history first: **[docs/MIGRATION_HISTORY.md](docs/MIGRATION_HISTORY.md)** (`npm run supabase:repair:remote` then push again).
 
+**Kitchen hours + pause + soft-close:** migrations add `online_settings.offline_until` and `closing_soon_minutes` (see `20260423120000_online_settings_kitchen_pause.sql`), plus RPC **`expire_online_kitchen_pause_if_due`** (`20260423180000_expire_online_kitchen_pause_rpc.sql`) so timed pauses auto-open in the DB. Customer and edge validation share **[docs/KITCHEN_HOURS.md](docs/KITCHEN_HOURS.md)**. After changing **`online-order-create`** or **`supabase/functions/_shared/kitchenAcceptance.ts`**, redeploy **`online-order-create`** (same command as below).
+
 ### Edge Functions (deploy each)
+
+**Cursor Supabase MCP (preferred when the CLI is not logged in):** for **`online-order-create`** only, you can deploy the exact repo bundle without `supabase login`:
+
+1. Regenerate the MCP payload (UTF-8 one-line JSON):
+
+   ```bash
+   npm run mcp:bundle:online-order-create
+   ```
+
+   **Smaller payload (single `files[]` entry, inlined `_shared` + handler):** use when your MCP UI struggles with the multi-file JSON (~43 KB):
+
+   ```bash
+   npm run mcp:bundle:inline:online-order-create
+   ```
+
+   That writes `test-results/mcp-deploy-online-order-create-inline.json` (also generates `test-results/online-order-create-inline.ts` for review).
+
+2. Open **Cursor → MCP → Supabase** (or the Supabase MCP panel), run **`deploy_edge_function`**, and paste the **entire contents** of `test-results/mcp-deploy-online-order-create.json` **or** `test-results/mcp-deploy-online-order-create-inline.json` as the tool **`arguments`** object (it already includes `name`, `entrypoint_path`: `functions/online-order-create/index.ts`, `verify_jwt`: `false`, and `files`).
+
+3. Confirm with **`get_edge_function`** (`function_slug`: `online-order-create`): the active version should increment and the bundled `index.ts` must include real logic (e.g. `roundMoney`, `kitchenAcceptance`, `expire_online_kitchen_pause_if_due`) — **not** a stub like `mcp-deploy-test`.
+
+Agent automation cannot reliably pass multi‑tens‑of‑KB JSON into MCP from chat alone; use the steps above or the CLI below.
 
 ```bash
 supabase functions deploy online-order-create
@@ -103,6 +131,8 @@ supabase functions deploy wolt-drive-check
 supabase functions deploy wolt-drive-create
 supabase functions deploy wolt-drive-cancel
 supabase functions deploy wolt-drive-webhook
+supabase functions deploy wolt-drive-manual-dispatch
+supabase functions deploy wolt-dispatch-book-lock
 supabase functions deploy user-management
 ```
 
