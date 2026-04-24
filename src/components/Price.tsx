@@ -21,7 +21,12 @@ export function Price({
     <span className={className}>
       {symbolPosition === 'prefix' ? <span className={symbolClassName}>{AZN_SYMBOL}</span> : null}
       <span className={valueClassName}>{formatted}</span>
-      {symbolPosition === 'suffix' ? <span className={symbolClassName}>{AZN_SYMBOL}</span> : null}
+      {symbolPosition === 'suffix' ? (
+        <>
+          {' '}
+          <span className={symbolClassName}>{AZN_SYMBOL}</span>
+        </>
+      ) : null}
     </span>
   );
 }

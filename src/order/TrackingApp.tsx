@@ -424,11 +424,7 @@ function TrackingContent() {
 
           <div className="mt-4 flex justify-between border-t border-white/10 pt-3 text-sm">
             <span className="text-slate-400">{t.trackingTotal}</span>
-            <Price
-              amount={total}
-              className="font-mono font-bold text-white"
-              symbolPosition="prefix"
-            />
+            <Price amount={total} className="font-mono font-bold text-white" />
           </div>
         </div>
 

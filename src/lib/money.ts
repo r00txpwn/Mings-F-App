@@ -16,7 +16,7 @@ export function formatMoneyWithSymbol(
 
 export function formatSignedMoney(value: number | string | null | undefined): string {
   const amount = Number(value ?? 0);
-  if (!Number.isFinite(amount) || amount === 0) return `${AZN_SYMBOL}0.00`;
+  if (!Number.isFinite(amount) || amount === 0) return `0.00 ${AZN_SYMBOL}`;
   const sign = amount > 0 ? '+' : '-';
-  return `${sign}${AZN_SYMBOL}${formatMoney(Math.abs(amount))}`;
+  return `${sign}${formatMoney(Math.abs(amount))} ${AZN_SYMBOL}`;
 }

@@ -79,7 +79,7 @@ export function OrderCartView({
           amount={grandTotal}
           className="ming-display text-2xl text-ming-gold"
           valueClassName="ming-mono"
-          symbolClassName="ml-1 text-base"
+          symbolClassName="text-base"
         />
       </div>
     </div>

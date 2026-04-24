@@ -271,7 +271,7 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
             {labels.stepOf.replace('{n}', String(step + 1)).replace('{t}', String(groups.length))}
           </p>
         </div>
-        <Price amount={combo.base_price} className="font-mono text-cockpit-400" symbolPosition="prefix" />
+        <Price amount={combo.base_price} className="font-mono text-cockpit-400" />
       </header>
 
       <div className="flex-1 space-y-3 p-4">
@@ -301,7 +301,7 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
                     }`}
                   >
                     <span className="font-medium">{p.name}</span>
-                    <Price amount={p.selling_price} className="text-xs text-slate-500" symbolPosition="prefix" />
+                    <Price amount={p.selling_price} className="text-xs text-slate-500" />
                   </button>
                 );
               })}

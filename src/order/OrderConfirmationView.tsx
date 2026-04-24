@@ -109,7 +109,6 @@ export function OrderConfirmationView({ displayNumber, trackUrl, snapshot, label
                     amount={snapshot.total}
                     className="ming-display text-lg text-ming-gold"
                     valueClassName="ming-mono"
-                    symbolClassName="ml-1"
                   />
                 </dd>
               </div>

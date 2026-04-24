@@ -3,7 +3,7 @@ import { Heart, Package, Plus, Search, X } from 'lucide-react';
 import type { Category, Product } from '../lib/supabase';
 import type { OnlineFulfillmentType } from '../types/online';
 import { OrderVenueInfo } from './OrderVenueInfo';
-import { Price } from '../components/Price';
+import { formatMoneyWithSymbol } from '../lib/money';
 
 const ALL = '__all__';
 
@@ -120,12 +120,7 @@ function ProductCard({
         ) : null}
         <div className="mt-auto flex items-end justify-between gap-2 pt-3">
           <div className="flex min-w-0 flex-col">
-            <Price
-              amount={product.selling_price}
-              className="flex items-baseline gap-1"
-              valueClassName="ming-price"
-              symbolClassName="text-sm font-semibold text-ming-red"
-            />
+            <span className="ming-price text-ming-red">{formatMoneyWithSymbol(product.selling_price)}</span>
           </div>
           <button
             type="button"

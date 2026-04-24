@@ -1048,7 +1048,7 @@ export function OrderCheckoutView({
                     amount={grandTotal}
                     className="ming-display text-[26px] text-ming-gold"
                     valueClassName="ming-mono"
-                    symbolClassName="ml-1 text-lg"
+                    symbolClassName="text-lg"
                   />
                 </dd>
               </div>
