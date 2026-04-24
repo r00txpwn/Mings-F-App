@@ -25,6 +25,7 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | `/order` | `OrderApp` | Public ordering. |
 | `/track` | `TrackingApp` | Query `?token=` for status. |
 | `/spec-ops` | `App` (cockpit) | Default admin URL. Optional `VITE_ADMIN_APP_PATH` overrides. |
+| `/order-manager` | `OrderManagerApp` | Staff mobile-first order ops (active / past / menu). **Not** the cockpit shell — separate bundle entry in `main.tsx`. |
 | **Anything else** | `PublicNotFound` | No hints about admin URL. |
 
 ### Logical notes
@@ -40,6 +41,7 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | Location | Behavior | Risk / note |
 |----------|----------|-------------|
 | `App.tsx` | Non-staff logged-in users → `StaffAccessDeniedScreen` (no auto-redirect to `/order`). | OK. |
+| `App.tsx` | **Users** (`UsersScreen` / `user-management` API) is **admin-only** per §3. Staff and managers use the rest of the cockpit; the **Users** nav item and `?screen=users` are shown only when `isAdminUser` (JWT `app_metadata.role === 'admin'` or `public.users.role === 'admin'`). | Matches Edge Function gate. |
 | `OrderApp.tsx` | E-point success → external `checkoutUrl`. Done screen → `/track?token=`. | External URL must be trusted (payment provider). |
 | `PublicNotFound.tsx` | Denied/404 messaging for root + unknown paths. | No storefront auto-redirect from `/` or invalid paths. |
 | `StaffAccessDeniedScreen.tsx` | Link via `getPublicOrderUrl()` (`VITE_PUBLIC_ORDER_URL` or same-origin `/order`). | OK. |

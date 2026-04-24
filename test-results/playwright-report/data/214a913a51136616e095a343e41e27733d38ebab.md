@@ -1,0 +1,90 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e8]: M
+      - 'button "Pickup or delivery?: Takeaway" [ref=e10] [cursor=pointer]':
+        - img [ref=e11]
+        - generic [ref=e16]: Takeaway
+    - generic [ref=e17]:
+      - group "Language" [ref=e18]:
+        - button "EN" [pressed] [ref=e19] [cursor=pointer]
+        - button "AZ" [ref=e20] [cursor=pointer]
+        - button "RU" [ref=e21] [cursor=pointer]
+      - button "Account" [ref=e22] [cursor=pointer]:
+        - img [ref=e23]
+      - button "Cart" [ref=e26] [cursor=pointer]:
+        - img [ref=e27]
+  - banner [ref=e30]:
+    - generic [ref=e31]:
+      - generic [ref=e33]: M
+      - generic [ref=e34]:
+        - paragraph [ref=e35]: Ming's · Baku
+        - heading "Order online" [level=1] [ref=e36]
+  - generic [ref=e38]:
+    - complementary [ref=e39]:
+      - generic [ref=e40]:
+        - paragraph [ref=e41]: Menu
+        - navigation "Categories" [ref=e42]:
+          - button "All" [ref=e43] [cursor=pointer]
+          - button "Noodles" [ref=e44] [cursor=pointer]
+          - button "Rice" [ref=e45] [cursor=pointer]
+          - button "Bites" [ref=e46] [cursor=pointer]
+          - button "drinks" [ref=e47] [cursor=pointer]
+    - main [ref=e48]:
+      - generic [ref=e50]:
+        - img
+        - searchbox "Search menu…" [ref=e51]
+      - generic [ref=e53]:
+        - generic [ref=e54]:
+          - heading "Noodles" [level=2] [ref=e55]
+          - generic [ref=e56]: 2 dishes
+        - generic [ref=e57]:
+          - button "Chicken Noodles 9.38 ₼ Choose options Add Add to favorites" [ref=e58] [cursor=pointer]:
+            - img [ref=e61]
+            - generic [ref=e65]:
+              - heading "Chicken Noodles" [level=3] [ref=e67]
+              - generic [ref=e68]:
+                - generic [ref=e69]:
+                  - generic [ref=e70]:
+                    - generic [ref=e71]: "9.38"
+                    - generic [ref=e72]: ₼
+                  - generic [ref=e73]: Choose options
+                - button "Add" [ref=e74]:
+                  - img [ref=e75]
+                  - text: Customize
+                - button "Add to favorites" [ref=e76]:
+                  - img [ref=e77]
+          - button "Shrimp Noodles 15.00 ₼ Choose options Add Add to favorites" [ref=e79] [cursor=pointer]:
+            - img [ref=e82]
+            - generic [ref=e86]:
+              - heading "Shrimp Noodles" [level=3] [ref=e88]
+              - generic [ref=e89]:
+                - generic [ref=e90]:
+                  - generic [ref=e91]:
+                    - generic [ref=e92]: "15.00"
+                    - generic [ref=e93]: ₼
+                  - generic [ref=e94]: Choose options
+                - button "Add" [ref=e95]:
+                  - img [ref=e96]
+                  - text: Customize
+                - button "Add to favorites" [ref=e97]:
+                  - img [ref=e98]
+    - complementary [ref=e100]:
+      - complementary [ref=e102]:
+        - heading "Your cart" [level=2] [ref=e104]
+        - generic [ref=e106]:
+          - img [ref=e108]
+          - paragraph [ref=e112]: Your cart is empty
+          - button "Back to Menu" [ref=e113] [cursor=pointer]
+  - generic [ref=e114]: "Cart: 0"
+  - generic [ref=e115]:
+    - paragraph [ref=e116]:
+      - text: We use cookies to improve ordering and analytics.
+      - link "Privacy" [ref=e117] [cursor=pointer]:
+        - /url: /privacy
+      - text: .
+    - button "Accept cookies" [ref=e118] [cursor=pointer]
+```

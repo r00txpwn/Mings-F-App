@@ -1,0 +1,446 @@
+{
+  "config": {
+    "configFile": "C:\\mings-os\\playwright.config.ts",
+    "rootDir": "C:/mings-os/tests/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/mings-os/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/mings-os/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/e2e-results.json"
+        }
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "test-results/playwright-report",
+          "open": "never"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "smoke.spec.ts",
+      "file": "smoke.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Staff cockpit",
+          "file": "smoke.spec.ts",
+          "line": 14,
+          "column": 6,
+          "specs": [
+            {
+              "title": "renders without JavaScript crash",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2369,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-23T17:54:53.031Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "4219922fea2e2bd3c691-1a1a198aae005171007b",
+              "file": "smoke.spec.ts",
+              "line": 15,
+              "column": 3
+            },
+            {
+              "title": "shows a login / auth gate (not a blank page)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1539,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-23T17:54:55.935Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "4219922fea2e2bd3c691-e581334068b33ac07ca8",
+              "file": "smoke.spec.ts",
+              "line": 25,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Customer ordering surface (/order)",
+          "file": "smoke.spec.ts",
+          "line": 37,
+          "column": 6,
+          "specs": [
+            {
+              "title": "renders without JavaScript crash",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2427,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[\"Unexpected token '<'\"]\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[\"Unexpected token '<'\"]\u001b[39m\n    at C:\\mings-os\\tests\\e2e\\smoke.spec.ts:45:59",
+                        "location": {
+                          "file": "C:\\mings-os\\tests\\e2e\\smoke.spec.ts",
+                          "column": 59,
+                          "line": 45
+                        },
+                        "snippet": "  43 |     await page.waitForLoadState('networkidle');\n  44 |\n> 45 |     expect(errors.filter((e) => !e.includes('supabase'))).toHaveLength(0);\n     |                                                           ^\n  46 |   });\n  47 |\n  48 |   test('page has a title and non-empty body', async ({ page }) => {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\mings-os\\tests\\e2e\\smoke.spec.ts",
+                            "column": 59,
+                            "line": 45
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[\"Unexpected token '<'\"]\u001b[39m\n\n  43 |     await page.waitForLoadState('networkidle');\n  44 |\n> 45 |     expect(errors.filter((e) => !e.includes('supabase'))).toHaveLength(0);\n     |                                                           ^\n  46 |   });\n  47 |\n  48 |   test('page has a title and non-empty body', async ({ page }) => {\n    at C:\\mings-os\\tests\\e2e\\smoke.spec.ts:45:59"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-23T17:54:57.501Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\mings-os\\test-results\\smoke-Customer-ordering-su-23463-rs-without-JavaScript-crash-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\mings-os\\test-results\\smoke-Customer-ordering-su-23463-rs-without-JavaScript-crash-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\mings-os\\tests\\e2e\\smoke.spec.ts",
+                        "column": 59,
+                        "line": 45
+                      }
+                    },
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2307,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[\"Unexpected token '<'\"]\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[\"Unexpected token '<'\"]\u001b[39m\n    at C:\\mings-os\\tests\\e2e\\smoke.spec.ts:45:59",
+                        "location": {
+                          "file": "C:\\mings-os\\tests\\e2e\\smoke.spec.ts",
+                          "column": 59,
+                          "line": 45
+                        },
+                        "snippet": "  43 |     await page.waitForLoadState('networkidle');\n  44 |\n> 45 |     expect(errors.filter((e) => !e.includes('supabase'))).toHaveLength(0);\n     |                                                           ^\n  46 |   });\n  47 |\n  48 |   test('page has a title and non-empty body', async ({ page }) => {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\mings-os\\tests\\e2e\\smoke.spec.ts",
+                            "column": 59,
+                            "line": 45
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveLength\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected length: \u001b[32m0\u001b[39m\nReceived length: \u001b[31m1\u001b[39m\nReceived array:  \u001b[31m[\"Unexpected token '<'\"]\u001b[39m\n\n  43 |     await page.waitForLoadState('networkidle');\n  44 |\n> 45 |     expect(errors.filter((e) => !e.includes('supabase'))).toHaveLength(0);\n     |                                                           ^\n  46 |   });\n  47 |\n  48 |   test('page has a title and non-empty body', async ({ page }) => {\n    at C:\\mings-os\\tests\\e2e\\smoke.spec.ts:45:59"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-04-23T17:55:02.610Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\mings-os\\test-results\\smoke-Customer-ordering-su-23463-rs-without-JavaScript-crash-chromium-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\mings-os\\test-results\\smoke-Customer-ordering-su-23463-rs-without-JavaScript-crash-chromium-retry1\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\mings-os\\test-results\\smoke-Customer-ordering-su-23463-rs-without-JavaScript-crash-chromium-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\mings-os\\tests\\e2e\\smoke.spec.ts",
+                        "column": 59,
+                        "line": 45
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "4219922fea2e2bd3c691-5a9a8ebf29b910924a72",
+              "file": "smoke.spec.ts",
+              "line": 38,
+              "column": 3
+            },
+            {
+              "title": "page has a title and non-empty body",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2248,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-23T17:55:07.477Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "4219922fea2e2bd3c691-3f70d6f0f16957ab7e3f",
+              "file": "smoke.spec.ts",
+              "line": 48,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Order tracking surface (/track)",
+          "file": "smoke.spec.ts",
+          "line": 60,
+          "column": 6,
+          "specs": [
+            {
+              "title": "renders without JavaScript crash",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1571,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-23T17:55:09.993Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "4219922fea2e2bd3c691-9d7ca22ff54b452ca5d8",
+              "file": "smoke.spec.ts",
+              "line": 61,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Build integrity",
+          "file": "smoke.spec.ts",
+          "line": 72,
+          "column": 6,
+          "specs": [
+            {
+              "title": "no 404s on main JS/CSS bundles",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1461,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-23T17:55:11.589Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "4219922fea2e2bd3c691-8d10549c5d3074d29773",
+              "file": "smoke.spec.ts",
+              "line": 73,
+              "column": 3
+            },
+            {
+              "title": "SPA rewrites work — deep path returns 200",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 976,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-23T17:55:13.084Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "4219922fea2e2bd3c691-c2b6ff4f74d706d1c6b2",
+              "file": "smoke.spec.ts",
+              "line": 87,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-04-23T17:54:50.700Z",
+    "duration": 23486.369,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}
