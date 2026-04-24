@@ -3,6 +3,7 @@ import { CheckCircle2, Loader2, MapPin, Navigation, XCircle } from 'lucide-react
 import { loadGoogleMapsScript } from './googleMapsLoader';
 import { AddressAutocomplete, type AddressAutocompleteResult } from './AddressAutocomplete';
 import type { DeliveryZoneRow } from '../types/online';
+import { formatMoney } from '../lib/money';
 
 /** Baku — default map center. */
 const DEFAULT_CENTER = { lat: 40.4093, lng: 49.8671 };
@@ -307,7 +308,7 @@ export function OrderAddressMap({
       const label =
         (zonePillIn ?? '{zone} · ₼{fee}')
           .replace('{zone}', zoneStatus.zoneName)
-          .replace('{fee}', Number(zoneStatus.fee).toFixed(2));
+          .replace('{fee}', formatMoney(zoneStatus.fee));
       return (
         <span className="inline-flex items-center gap-1.5 rounded-full border border-cockpit-500/40 bg-cockpit-500/10 px-2.5 py-1 text-xs font-medium text-cockpit-200">
           <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />

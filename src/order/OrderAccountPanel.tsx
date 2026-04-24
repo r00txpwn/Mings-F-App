@@ -6,6 +6,7 @@ import type { Sale } from '../lib/supabase';
 import { isLikelyE164, maskPhoneForOtp, normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
 import { supabase } from '../lib/supabase';
+import { Price } from '../components/Price';
 
 interface OrderAccountPanelProps {
   user: User | null;
@@ -760,9 +761,7 @@ export function OrderAccountPanel({
                         >
                           {label}
                         </span>
-                        <span className="ming-mono text-[14px] font-semibold text-ming-bone">
-                          {Number(o.total_price).toFixed(2)} ₼
-                        </span>
+                        <Price amount={o.total_price} className="ming-mono text-[14px] font-semibold text-ming-bone" />
                       </div>
                       <div className="mt-2 flex justify-end">
                         <button

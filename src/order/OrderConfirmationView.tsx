@@ -1,4 +1,5 @@
 import { Check, ExternalLink } from 'lucide-react';
+import { Price } from '../components/Price';
 
 interface OrderConfirmationViewProps {
   displayNumber: string | number;
@@ -76,7 +77,7 @@ export function OrderConfirmationView({ displayNumber, trackUrl, snapshot, label
                     <p className="text-sm font-semibold text-ming-bone">
                       {line.quantity}x {line.name}
                     </p>
-                    <p className="ming-mono text-sm font-semibold text-ming-bone">{line.lineTotal.toFixed(2)} ₼</p>
+                    <Price amount={line.lineTotal} className="ming-mono text-sm font-semibold text-ming-bone" />
                   </div>
                   {line.customizations.length > 0 ? (
                     <p className="mt-1.5 text-xs text-ming-ash">{line.customizations.join(' · ')}</p>
@@ -88,7 +89,9 @@ export function OrderConfirmationView({ displayNumber, trackUrl, snapshot, label
             <dl className="mt-3 space-y-1.5 text-sm">
               <div className="flex items-center justify-between">
                 <dt className="text-ming-ash">{labels.subtotal}</dt>
-                <dd className="ming-mono text-ming-bone">{snapshot.subtotal.toFixed(2)} ₼</dd>
+                <dd>
+                  <Price amount={snapshot.subtotal} className="ming-mono text-ming-bone" />
+                </dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-ming-ash">{labels.fulfillment}</dt>
@@ -101,8 +104,13 @@ export function OrderConfirmationView({ displayNumber, trackUrl, snapshot, label
               <div className="ming-divider my-1" />
               <div className="flex items-center justify-between">
                 <dt className="ming-label">{labels.total}</dt>
-                <dd className="ming-display text-lg text-ming-gold">
-                  <span className="ming-mono">{snapshot.total.toFixed(2)}</span> ₼
+                <dd>
+                  <Price
+                    amount={snapshot.total}
+                    className="ming-display text-lg text-ming-gold"
+                    valueClassName="ming-mono"
+                    symbolClassName="ml-1"
+                  />
                 </dd>
               </div>
             </dl>

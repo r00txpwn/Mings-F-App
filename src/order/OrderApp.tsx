@@ -32,6 +32,7 @@ import type {
 } from '../types/online';
 import { normalizePhoneE164 } from '../lib/phoneE164';
 import { findZoneForPoint } from '../services/deliveryZones';
+import { Price } from '../components/Price';
 
 function generateCartItemKey(productId: string, modifiers: SelectedModifiers): string {
   const modKey = Object.entries(modifiers)
@@ -1331,7 +1332,7 @@ function OrderContent() {
             {t.orderViewCart}
             <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-bold">{cartCount}</span>
           </span>
-          <span className="ming-mono text-base font-bold text-white">{grandTotal.toFixed(2)} ₼</span>
+          <Price amount={grandTotal} className="ming-mono text-base font-bold text-white" />
         </button>
       )}
 

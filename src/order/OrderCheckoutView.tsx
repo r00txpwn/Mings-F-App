@@ -13,6 +13,8 @@ import {
 import type { CustomerAddressRow, DeliveryZoneRow, OnlineFulfillmentType, OnlinePaymentMethod } from '../types/online';
 import { isLikelyE164, maskPhoneForOtp, normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
+import { Price } from '../components/Price';
+import { formatMoneyWithSymbol } from '../lib/money';
 
 function toLocalDayKey(date: Date): string {
   const y = date.getFullYear();
@@ -569,7 +571,7 @@ export function OrderCheckoutView({
                       <span className="text-ming-bone">
                         {labels.inZonePrefix}: <span className="font-semibold">{zoneMatch.name}</span>
                         <span className="text-ming-ash"> · </span>
-                        <span className="ming-mono">{Number(zoneMatch.delivery_fee).toFixed(2)} ₼</span>
+                        <Price amount={zoneMatch.delivery_fee} className="ming-mono" />
                         <span className="text-ming-ash"> {labels.deliveryFeeLabel}</span>
                       </span>
                     ) : (
@@ -997,7 +999,7 @@ export function OrderCheckoutView({
                     {submitting ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                      `${labels.placeOrder} · ${grandTotal.toFixed(2)} ₼`
+                      `${labels.placeOrder} · ${formatMoneyWithSymbol(grandTotal)}`
                     )}
                   </button>
                   {disabledReason ? (
@@ -1026,20 +1028,28 @@ export function OrderCheckoutView({
             <dl className="space-y-2.5 text-sm">
               <div className="flex items-center justify-between">
                 <dt className="text-ming-ash">{labels.subtotal}</dt>
-                <dd className="ming-mono font-semibold text-ming-bone">{cartTotal.toFixed(2)} ₼</dd>
+                <dd>
+                  <Price amount={cartTotal} className="ming-mono font-semibold text-ming-bone" />
+                </dd>
               </div>
               {fulfillment === 'delivery' ? (
                 <div className="flex items-center justify-between">
                   <dt className="text-ming-ash">{labels.deliveryFeeLabel}</dt>
-                  <dd className="ming-mono font-semibold text-ming-bone">{deliveryFee.toFixed(2)} ₼</dd>
+                  <dd>
+                    <Price amount={deliveryFee} className="ming-mono font-semibold text-ming-bone" />
+                  </dd>
                 </div>
               ) : null}
               <div className="ming-divider my-1" />
               <div className="flex items-baseline justify-between">
                 <dt className="ming-label">{labels.total}</dt>
-                <dd className="ming-display text-[26px] text-ming-gold">
-                  <span className="ming-mono">{grandTotal.toFixed(2)}</span>
-                  <span className="ml-1 text-lg">₼</span>
+                <dd>
+                  <Price
+                    amount={grandTotal}
+                    className="ming-display text-[26px] text-ming-gold"
+                    valueClassName="ming-mono"
+                    symbolClassName="ml-1 text-lg"
+                  />
                 </dd>
               </div>
             </dl>
@@ -1058,7 +1068,7 @@ export function OrderCheckoutView({
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
                       <>
-                        {labels.placeOrder} · {grandTotal.toFixed(2)} ₼
+                        {labels.placeOrder} · {formatMoneyWithSymbol(grandTotal)}
                       </>
                     )}
                   </button>
