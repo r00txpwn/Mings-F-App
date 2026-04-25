@@ -391,6 +391,12 @@ export interface Translations {
   kdsPaymentPendingOnline: string;
   kdsPaymentCashCod: string;
   kdsPaymentConfirmed: string;
+  /** Staff-facing: cash at counter (new + legacy cod/cash on takeaway). */
+  payMethodBadgeCashPickup: string;
+  /** Staff-facing: cash when courier delivers (new + legacy cod/cash on delivery). */
+  payMethodBadgeCashDelivery: string;
+  /** Staff-facing: online card not settled yet — never use for cash orders. */
+  payMethodBadgeCardAuthorizing: string;
   kdsPrepTimeLabel: string;
   kdsBusyKitchenHint: string;
   kdsCourierNoteLabel: string;
@@ -1419,6 +1425,9 @@ export const translations: Record<Language, Translations> = {
     kdsPaymentPendingOnline: 'PAYMENT PENDING — do not prepare yet',
     kdsPaymentCashCod: 'CASH / COD',
     kdsPaymentConfirmed: '✓ Payment Confirmed',
+    payMethodBadgeCashPickup: 'CASH — pay at pickup',
+    payMethodBadgeCashDelivery: 'CASH — pay on delivery',
+    payMethodBadgeCardAuthorizing: 'CARD — bank confirming (do not prep yet)',
     kdsPrepTimeLabel: 'Prep time (minutes)',
     kdsBusyKitchenHint: 'Busy kitchen? 20 min is suggested.',
     kdsCourierNoteLabel: 'Courier',
@@ -2438,6 +2447,9 @@ export const translations: Record<Language, Translations> = {
     kdsPaymentPendingOnline: 'ÖDƏNİŞ GÖZLƏNİR — hələ hazırlamayın',
     kdsPaymentCashCod: 'NAĞD / ÇATDIRILMADA',
     kdsPaymentConfirmed: '✓ Ödəniş təsdiqləndi',
+    payMethodBadgeCashPickup: 'NAĞD — götürmədə ödəniş',
+    payMethodBadgeCashDelivery: 'NAĞD — çatdırılma zamanı ödəniş',
+    payMethodBadgeCardAuthorizing: 'KART — bank təsdiqi (hələ hazırlamayın)',
     kdsPrepTimeLabel: 'Hazırlıq müddəti (dəqiqə)',
     kdsBusyKitchenHint: 'Mətbəx yüklüdür? 20 dəq tövsiyə olunur.',
     kdsCourierNoteLabel: 'Kuryer',
@@ -3458,6 +3470,9 @@ export const translations: Record<Language, Translations> = {
     kdsPaymentPendingOnline: 'ОПЛАТА ОЖИДАЕТСЯ — не готовьте',
     kdsPaymentCashCod: 'НАЛИЧНЫЕ / ПРИ ПОЛУЧЕНИИ',
     kdsPaymentConfirmed: '✓ Оплата подтверждена',
+    payMethodBadgeCashPickup: 'НАЛИЧНЫЕ — оплата при получении',
+    payMethodBadgeCashDelivery: 'НАЛИЧНЫЕ — оплата при доставке',
+    payMethodBadgeCardAuthorizing: 'КАРТА — ждём банк (не готовить)',
     kdsPrepTimeLabel: 'Время приготовления (мин)',
     kdsBusyKitchenHint: 'Загруженная кухня? Рекомендуем 20 мин.',
     kdsCourierNoteLabel: 'Курьер',

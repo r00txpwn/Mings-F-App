@@ -3,6 +3,11 @@ import { Clock } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Sale, SaleItem, SaleItemModifier } from '../lib/supabase';
 import { getUrgencyColor, remainingMinutes } from '../utils/urgency';
+import {
+  isCardOnlinePaymentMethod,
+  isCashDeliveryMethod,
+  isCashPickupMethod,
+} from '../lib/onlinePaymentMethod';
 
 const PREP_MINUTES = [3, 5, 7, 10, 12, 15, 18, 20, 25] as const;
 
@@ -41,10 +46,11 @@ export function OrderCard({ order, now, ordersInPrepCount, onUpdateStatus }: Ord
   const isPaid = pay === 'paid';
   const online = isOnlineOrder(order.source);
   const method = order.online_payment_method || '';
-  const epointUnpaid = online && method === 'epoint' && pay !== 'paid';
-  const codFlow = online && (method === 'cod' || method === 'cash');
-  const canStartPrepPending =
-    isPaid || (codFlow && (pay === 'unpaid' || pay === 'pending'));
+  const cardUnpaid = online && isCardOnlinePaymentMethod(method) && pay !== 'paid';
+  const cashFlow =
+    online &&
+    (isCashPickupMethod(method, order.source) || isCashDeliveryMethod(method, order.source));
+  const canStartPrepPending = isPaid || (cashFlow && (pay === 'unpaid' || pay === 'pending'));
 
   const referenceTime =
     status === 'preparing' && order.prep_started_at
@@ -91,24 +97,31 @@ export function OrderCard({ order, now, ordersInPrepCount, onUpdateStatus }: Ord
 
   const paymentBadge = () => {
     if (!online) return null;
-    if (method === 'epoint' && pay !== 'paid') {
-      return (
-        <div className="mb-2 rounded border border-red-500/50 bg-red-950/40 px-2 py-1 text-center text-xs font-semibold text-red-300">
-          {t.kdsPaymentPendingOnline}
-        </div>
-      );
-    }
-    if (method === 'cod' || method === 'cash') {
-      return (
-        <div className="mb-2 rounded border border-emerald-500/60 bg-emerald-950/30 px-2 py-1 text-center text-xs font-semibold text-emerald-300">
-          {t.kdsPaymentCashCod}
-        </div>
-      );
-    }
-    if (pay === 'paid') {
+    if (isPaid) {
       return (
         <div className="mb-2 rounded border border-emerald-500/60 bg-emerald-950/30 px-2 py-1 text-center text-xs font-semibold text-emerald-300">
           {t.kdsPaymentConfirmed}
+        </div>
+      );
+    }
+    if (isCardOnlinePaymentMethod(method)) {
+      return (
+        <div className="mb-2 rounded border border-red-500/50 bg-red-950/40 px-2 py-1 text-center text-xs font-semibold text-red-300">
+          {t.payMethodBadgeCardAuthorizing}
+        </div>
+      );
+    }
+    if (isCashPickupMethod(method, order.source)) {
+      return (
+        <div className="mb-2 rounded border border-emerald-500/60 bg-emerald-950/30 px-2 py-1 text-center text-xs font-semibold text-emerald-300">
+          {t.payMethodBadgeCashPickup}
+        </div>
+      );
+    }
+    if (isCashDeliveryMethod(method, order.source)) {
+      return (
+        <div className="mb-2 rounded border border-emerald-500/60 bg-emerald-950/30 px-2 py-1 text-center text-xs font-semibold text-emerald-300">
+          {t.payMethodBadgeCashDelivery}
         </div>
       );
     }
@@ -123,7 +136,7 @@ export function OrderCard({ order, now, ordersInPrepCount, onUpdateStatus }: Ord
         </div>
       );
     }
-    if (status === 'pending' && epointUnpaid) {
+    if (status === 'pending' && cardUnpaid) {
       return (
         <div className="rounded-lg bg-gray-700 px-3 py-2 text-center text-xs font-medium text-gray-400">
           {t.awaitingPayment}

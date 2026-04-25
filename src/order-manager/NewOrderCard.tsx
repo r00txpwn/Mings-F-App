@@ -1,7 +1,11 @@
 import { MapPin, Phone, ShoppingBag, Truck, User, UtensilsCrossed } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { getCustomerDisplayName, type OrderManagerOrder } from './types';
+import {
+  isCashDeliveryMethod,
+  isCashPickupMethod,
+} from '../lib/onlinePaymentMethod';
+import { getCustomerDisplayName, isPendingOnlinePayment, type OrderManagerOrder } from './types';
 import { OrderItemSummary } from './OrderItemSummary';
 
 const PREP_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
@@ -20,11 +24,7 @@ export function NewOrderCard({ order, onAccept, onMarkPaid, onReject, disabled }
   const [showRejectPanel, setShowRejectPanel] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectNote, setRejectNote] = useState('');
-  const isPendingOnlinePayment =
-    (order.source === 'online_delivery' || order.source === 'online_takeaway') &&
-    order.online_payment_method === 'epoint' &&
-    order.payment_status !== 'paid' &&
-    order.payment_status !== 'completed';
+  const pendingCard = isPendingOnlinePayment(order);
 
   const sourceLabel = useMemo(() => {
     if (order.source === 'online_delivery') return t.omSourceDelivery;
@@ -82,6 +82,23 @@ export function NewOrderCard({ order, onAccept, onMarkPaid, onReject, disabled }
             </span>
             <span className="text-xs text-slate-400">₼{Number(order.total_price ?? 0).toFixed(2)}</span>
           </div>
+          {(order.source === 'online_delivery' || order.source === 'online_takeaway') && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {pendingCard ? (
+                <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+                  {t.payMethodBadgeCardAuthorizing}
+                </span>
+              ) : isCashPickupMethod(order.online_payment_method, order.source) ? (
+                <span className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+                  {t.payMethodBadgeCashPickup}
+                </span>
+              ) : isCashDeliveryMethod(order.online_payment_method, order.source) ? (
+                <span className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+                  {t.payMethodBadgeCashDelivery}
+                </span>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
 
@@ -136,7 +153,7 @@ export function NewOrderCard({ order, onAccept, onMarkPaid, onReject, disabled }
         </div>
       ) : null}
 
-      {!showRejectPanel && isPendingOnlinePayment ? (
+      {!showRejectPanel && pendingCard ? (
         <button
           type="button"
           onClick={onMarkPaid}
@@ -151,7 +168,7 @@ export function NewOrderCard({ order, onAccept, onMarkPaid, onReject, disabled }
         <button
           type="button"
           onClick={() => onAccept(prepMinutes)}
-          disabled={disabled || isPendingOnlinePayment}
+          disabled={disabled || pendingCard}
           className="neon-btn-primary mt-1 rounded-lg px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t.omAccept}

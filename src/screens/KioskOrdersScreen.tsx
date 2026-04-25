@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
 import { KioskOrdersBoard, type KioskOrder, type KioskOrderStatus } from '../components/kiosk';
 import { DateRangePicker } from '../components/DateRangePicker';
+import { isCashLikeOnlineMethod } from '../lib/onlinePaymentMethod';
 import { getPublicKioskEntryUrl, getPublicOrderUrl } from '../lib/surfaceHost';
 
 export function KioskOrdersScreen() {
@@ -86,7 +87,13 @@ export function KioskOrdersScreen() {
   const stats = useMemo(() => {
     const totalOrders = orders.length;
     const inQueue = orders.filter((order) => ['pending', 'preparing', 'ready'].includes(order.order_status ?? 'pending')).length;
-    const awaitingPayment = orders.filter((order) => ['unpaid', 'pending'].includes(order.payment_status ?? 'paid')).length;
+    const awaitingPayment = orders.filter((order) => {
+      const p = order.payment_status ?? 'paid';
+      if (p === 'paid' || p === 'completed') return false;
+      const online = order.source === 'online_delivery' || order.source === 'online_takeaway';
+      if (online && isCashLikeOnlineMethod(order.online_payment_method, order.source)) return false;
+      return p === 'unpaid' || p === 'pending';
+    }).length;
     const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total_price ?? 0), 0);
     return { totalOrders, inQueue, awaitingPayment, totalRevenue };
   }, [orders]);

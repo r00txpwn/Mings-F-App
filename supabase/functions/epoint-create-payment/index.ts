@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsPreflightResponse, jsonResponse } from '../_shared/cors.ts';
 import * as Epoint from '../_shared/epoint.ts';
+import { isCardOnlinePaymentMethod } from '../_shared/onlinePaymentMethod.ts';
 
 type Body = {
   saleId?: string;
@@ -70,13 +71,19 @@ Deno.serve(async (req: Request) => {
 
   const { data: sale, error: sErr } = await supabase
     .from('sales')
-    .select('id, total_price, payment_status, source, display_number, customer_user_id, payment_init_token, created_at, online_payment_id')
+    .select(
+      'id, total_price, payment_status, source, display_number, customer_user_id, payment_init_token, created_at, online_payment_id, online_payment_method'
+    )
     .eq('id', saleId)
     .maybeSingle();
 
   if (sErr || !sale) return jsonResponse({ error: 'Sale not found' }, 404);
   if (!['online_delivery', 'online_takeaway'].includes(String(sale.source))) {
     return jsonResponse({ error: 'Not an online sale' }, 400);
+  }
+  const saleMethod = String((sale as { online_payment_method?: string | null }).online_payment_method ?? '');
+  if (!isCardOnlinePaymentMethod(saleMethod)) {
+    return jsonResponse({ error: 'Not a card online payment' }, 400);
   }
   if (sale.payment_status !== 'pending') {
     return jsonResponse({ error: 'Payment already processed or not pending card payment' }, 400);

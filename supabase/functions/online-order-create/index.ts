@@ -1,11 +1,17 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsPreflightResponse, jsonResponse } from '../_shared/cors.ts';
 import { pointInGeoJsonPolygon } from '../_shared/geo.ts';
+import {
+  isCardOnlinePaymentMethod,
+  normalizePaymentMethodForPersist,
+  type PersistedOnlinePaymentMethod,
+} from '../_shared/onlinePaymentMethod.ts';
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 type FulfillmentType = 'takeaway' | 'delivery';
-type PaymentMethod = 'cash' | 'cod' | 'epoint';
+/** Request body may send new or legacy method strings; server normalizes before insert. */
+type PaymentMethod = string;
 
 interface CartLine {
   productId?: string;
@@ -140,7 +146,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
   const {
     fulfillmentType,
-    paymentMethod = 'cod',
+    paymentMethod: rawPaymentMethod = 'cod',
     cart,
     customerName,
     customerPhone,
@@ -205,6 +211,12 @@ async function handleRequest(req: Request): Promise<Response> {
     }
     scheduledAtIso = parsed.toISOString();
   }
+
+  const persistedPaymentMethod: PersistedOnlinePaymentMethod = normalizePaymentMethodForPersist(
+    rawPaymentMethod,
+    fulfillmentType
+  );
+  const cardPayment = isCardOnlinePaymentMethod(persistedPaymentMethod);
 
   const source = fulfillmentType === 'delivery' ? 'online_delivery' : 'online_takeaway';
 
@@ -556,12 +568,7 @@ async function handleRequest(req: Request): Promise<Response> {
     }
   }
 
-  let paymentStatus: string;
-  if (paymentMethod === 'epoint') {
-    paymentStatus = 'pending';
-  } else {
-    paymentStatus = 'unpaid';
-  }
+  const paymentStatus: string = cardPayment ? 'pending' : 'unpaid';
 
   const itemCount = resolvedLines.reduce((s, l) => s + l.quantity, 0);
 
@@ -589,7 +596,7 @@ async function handleRequest(req: Request): Promise<Response> {
       .filter(Boolean)
       .join(' | '),
     delivery_notes: courierNote || null,
-    online_payment_method: paymentMethod,
+    online_payment_method: persistedPaymentMethod,
     customer_name: customerName?.trim() || null,
     customer_phone: normalizedPhone,
     delivery_address: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,
@@ -613,7 +620,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
   // Backward-compatible insert for environments where some sales columns
   // are not yet present or schema cache is stale.
-  let insertPayload: Record<string, unknown> = { ...saleInsertWithDiscount };
+  const insertPayload: Record<string, unknown> = { ...saleInsertWithDiscount };
   let saleRow: { id: string } | null = null;
   let saleErr: { message?: string } | null = null;
 
@@ -756,8 +763,8 @@ async function handleRequest(req: Request): Promise<Response> {
     displayNumber,
     total: totalWithAdjustments,
     deliveryFee,
-    paymentMethod,
+    paymentMethod: persistedPaymentMethod,
     paymentInitToken,
-    nextStep: paymentMethod === 'epoint' ? 'epoint-create-payment' : 'track',
+    nextStep: cardPayment ? 'epoint-create-payment' : 'track',
   });
 }
