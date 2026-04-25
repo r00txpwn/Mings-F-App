@@ -95,6 +95,7 @@ Recent online-order schema additions included in this repo:
 - `20260422200000_wolt_booking_lock_and_scheduled_guard.sql` (`delivery_orders.wolt_booking_locked_until` — Wolt portal booking lock)
 - `20260422201000_kiosk_anon_update_cancellation_reason_bound.sql` (tighter anon `UPDATE` on kiosk `sales` for `cancellation_reason`)
 - `20260422210000_products_combo_soft_delete_scheduled_future.sql` (`products.is_deleted`, `combo_deals.is_deleted`, combo read policy, `sales` trigger for future `scheduled_for`)
+- `20260425173000_direct_order_number_allocator.sql` (shared direct order allocator `allocate_direct_display_number()` for `M001..M999`, wrappers for legacy RPC names, active direct unique index on `sales.display_number`)
 
 If you see **“Remote migration versions not found in local migrations directory”**, fix history first: **[docs/MIGRATION_HISTORY.md](docs/MIGRATION_HISTORY.md)** (`npm run supabase:repair:remote` then push again).
 
@@ -137,6 +138,8 @@ supabase functions deploy wolt-drive-manual-dispatch
 supabase functions deploy wolt-dispatch-book-lock
 supabase functions deploy user-management
 ```
+
+**Numbering rollout dependency:** deploy the `20260425173000_direct_order_number_allocator.sql` migration before deploying storefront/kiosk builds that call `allocate_direct_display_number()`. The migration keeps compatibility wrappers (`generate_daily_order_number*`) for staggered rollout safety, but direct callers should move to the shared allocator RPC.
 
 **Browser CORS fix:** [`supabase/config.toml`](supabase/config.toml) sets `verify_jwt = false` for `online-order-create` and `epoint-create-payment`. Deploy those after linking:
 

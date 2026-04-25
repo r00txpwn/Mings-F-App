@@ -28,6 +28,24 @@ Use this checklist when validating releases (especially after changes to orderin
 ## Database / policies
 
 - Run new migrations on staging before prod: `delivery_orders.wolt_booking_locked_until`, tightened anon kiosk `UPDATE` on `sales` for `cancellation_reason`.
+- **Direct order numbering (`M001..M999`)**: after applying `20260425173000_direct_order_number_allocator.sql`, validate shared allocator behavior with SQL checks:
+  - Active duplicates must be zero:
+    ```sql
+    select display_number, count(*) as active_count
+    from sales
+    where source in ('kiosk', 'online_takeaway', 'online_delivery')
+      and order_status in ('pending', 'preparing', 'ready', 'dispatched')
+      and display_number ~ '^M[0-9]{3}$'
+    group by display_number
+    having count(*) > 1;
+    ```
+  - Allocator state present:
+    ```sql
+    select key, last_issued, updated_at
+    from direct_order_number_allocator
+    where key = 'mings_direct';
+    ```
+  - Wrapper guard for unknown sources (must raise): `select generate_daily_order_number_for_source('manual');`
 - **Payment reconciliation log** (`payment_reconciliation_log`): table exists for future reconcilers; until those jobs ship and write rows, regression focus stays on **EPoint webhook** + **`online_payments` / `sales`** behavior (unchanged by the empty log).
 - **Manual `payment-reconcile` Edge Function** (after deploy + `PAYMENT_RECONCILE_SECRET`): ops-only; each call should append a **`payment_reconciliation_log`** row; wrong Bearer → **401**; verify on staging with **sandbox EPoint** before touching production rows.
 
