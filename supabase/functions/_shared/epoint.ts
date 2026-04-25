@@ -85,6 +85,22 @@ export async function checkPaymentStatus(params: {
   orderId?: string;
   transaction?: string;
 }): Promise<unknown> {
+  const r = await checkPaymentStatusDetailed(params);
+  if (r.ok) return r.body;
+  return {};
+}
+
+/** Same as `checkPaymentStatus` but surfaces HTTP / JSON failures for payment-reconcile (never silent). */
+export type EpointGetStatusResult =
+  | { ok: true; body: Record<string, unknown>; httpStatus: number }
+  | { ok: false; kind: 'http' | 'parse'; httpStatus?: number; message: string };
+
+export async function checkPaymentStatusDetailed(params: {
+  publicKey: string;
+  privateKey: string;
+  orderId?: string;
+  transaction?: string;
+}): Promise<EpointGetStatusResult> {
   const payload: Record<string, unknown> = {
     public_key: params.publicKey,
   };
@@ -99,7 +115,28 @@ export async function checkPaymentStatus(params: {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ data, signature }),
   });
-  return response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      kind: 'http',
+      httpStatus: response.status,
+      message: `EPoint get-status HTTP ${response.status}`,
+    };
+  }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    return { ok: false, kind: 'parse', message: 'EPoint get-status response was not JSON' };
+  }
+
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    return { ok: false, kind: 'parse', message: 'EPoint get-status JSON was not an object' };
+  }
+
+  return { ok: true, body: body as Record<string, unknown>, httpStatus: response.status };
 }
 
 export async function refund(params: {

@@ -5,6 +5,8 @@ import {
   effectiveModifierGroupMaxSelect,
   isSingleSelectModifierGroup,
 } from '../lib/modifierGroupConstraints';
+import { Price } from '../components/Price';
+import { formatSignedMoney } from '../lib/money';
 
 export type ComboGroupRow = {
   id: string;
@@ -269,7 +271,7 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
             {labels.stepOf.replace('{n}', String(step + 1)).replace('{t}', String(groups.length))}
           </p>
         </div>
-        <p className="font-mono text-cockpit-400">₼{Number(combo.base_price).toFixed(2)}</p>
+        <Price amount={combo.base_price} className="font-mono text-cockpit-400" />
       </header>
 
       <div className="flex-1 space-y-3 p-4">
@@ -299,7 +301,7 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
                     }`}
                   >
                     <span className="font-medium">{p.name}</span>
-                    <span className="text-xs text-slate-500">₼{Number(p.selling_price).toFixed(2)}</span>
+                    <Price amount={p.selling_price} className="text-xs text-slate-500" />
                   </button>
                 );
               })}
@@ -343,11 +345,7 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
                                   >
                                     <span>{opt.name}</span>
                                     <span className="font-mono text-xs text-slate-500">
-                                      {Number(opt.price_adjustment) > 0
-                                        ? `+₼${Number(opt.price_adjustment).toFixed(2)}`
-                                        : Number(opt.price_adjustment) < 0
-                                          ? `-₼${Math.abs(Number(opt.price_adjustment)).toFixed(2)}`
-                                          : '₼0.00'}
+                                      {formatSignedMoney(opt.price_adjustment)}
                                     </span>
                                   </button>
                                 );
@@ -367,11 +365,7 @@ export function ComboBuilder({ combo, labels, onBack, onAddToCart }: ComboBuilde
                                   <span>{opt.name}</span>
                                   <div className="flex items-center gap-3">
                                     <span className="font-mono text-xs text-slate-500">
-                                      {Number(opt.price_adjustment) > 0
-                                        ? `+₼${Number(opt.price_adjustment).toFixed(2)}`
-                                        : Number(opt.price_adjustment) < 0
-                                          ? `-₼${Math.abs(Number(opt.price_adjustment)).toFixed(2)}`
-                                          : '₼0.00'}
+                                      {formatSignedMoney(opt.price_adjustment)}
                                     </span>
                                     <div className="flex items-center rounded-md border border-white/10 bg-slate-950/70 p-0.5">
                                       <button

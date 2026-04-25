@@ -1,5 +1,6 @@
 export type OnlineFulfillmentType = 'takeaway' | 'delivery';
-export type OnlinePaymentMethod = 'cash' | 'cod' | 'epoint';
+/** Persisted on new sales; legacy rows may still use epoint, cod, or cash. */
+export type OnlinePaymentMethod = 'card_online' | 'cash_pickup' | 'cash_delivery';
 
 export interface OnlineCartLine {
   productId: string;
@@ -14,7 +15,8 @@ export interface OnlineOrderCreateResponse {
   displayNumber: string;
   total: number;
   deliveryFee: number;
-  paymentMethod: OnlinePaymentMethod;
+  /** Normalized value returned from server (new: card_online | cash_pickup | cash_delivery). */
+  paymentMethod: OnlinePaymentMethod | 'epoint' | 'cod' | 'cash';
   /** One-time-like secret used to initialize Epoint payment for this sale. */
   paymentInitToken?: string;
   nextStep: 'epoint-create-payment' | 'track';

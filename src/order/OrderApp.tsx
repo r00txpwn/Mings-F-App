@@ -30,8 +30,10 @@ import type {
   OnlinePaymentMethod,
   OnlineSettingsRow,
 } from '../types/online';
+import { isCardOnlinePaymentMethod } from '../lib/onlinePaymentMethod';
 import { normalizePhoneE164 } from '../lib/phoneE164';
 import { findZoneForPoint } from '../services/deliveryZones';
+import { Price } from '../components/Price';
 
 function generateCartItemKey(productId: string, modifiers: SelectedModifiers): string {
   const modKey = Object.entries(modifiers)
@@ -55,6 +57,21 @@ interface SavedCardRow {
   id: string;
   card_mask: string | null;
   card_brand: string | null;
+}
+
+interface ConfirmationLine {
+  name: string;
+  quantity: number;
+  lineTotal: number;
+  customizations: string[];
+}
+
+interface ConfirmationSnapshot {
+  lines: ConfirmationLine[];
+  subtotal: number;
+  total: number;
+  fulfillment: OnlineFulfillmentType;
+  etaText: string;
 }
 
 const SCHEDULE_DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
@@ -125,7 +142,7 @@ function OrderContent() {
   const accessToken = session?.access_token ?? null;
 
   const { products, categories, loading, error } = useOnlineMenu();
-  const { profile, addresses, loading: dataLoading, saveProfile, saveAddress } = useCustomerData(
+  const { profile, addresses, loading: dataLoading, saveProfile, saveAddress, deleteAddress } = useCustomerData(
     user?.id
   );
   const { orders, loading: ordersLoading, reload: reloadOrders } = useOrderHistory(user?.id);
@@ -142,17 +159,20 @@ function OrderContent() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [fulfillment, setFulfillment] = useState<OnlineFulfillmentType>('takeaway');
-  const [paymentMethod, setPaymentMethod] = useState<OnlinePaymentMethod>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<OnlinePaymentMethod>('cash_pickup');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryApartment, setDeliveryApartment] = useState('');
+  const [deliveryFloor, setDeliveryFloor] = useState('');
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [geoStatus, setGeoStatus] = useState<string | null>(null);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<string | null>(null);
   const [saveAddressForNext, setSaveAddressForNext] = useState(true);
+  const [saveAddressLabel, setSaveAddressLabel] = useState('Home');
   const [promoCode, setPromoCode] = useState('');
   const [tipAmount, setTipAmount] = useState(0);
   const [orderNotes, setOrderNotes] = useState('');
@@ -162,6 +182,7 @@ function OrderContent() {
   const [savedCards, setSavedCards] = useState<SavedCardRow[]>([]);
 
   const [result, setResult] = useState<OnlineOrderCreateResponse | null>(null);
+  const [confirmationSnapshot, setConfirmationSnapshot] = useState<ConfirmationSnapshot | null>(null);
   const [paymentReturn, setPaymentReturn] = useState<'success' | 'error' | null>(null);
   const [paymentReturnDetail, setPaymentReturnDetail] = useState<string | null>(null);
   const [favoriteProductIds, setFavoriteProductIds] = useState<string[]>([]);
@@ -312,6 +333,13 @@ function OrderContent() {
   }, [settings]);
 
   useEffect(() => {
+    setPaymentMethod((pm) => {
+      if (pm !== 'cash_pickup' && pm !== 'cash_delivery') return pm;
+      return fulfillment === 'takeaway' ? 'cash_pickup' : 'cash_delivery';
+    });
+  }, [fulfillment]);
+
+  useEffect(() => {
     if (!user || !profile) return;
     setCustomerName((n) => (n.trim() ? n : profile.full_name ?? ''));
     setCustomerPhone((p) =>
@@ -329,14 +357,25 @@ function OrderContent() {
   }, [user, addresses]);
 
   useEffect(() => {
-    if (!selectedSavedAddressId) return;
+    setSaveAddressLabel((prev) => {
+      if (prev.trim()) return prev;
+      return addresses.length === 0 ? 'Home' : 'Address';
+    });
+  }, [addresses.length]);
+
+  useEffect(() => {
+    if (!selectedSavedAddressId) {
+      setDeliveryApartment('');
+      setDeliveryFloor('');
+      return;
+    }
     const a = addresses.find((x) => x.id === selectedSavedAddressId);
     if (!a) return;
     setDeliveryAddress(a.line1);
-    if (a.lat != null && a.lng != null) {
-      setLat(a.lat);
-      setLng(a.lng);
-    }
+    setDeliveryApartment(a.apartment?.trim() ?? '');
+    setDeliveryFloor(a.floor?.trim() ?? '');
+    setLat(a.lat ?? null);
+    setLng(a.lng ?? null);
   }, [selectedSavedAddressId, addresses]);
 
   const zoneMatch = useMemo(() => {
@@ -630,6 +669,8 @@ function OrderContent() {
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim(),
         deliveryAddress: fulfillment === 'delivery' ? deliveryAddress.trim() : undefined,
+        deliveryApartment: fulfillment === 'delivery' ? deliveryApartment.trim() || undefined : undefined,
+        deliveryFloor: fulfillment === 'delivery' ? deliveryFloor.trim() || undefined : undefined,
         deliveryLat: fulfillment === 'delivery' ? lat ?? undefined : undefined,
         deliveryLng: fulfillment === 'delivery' ? lng ?? undefined : undefined,
         tableLabel: tableLabel.trim() || undefined,
@@ -647,7 +688,7 @@ function OrderContent() {
       }
 
       const data = res.data;
-      if (data.nextStep === 'epoint-create-payment' && paymentMethod === 'epoint') {
+      if (data.nextStep === 'epoint-create-payment' && isCardOnlinePaymentMethod(paymentMethod)) {
         if (!data.paymentInitToken) {
           setSubmitError(t.orderPaymentReturnFailed);
           setSubmitting(false);
@@ -677,6 +718,37 @@ function OrderContent() {
         }
       }
 
+      const confirmationLines: ConfirmationLine[] = cart.map((item) => {
+        const modifierRows = Object.values(item.selectedModifiers).flat();
+        const modTotal = modifierRows.reduce((sum, mod) => sum + Number(mod.price_adjustment ?? 0), 0);
+        const lineTotal = (Number(item.product.selling_price) + modTotal) * item.quantity;
+        const customizations = modifierRows.map((mod) => mod.name);
+        return {
+          name: item.product.name,
+          quantity: item.quantity,
+          lineTotal,
+          customizations,
+        };
+      });
+
+      const etaText =
+        isScheduled && scheduledFor
+          ? new Date(scheduledFor).toLocaleString(undefined, {
+              hour: '2-digit',
+              minute: '2-digit',
+              day: '2-digit',
+              month: 'short',
+            })
+          : t.orderConfirmationEtaFallback;
+
+      setConfirmationSnapshot({
+        lines: confirmationLines,
+        subtotal: cartTotal,
+        total: grandTotal,
+        fulfillment,
+        etaText,
+      });
+
       if (
         user &&
         fulfillment === 'delivery' &&
@@ -688,8 +760,10 @@ function OrderContent() {
         const exists = addresses.some((a) => a.line1.trim() === deliveryAddress.trim());
         if (!exists) {
           await saveAddress({
-            label: addresses.length === 0 ? 'Home' : 'Address',
+            label: saveAddressLabel.trim() || (addresses.length === 0 ? 'Home' : 'Address'),
             line1: deliveryAddress.trim(),
+            apartment: deliveryApartment.trim() || undefined,
+            floor: deliveryFloor.trim() || undefined,
             lat,
             lng,
             is_default: addresses.length === 0,
@@ -796,6 +870,8 @@ function OrderContent() {
       orderSmsCode: t.orderSmsCode,
       orderVerifySms: t.orderVerifySms,
       orderSmsSentHint: t.orderSmsSentHint,
+      orderSmsResend: t.orderSmsResend,
+      orderSmsResendWait: t.orderSmsResendWait,
       orderChangePhone: t.orderChangePhone,
       orderInvalidPhone: t.orderInvalidPhone,
       orderAccountPhone: t.orderAccountPhone,
@@ -805,6 +881,26 @@ function OrderContent() {
       orderMapUnavailable: t.orderMapUnavailable,
       orderDeliveryAddress: t.orderDeliveryAddress,
       orderReorder: t.orderReorder,
+      orderProfileSection: t.orderProfileSection,
+      orderAddressesSection: t.orderAddressesSection,
+      orderOrdersSection: t.orderOrdersSection,
+      orderAddressApartment: t.orderAddressApartment,
+      orderAddressFloor: t.orderAddressFloor,
+      orderAddressEdit: t.orderAddressEdit,
+      orderAddressDelete: t.orderAddressDelete,
+      orderAddressSetDefault: t.orderAddressSetDefault,
+      orderAddressCancelEdit: t.orderAddressCancelEdit,
+      orderAddressSaveChanges: t.orderAddressSaveChanges,
+      orderAddressDeleteConfirm: t.orderAddressDeleteConfirm,
+      orderAddressDefaultBadge: t.orderAddressDefaultBadge,
+      orderAddressHomeLabel: t.orderAddressHomeLabel,
+      orderOrderDate: t.orderOrderDate,
+      orderFulfillmentLabel: t.orderFulfillmentLabel,
+      orderFulfillmentDelivery: t.orderFulfillmentDelivery,
+      orderFulfillmentTakeaway: t.orderFulfillmentTakeaway,
+      orderTrackOrder: t.orderTrackOrder,
+      orderViewDetails: t.orderViewDetails,
+      orderHideDetails: t.orderHideDetails,
     }),
     [t]
   );
@@ -862,7 +958,6 @@ function OrderContent() {
     if (!user) blockers.push(t.orderAuthRequired);
     if (cart.length === 0) blockers.push(t.orderErrCartEmpty);
     if (customerPhone.trim().length === 0) blockers.push(t.orderErrPhoneRequired);
-    if (!consentAccepted) blockers.push(t.orderConsentRequired);
     if (isScheduled && !scheduledFor) blockers.push(t.orderErrScheduleRequired);
     if (fulfillment === 'delivery' && !serverAllowsDelivery) blockers.push(t.orderDeliveryDisabledInSettings);
     if (fulfillment === 'delivery' && !deliveryAddress.trim()) blockers.push(t.orderErrAddressRequired);
@@ -874,7 +969,6 @@ function OrderContent() {
     user,
     cart.length,
     customerPhone,
-    consentAccepted,
     isScheduled,
     scheduledFor,
     fulfillment,
@@ -913,7 +1007,7 @@ function OrderContent() {
       subtotal: t.orderSubtotal,
       total: t.orderTotal,
       payment: t.orderPayment,
-      payCod: t.orderPayCod,
+      payCod: fulfillment === 'delivery' ? t.orderPayCashUnifiedDelivery : t.orderPayCashUnifiedTakeaway,
       payCash: t.orderPayCash,
       payEpoint: t.orderPayEpoint,
       payCardWithWallet: t.orderPayCardWithWallet,
@@ -924,10 +1018,14 @@ function OrderContent() {
       onlineDisabled: t.orderOnlineDisabled,
       deliveryDisabledHint: t.orderDeliveryDisabledInSettings,
       saveAddressForNext: t.orderSaveAddressForNext,
+      saveAddressLabel: t.orderAddressLabel,
+      saveAddressSignInHint: t.orderAuthInlineHint,
       mapSearch: t.orderMapSearchPlaceholder,
       mapPinHint: t.orderMapPinHint,
       mapLoading: t.orderMapLoading,
       mapUnavailable: t.orderMapUnavailable,
+      apartmentUnit: t.orderAddressApartment,
+      floor: t.orderAddressFloor,
       authRequired: t.orderAuthRequired,
       scheduleNow: t.orderScheduleNow,
       scheduleLater: t.orderScheduleLater,
@@ -948,12 +1046,13 @@ function OrderContent() {
       summaryTitle: t.orderSummaryTitle,
       fulfillmentTakeawayHint: t.orderFulfillmentTakeawayHint,
       fulfillmentDeliveryHint: t.orderFulfillmentDeliveryHint,
-      paymentCodHint: t.orderPaymentCodHint,
+      paymentCodHint:
+        fulfillment === 'delivery'
+          ? t.orderPaymentCashUnifiedHintDelivery
+          : t.orderPaymentCashUnifiedHintTakeaway,
       paymentCashHint: t.orderPaymentCashHint,
       paymentEpointHint: t.orderPaymentEpointHint,
       paymentExtras: t.orderPaymentExtras,
-      paymentExtrasShow: t.orderPaymentExtrasShow,
-      paymentExtrasHide: t.orderPaymentExtrasHide,
       promoPlaceholder: t.orderPromoPlaceholder,
       reviewHint: t.orderReviewHint,
       reviewFulfillment: t.orderReviewFulfillment,
@@ -971,9 +1070,13 @@ function OrderContent() {
       contactVerify: t.orderVerifySms,
       contactChangePhone: t.orderChangePhone,
       contactAuthErrorFallback: t.orderAuthErrorFallback,
+      smsSentHint: t.orderSmsSentHint,
+      smsResend: t.orderSmsResend,
+      smsResendWait: t.orderSmsResendWait,
       phoneFormatHint: t.orderInvalidPhone,
+      consentRequired: t.orderConsentRequired,
     }),
-    [t]
+    [t, fulfillment]
   );
 
   if (authLoading || loading) {
@@ -1010,11 +1113,22 @@ function OrderContent() {
         <OrderConfirmationView
           displayNumber={result.displayNumber}
           trackUrl={trackUrl}
+          snapshot={confirmationSnapshot}
           labels={{
             title: t.orderPlacedTitle,
             subtitle: t.orderPlacedSubtitle,
             trackHint: t.orderTrackHint,
             openTracking: t.orderOpenTracking,
+            copyTracking: t.orderCopyTrackingLink,
+            copiedTracking: t.orderCopyTrackingDone,
+            orderNumber: t.orderConfirmationOrderNumber,
+            summaryTitle: t.orderConfirmationSummaryTitle,
+            subtotal: t.orderSubtotal,
+            total: t.orderTotal,
+            fulfillment: t.orderReviewFulfillment,
+            eta: t.orderConfirmationEtaLabel,
+            fulfillmentTakeaway: t.orderFulfillmentTakeaway,
+            fulfillmentDelivery: t.orderFulfillmentDelivery,
           }}
         />
       </div>
@@ -1168,6 +1282,7 @@ function OrderContent() {
               dataLoading={dataLoading}
               onSaveProfile={saveProfile}
               onSaveAddress={saveAddress}
+              onDeleteAddress={deleteAddress}
               orders={orders}
               ordersLoading={ordersLoading}
               onReloadOrders={reloadOrders}
@@ -1200,7 +1315,11 @@ function OrderContent() {
           onSelectSavedAddressId={setSelectedSavedAddressId}
           saveAddressForNext={saveAddressForNext}
           onSaveAddressForNextChange={setSaveAddressForNext}
+          saveAddressLabel={saveAddressLabel}
+          onSaveAddressLabelChange={setSaveAddressLabel}
           deliveryAddress={deliveryAddress}
+          deliveryApartment={deliveryApartment}
+          deliveryFloor={deliveryFloor}
           lat={lat}
           lng={lng}
           onLocationChange={({ lat: nextLat, lng: nextLng, address: nextAddr }) => {
@@ -1209,6 +1328,8 @@ function OrderContent() {
             setDeliveryAddress(nextAddr);
           }}
           onAddressChange={setDeliveryAddress}
+          onDeliveryApartmentChange={setDeliveryApartment}
+          onDeliveryFloorChange={setDeliveryFloor}
           googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
           onUseLocation={handleLocate}
           geoStatus={geoStatus}
@@ -1262,7 +1383,7 @@ function OrderContent() {
             {t.orderViewCart}
             <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-bold">{cartCount}</span>
           </span>
-          <span className="ming-mono text-base font-bold text-white">{grandTotal.toFixed(2)} ₼</span>
+          <Price amount={grandTotal} className="ming-mono text-base font-bold text-white" />
         </button>
       )}
 

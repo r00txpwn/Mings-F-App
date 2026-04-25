@@ -11,6 +11,11 @@ interface CheckoutScreenProps {
   onBack: () => void;
 }
 
+type AllocatedDisplayNumberRow = {
+  daily_order_number: number;
+  display_number: string;
+};
+
 function getItemTotal(item: CartItem): number {
   const modTotal = Object.values(item.selectedModifiers)
     .flat()
@@ -42,33 +47,69 @@ export function CheckoutScreen({ cart, total, kioskChannelId, onConfirmed, onBac
   const { t } = useLanguage();
   const [submitting, setSubmitting] = useState(false);
 
+  const allocateDisplayNumber = async (): Promise<AllocatedDisplayNumberRow> => {
+    const { data, error } = await supabase.rpc('allocate_direct_display_number');
+    if (error || !data) throw new Error(error?.message ?? 'ORDER_NUMBER_FAILED');
+    const row = (Array.isArray(data) ? data[0] : data) as Partial<AllocatedDisplayNumberRow>;
+    const daily = Number(row.daily_order_number);
+    const display = String(row.display_number ?? '');
+    if (!Number.isFinite(daily) || daily < 1 || !/^M\d{3}$/.test(display)) {
+      throw new Error('ORDER_NUMBER_INVALID');
+    }
+    return { daily_order_number: daily, display_number: display };
+  };
+
+  const isActiveDisplayNumberConflict = (error: unknown): boolean => {
+    if (typeof error !== 'object' || error == null) return false;
+    const e = error as { code?: string; message?: string };
+    if (e.code === '23505') return true;
+    return (e.message ?? '').includes('ux_sales_active_direct_display_number');
+  };
+
   const handleConfirm = async () => {
     if (submitting) return;
     setSubmitting(true);
 
     try {
-      const { data: orderNum } = await supabase.rpc('generate_daily_order_number');
-      const dailyNumber = orderNum || 1;
-      const displayNumber = 'M' + String(dailyNumber).padStart(3, '0');
       const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+      let saleData: { id: string } | null = null;
+      let saleError: unknown = null;
+      let displayNumber = '';
+      const maxAttempts = 4;
 
-      const { data: saleData, error: saleError } = await supabase
-        .from('sales')
-        .insert({
-          source: 'kiosk',
-          order_status: 'pending',
-          payment_status: 'unpaid',
-          sales_channel_id: kioskChannelId,
-          total_price: total,
-          quantity: itemCount,
-          unit_price: itemCount > 0 ? total / itemCount : total,
-          daily_order_number: dailyNumber,
-          display_number: displayNumber,
-          sale_date: new Date().toISOString(),
-          notes: '',
-        })
-        .select('id')
-        .single();
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const allocated = await allocateDisplayNumber();
+        displayNumber = allocated.display_number;
+
+        const inserted = await supabase
+          .from('sales')
+          .insert({
+            source: 'kiosk',
+            order_status: 'pending',
+            payment_status: 'unpaid',
+            sales_channel_id: kioskChannelId,
+            total_price: total,
+            quantity: itemCount,
+            unit_price: itemCount > 0 ? total / itemCount : total,
+            daily_order_number: allocated.daily_order_number,
+            display_number: allocated.display_number,
+            sale_date: new Date().toISOString(),
+            notes: '',
+          })
+          .select('id')
+          .single();
+
+        if (!inserted.error && inserted.data) {
+          saleData = inserted.data as { id: string };
+          saleError = null;
+          break;
+        }
+
+        saleError = inserted.error;
+        if (!isActiveDisplayNumberConflict(inserted.error)) {
+          break;
+        }
+      }
 
       if (saleError || !saleData) {
         console.error('Failed to create sale:', saleError);

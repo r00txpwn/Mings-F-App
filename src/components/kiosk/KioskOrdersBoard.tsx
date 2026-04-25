@@ -24,6 +24,12 @@ import {
 } from 'lucide-react';
 import { invokeEdgeFunction } from '../../order/invokeEdge';
 import { useLanguage } from '../../contexts/LanguageContext';
+import {
+  isCardOnlinePaymentMethod,
+  isCashDeliveryMethod,
+  isCashPickupMethod,
+  isCashLikeOnlineMethod,
+} from '../../lib/onlinePaymentMethod';
 import { supabase, type Sale, type SaleItem, type SaleItemModifier } from '../../lib/supabase';
 
 export interface KioskOrder extends Sale {
@@ -54,7 +60,7 @@ function isPaymentConfirmedForPrep(order: KioskOrder): boolean {
   if (p === 'paid' || p === 'completed') return true;
   const method = order.online_payment_method || '';
   const online = order.source === 'online_delivery' || order.source === 'online_takeaway';
-  if (online && (method === 'cod' || method === 'cash')) return true;
+  if (online && isCashLikeOnlineMethod(method, order.source)) return true;
   return false;
 }
 
@@ -184,11 +190,23 @@ function OrderCard({
                 #{order.display_number || '—'}
               </p>
               <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {payStatus === 'unpaid' || payStatus === 'pending'
-                  ? payStatus === 'pending'
-                    ? 'Pending payment'
-                    : t.unpaid
-                  : t.paid}{' '}
+                {online
+                  ? isCardOnlinePaymentMethod(method)
+                    ? payStatus !== 'paid'
+                      ? t.payMethodBadgeCardAuthorizing
+                      : t.paid
+                    : isCashPickupMethod(method, order.source)
+                      ? t.payMethodBadgeCashPickup
+                      : isCashDeliveryMethod(method, order.source)
+                        ? t.payMethodBadgeCashDelivery
+                        : payStatus === 'unpaid' || payStatus === 'pending'
+                          ? t.unpaid
+                          : t.paid
+                  : payStatus === 'unpaid' || payStatus === 'pending'
+                    ? payStatus === 'pending'
+                      ? t.payMethodBadgeCardAuthorizing
+                      : t.unpaid
+                    : t.paid}{' '}
                 · ₼{Number(order.total_price).toFixed(2)}
               </p>
             </div>
@@ -203,14 +221,19 @@ function OrderCard({
                   ? 'Online · Takeaway'
                   : 'Kiosk'}
             </span>
-            {online && method === 'epoint' && payStatus !== 'paid' && (
+            {online && isCardOnlinePaymentMethod(method) && payStatus !== 'paid' && (
               <span className="rounded-md border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300">
                 {t.kioskPaymentPendingBadge}
               </span>
             )}
-            {online && (method === 'cod' || method === 'cash') && (
+            {online && isCashPickupMethod(method, order.source) && (
               <span className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
-                {t.kioskPaymentCashCodBadge}
+                {t.payMethodBadgeCashPickup}
+              </span>
+            )}
+            {online && isCashDeliveryMethod(method, order.source) && (
+              <span className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
+                {t.payMethodBadgeCashDelivery}
               </span>
             )}
             {online && payStatus === 'paid' && (

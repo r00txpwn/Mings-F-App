@@ -22,6 +22,7 @@
     "supabase:push": "npx --yes supabase@latest db push",
     "supabase:deploy:order": "npx --yes supabase@latest functions deploy online-order-create --no-verify-jwt",
     "supabase:deploy:epoint": "npx --yes supabase@latest functions deploy epoint-create-payment --no-verify-jwt",
+    "supabase:deploy:payment-reconcile": "npx --yes supabase@latest functions deploy payment-reconcile --no-verify-jwt",
     "supabase:deploy:web": "npm run supabase:deploy:order && npm run supabase:deploy:epoint",
     "supabase:sync": "npm run supabase:push && npm run supabase:deploy:web",
     "supabase:repair:remote": "bash scripts/supabase-repair-remote-orphans.sh",

@@ -11,8 +11,10 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { CustomerAddressRow, DeliveryZoneRow, OnlineFulfillmentType, OnlinePaymentMethod } from '../types/online';
-import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
+import { isLikelyE164, maskPhoneForOtp, normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
+import { Price } from '../components/Price';
+import { formatMoneyWithSymbol } from '../lib/money';
 
 function toLocalDayKey(date: Date): string {
   const y = date.getFullYear();
@@ -41,12 +43,18 @@ interface OrderCheckoutViewProps {
   onSelectSavedAddressId: (id: string | null) => void;
   saveAddressForNext: boolean;
   onSaveAddressForNextChange: (v: boolean) => void;
+  saveAddressLabel: string;
+  onSaveAddressLabelChange: (v: string) => void;
 
   deliveryAddress: string;
+  deliveryApartment: string;
+  deliveryFloor: string;
   lat: number | null;
   lng: number | null;
   onLocationChange: (loc: { lat: number | null; lng: number | null; address: string }) => void;
   onAddressChange: (v: string) => void;
+  onDeliveryApartmentChange: (v: string) => void;
+  onDeliveryFloorChange: (v: string) => void;
   googleMapsApiKey?: string;
   onUseLocation: () => void;
   geoStatus: string | null;
@@ -126,10 +134,14 @@ export interface CheckoutLabels {
   onlineDisabled: string;
   deliveryDisabledHint: string;
   saveAddressForNext: string;
+  saveAddressLabel: string;
+  saveAddressSignInHint: string;
   mapSearch: string;
   mapPinHint: string;
   mapLoading: string;
   mapUnavailable: string;
+  apartmentUnit: string;
+  floor: string;
   authRequired: string;
   scheduleNow: string;
   scheduleLater: string;
@@ -154,8 +166,6 @@ export interface CheckoutLabels {
   paymentCashHint: string;
   paymentEpointHint: string;
   paymentExtras: string;
-  paymentExtrasShow: string;
-  paymentExtrasHide: string;
   promoPlaceholder: string;
   reviewHint: string;
   reviewFulfillment: string;
@@ -173,8 +183,13 @@ export interface CheckoutLabels {
   contactVerify: string;
   contactChangePhone: string;
   contactAuthErrorFallback: string;
+  smsSentHint: string;
+  smsResend: string;
+  smsResendWait: string;
   /** Shown under phone when blurred and format is invalid (same meaning as account invalid-phone hint). */
   phoneFormatHint: string;
+  /** Inline helper shown next to terms consent when missing. */
+  consentRequired: string;
 }
 
 export function OrderCheckoutView({
@@ -195,11 +210,17 @@ export function OrderCheckoutView({
   onSelectSavedAddressId,
   saveAddressForNext,
   onSaveAddressForNextChange,
+  saveAddressLabel,
+  onSaveAddressLabelChange,
   deliveryAddress,
+  deliveryApartment,
+  deliveryFloor,
   lat,
   lng,
   onLocationChange,
   onAddressChange,
+  onDeliveryApartmentChange,
+  onDeliveryFloorChange,
   googleMapsApiKey,
   onUseLocation,
   geoStatus,
@@ -242,6 +263,7 @@ export function OrderCheckoutView({
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState('');
   const [checkoutPhoneBlurred, setCheckoutPhoneBlurred] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(30);
 
   const checkoutPhoneInvalid =
     checkoutPhoneBlurred &&
@@ -253,6 +275,8 @@ export function OrderCheckoutView({
   const contactStep = fulfillment === 'delivery' ? 4 : 3;
   const paymentStep = fulfillment === 'delivery' ? 5 : 4;
   const reviewStep = fulfillment === 'delivery' ? 6 : 5;
+
+  const cashRadioValue: OnlinePaymentMethod = fulfillment === 'takeaway' ? 'cash_pickup' : 'cash_delivery';
 
   const scheduleDays = useMemo(() => {
     const today = new Date();
@@ -337,8 +361,17 @@ export function OrderCheckoutView({
   useEffect(() => {
     if (authStep === 'phone') {
       setCheckoutPhoneBlurred(false);
+      setResendSeconds(30);
     }
   }, [authStep]);
+
+  useEffect(() => {
+    if (authStep !== 'otp' || resendSeconds <= 0) return;
+    const id = window.setInterval(() => {
+      setResendSeconds((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [authStep, resendSeconds]);
 
   const StepHeading = ({ n, title, optional }: { n: number; title: string; optional?: boolean }) => (
     <div className="mb-3 flex items-center gap-3">
@@ -544,6 +577,27 @@ export function OrderCheckoutView({
                   useLocationLabel={labels.useLocation}
                 />
 
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div>
+                    <label className="ming-label mb-1.5 block">{labels.apartmentUnit}</label>
+                    <input
+                      className="ming-input"
+                      value={deliveryApartment}
+                      onChange={(e) => onDeliveryApartmentChange(e.target.value)}
+                      autoComplete="address-line2"
+                    />
+                  </div>
+                  <div>
+                    <label className="ming-label mb-1.5 block">{labels.floor}</label>
+                    <input
+                      className="ming-input"
+                      value={deliveryFloor}
+                      onChange={(e) => onDeliveryFloorChange(e.target.value)}
+                      autoComplete="off"
+                    />
+                  </div>
+                </div>
+
                 {geoStatus ? <span className="text-[12px] text-ming-ash">{geoStatus}</span> : null}
 
                 {lat != null && lng != null ? (
@@ -556,7 +610,7 @@ export function OrderCheckoutView({
                       <span className="text-ming-bone">
                         {labels.inZonePrefix}: <span className="font-semibold">{zoneMatch.name}</span>
                         <span className="text-ming-ash"> · </span>
-                        <span className="ming-mono">{Number(zoneMatch.delivery_fee).toFixed(2)} ₼</span>
+                        <Price amount={zoneMatch.delivery_fee} className="ming-mono" />
                         <span className="text-ming-ash"> {labels.deliveryFeeLabel}</span>
                       </span>
                     ) : (
@@ -565,16 +619,34 @@ export function OrderCheckoutView({
                   </p>
                 ) : null}
 
-                {userLoggedIn ? (
-                  <label className="flex items-center gap-2 text-[13px] text-ming-ash">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-ming-red"
-                      checked={saveAddressForNext}
-                      onChange={(e) => onSaveAddressForNextChange(e.target.checked)}
-                    />
-                    {labels.saveAddressForNext}
-                  </label>
+                {!selectedSavedAddressId ? (
+                  <div className="space-y-2 rounded-xl border border-white/[0.06] bg-ming-ink/40 p-3">
+                    <label className="flex items-center gap-2 text-[13px] text-ming-ash">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-ming-red"
+                        checked={saveAddressForNext}
+                        disabled={!userLoggedIn}
+                        onChange={(e) => onSaveAddressForNextChange(e.target.checked)}
+                      />
+                      {labels.saveAddressForNext}
+                    </label>
+                    {saveAddressForNext ? (
+                      <div>
+                        <label className="ming-label mb-1.5 block">{labels.saveAddressLabel}</label>
+                        <input
+                          className="ming-input"
+                          value={saveAddressLabel}
+                          disabled={!userLoggedIn}
+                          onChange={(e) => onSaveAddressLabelChange(e.target.value)}
+                          autoComplete="address-level2"
+                        />
+                      </div>
+                    ) : null}
+                    {!userLoggedIn ? (
+                      <p className="text-[12px] text-ming-ash">{labels.saveAddressSignInHint}</p>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </section>
@@ -727,12 +799,16 @@ export function OrderCheckoutView({
                       }
                       setAuthStep('otp');
                       setOtpCode('');
+                      setResendSeconds(30);
                     }}
                   >
                     {authBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : labels.contactSendCode}
                   </button>
                 ) : (
                   <div className="space-y-2">
+                    <p className="text-xs text-ming-ash">
+                      {labels.smsSentHint.replace('{phone}', maskPhoneForOtp(customerPhone))}
+                    </p>
                     <p className="text-xs text-ming-ash">{labels.contactVerifyHint}</p>
                     <input
                       className="ming-input ming-mono text-center tracking-[0.45em]"
@@ -764,7 +840,28 @@ export function OrderCheckoutView({
                     </button>
                     <button
                       type="button"
-                      className="ming-btn-link w-full justify-center"
+                      className="inline-flex w-full justify-center rounded-lg px-2 py-1.5 text-xs font-semibold text-ming-ash transition-colors hover:text-ming-bone disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={authBusy || resendSeconds > 0}
+                      onClick={async () => {
+                        setAuthError('');
+                        setAuthBusy(true);
+                        const res = await sendPhoneOtp(customerPhone.trim());
+                        setAuthBusy(false);
+                        if (res.error) {
+                          const msg = String((res.error as { message?: string }).message ?? res.error);
+                          setAuthError(msg || labels.contactAuthErrorFallback);
+                          return;
+                        }
+                        setResendSeconds(30);
+                      }}
+                    >
+                      {resendSeconds > 0
+                        ? labels.smsResendWait.replace('{seconds}', String(resendSeconds))
+                        : labels.smsResend}
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex w-full justify-center rounded-lg px-2 py-1.5 text-xs font-medium text-ming-ash transition-colors hover:text-ming-bone"
                       onClick={() => {
                         setAuthStep('phone');
                         setOtpCode('');
@@ -786,10 +883,9 @@ export function OrderCheckoutView({
           <section className="ming-card p-5">
             <StepHeading n={paymentStep} title={labels.stepPayment} />
             <div className="space-y-2">
-              {paymentOption('cod', labels.payCod, labels.paymentCodHint, Wallet)}
-              {paymentOption('cash', labels.payCash, labels.paymentCashHint, Wallet)}
-              {paymentOption('epoint', labels.payEpoint, labels.paymentEpointHint, CreditCard)}
-              {paymentMethod === 'epoint' ? (
+              {paymentOption(cashRadioValue, labels.payCod, labels.paymentCodHint, Wallet)}
+              {paymentOption('card_online', labels.payEpoint, labels.paymentEpointHint, CreditCard)}
+              {paymentMethod === 'card_online' ? (
                 <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-ming-ash">
                   <label className="flex items-center gap-2">
                     <input
@@ -854,13 +950,6 @@ export function OrderCheckoutView({
                   </div>
                 </div>
               </ExpandableCheckoutOption>
-              <button
-                type="button"
-                onClick={() => setShowPaymentExtras((v) => !v)}
-                className="ming-btn-link px-0 py-0 text-sm"
-              >
-                {showPaymentExtras ? labels.paymentExtrasHide : labels.paymentExtrasShow}
-              </button>
             </div>
           </section>
 
@@ -877,8 +966,14 @@ export function OrderCheckoutView({
               {fulfillment === 'delivery' ? (
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-ming-ash">{labels.reviewAddress}</dt>
-                  <dd className="max-w-[65%] truncate text-right font-semibold text-ming-bone">
+                  <dd className="max-w-[65%] text-right font-semibold text-ming-bone">
                     {deliveryAddress.trim() || labels.reviewMissing}
+                    {deliveryApartment.trim() ? (
+                      <span className="block truncate text-[12px] text-ming-ash">{labels.apartmentUnit}: {deliveryApartment.trim()}</span>
+                    ) : null}
+                    {deliveryFloor.trim() ? (
+                      <span className="block truncate text-[12px] text-ming-ash">{labels.floor}: {deliveryFloor.trim()}</span>
+                    ) : null}
                   </dd>
                 </div>
               ) : null}
@@ -902,11 +997,7 @@ export function OrderCheckoutView({
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-ming-ash">{labels.reviewPayment}</dt>
                 <dd className="font-semibold text-ming-bone">
-                  {paymentMethod === 'epoint'
-                    ? labels.payEpoint
-                    : paymentMethod === 'cash'
-                      ? labels.payCash
-                      : labels.payCod}
+                  {paymentMethod === 'card_online' ? labels.payEpoint : labels.payCod}
                 </dd>
               </div>
             </dl>
@@ -933,6 +1024,9 @@ export function OrderCheckoutView({
                 .
               </span>
             </label>
+            {!consentAccepted ? (
+              <p className="mt-2 text-xs text-ming-gold">{labels.consentRequired}</p>
+            ) : null}
             {submitError ? (
               <div className="mt-3 rounded-xl border border-ming-red/40 bg-ming-red/10 px-4 py-3 text-sm text-ming-red">
                 <p>{submitError}</p>
@@ -952,19 +1046,34 @@ export function OrderCheckoutView({
                 </ul>
               </div>
             ) : null}
-            <button
-              type="button"
-              onClick={onSubmit}
-              disabled={!canSubmit || submitting}
-              className="ming-btn-primary mt-4 w-full py-4 lg:hidden"
-            >
-              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : `${labels.placeOrder} · ${grandTotal.toFixed(2)} ₼`}
-            </button>
-            {submitBlockers.length > 0 ? (
-              <div className="mt-2 rounded-lg border border-ming-gold/35 bg-ming-gold/10 px-3 py-2 text-xs text-ming-gold lg:hidden">
-                {submitBlockers[0]}
-              </div>
-            ) : null}
+            {(() => {
+              const disabledReason = !consentAccepted ? labels.consentRequired : submitBlockers[0] ?? null;
+              return (
+                <>
+                  <button
+                    type="button"
+                    onClick={onSubmit}
+                    disabled={!canSubmit || submitting}
+                    aria-describedby={disabledReason ? 'order-place-disabled-reason-mobile' : undefined}
+                    className="ming-btn-primary mt-4 w-full py-4 lg:hidden"
+                  >
+                    {submitting ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      `${labels.placeOrder} · ${formatMoneyWithSymbol(grandTotal)}`
+                    )}
+                  </button>
+                  {disabledReason ? (
+                    <div
+                      id="order-place-disabled-reason-mobile"
+                      className="mt-2 rounded-lg border border-ming-gold/35 bg-ming-gold/10 px-3 py-2 text-xs text-ming-gold lg:hidden"
+                    >
+                      {disabledReason}
+                    </div>
+                  ) : null}
+                </>
+              );
+            })()}
             {!userLoggedIn ? (
               <p className="mt-3 rounded-xl border border-ming-gold/40 bg-ming-gold/10 px-4 py-3 text-sm text-ming-gold">
                 {labels.authRequired}
@@ -980,46 +1089,65 @@ export function OrderCheckoutView({
             <dl className="space-y-2.5 text-sm">
               <div className="flex items-center justify-between">
                 <dt className="text-ming-ash">{labels.subtotal}</dt>
-                <dd className="ming-mono font-semibold text-ming-bone">{cartTotal.toFixed(2)} ₼</dd>
+                <dd>
+                  <Price amount={cartTotal} className="ming-mono font-semibold text-ming-bone" />
+                </dd>
               </div>
               {fulfillment === 'delivery' ? (
                 <div className="flex items-center justify-between">
                   <dt className="text-ming-ash">{labels.deliveryFeeLabel}</dt>
-                  <dd className="ming-mono font-semibold text-ming-bone">{deliveryFee.toFixed(2)} ₼</dd>
+                  <dd>
+                    <Price amount={deliveryFee} className="ming-mono font-semibold text-ming-bone" />
+                  </dd>
                 </div>
               ) : null}
               <div className="ming-divider my-1" />
               <div className="flex items-baseline justify-between">
                 <dt className="ming-label">{labels.total}</dt>
-                <dd className="ming-display text-[26px] text-ming-gold">
-                  <span className="ming-mono">{grandTotal.toFixed(2)}</span>
-                  <span className="ml-1 text-lg">₼</span>
+                <dd>
+                  <Price
+                    amount={grandTotal}
+                    className="ming-display text-[26px] text-ming-gold"
+                    valueClassName="ming-mono"
+                    symbolClassName="text-lg"
+                  />
                 </dd>
               </div>
             </dl>
-            <button
-              type="button"
-              onClick={onSubmit}
-              disabled={!canSubmit || submitting}
-              className="ming-btn-primary mt-5 hidden w-full py-4 lg:flex"
-            >
-              {submitting ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
+            {(() => {
+              const disabledReason = !consentAccepted ? labels.consentRequired : submitBlockers[0] ?? null;
+              return (
                 <>
-                  {labels.placeOrder} · {grandTotal.toFixed(2)} ₼
+                  <button
+                    type="button"
+                    onClick={onSubmit}
+                    disabled={!canSubmit || submitting}
+                    aria-describedby={disabledReason ? 'order-place-disabled-reason-desktop' : undefined}
+                    className="ming-btn-primary mt-5 hidden w-full py-4 lg:flex"
+                  >
+                    {submitting ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <>
+                        {labels.placeOrder} · {formatMoneyWithSymbol(grandTotal)}
+                      </>
+                    )}
+                  </button>
+                  {disabledReason ? (
+                    <div
+                      id="order-place-disabled-reason-desktop"
+                      className="mt-2 rounded-lg border border-ming-gold/35 bg-ming-gold/10 px-3 py-2 text-xs text-ming-gold"
+                    >
+                      {disabledReason}
+                    </div>
+                  ) : null}
                 </>
-              )}
-            </button>
+              );
+            })()}
             {submitError ? (
               <p className="mt-2 rounded-lg border border-ming-red/35 bg-ming-red/10 px-3 py-2 text-xs text-ming-red">
                 {submitError}
               </p>
-            ) : null}
-            {submitBlockers.length > 0 ? (
-              <div className="mt-2 rounded-lg border border-ming-gold/35 bg-ming-gold/10 px-3 py-2 text-xs text-ming-gold">
-                {submitBlockers[0]}
-              </div>
             ) : null}
           </div>
         </aside>

@@ -15,7 +15,8 @@ Pick **one** of:
 3. In the Vercel project **Settings → Environment Variables**, add:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-   - Optional: `VITE_GOOGLE_MAPS_API_KEY` (delivery map on `/order`), `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`
+   - Optional: `VITE_GOOGLE_MAPS_API_KEY` (delivery map on `/order`), `VITE_KIOSK_SECRET`
+   - **Production KDS:** set `VITE_KDS_SECRET` to a long random value in **production** env (and staging separately if you gate staging KDS). Leave unset **only** for local dev if you want `/kds` open. After setting or changing it, **redeploy** so the bundle picks it up. Open KDS as `/kds?key=<secret>` (bookmark on kitchen devices). Do not commit the secret.
    - Optional subdomain split: `VITE_SURFACE_ADMIN_HOSTS`, `VITE_SURFACE_ORDER_HOSTS`, `VITE_SURFACE_KIOSK_HOSTS`, `VITE_SURFACE_KDS_HOSTS`, `VITE_SURFACE_TRACK_HOSTS` (comma-separated exact hostnames; see [.env.example](.env.example)).
    - Optional public links from staff: `VITE_PUBLIC_ORDER_URL`, `VITE_PUBLIC_KIOSK_URL` (full URLs).
 
@@ -94,6 +95,7 @@ Recent online-order schema additions included in this repo:
 - `20260422200000_wolt_booking_lock_and_scheduled_guard.sql` (`delivery_orders.wolt_booking_locked_until` — Wolt portal booking lock)
 - `20260422201000_kiosk_anon_update_cancellation_reason_bound.sql` (tighter anon `UPDATE` on kiosk `sales` for `cancellation_reason`)
 - `20260422210000_products_combo_soft_delete_scheduled_future.sql` (`products.is_deleted`, `combo_deals.is_deleted`, combo read policy, `sales` trigger for future `scheduled_for`)
+- `20260425173000_direct_order_number_allocator.sql` (shared direct order allocator `allocate_direct_display_number()` for `M001..M999`, wrappers for legacy RPC names, active direct unique index on `sales.display_number`)
 
 If you see **“Remote migration versions not found in local migrations directory”**, fix history first: **[docs/MIGRATION_HISTORY.md](docs/MIGRATION_HISTORY.md)** (`npm run supabase:repair:remote` then push again).
 
@@ -127,6 +129,7 @@ Agent automation cannot reliably pass multi‑tens‑of‑KB JSON into MCP from 
 supabase functions deploy online-order-create
 supabase functions deploy epoint-create-payment
 supabase functions deploy epoint-webhook
+supabase functions deploy payment-reconcile
 supabase functions deploy wolt-drive-check
 supabase functions deploy wolt-drive-create
 supabase functions deploy wolt-drive-cancel
@@ -135,6 +138,8 @@ supabase functions deploy wolt-drive-manual-dispatch
 supabase functions deploy wolt-dispatch-book-lock
 supabase functions deploy user-management
 ```
+
+**Numbering rollout dependency:** deploy the `20260425173000_direct_order_number_allocator.sql` migration before deploying storefront/kiosk builds that call `allocate_direct_display_number()`. The migration keeps compatibility wrappers (`generate_daily_order_number*`) for staggered rollout safety, but direct callers should move to the shared allocator RPC.
 
 **Browser CORS fix:** [`supabase/config.toml`](supabase/config.toml) sets `verify_jwt = false` for `online-order-create` and `epoint-create-payment`. Deploy those after linking:
 
@@ -154,7 +159,7 @@ Set at least: `APP_BASE_URL` (your live site URL). Add E-point / Wolt secrets wh
 
 ### Epoint (card payments on `/order`)
 
-1. Run migrations (`npm run supabase:push`) so `online_payments` and `saved_cards` exist with Epoint columns.
+1. Run migrations (`npm run supabase:push`) so `online_payments` and `saved_cards` exist with Epoint columns. New hosts also get **`payment_reconciliation_log`** (empty until a future reconciler writes rows; EPoint webhook behavior unchanged).
 2. Edge Function secrets:
    - **`EPOINT_PUBLIC_KEY`**, **`EPOINT_PRIVATE_KEY`** — from epoint.az (sandbox first).
    - **`APP_BASE_URL`** — canonical **online order** site origin (must match where customers return after pay; used for Epoint success/error return URLs).
@@ -164,6 +169,43 @@ Set at least: `APP_BASE_URL` (your live site URL). Add E-point / Wolt secrets wh
    - `https://<project-ref>.supabase.co/functions/v1/epoint-webhook`
 4. Deploy: `supabase functions deploy epoint-create-payment` and `supabase functions deploy epoint-webhook` (see [`supabase/config.toml`](supabase/config.toml): both skip JWT; webhook verifies `data` + `signature` with the private key).
 5. **`EPOINT_WEBHOOK_SECRET`** — only for legacy internal tests (JSON body + `X-Epoint-Signature` HMAC-SHA256). Production Epoint uses **SHA1 signature on `data`**; the private key must match the merchant account.
+
+### Manual payment reconcile (`payment-reconcile`)
+
+Ops-only Edge Function to **read** EPoint `/get-status` and align `online_payments` / `sales` with the shared apply helper. It does **not** create new charges or refunds — it only updates local rows to match the provider (same semantics as a late webhook).
+
+1. Set **`PAYMENT_RECONCILE_SECRET`** (strong random string) in Edge secrets.
+2. Deploy: `supabase functions deploy payment-reconcile` (see [`supabase/config.toml`](supabase/config.toml): `verify_jwt = false`; auth is **`Authorization: Bearer <PAYMENT_RECONCILE_SECRET>`**).
+3. Body: **exactly one** of `{ "sale_id": "<uuid>" }` or `{ "online_payment_id": "<uuid>" }`. For `sale_id`, the function picks `sales.online_payment_id` when it matches the latest `online_payments` row for that sale; otherwise it always uses the **latest** `online_payments` row (`created_at` desc, `id` desc) so an older attempt is never reconciled when a newer one exists.
+4. Every attributed run writes **`payment_reconciliation_log`** (including noops and provider errors).
+
+**Example `curl` (replace project ref, secret, and UUIDs):**
+
+```bash
+# Wrong secret → 401 AUTH_INVALID
+curl -sS -X POST "https://<project-ref>.supabase.co/functions/v1/payment-reconcile" \
+  -H "Authorization: Bearer wrong" \
+  -H "Content-Type: application/json" \
+  -d "{\"sale_id\":\"00000000-0000-0000-0000-000000000001\"}"
+
+# Bad id → 404 NOT_FOUND (after migrate so table exists)
+curl -sS -X POST "https://<project-ref>.supabase.co/functions/v1/payment-reconcile" \
+  -H "Authorization: Bearer $PAYMENT_RECONCILE_SECRET" \
+  -H "Content-Type: application/json" \
+  -d "{\"sale_id\":\"00000000-0000-0000-0000-000000000001\"}"
+
+# Already success (EPoint agrees) → 200 noop + log_id
+curl -sS -X POST "https://<project-ref>.supabase.co/functions/v1/payment-reconcile" \
+  -H "Authorization: Bearer $PAYMENT_RECONCILE_SECRET" \
+  -H "Content-Type: application/json" \
+  -d "{\"online_payment_id\":\"<paid-online-payment-uuid>\"}"
+
+# Pending row where EPoint reports success → 200 applied_success + log_id (local DB catch-up)
+curl -sS -X POST "https://<project-ref>.supabase.co/functions/v1/payment-reconcile" \
+  -H "Authorization: Bearer $PAYMENT_RECONCILE_SECRET" \
+  -H "Content-Type: application/json" \
+  -d "{\"sale_id\":\"<sale-uuid>\"}"
+```
 
 **Sandbox checklist (after keys are set):**
 

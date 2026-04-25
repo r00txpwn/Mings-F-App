@@ -23,6 +23,7 @@ import { PageHeader } from '../components/cockpit';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { getOrderAppUrl } from '../lib/surfaceRouting';
 import { OrderItemSummary } from '../order-manager/OrderItemSummary';
+import { isCardOnlinePaymentMethod } from '../lib/onlinePaymentMethod';
 import { getCustomerDisplayName, type OrderManagerOrder } from '../order-manager/types';
 
 type OrderSupportStatus =
@@ -161,7 +162,7 @@ function itemsSummary(items: SaleItem[] | null | undefined): string {
 function isPendingOnlinePayment(order: AdminOrder): boolean {
   const src = order.source;
   if (src !== 'online_delivery' && src !== 'online_takeaway') return false;
-  if ((order.online_payment_method ?? '') !== 'epoint') return false;
+  if (!isCardOnlinePaymentMethod(order.online_payment_method)) return false;
   const st = String(order.payment_status ?? '');
   return st !== 'paid' && st !== 'completed';
 }

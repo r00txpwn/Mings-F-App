@@ -1,4 +1,5 @@
 import type { Sale, SaleItem } from '../lib/supabase';
+import { isCardOnlinePaymentMethod } from '../lib/onlinePaymentMethod';
 
 export type OrderManagerStatus = 'pending' | 'preparing' | 'ready' | 'dispatched' | 'completed' | 'cancelled';
 
@@ -18,7 +19,7 @@ export function isOnlineOrder(source: string | undefined): boolean {
 
 export function isPendingOnlinePayment(order: OrderManagerOrder): boolean {
   if (!isOnlineOrder(order.source)) return false;
-  if ((order.online_payment_method ?? '') !== 'epoint') return false;
+  if (!isCardOnlinePaymentMethod(order.online_payment_method)) return false;
   const status = String(order.payment_status ?? '');
   return status !== 'paid' && status !== 'completed';
 }

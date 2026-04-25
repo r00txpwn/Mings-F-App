@@ -1,10 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Heart, Package, Plus, Search, X } from 'lucide-react';
+import { CakeSlice, Coffee, Heart, Package, Plus, Search, Utensils, type LucideIcon, X } from 'lucide-react';
 import type { Category, Product } from '../lib/supabase';
 import type { OnlineFulfillmentType } from '../types/online';
 import { OrderVenueInfo } from './OrderVenueInfo';
+import { formatMoneyWithSymbol } from '../lib/money';
 
 const ALL = '__all__';
+
+function normalizeCategoryLabel(input: string): string {
+  const raw = String(input ?? '').trim();
+  if (!raw) return '';
+  return raw
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function categoryIllustration(categoryLabel: string): { Icon: LucideIcon; iconClassName: string } {
+  const value = categoryLabel.toLowerCase();
+  if (value.includes('drink') || value.includes('beverage')) return { Icon: Coffee, iconClassName: 'text-ming-ash' };
+  if (value.includes('dessert') || value.includes('sweet')) return { Icon: CakeSlice, iconClassName: 'text-ming-ash' };
+  if (value.includes('noodle') || value.includes('rice') || value.includes('soup')) {
+    return { Icon: Utensils, iconClassName: 'text-ming-ash' };
+  }
+  return { Icon: Package, iconClassName: 'text-ming-mute' };
+}
 
 export interface OrderMenuBrowseLabels {
   allCategories: string;
@@ -58,29 +78,31 @@ function ProductCard({
   product,
   addLabel,
   customizeLabel,
-  chooseOptionsLabel,
   halalLabel,
   favoriteAddLabel,
   favoriteRemoveLabel,
   isFavorite,
   onToggleFavorite,
   onAdd,
+  categoryLabel,
 }: {
   product: Product;
   addLabel: string;
   customizeLabel: string;
-  chooseOptionsLabel: string;
   halalLabel: string;
   favoriteAddLabel: string;
   favoriteRemoveLabel: string;
   isFavorite: boolean;
   onToggleFavorite?: () => void;
   onAdd: () => void;
+  categoryLabel: string;
 }) {
   const hasMods = (product.modifier_groups?.length ?? 0) > 0;
+  const illustration = categoryIllustration(categoryLabel);
+  const FallbackIcon = illustration.Icon;
   return (
     <article
-      className="ming-product group cursor-pointer"
+      className={`ming-product group cursor-pointer ${hasMods ? 'border-ming-gold/35 bg-ming-gold/[0.03]' : ''}`}
       onClick={onAdd}
       role="button"
       tabIndex={0}
@@ -100,8 +122,8 @@ function ProductCard({
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-ming-mute">
-            <Package className="h-10 w-10" />
+          <div className="flex h-full w-full items-center justify-center bg-ming-graphite/80">
+            <FallbackIcon className={`h-8 w-8 opacity-80 ${illustration.iconClassName}`} strokeWidth={1.8} />
           </div>
         )}
       </div>
@@ -121,22 +143,16 @@ function ProductCard({
         ) : null}
         <div className="mt-auto flex items-end justify-between gap-2 pt-3">
           <div className="flex min-w-0 flex-col">
-            <div className="flex items-baseline gap-1">
-              <span className="ming-price">
-                {Number(product.selling_price).toFixed(2)}
-              </span>
-              <span className="text-sm font-semibold text-ming-red">₼</span>
-            </div>
-            {hasMods ? (
-              <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ming-mute">
-                {chooseOptionsLabel}
-              </span>
-            ) : null}
+            <span className="ming-price text-ming-red">{formatMoneyWithSymbol(product.selling_price)}</span>
           </div>
           <button
             type="button"
             aria-label={addLabel}
-            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-ming-red px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-ming transition-all hover:bg-ming-red-700 hover:shadow-ming-glow active:scale-95"
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider shadow-ming transition-all active:scale-95 ${
+              hasMods
+                ? 'bg-ming-gold text-ming-ink hover:bg-ming-gold/90'
+                : 'bg-ming-red text-white hover:bg-ming-red-700 hover:shadow-ming-glow'
+            }`}
             onClick={(e) => {
               e.stopPropagation();
               onAdd();
@@ -149,10 +165,10 @@ function ProductCard({
             <button
               type="button"
               aria-label={isFavorite ? favoriteRemoveLabel : favoriteAddLabel}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+              className={`inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
                 isFavorite
-                  ? 'border-ming-red/60 bg-ming-red/20 text-ming-red'
-                  : 'border-white/10 bg-white/[0.04] text-ming-ash hover:text-ming-bone'
+                  ? 'border-ming-red/35 bg-ming-red/10 text-ming-red'
+                  : 'border-white/[0.08] bg-transparent text-ming-mute hover:border-white/[0.16] hover:bg-white/[0.02] hover:text-ming-ash'
               }`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -185,6 +201,11 @@ export function OrderMenuBrowseView({
   venuePhone,
   sideSlot,
 }: OrderMenuBrowseViewProps) {
+  const getCategoryLabelForProduct = (product: Product): string => {
+    const key = product.master_category_id ?? '';
+    return categoryNameById.get(key) ?? '';
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const chipsRef = useRef<HTMLDivElement | null>(null);
 
@@ -214,9 +235,20 @@ export function OrderMenuBrowseView({
 
   const categoryNameById = useMemo(() => {
     const m = new Map<string, string>();
-    for (const c of categories) m.set(c.id, c.name);
+    for (const c of categories) m.set(c.id, normalizeCategoryLabel(c.name));
     return m;
   }, [categories]);
+
+  const visibleCategories = useMemo(() => {
+    const productCategoryIds = new Set(products.map((p) => p.master_category_id));
+    return categories.filter((c) => productCategoryIds.has(c.id));
+  }, [categories, products]);
+
+  useEffect(() => {
+    if (selectedCategoryId === ALL) return;
+    if (visibleCategories.some((c) => c.id === selectedCategoryId)) return;
+    onSelectCategory(ALL);
+  }, [selectedCategoryId, visibleCategories, onSelectCategory]);
 
   useEffect(() => {
     if (selectedCategoryId === ALL) return;
@@ -271,13 +303,13 @@ export function OrderMenuBrowseView({
               product={p}
               addLabel={labels.orderAddToCart}
               customizeLabel={labels.orderCustomizeItem}
-              chooseOptionsLabel={labels.orderChooseOptions}
               halalLabel={labels.halalBadge}
               favoriteAddLabel={labels.favoriteAdd}
               favoriteRemoveLabel={labels.favoriteRemove}
               isFavorite={favoriteProductIds.includes(p.id)}
               onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
               onAdd={() => onAddProduct(p)}
+              categoryLabel={getCategoryLabelForProduct(p)}
             />
           ))}
         </div>
@@ -287,7 +319,7 @@ export function OrderMenuBrowseView({
     if (selectedCategoryId === ALL) {
       return (
         <div className="space-y-10">
-          {categories.map((cat) => {
+          {visibleCategories.map((cat) => {
             const list = searchFiltered.filter((p) => p.master_category_id === cat.id);
             if (list.length === 0) return null;
             return (
@@ -297,7 +329,7 @@ export function OrderMenuBrowseView({
                 className="scroll-mt-[168px] lg:scroll-mt-24"
               >
                 <div className="mb-4 flex items-end justify-between gap-3">
-                  <h2 className="ming-section-title">{cat.name}</h2>
+                  <h2 className="ming-section-title">{normalizeCategoryLabel(cat.name)}</h2>
                   <span className="hidden text-[11px] font-bold uppercase tracking-[0.14em] text-ming-mute sm:block">
                     {list.length} {list.length === 1 ? labels.itemCountSingle : labels.itemCountPlural}
                   </span>
@@ -309,13 +341,13 @@ export function OrderMenuBrowseView({
                       product={p}
                       addLabel={labels.orderAddToCart}
                       customizeLabel={labels.orderCustomizeItem}
-                      chooseOptionsLabel={labels.orderChooseOptions}
                       halalLabel={labels.halalBadge}
                       favoriteAddLabel={labels.favoriteAdd}
                       favoriteRemoveLabel={labels.favoriteRemove}
                       isFavorite={favoriteProductIds.includes(p.id)}
                       onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
                       onAdd={() => onAddProduct(p)}
+                      categoryLabel={getCategoryLabelForProduct(p)}
                     />
                   ))}
                 </div>
@@ -343,13 +375,13 @@ export function OrderMenuBrowseView({
                 product={p}
                 addLabel={labels.orderAddToCart}
                 customizeLabel={labels.orderCustomizeItem}
-                chooseOptionsLabel={labels.orderChooseOptions}
                 halalLabel={labels.halalBadge}
                 favoriteAddLabel={labels.favoriteAdd}
                 favoriteRemoveLabel={labels.favoriteRemove}
                 isFavorite={favoriteProductIds.includes(p.id)}
                 onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
                 onAdd={() => onAddProduct(p)}
+                categoryLabel={getCategoryLabelForProduct(p)}
               />
             ))}
           </div>
@@ -370,7 +402,7 @@ export function OrderMenuBrowseView({
             role="tablist"
           >
             {chip(ALL, labels.allCategories)}
-            {categories.map((c) => chip(c.id, c.name))}
+            {visibleCategories.map((c) => chip(c.id, normalizeCategoryLabel(c.name)))}
           </div>
           <div
             aria-hidden
@@ -395,7 +427,7 @@ export function OrderMenuBrowseView({
             >
               {labels.allCategories}
             </button>
-            {categories.map((c) => (
+            {visibleCategories.map((c) => (
               <button
                 key={c.id}
                 type="button"
@@ -406,7 +438,7 @@ export function OrderMenuBrowseView({
                     : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
                 }`}
               >
-                {c.name}
+                {normalizeCategoryLabel(c.name)}
               </button>
             ))}
           </nav>

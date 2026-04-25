@@ -6,6 +6,7 @@ import {
   effectiveModifierGroupMaxSelect,
   isSingleSelectModifierGroup,
 } from '../lib/modifierGroupConstraints';
+import { formatMoney, formatMoneyWithSymbol, formatSignedMoney } from '../lib/money';
 
 interface ProductDetailModalProps {
   product: Product;
@@ -148,7 +149,8 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
 
   const formatPrice = (price: number) => {
     if (price === 0) return t.freeOption;
-    return price > 0 ? `+₼${price.toFixed(2)}` : `-₼${Math.abs(price).toFixed(2)}`;
+    if (isOrderTheme) return formatSignedMoney(price);
+    return price > 0 ? `+₼${formatMoney(price)}` : `-₼${formatMoney(Math.abs(price))}`;
   };
 
   const handleAdd = () => {
@@ -243,7 +245,9 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
               className="text-xl font-bold"
               style={{ color: palette.accent }}
             >
-              ₼{Number(product.selling_price).toFixed(2)}
+              {isOrderTheme
+                ? formatMoneyWithSymbol(product.selling_price)
+                : `₼${formatMoney(product.selling_price)}`}
             </p>
           </div>
 
@@ -477,7 +481,9 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
               onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
             >
               {allRequiredMet
-                ? `${t.addToCart} — ₼${totalPrice.toFixed(2)}`
+                ? `${t.addToCart} — ${
+                    isOrderTheme ? formatMoneyWithSymbol(totalPrice) : `₼${formatMoney(totalPrice)}`
+                  }`
                 : t.selectRequired
               }
             </button>

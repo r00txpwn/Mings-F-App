@@ -1,5 +1,7 @@
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import type { CartItem } from '../lib/supabase';
+import { Price } from '../components/Price';
+import { formatMoneyWithSymbol } from '../lib/money';
 
 interface OrderCartViewProps {
   cart: CartItem[];
@@ -62,21 +64,23 @@ export function OrderCartView({
     <div className="space-y-2.5">
       <div className="flex items-center justify-between text-sm">
         <span className="text-ming-ash">{labels.subtotal}</span>
-        <span className="ming-mono font-semibold text-ming-bone">{cartTotal.toFixed(2)} ₼</span>
+        <Price amount={cartTotal} className="ming-mono font-semibold text-ming-bone" />
       </div>
       {showDeliveryFee ? (
         <div className="flex items-center justify-between text-sm">
           <span className="text-ming-ash">{labels.deliveryFee}</span>
-          <span className="ming-mono font-semibold text-ming-bone">{deliveryFee.toFixed(2)} ₼</span>
+          <Price amount={deliveryFee} className="ming-mono font-semibold text-ming-bone" />
         </div>
       ) : null}
       <div className="ming-divider my-2" />
       <div className="flex items-baseline justify-between">
         <span className="ming-label">{labels.total}</span>
-        <span className="ming-display text-2xl text-ming-gold">
-          <span className="ming-mono">{grandTotal.toFixed(2)}</span>
-          <span className="ml-1 text-base">₼</span>
-        </span>
+        <Price
+          amount={grandTotal}
+          className="ming-display text-2xl text-ming-gold"
+          valueClassName="ming-mono"
+          symbolClassName="text-base"
+        />
       </div>
     </div>
   );
@@ -144,7 +148,12 @@ export function OrderCartView({
                 </button>
               </div>
               {modNames ? (
-                <p className="mt-0.5 line-clamp-1 text-[12px] text-ming-ash">{modNames}</p>
+                <p
+                  className="mt-0.5 whitespace-normal break-words text-[12px] leading-relaxed text-ming-ash"
+                  title={modNames}
+                >
+                  {modNames}
+                </p>
               ) : null}
               <label className="mt-2 block">
                 <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-ming-ash">
@@ -179,9 +188,7 @@ export function OrderCartView({
                     <Plus className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <span className="ming-mono text-[15px] font-bold text-ming-bone">
-                  {linePrice.toFixed(2)} ₼
-                </span>
+                <Price amount={linePrice} className="ming-mono text-[15px] font-bold text-ming-bone" />
               </div>
             </div>
           </li>
@@ -261,7 +268,7 @@ export function OrderCartView({
             onClick={onCheckout}
             className={`ming-btn-primary mt-5 w-full py-4 ${checkoutCtaClassName ?? ''}`}
           >
-            {checkoutLabel} · {grandTotal.toFixed(2)} ₼
+            {checkoutLabel} · {formatMoneyWithSymbol(grandTotal)}
           </button>
         </div>
       ) : null}

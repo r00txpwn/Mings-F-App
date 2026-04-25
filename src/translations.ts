@@ -391,6 +391,12 @@ export interface Translations {
   kdsPaymentPendingOnline: string;
   kdsPaymentCashCod: string;
   kdsPaymentConfirmed: string;
+  /** Staff-facing: cash at counter (new + legacy cod/cash on takeaway). */
+  payMethodBadgeCashPickup: string;
+  /** Staff-facing: cash when courier delivers (new + legacy cod/cash on delivery). */
+  payMethodBadgeCashDelivery: string;
+  /** Staff-facing: online card not settled yet — never use for cash orders. */
+  payMethodBadgeCardAuthorizing: string;
   kdsPrepTimeLabel: string;
   kdsBusyKitchenHint: string;
   kdsCourierNoteLabel: string;
@@ -624,6 +630,8 @@ export interface Translations {
   orderPayment: string;
   orderPayCod: string;
   orderPayCash: string;
+  orderPayCashUnifiedTakeaway: string;
+  orderPayCashUnifiedDelivery: string;
   orderPayEpoint: string;
   orderPayCardWithWallet: string;
   orderSaveCardForFuture: string;
@@ -632,6 +640,12 @@ export interface Translations {
   orderPlacedSubtitle: string;
   orderTrackHint: string;
   orderOpenTracking: string;
+  orderCopyTrackingLink: string;
+  orderCopyTrackingDone: string;
+  orderConfirmationOrderNumber: string;
+  orderConfirmationSummaryTitle: string;
+  orderConfirmationEtaLabel: string;
+  orderConfirmationEtaFallback: string;
   orderCheckout: string;
   orderStepFulfillment: string;
   orderStepAddress: string;
@@ -696,6 +710,21 @@ export interface Translations {
   orderItemNotes: string;
   orderItemNotesPlaceholder: string;
   orderReorder: string;
+  orderAddressesSection: string;
+  orderOrdersSection: string;
+  orderAddressApartment: string;
+  orderAddressFloor: string;
+  orderAddressEdit: string;
+  orderAddressDelete: string;
+  orderAddressSetDefault: string;
+  orderAddressCancelEdit: string;
+  orderAddressSaveChanges: string;
+  orderAddressDeleteConfirm: string;
+  orderOrderDate: string;
+  orderFulfillmentLabel: string;
+  orderTrackOrder: string;
+  orderViewDetails: string;
+  orderHideDetails: string;
   orderRemoveLine: string;
   orderDecreaseQty: string;
   orderIncreaseQty: string;
@@ -712,6 +741,8 @@ export interface Translations {
   orderOrderNotes: string;
   orderPaymentCodHint: string;
   orderPaymentCashHint: string;
+  orderPaymentCashUnifiedHintTakeaway: string;
+  orderPaymentCashUnifiedHintDelivery: string;
   orderPaymentEpointHint: string;
   orderPaymentExtras: string;
   orderPaymentExtrasShow: string;
@@ -1409,6 +1440,9 @@ export const translations: Record<Language, Translations> = {
     kdsPaymentPendingOnline: 'PAYMENT PENDING — do not prepare yet',
     kdsPaymentCashCod: 'CASH / COD',
     kdsPaymentConfirmed: '✓ Payment Confirmed',
+    payMethodBadgeCashPickup: 'CASH — pay at pickup',
+    payMethodBadgeCashDelivery: 'CASH — pay on delivery',
+    payMethodBadgeCardAuthorizing: 'CARD — bank confirming (do not prep yet)',
     kdsPrepTimeLabel: 'Prep time (minutes)',
     kdsBusyKitchenHint: 'Busy kitchen? 20 min is suggested.',
     kdsCourierNoteLabel: 'Courier',
@@ -1632,6 +1666,8 @@ export const translations: Record<Language, Translations> = {
     orderPayment: 'Payment',
     orderPayCod: 'Cash on pickup / delivery',
     orderPayCash: 'Cash',
+    orderPayCashUnifiedTakeaway: 'Pay with cash at pickup',
+    orderPayCashUnifiedDelivery: 'Pay with cash on delivery',
     orderPayEpoint: 'Card (E-point)',
     orderPayCardWithWallet: 'Use Apple Pay / Google Pay when available',
     orderSaveCardForFuture: 'Save card for future orders',
@@ -1640,6 +1676,12 @@ export const translations: Record<Language, Translations> = {
     orderPlacedSubtitle: "We've received your order and will start preparing it shortly.",
     orderTrackHint: 'Track status',
     orderOpenTracking: 'Open tracking',
+    orderCopyTrackingLink: 'Copy tracking link',
+    orderCopyTrackingDone: 'Tracking link copied.',
+    orderConfirmationOrderNumber: 'Order number',
+    orderConfirmationSummaryTitle: 'Order summary',
+    orderConfirmationEtaLabel: 'Estimated time',
+    orderConfirmationEtaFallback: "We'll start preparing shortly",
     orderCheckout: 'Checkout',
     orderStepFulfillment: 'Fulfillment',
     orderStepAddress: 'Address',
@@ -1680,7 +1722,7 @@ export const translations: Record<Language, Translations> = {
     orderSendSmsCode: 'Send code',
     orderSmsCode: 'SMS code',
     orderVerifySms: 'Verify & sign in',
-    orderSmsSentHint: 'We sent a code to your phone. Enter it below.',
+    orderSmsSentHint: 'Code sent to {phone}. Enter it below.',
     orderSmsResend: 'Resend code',
     orderSmsResendWait: 'Resend in {seconds}s',
     orderSmsCodeExpiredHint: 'Code expired or invalid. Request a new SMS code.',
@@ -1697,12 +1739,27 @@ export const translations: Record<Language, Translations> = {
     orderMapSelectFailed: 'Could not resolve this address. Try another result.',
     orderMapLoadFailed: 'Map search is unavailable right now.',
     orderZonePillIn: 'Delivering to {zone} · ₼{fee}',
-    orderMapPinHint: 'Drag the pin or search — we use the pin location for delivery.',
+    orderMapPinHint: 'Move the map so the pin points to your building entrance.',
     orderMapLoading: 'Loading map…',
     orderMapUnavailable: 'Map preview unavailable. Type your address or use device location.',
     orderItemNotes: 'Item notes',
     orderItemNotesPlaceholder: 'Allergies, no onions, extra spicy…',
     orderReorder: 'Reorder',
+    orderAddressesSection: 'Saved addresses',
+    orderOrdersSection: 'Orders',
+    orderAddressApartment: 'Apartment / unit',
+    orderAddressFloor: 'Floor',
+    orderAddressEdit: 'Edit',
+    orderAddressDelete: 'Delete',
+    orderAddressSetDefault: 'Set default',
+    orderAddressCancelEdit: 'Cancel',
+    orderAddressSaveChanges: 'Save changes',
+    orderAddressDeleteConfirm: 'Delete this address?',
+    orderOrderDate: 'Date',
+    orderFulfillmentLabel: 'Fulfillment',
+    orderTrackOrder: 'Track order',
+    orderViewDetails: 'View details',
+    orderHideDetails: 'Hide details',
     orderRemoveLine: 'Remove item',
     orderDecreaseQty: 'Decrease quantity',
     orderIncreaseQty: 'Increase quantity',
@@ -1719,6 +1776,8 @@ export const translations: Record<Language, Translations> = {
     orderOrderNotes: 'Order notes',
     orderPaymentCodHint: 'Pay with cash on pickup or delivery',
     orderPaymentCashHint: 'Pay cash at the counter',
+    orderPaymentCashUnifiedHintTakeaway: "Pay in cash when you collect from Ming's",
+    orderPaymentCashUnifiedHintDelivery: 'Pay in cash to the courier on arrival',
     orderPaymentEpointHint: 'Pay securely online with card',
     orderPaymentExtras: 'Promo, tip, and notes',
     orderPaymentExtrasShow: 'Show optional payment details',
@@ -2418,6 +2477,9 @@ export const translations: Record<Language, Translations> = {
     kdsPaymentPendingOnline: 'ÖDƏNİŞ GÖZLƏNİR — hələ hazırlamayın',
     kdsPaymentCashCod: 'NAĞD / ÇATDIRILMADA',
     kdsPaymentConfirmed: '✓ Ödəniş təsdiqləndi',
+    payMethodBadgeCashPickup: 'NAĞD — götürmədə ödəniş',
+    payMethodBadgeCashDelivery: 'NAĞD — çatdırılma zamanı ödəniş',
+    payMethodBadgeCardAuthorizing: 'KART — bank təsdiqi (hələ hazırlamayın)',
     kdsPrepTimeLabel: 'Hazırlıq müddəti (dəqiqə)',
     kdsBusyKitchenHint: 'Mətbəx yüklüdür? 20 dəq tövsiyə olunur.',
     kdsCourierNoteLabel: 'Kuryer',
@@ -2642,6 +2704,8 @@ export const translations: Record<Language, Translations> = {
     orderPayment: 'Ödəniş',
     orderPayCod: 'Nağd (götürmə/çatdırılma)',
     orderPayCash: 'Nağd',
+    orderPayCashUnifiedTakeaway: 'Götürmədə nağd ödə',
+    orderPayCashUnifiedDelivery: 'Çatdırılmada nağd ödə',
     orderPayEpoint: 'Kart (E-point)',
     orderPayCardWithWallet: 'Mövcuddursa Apple Pay / Google Pay istifadə et',
     orderSaveCardForFuture: 'Kartı növbəti sifarişlər üçün yadda saxla',
@@ -2650,6 +2714,12 @@ export const translations: Record<Language, Translations> = {
     orderPlacedSubtitle: 'Sifarişinizi qəbul etdik və tezliklə hazırlamağa başlayacağıq.',
     orderTrackHint: 'Statusu izlə',
     orderOpenTracking: 'İzləməni aç',
+    orderCopyTrackingLink: 'İzləmə linkini kopyala',
+    orderCopyTrackingDone: 'İzləmə linki kopyalandı.',
+    orderConfirmationOrderNumber: 'Sifariş nömrəsi',
+    orderConfirmationSummaryTitle: 'Sifariş xülasəsi',
+    orderConfirmationEtaLabel: 'Təxmini vaxt',
+    orderConfirmationEtaFallback: 'Hazırlığa tezliklə başlayacağıq',
     orderCheckout: 'Ödənişə keç',
     orderStepFulfillment: 'Təhvil üsulu',
     orderStepAddress: 'Ünvan',
@@ -2690,7 +2760,7 @@ export const translations: Record<Language, Translations> = {
     orderSendSmsCode: 'Kod göndər',
     orderSmsCode: 'SMS kodu',
     orderVerifySms: 'Təsdiqlə və daxil ol',
-    orderSmsSentHint: 'Telefonunuza kod göndərildi. Aşağıya daxil edin.',
+    orderSmsSentHint: 'Kod {phone} nömrəsinə göndərildi. Aşağıya daxil edin.',
     orderSmsResend: 'Kodu yenidən göndər',
     orderSmsResendWait: '{seconds}s sonra yenidən göndər',
     orderSmsCodeExpiredHint: 'Kodun vaxtı bitib və ya yanlışdır. Yeni SMS kodu istəyin.',
@@ -2707,12 +2777,27 @@ export const translations: Record<Language, Translations> = {
     orderMapSelectFailed: 'Bu ünvan təsdiqlənmədi. Başqa nəticəni seçin.',
     orderMapLoadFailed: 'Xəritə axtarışı hazırda əlçatan deyil.',
     orderZonePillIn: '{zone} üçün çatdırılma · ₼{fee}',
-    orderMapPinHint: 'İşarəni sürüyün və ya axtarın — çatdırılma üçün məkan işarədən götürülür.',
+    orderMapPinHint: 'Xəritəni hərəkət etdirin ki, işarə binanızın giriş nöqtəsini göstərsin.',
     orderMapLoading: 'Xəritə yüklənir…',
     orderMapUnavailable: 'Xəritə əlçatan deyil. Ünvanı yazın və ya cihaz məkanından istifadə edin.',
     orderItemNotes: 'Məhsul qeydləri',
     orderItemNotesPlaceholder: 'Allergiya, soğansız, daha acı…',
     orderReorder: 'Yenidən sifariş et',
+    orderAddressesSection: 'Yadda saxlanılan ünvanlar',
+    orderOrdersSection: 'Sifarişlər',
+    orderAddressApartment: 'Mənzil / blok',
+    orderAddressFloor: 'Mərtəbə',
+    orderAddressEdit: 'Dəyiş',
+    orderAddressDelete: 'Sil',
+    orderAddressSetDefault: 'Əsas et',
+    orderAddressCancelEdit: 'Ləğv et',
+    orderAddressSaveChanges: 'Dəyişiklikləri saxla',
+    orderAddressDeleteConfirm: 'Bu ünvan silinsin?',
+    orderOrderDate: 'Tarix',
+    orderFulfillmentLabel: 'Təhvil üsulu',
+    orderTrackOrder: 'Sifarişi izlə',
+    orderViewDetails: 'Detallara bax',
+    orderHideDetails: 'Detalları gizlət',
     orderRemoveLine: 'Məhsulu sil',
     orderDecreaseQty: 'Sayı azaldın',
     orderIncreaseQty: 'Sayı artırın',
@@ -2729,6 +2814,8 @@ export const translations: Record<Language, Translations> = {
     orderOrderNotes: 'Sifariş qeydi',
     orderPaymentCodHint: 'Götürmədə və ya çatdırılmada nağd ödə',
     orderPaymentCashHint: 'Məntəqədə nağd ödə',
+    orderPaymentCashUnifiedHintTakeaway: "Ming's-dən götürəndə nağd ödəniş edin",
+    orderPaymentCashUnifiedHintDelivery: 'Kuryer çatdıranda nağd ödəniş edin',
     orderPaymentEpointHint: 'Kartla təhlükəsiz onlayn ödəniş',
     orderPaymentExtras: 'Promo, bəxşiş və qeyd',
     orderPaymentExtrasShow: 'Əlavə seçimləri göstər',
@@ -3428,6 +3515,9 @@ export const translations: Record<Language, Translations> = {
     kdsPaymentPendingOnline: 'ОПЛАТА ОЖИДАЕТСЯ — не готовьте',
     kdsPaymentCashCod: 'НАЛИЧНЫЕ / ПРИ ПОЛУЧЕНИИ',
     kdsPaymentConfirmed: '✓ Оплата подтверждена',
+    payMethodBadgeCashPickup: 'НАЛИЧНЫЕ — оплата при получении',
+    payMethodBadgeCashDelivery: 'НАЛИЧНЫЕ — оплата при доставке',
+    payMethodBadgeCardAuthorizing: 'КАРТА — ждём банк (не готовить)',
     kdsPrepTimeLabel: 'Время приготовления (мин)',
     kdsBusyKitchenHint: 'Загруженная кухня? Рекомендуем 20 мин.',
     kdsCourierNoteLabel: 'Курьер',
@@ -3652,6 +3742,8 @@ export const translations: Record<Language, Translations> = {
     orderPayment: 'Оплата',
     orderPayCod: 'Наличные при получении',
     orderPayCash: 'Наличные',
+    orderPayCashUnifiedTakeaway: 'Оплата наличными при самовывозе',
+    orderPayCashUnifiedDelivery: 'Оплата наличными при доставке',
     orderPayEpoint: 'Карта (E-point)',
     orderPayCardWithWallet: 'Использовать Apple Pay / Google Pay при наличии',
     orderSaveCardForFuture: 'Сохранить карту для следующих заказов',
@@ -3660,6 +3752,12 @@ export const translations: Record<Language, Translations> = {
     orderPlacedSubtitle: 'Мы получили ваш заказ и скоро начнём его готовить.',
     orderTrackHint: 'Статус заказа',
     orderOpenTracking: 'Открыть отслеживание',
+    orderCopyTrackingLink: 'Скопировать ссылку отслеживания',
+    orderCopyTrackingDone: 'Ссылка скопирована.',
+    orderConfirmationOrderNumber: 'Номер заказа',
+    orderConfirmationSummaryTitle: 'Состав заказа',
+    orderConfirmationEtaLabel: 'Ориентировочное время',
+    orderConfirmationEtaFallback: 'Скоро начнем готовить',
     orderCheckout: 'Оформить',
     orderStepFulfillment: 'Формат заказа',
     orderStepAddress: 'Адрес',
@@ -3700,7 +3798,7 @@ export const translations: Record<Language, Translations> = {
     orderSendSmsCode: 'Отправить код',
     orderSmsCode: 'Код из SMS',
     orderVerifySms: 'Подтвердить и войти',
-    orderSmsSentHint: 'Мы отправили код на ваш телефон. Введите его ниже.',
+    orderSmsSentHint: 'Код отправлен на {phone}. Введите его ниже.',
     orderSmsResend: 'Отправить код снова',
     orderSmsResendWait: 'Повтор через {seconds}с',
     orderSmsCodeExpiredHint: 'Код истек или неверный. Запросите новый SMS-код.',
@@ -3717,12 +3815,27 @@ export const translations: Record<Language, Translations> = {
     orderMapSelectFailed: 'Не удалось определить этот адрес. Выберите другой вариант.',
     orderMapLoadFailed: 'Поиск по карте сейчас недоступен.',
     orderZonePillIn: 'Доставляем в {zone} · ₼{fee}',
-    orderMapPinHint: 'Перетащите метку или найдите адрес — доставка по положению метки.',
+    orderMapPinHint: 'Двигайте карту так, чтобы метка указывала на вход в здание.',
     orderMapLoading: 'Загрузка карты…',
     orderMapUnavailable: 'Карта недоступна. Введите адрес или используйте геолокацию.',
     orderItemNotes: 'Комментарий к позиции',
     orderItemNotesPlaceholder: 'Аллергия, без лука, поострее…',
     orderReorder: 'Повторить заказ',
+    orderAddressesSection: 'Сохранённые адреса',
+    orderOrdersSection: 'Заказы',
+    orderAddressApartment: 'Квартира / блок',
+    orderAddressFloor: 'Этаж',
+    orderAddressEdit: 'Изменить',
+    orderAddressDelete: 'Удалить',
+    orderAddressSetDefault: 'Сделать основным',
+    orderAddressCancelEdit: 'Отмена',
+    orderAddressSaveChanges: 'Сохранить изменения',
+    orderAddressDeleteConfirm: 'Удалить этот адрес?',
+    orderOrderDate: 'Дата',
+    orderFulfillmentLabel: 'Формат',
+    orderTrackOrder: 'Отследить заказ',
+    orderViewDetails: 'Показать детали',
+    orderHideDetails: 'Скрыть детали',
     orderRemoveLine: 'Удалить позицию',
     orderDecreaseQty: 'Уменьшить количество',
     orderIncreaseQty: 'Увеличить количество',
@@ -3739,6 +3852,8 @@ export const translations: Record<Language, Translations> = {
     orderOrderNotes: 'Комментарий к заказу',
     orderPaymentCodHint: 'Оплата наличными при получении',
     orderPaymentCashHint: 'Оплата наличными на кассе',
+    orderPaymentCashUnifiedHintTakeaway: 'Оплатите наличными при получении в Ming’s',
+    orderPaymentCashUnifiedHintDelivery: 'Оплатите наличными курьеру при доставке',
     orderPaymentEpointHint: 'Безопасная онлайн-оплата картой',
     orderPaymentExtras: 'Промокод, чаевые и комментарий',
     orderPaymentExtrasShow: 'Показать дополнительные опции',

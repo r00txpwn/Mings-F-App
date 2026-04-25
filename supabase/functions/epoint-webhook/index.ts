@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 import * as Epoint from '../_shared/epoint.ts';
+import { applyEpointWebhookPaymentRowAndSale } from '../_shared/paymentReconciliation.ts';
 
 const LEGACY_SECRET = () => (Deno.env.get('EPOINT_WEBHOOK_SECRET') ?? '').trim();
 
@@ -164,51 +165,6 @@ async function findPaymentForCallback(
   return data as { id: string; sale_id: string; status: string | null; epoint_transaction: string | null };
 }
 
-async function applyPaymentUpdate(
-  supabase: SupabaseClient,
-  payId: string,
-  saleId: string,
-  callbackData: Record<string, unknown>,
-  success: boolean,
-  failed: boolean
-): Promise<void> {
-  const now = new Date().toISOString();
-  const patch: Record<string, unknown> = {
-    epoint_transaction: str(callbackData, 'transaction'),
-    bank_transaction: str(callbackData, 'bank_transaction', 'bankTransaction'),
-    rrn: str(callbackData, 'rrn'),
-    card_mask: str(callbackData, 'card_mask', 'cardMask'),
-    card_name: str(callbackData, 'card_name', 'cardName'),
-    epoint_status: str(callbackData, 'status'),
-    bank_response_code: str(callbackData, 'code', 'bank_response_code'),
-    raw_payload: callbackData,
-    updated_at: now,
-  };
-  if (success) {
-    patch.status = 'success';
-    patch.paid_at = now;
-    patch.error_message = null;
-  } else if (failed) {
-    patch.status = 'failed';
-    patch.error_message = str(callbackData, 'message') ?? 'Payment failed';
-  } else {
-    patch.status = 'pending';
-  }
-
-  await supabase.from('online_payments').update(patch).eq('id', payId);
-
-  if (success) {
-    await supabase.from('sales').update({ payment_status: 'paid' }).eq('id', saleId);
-    await supabase
-      .from('sales')
-      .update({ order_status: 'pending' })
-      .eq('id', saleId)
-      .eq('order_status', 'awaiting_payment');
-  } else if (failed) {
-    await supabase.from('sales').update({ payment_status: 'failed' }).eq('id', saleId);
-  }
-}
-
 async function handleStandardPayment(
   supabase: SupabaseClient,
   callbackData: Record<string, unknown>,
@@ -225,7 +181,17 @@ async function handleStandardPayment(
   if (success && pay.status === 'success') {
     return;
   }
-  await applyPaymentUpdate(supabase, pay.id, pay.sale_id, callbackData, success, failed);
+  const applied = await applyEpointWebhookPaymentRowAndSale(
+    supabase,
+    pay.id,
+    pay.sale_id,
+    callbackData,
+    success,
+    failed
+  );
+  if (!applied.ok) {
+    console.error(`epoint-webhook: applyEpointWebhookPaymentRowAndSale failed: ${applied.step}: ${applied.message}`);
+  }
 }
 
 async function handleCardRegistrationOnly(

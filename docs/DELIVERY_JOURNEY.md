@@ -43,7 +43,7 @@ Staff completes → Customer sees status on /track
 
 ### Stage 3 — Checkout
 
-- **Today:** Name, phone, address (delivery), map picker (AZ), zone + fee preview, payment method.
+- **Today:** Name, phone, address (delivery), map picker (AZ), zone + fee preview, payment method. New orders persist `online_payment_method` as **`card_online`**, **`cash_pickup`**, or **`cash_delivery`** (edge function normalizes legacy `epoint` / `cod` / `cash`); staff UIs infer legacy `cod` from `source` (takeaway vs delivery).
   - **Address picker:** Places API (New) autocomplete restricted to Baku bounds, draggable pin for fine-tune, reverse-geocode on pin drag or geolocation (see `src/order/AddressAutocomplete.tsx`, `OrderAddressMap.tsx`, `googleMapsLoader.ts`).
   - **Apartment + floor** captured as separate fields (`sales.delivery_apartment`, `sales.delivery_floor`; mirrored on `customer_addresses` for logged-in reuse — migration `20260420140000_delivery_address_details.sql`).
   - **Courier notes** — free-text buzzer / entry-code / gate instructions captured in `sales.delivery_notes` (existing column).

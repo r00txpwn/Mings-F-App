@@ -1,11 +1,17 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsPreflightResponse, jsonResponse } from '../_shared/cors.ts';
 import { pointInGeoJsonPolygon } from '../_shared/geo.ts';
+import {
+  isCardOnlinePaymentMethod,
+  normalizePaymentMethodForPersist,
+  type PersistedOnlinePaymentMethod,
+} from '../_shared/onlinePaymentMethod.ts';
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 type FulfillmentType = 'takeaway' | 'delivery';
-type PaymentMethod = 'cash' | 'cod' | 'epoint';
+/** Request body may send new or legacy method strings; server normalizes before insert. */
+type PaymentMethod = string;
 
 interface CartLine {
   productId?: string;
@@ -40,6 +46,11 @@ interface Body {
   /** QR/table context (e.g. `?table=` or `?ref=`) — stored on the sale `notes` field for kitchen. */
   tableLabel?: string;
 }
+
+type AllocatedDisplayNumberRow = {
+  daily_order_number: number;
+  display_number: string;
+};
 
 function errorResponse(code: string, error: string, status = 400): Response {
   return jsonResponse({ code, error }, status);
@@ -83,6 +94,60 @@ function effectiveMaxSelectForValidation(g: { name: string; max_select?: number 
     return 1;
   }
   return maxSel;
+}
+
+function isPoolExhaustedRpcError(error: unknown): boolean {
+  const message =
+    typeof error === 'object' && error !== null && 'message' in error
+      ? String((error as { message?: unknown }).message ?? '')
+      : '';
+  return message.includes('DIRECT_NUMBER_POOL_EXHAUSTED');
+}
+
+function isActiveDisplayNumberUniqueViolation(error: unknown): boolean {
+  if (typeof error !== 'object' || error == null) return false;
+  const e = error as { code?: string; message?: string };
+  if (e.code === '23505') return true;
+  return (e.message ?? '').includes('ux_sales_active_direct_display_number');
+}
+
+async function allocateDirectDisplayNumber(
+  supabase: ReturnType<typeof createClient>
+): Promise<
+  | { ok: true; value: AllocatedDisplayNumberRow }
+  | { ok: false; status: number; code: string; message: string }
+> {
+  const { data, error } = await supabase.rpc('allocate_direct_display_number');
+  if (error || !data) {
+    if (isPoolExhaustedRpcError(error)) {
+      return {
+        ok: false,
+        status: 503,
+        code: 'ORDER_NUMBER_POOL_EXHAUSTED',
+        message: 'All direct order numbers are currently in use. Please try again shortly.',
+      };
+    }
+    return {
+      ok: false,
+      status: 500,
+      code: 'ORDER_NUMBER_FAILED',
+      message: error?.message ?? 'Order number failed',
+    };
+  }
+
+  const row = (Array.isArray(data) ? data[0] : data) as Partial<AllocatedDisplayNumberRow>;
+  const daily = Number(row.daily_order_number);
+  const display = String(row.display_number ?? '');
+  if (!Number.isFinite(daily) || daily < 1 || !/^M\d{3}$/.test(display)) {
+    return {
+      ok: false,
+      status: 500,
+      code: 'ORDER_NUMBER_INVALID',
+      message: 'Allocated order number payload was invalid',
+    };
+  }
+
+  return { ok: true, value: { daily_order_number: daily, display_number: display } };
 }
 
 Deno.serve(async (req: Request) => {
@@ -140,7 +205,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
   const {
     fulfillmentType,
-    paymentMethod = 'cod',
+    paymentMethod: rawPaymentMethod = 'cod',
     cart,
     customerName,
     customerPhone,
@@ -206,6 +271,12 @@ async function handleRequest(req: Request): Promise<Response> {
     scheduledAtIso = parsed.toISOString();
   }
 
+  const persistedPaymentMethod: PersistedOnlinePaymentMethod = normalizePaymentMethodForPersist(
+    rawPaymentMethod,
+    fulfillmentType
+  );
+  const cardPayment = isCardOnlinePaymentMethod(persistedPaymentMethod);
+
   const source = fulfillmentType === 'delivery' ? 'online_delivery' : 'online_takeaway';
 
   const { data: channel } = await supabase.from('sales_channels').select('id').eq('name', 'Online').maybeSingle();
@@ -213,14 +284,6 @@ async function handleRequest(req: Request): Promise<Response> {
     return errorResponse('ONLINE_CHANNEL_MISSING', 'Online sales channel missing', 500);
   }
 
-  const { data: orderNum, error: rpcErr } = await supabase.rpc('generate_daily_order_number_for_source', {
-    order_source: source,
-  });
-  if (rpcErr || orderNum == null) {
-    return errorResponse('ORDER_NUMBER_FAILED', rpcErr?.message ?? 'Order number failed', 500);
-  }
-  const dailyNumber = Number(orderNum);
-  const displayNumber = 'O' + String(dailyNumber).padStart(3, '0');
   const trackToken = crypto.randomUUID();
   const paymentInitToken = crypto.randomUUID();
 
@@ -556,12 +619,7 @@ async function handleRequest(req: Request): Promise<Response> {
     }
   }
 
-  let paymentStatus: string;
-  if (paymentMethod === 'epoint') {
-    paymentStatus = 'pending';
-  } else {
-    paymentStatus = 'unpaid';
-  }
+  const paymentStatus: string = cardPayment ? 'pending' : 'unpaid';
 
   const itemCount = resolvedLines.reduce((s, l) => s + l.quantity, 0);
 
@@ -579,8 +637,6 @@ async function handleRequest(req: Request): Promise<Response> {
     total_price: totalWithAdjustments,
     quantity: itemCount,
     unit_price: itemCount > 0 ? totalWithAdjustments / itemCount : totalWithAdjustments,
-    daily_order_number: dailyNumber,
-    display_number: displayNumber,
     track_token: trackToken,
     is_scheduled: Boolean(isScheduled && scheduledAtIso),
     scheduled_for: scheduledAtIso,
@@ -589,7 +645,7 @@ async function handleRequest(req: Request): Promise<Response> {
       .filter(Boolean)
       .join(' | '),
     delivery_notes: courierNote || null,
-    online_payment_method: paymentMethod,
+    online_payment_method: persistedPaymentMethod,
     customer_name: customerName?.trim() || null,
     customer_phone: normalizedPhone,
     delivery_address: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,
@@ -617,31 +673,81 @@ async function handleRequest(req: Request): Promise<Response> {
   let saleRow: { id: string } | null = null;
   let saleErr: { message?: string } | null = null;
 
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const { data, error } = await supabase
-      .from('sales')
-      .insert(insertPayload)
-      .select('id')
-      .single();
+  let allocatorTries = 0;
+  const maxAllocatorTries = 4;
+  while (allocatorTries < maxAllocatorTries) {
+    allocatorTries += 1;
 
-    if (!error && data) {
-      saleRow = data as { id: string };
-      saleErr = null;
-      break;
+    const allocated = await allocateDirectDisplayNumber(supabase);
+    if (!allocated.ok) {
+      return errorResponse(allocated.code, allocated.message, allocated.status);
     }
 
-    saleErr = error as { message?: string } | null;
-    const msg = error?.message ?? '';
-    const missingColMatch = /Could not find the '([^']+)' column of 'sales'/.exec(msg);
-    if (!missingColMatch) break;
+    insertPayload = {
+      ...insertPayload,
+      daily_order_number: allocated.value.daily_order_number,
+      display_number: allocated.value.display_number,
+    };
 
-    const missingCol = missingColMatch[1];
-    if (!(missingCol in insertPayload)) break;
-    delete insertPayload[missingCol];
+    let missingColumnAttempts = 0;
+    const maxMissingColumnAttempts = 12;
+    while (missingColumnAttempts < maxMissingColumnAttempts) {
+      missingColumnAttempts += 1;
+
+      const { data, error } = await supabase
+        .from('sales')
+        .insert(insertPayload)
+        .select('id')
+        .single();
+
+      if (!error && data) {
+        saleRow = data as { id: string };
+        saleErr = null;
+        break;
+      }
+
+      saleErr = error as { message?: string } | null;
+
+      // Another concurrent insert may have claimed the same active M number between
+      // allocation and insert commit. Re-allocate and retry a bounded number of times.
+      if (isActiveDisplayNumberUniqueViolation(error)) {
+        break;
+      }
+
+      const msg = error?.message ?? '';
+      const missingColMatch = /Could not find the '([^']+)' column of 'sales'/.exec(msg);
+      if (!missingColMatch) break;
+
+      const missingCol = missingColMatch[1];
+      if (!(missingCol in insertPayload)) break;
+      delete insertPayload[missingCol];
+    }
+
+    if (saleRow) break;
+
+    if (!isActiveDisplayNumberUniqueViolation(saleErr)) {
+      break;
+    }
   }
 
   if (saleErr || !saleRow) {
+    if (isActiveDisplayNumberUniqueViolation(saleErr)) {
+      return errorResponse(
+        'ORDER_NUMBER_CONFLICT',
+        'Could not reserve an active order number. Please try again.',
+        503
+      );
+    }
+
     return jsonResponse({ error: saleErr?.message ?? 'Failed to create sale' }, 500);
+  }
+
+  const dailyNumber = Number(insertPayload.daily_order_number);
+  const displayNumber = String(insertPayload.display_number ?? '');
+
+  if (!Number.isFinite(dailyNumber) || !/^M\d{3}$/.test(displayNumber)) {
+    await supabase.from('sales').delete().eq('id', saleRow.id);
+    return errorResponse('ORDER_NUMBER_INVALID', 'Allocated order number was invalid', 500);
   }
 
   const saleId = saleRow.id as string;
@@ -756,8 +862,8 @@ async function handleRequest(req: Request): Promise<Response> {
     displayNumber,
     total: totalWithAdjustments,
     deliveryFee,
-    paymentMethod,
+    paymentMethod: persistedPaymentMethod,
     paymentInitToken,
-    nextStep: paymentMethod === 'epoint' ? 'epoint-create-payment' : 'track',
+    nextStep: cardPayment ? 'epoint-create-payment' : 'track',
   });
 }
