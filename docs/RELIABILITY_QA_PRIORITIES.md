@@ -6,7 +6,7 @@ Use this checklist when validating releases (especially after changes to orderin
 
 - **Kitchen closed**: With `online_settings.is_open = false`, placing an order returns a clear error (`KITCHEN_CLOSED`); storefront maps it to localized copy.
 - **Invalid quantity**: Non-integer or out-of-range quantities are rejected (`INVALID_QUANTITY`).
-- **Card vs cash**: Card flows use `awaiting_payment` until Epoint succeeds; cash/COD stay `pending` as designed.
+- **Card vs cash**: Card flows use `sales.payment_status = pending` until EPoint succeeds; cash uses `unpaid` with `online_payment_method` of `cash_pickup` / `cash_delivery` (new) or legacy `cod` inferred from `source`. Do not confuse card `pending` with cash `unpaid`.
 - **Return from payment**: After Epoint redirect, order state recovers (poll + URL params); combo lines send real `comboSelections`, not empty arrays.
 
 ## Customer flow

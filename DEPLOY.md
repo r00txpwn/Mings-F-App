@@ -15,7 +15,8 @@ Pick **one** of:
 3. In the Vercel project **Settings → Environment Variables**, add:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-   - Optional: `VITE_GOOGLE_MAPS_API_KEY` (delivery map on `/order`), `VITE_KIOSK_SECRET`, `VITE_KDS_SECRET`
+   - Optional: `VITE_GOOGLE_MAPS_API_KEY` (delivery map on `/order`), `VITE_KIOSK_SECRET`
+   - **Production KDS:** set `VITE_KDS_SECRET` to a long random value in **production** env (and staging separately if you gate staging KDS). Leave unset **only** for local dev if you want `/kds` open. After setting or changing it, **redeploy** so the bundle picks it up. Open KDS as `/kds?key=<secret>` (bookmark on kitchen devices). Do not commit the secret.
    - Optional subdomain split: `VITE_SURFACE_ADMIN_HOSTS`, `VITE_SURFACE_ORDER_HOSTS`, `VITE_SURFACE_KIOSK_HOSTS`, `VITE_SURFACE_KDS_HOSTS`, `VITE_SURFACE_TRACK_HOSTS` (comma-separated exact hostnames; see [.env.example](.env.example)).
    - Optional public links from staff: `VITE_PUBLIC_ORDER_URL`, `VITE_PUBLIC_KIOSK_URL` (full URLs).
 
