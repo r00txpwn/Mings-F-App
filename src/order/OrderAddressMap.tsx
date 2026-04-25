@@ -61,8 +61,9 @@ export interface OrderAddressMapProps {
  *
  * Composition:
  *  - Premium autocomplete (Places API New, session tokens, Baku bounds) on top.
- *  - Map + draggable marker below, for post-selection "fine-tune" of the exact
- *    building entrance — a common need in Baku because many addresses lack
+ *  - Map + fixed center pin below; customer moves the map underneath the pin
+ *    to fine-tune the exact building entrance — a common need in Baku because
+ *    many addresses lack
  *    reliable street-number data in Google's index.
  *  - Free-text textarea for apartment / floor / courier-visible notes.
  */
@@ -92,10 +93,10 @@ export function OrderAddressMap({
 }: OrderAddressMapProps) {
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const polygonsRef = useRef<Map<string, google.maps.Polygon>>(new Map());
   const skipNextExternalSync = useRef(false);
+  const geocodeSeqRef = useRef(0);
   const addressRef = useRef(address);
   addressRef.current = address;
 
@@ -104,6 +105,23 @@ export function OrderAddressMap({
   const [mapReady, setMapReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const pinWrapRef = useRef<HTMLDivElement>(null);
+
+  const triggerPinSettle = useCallback(() => {
+    const el = pinWrapRef.current;
+    if (!el || typeof el.animate !== 'function') return;
+    void el.animate(
+      [
+        { transform: 'translate(-50%, -100%) scale(1)' },
+        { transform: 'translate(-50%, -105%) scale(1.03)' },
+        { transform: 'translate(-50%, -100%) scale(1)' },
+      ],
+      {
+        duration: 260,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      },
+    );
+  }, []);
 
   const applyLocation = useCallback(
     (position: google.maps.LatLngLiteral, formattedAddress: string) => {
@@ -143,42 +161,26 @@ export function OrderAddressMap({
           streetViewControl: false,
           fullscreenControl: false,
           clickableIcons: false,
+          gestureHandling: 'greedy',
         });
         mapRef.current = map;
 
-        const marker = new maps.Marker({
-          map,
-          position: center,
-          draggable: true,
-          animation: maps.Animation.DROP,
-        });
-        markerRef.current = marker;
-
         geocoderRef.current = new maps.Geocoder();
 
-        marker.addListener('dragend', () => {
-          const pos = marker.getPosition();
-          if (!pos) return;
-          const p = pos.toJSON();
+        map.addListener('idle', () => {
+          const centerLatLng = map.getCenter();
+          if (!centerLatLng) return;
+          const p = centerLatLng.toJSON();
+          const seq = ++geocodeSeqRef.current;
           geocoderRef.current?.geocode({ location: p }, (results, status) => {
+            // Ignore stale reverse-geocode replies while user keeps moving map.
+            if (seq !== geocodeSeqRef.current) return;
             if (status === 'OK' && results?.[0]) {
               applyLocation(p, results[0].formatted_address ?? addressRef.current);
             } else {
               applyLocation(p, addressRef.current);
             }
-          });
-        });
-
-        map.addListener('click', (e: google.maps.MapMouseEvent) => {
-          if (!e.latLng) return;
-          const p = e.latLng.toJSON();
-          marker.setPosition(e.latLng);
-          geocoderRef.current?.geocode({ location: p }, (results, status) => {
-            if (status === 'OK' && results?.[0]) {
-              applyLocation(p, results[0].formatted_address ?? '');
-            } else {
-              applyLocation(p, addressRef.current);
-            }
+            triggerPinSettle();
           });
         });
 
@@ -193,7 +195,6 @@ export function OrderAddressMap({
 
     return () => {
       cancelled = true;
-      markerRef.current = null;
       mapRef.current = null;
       geocoderRef.current = null;
       setMapReady(false);
@@ -270,27 +271,25 @@ export function OrderAddressMap({
       return;
     }
     const map = mapRef.current;
-    const marker = markerRef.current;
-    if (!map || !marker) return;
+    if (!map) return;
     const pos = { lat, lng };
-    marker.setPosition(pos);
     map.panTo(pos);
     map.setZoom(16);
-  }, [lat, lng, mapReady]);
+    triggerPinSettle();
+  }, [lat, lng, mapReady, triggerPinSettle]);
 
   const handleAutocompleteSelect = useCallback(
     (result: AddressAutocompleteResult) => {
       const map = mapRef.current;
-      const marker = markerRef.current;
-      if (map && marker) {
+      if (map) {
         const p = { lat: result.lat, lng: result.lng };
-        marker.setPosition(p);
         map.panTo(p);
         map.setZoom(17);
       }
       applyLocation({ lat: result.lat, lng: result.lng }, result.address);
+      triggerPinSettle();
     },
-    [applyLocation],
+    [applyLocation, triggerPinSettle],
   );
 
   const pill = useMemo(() => {
@@ -381,7 +380,35 @@ export function OrderAddressMap({
         <div
           ref={mapElRef}
           className={`h-52 w-full min-h-[13rem] bg-slate-800 ${loading ? 'hidden' : ''}`}
+          style={{ touchAction: 'none' }}
         />
+        <div className="pointer-events-none absolute inset-0">
+          <div
+            ref={pinWrapRef}
+            className="absolute left-1/2 top-1/2 z-[5]"
+            style={{ transform: 'translate(-50%, -100%)' }}
+          >
+            <div className="drop-shadow-[0_6px_10px_rgba(0,0,0,0.45)]">
+              <svg
+                width="34"
+                height="42"
+                viewBox="0 0 34 42"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden
+              >
+                <path
+                  d="M17 1.5C8.716 1.5 2 8.216 2 16.5C2 27.409 13.13 36.71 16.006 39.018C16.59 39.486 17.41 39.486 17.994 39.018C20.87 36.71 32 27.409 32 16.5C32 8.216 25.284 1.5 17 1.5Z"
+                  fill="#D7263D"
+                  stroke="#FFFFFF"
+                  strokeWidth="2"
+                />
+                <circle cx="17" cy="16.5" r="5.6" fill="#FFFFFF" />
+                <circle cx="17" cy="16.5" r="2.2" fill="#D7263D" />
+              </svg>
+            </div>
+          </div>
+        </div>
         {loadError ? <p className="p-3 text-xs text-rose-400">{loadError}</p> : null}
       </div>
 

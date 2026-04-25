@@ -15,7 +15,7 @@ export function useOrderHistory(userId: string | undefined) {
     const { data } = await supabase
       .from('sales')
       .select(
-        'id, display_number, order_status, payment_status, total_price, sale_date, source, created_at, sale_items(id, product_id, product_name, quantity, notes)'
+        'id, display_number, order_status, payment_status, total_price, sale_date, source, created_at, track_token, sale_items(id, product_id, product_name, quantity, notes)'
       )
       .eq('customer_user_id', userId)
       .order('created_at', { ascending: false })

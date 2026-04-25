@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Clock, Loader2, LogOut, Mail, MapPin, Phone, Plus, UserCircle2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Clock, Loader2, LogOut, Mail, MapPin, Phone, Plus, UserCircle2 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
-import type { CustomerAddressRow, CustomerProfileRow, OnlineFulfillmentType } from '../types/online';
+import type { CustomerAddressRow, CustomerProfileRow } from '../types/online';
 import type { Sale } from '../lib/supabase';
 import { isLikelyE164, maskPhoneForOtp, normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
@@ -24,15 +24,18 @@ interface OrderAccountPanelProps {
   onSaveAddress: (input: {
     label: string;
     line1: string;
+    apartment?: string | null;
+    floor?: string | null;
     lat?: number | null;
     lng?: number | null;
     is_default?: boolean;
+    id?: string;
   }) => Promise<void>;
+  onDeleteAddress: (id: string) => Promise<void>;
   orders: Sale[];
   ordersLoading: boolean;
   onReloadOrders: () => void;
   onReorder: (order: Sale) => void;
-  fulfillment: OnlineFulfillmentType;
   loyaltyEnabled?: boolean;
   loyaltyRewardEveryOrders?: number;
   /** When set, address form uses map + Places (same as checkout). */
@@ -84,6 +87,26 @@ interface OrderAccountPanelProps {
     orderMapUnavailable: string;
     orderDeliveryAddress: string;
     orderReorder: string;
+    orderProfileSection: string;
+    orderAddressesSection: string;
+    orderOrdersSection: string;
+    orderAddressApartment: string;
+    orderAddressFloor: string;
+    orderAddressEdit: string;
+    orderAddressDelete: string;
+    orderAddressSetDefault: string;
+    orderAddressCancelEdit: string;
+    orderAddressSaveChanges: string;
+    orderAddressDeleteConfirm: string;
+    orderAddressDefaultBadge: string;
+    orderAddressHomeLabel: string;
+    orderOrderDate: string;
+    orderFulfillmentLabel: string;
+    orderFulfillmentDelivery: string;
+    orderFulfillmentTakeaway: string;
+    orderTrackOrder: string;
+    orderViewDetails: string;
+    orderHideDetails: string;
   };
 }
 
@@ -113,11 +136,11 @@ export function OrderAccountPanel({
   dataLoading,
   onSaveProfile,
   onSaveAddress,
+  onDeleteAddress,
   orders,
   ordersLoading,
   onReloadOrders,
   onReorder,
-  fulfillment,
   loyaltyEnabled = false,
   loyaltyRewardEveryOrders = 10,
   googleMapsApiKey,
@@ -138,16 +161,23 @@ export function OrderAccountPanel({
   const [resetBusy, setResetBusy] = useState(false);
   const [nameEdit, setNameEdit] = useState('');
   const [phoneEdit, setPhoneEdit] = useState('');
-  const [addrLabel, setAddrLabel] = useState('Home');
+  const [addrLabel, setAddrLabel] = useState(t.orderAddressHomeLabel);
   const [addrLine, setAddrLine] = useState('');
+  const [addrApartment, setAddrApartment] = useState('');
+  const [addrFloor, setAddrFloor] = useState('');
   const [addrLat, setAddrLat] = useState<number | null>(null);
   const [addrLng, setAddrLng] = useState<number | null>(null);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingAddr, setSavingAddr] = useState(false);
+  const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null);
+  const [settingDefaultAddressId, setSettingDefaultAddressId] = useState<string | null>(null);
   const [phoneSmsBlurred, setPhoneSmsBlurred] = useState(false);
   const [phoneProfileBlurred, setPhoneProfileBlurred] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(30);
   const [showAnonAuthForm, setShowAnonAuthForm] = useState(false);
+  const [activeSection, setActiveSection] = useState<'profile' | 'addresses' | 'orders'>('profile');
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   const smsPhoneNorm = normalizePhoneE164(phoneInput.trim());
   const smsPhoneInvalid = phoneInput.trim().length > 0 && !isLikelyE164(smsPhoneNorm);
@@ -292,6 +322,33 @@ export function OrderAccountPanel({
       window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
     }
   };
+
+  const resetAddressForm = () => {
+    setEditingAddressId(null);
+    setAddrLabel(t.orderAddressHomeLabel);
+    setAddrLine('');
+    setAddrApartment('');
+    setAddrFloor('');
+    setAddrLat(null);
+    setAddrLng(null);
+  };
+
+  const beginEditAddress = (address: CustomerAddressRow) => {
+    setEditingAddressId(address.id);
+    setAddrLabel(address.label);
+    setAddrLine(address.line1);
+    setAddrApartment(address.apartment?.trim() ?? '');
+    setAddrFloor(address.floor?.trim() ?? '');
+    setAddrLat(address.lat);
+    setAddrLng(address.lng);
+    setActiveSection('addresses');
+  };
+
+  useEffect(() => {
+    if (!editingAddressId && !addrLabel.trim()) {
+      setAddrLabel(t.orderAddressHomeLabel);
+    }
+  }, [editingAddressId, addrLabel, t.orderAddressHomeLabel]);
 
   if (recoveryMode) {
     return (
@@ -583,201 +640,374 @@ export function OrderAccountPanel({
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Profile */}
-          <section className="ming-card p-5">
-            <p className="ming-eyebrow mb-3">Profile</p>
-            <div className="space-y-3">
-              <div>
-                <label className="ming-label mb-1.5 block">{t.orderYourName}</label>
-                <input
-                  className="ming-input"
-                  value={nameEdit}
-                  onChange={(e) => setNameEdit(e.target.value)}
-                  placeholder={t.orderYourName}
-                />
-              </div>
-              <div>
-                <label className="ming-label mb-1.5 block">{t.orderAccountPhone}</label>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  className={`ming-input-focus-neutral${profileInputError ? ' ming-input-error' : ''}`}
-                  value={phoneEdit}
-                  onChange={(e) => setPhoneEdit(e.target.value)}
-                  onFocus={() => setPhoneProfileBlurred(false)}
-                  onBlur={() => setPhoneProfileBlurred(true)}
-                  placeholder={t.orderYourPhone}
-                  aria-invalid={profileInputError}
-                />
-                {profileShowInvalidHint ? (
-                  <p className="text-[12px] text-ming-gold">{t.orderInvalidPhone}</p>
-                ) : null}
-              </div>
+          <div className="ming-card p-2">
+            <div className="grid grid-cols-3 gap-1">
               <button
                 type="button"
-                disabled={savingProfile}
-                onClick={async () => {
-                  setSavingProfile(true);
-                  await onSaveProfile({
-                    full_name: nameEdit.trim() || null,
-                    phone: phoneEdit.trim() === '' ? null : normalizePhoneE164(phoneEdit),
-                  });
-                  setSavingProfile(false);
-                }}
-                className="ming-btn-ghost"
+                onClick={() => setActiveSection('profile')}
+                className={`rounded-lg px-2 py-2 text-xs font-semibold ${
+                  activeSection === 'profile'
+                    ? 'bg-ming-red/15 text-ming-bone'
+                    : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
+                }`}
               >
-                {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : t.orderSaveProfile}
+                {t.orderProfileSection}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSection('addresses')}
+                className={`rounded-lg px-2 py-2 text-xs font-semibold ${
+                  activeSection === 'addresses'
+                    ? 'bg-ming-red/15 text-ming-bone'
+                    : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
+                }`}
+              >
+                {t.orderAddressesSection}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSection('orders')}
+                className={`rounded-lg px-2 py-2 text-xs font-semibold ${
+                  activeSection === 'orders'
+                    ? 'bg-ming-red/15 text-ming-bone'
+                    : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
+                }`}
+              >
+                {t.orderOrdersSection}
               </button>
             </div>
-          </section>
+          </div>
 
-          {/* Addresses (delivery-only surface) */}
-          {fulfillment === 'delivery' ? (
+          {activeSection === 'profile' ? (
             <section className="ming-card p-5">
-            <p className="ming-eyebrow mb-3 flex items-center gap-2">
-              <MapPin className="h-3 w-3" />
-              {t.orderSavedAddresses}
-            </p>
-            {addresses.length > 0 ? (
-              <ul className="mb-4 space-y-2">
-                {addresses.map((a) => (
-                  <li
-                    key={a.id}
-                    className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3"
-                  >
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ming-red" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-ming-bone">{a.label}</p>
-                      <p className="mt-0.5 text-[13px] text-ming-ash">{a.line1}</p>
-                    </div>
-                    {a.is_default ? (
-                      <span className="shrink-0 rounded-full bg-ming-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ming-gold">
-                        Default
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            <div className="space-y-3 rounded-xl border border-dashed border-white/10 p-3">
-              <input
-                className="ming-input"
-                placeholder={t.orderAddressLabel}
-                value={addrLabel}
-                onChange={(e) => setAddrLabel(e.target.value)}
-              />
-              {googleMapsApiKey ? (
-                <OrderAddressMap
-                  apiKey={googleMapsApiKey}
-                  lat={addrLat}
-                  lng={addrLng}
-                  address={addrLine}
-                  onLocationChange={({ lat, lng, address }) => {
-                    setAddrLat(lat);
-                    setAddrLng(lng);
-                    setAddrLine(address);
+              <p className="ming-eyebrow mb-3">{t.orderProfileSection}</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="ming-label mb-1.5 block">{t.orderYourName}</label>
+                  <input
+                    className="ming-input"
+                    value={nameEdit}
+                    onChange={(e) => setNameEdit(e.target.value)}
+                    placeholder={t.orderYourName}
+                  />
+                </div>
+                <div>
+                  <label className="ming-label mb-1.5 block">{t.orderAccountPhone}</label>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    className={`ming-input-focus-neutral${profileInputError ? ' ming-input-error' : ''}`}
+                    value={phoneEdit}
+                    onChange={(e) => setPhoneEdit(e.target.value)}
+                    onFocus={() => setPhoneProfileBlurred(false)}
+                    onBlur={() => setPhoneProfileBlurred(true)}
+                    placeholder={t.orderYourPhone}
+                    aria-invalid={profileInputError}
+                  />
+                  {profileShowInvalidHint ? (
+                    <p className="text-[12px] text-ming-gold">{t.orderInvalidPhone}</p>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  disabled={savingProfile}
+                  onClick={async () => {
+                    setSavingProfile(true);
+                    await onSaveProfile({
+                      full_name: nameEdit.trim() || null,
+                      phone: phoneEdit.trim() === '' ? null : normalizePhoneE164(phoneEdit),
+                    });
+                    setSavingProfile(false);
                   }}
-                  onAddressChange={(v) => setAddrLine(v)}
-                  searchPlaceholder={t.orderMapSearchPlaceholder}
-                  pinHint={t.orderMapPinHint}
-                  loadingLabel={t.orderMapLoading}
-                  unavailableLabel={t.orderMapUnavailable}
-                  addressLabel={`${t.orderDeliveryAddress} *`}
-                />
-              ) : (
-                <input
-                  className="ming-input"
-                  placeholder={t.orderAddressStreet}
-                  value={addrLine}
-                  onChange={(e) => setAddrLine(e.target.value)}
-                />
-              )}
-              <button
-                type="button"
-                disabled={savingAddr || !addrLine.trim()}
-                onClick={async () => {
-                  setSavingAddr(true);
-                  await onSaveAddress({
-                    label: addrLabel.trim() || 'Home',
-                    line1: addrLine.trim(),
-                    lat: addrLat,
-                    lng: addrLng,
-                    is_default: addresses.length === 0,
-                  });
-                  setAddrLine('');
-                  setAddrLat(null);
-                  setAddrLng(null);
-                  setSavingAddr(false);
-                }}
-                className="ming-btn-primary w-full"
-              >
-                {savingAddr ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4" />
-                    {t.orderAddAddress}
-                  </>
-                )}
-              </button>
-            </div>
+                  className="ming-btn-ghost"
+                >
+                  {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : t.orderSaveProfile}
+                </button>
+              </div>
             </section>
           ) : null}
 
-          {/* Orders */}
-          <section className="ming-card p-5">
-            <p className="ming-eyebrow mb-3 flex items-center gap-2">
-              <Clock className="h-3 w-3" />
-              {t.orderMyOrders}
-            </p>
-            {ordersLoading ? (
-              <Loader2 className="h-6 w-6 animate-spin text-ming-red" />
-            ) : orders.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-ming-ash">
-                {t.orderNoOrders}
+          {activeSection === 'addresses' ? (
+            <section className="ming-card p-5">
+              <p className="ming-eyebrow mb-3 flex items-center gap-2">
+                <MapPin className="h-3 w-3" />
+                {t.orderSavedAddresses}
               </p>
-            ) : (
-              <ul className="space-y-2">
-                {orders.map((o) => {
-                  const { label, tone } = formatOrderStatus(String(o.order_status ?? '—'));
-                  const toneClass =
-                    tone === 'done'
-                      ? 'bg-emerald-500/15 text-emerald-300'
-                      : tone === 'active'
-                      ? 'bg-ming-flame/15 text-ming-flame'
-                      : tone === 'pending'
-                      ? 'bg-ming-gold/15 text-ming-gold'
-                      : 'bg-white/[0.05] text-ming-ash';
-                  return (
-                    <li key={o.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="ming-mono text-[14px] font-bold text-ming-bone">
-                          #{o.display_number ?? '—'}
-                        </span>
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${toneClass}`}
-                        >
-                          {label}
-                        </span>
-                        <Price amount={o.total_price} className="ming-mono text-[14px] font-semibold text-ming-bone" />
+              {addresses.length > 0 ? (
+                <ul className="mb-4 space-y-2">
+                  {addresses.map((a) => (
+                    <li
+                      key={a.id}
+                      className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3"
+                    >
+                      <div className="flex items-start gap-3">
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ming-red" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-semibold text-ming-bone">{a.label}</p>
+                          <p className="mt-0.5 text-[13px] text-ming-ash">{a.line1}</p>
+                          {a.apartment ? (
+                            <p className="text-[12px] text-ming-ash">{t.orderAddressApartment}: {a.apartment}</p>
+                          ) : null}
+                          {a.floor ? (
+                            <p className="text-[12px] text-ming-ash">{t.orderAddressFloor}: {a.floor}</p>
+                          ) : null}
+                        </div>
+                        {a.is_default ? (
+                          <span className="shrink-0 rounded-full bg-ming-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ming-gold">
+                            {t.orderAddressDefaultBadge}
+                          </span>
+                        ) : null}
                       </div>
-                      <div className="mt-2 flex justify-end">
+                      <div className="mt-2 flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => onReorder(o)}
+                          onClick={() => beginEditAddress(a)}
                           className="ming-btn-ghost px-3 py-2 text-[12px]"
                         >
-                          {t.orderReorder}
+                          {t.orderAddressEdit}
+                        </button>
+                        {!a.is_default ? (
+                          <button
+                            type="button"
+                            disabled={settingDefaultAddressId === a.id}
+                            onClick={async () => {
+                              setSettingDefaultAddressId(a.id);
+                              await onSaveAddress({
+                                id: a.id,
+                                label: a.label,
+                                line1: a.line1,
+                                apartment: a.apartment ?? null,
+                                floor: a.floor ?? null,
+                                lat: a.lat,
+                                lng: a.lng,
+                                is_default: true,
+                              });
+                              setSettingDefaultAddressId(null);
+                            }}
+                            className="ming-btn-ghost px-3 py-2 text-[12px]"
+                          >
+                            {t.orderAddressSetDefault}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          disabled={deletingAddressId === a.id}
+                          onClick={async () => {
+                            if (!window.confirm(t.orderAddressDeleteConfirm)) return;
+                            setDeletingAddressId(a.id);
+                            await onDeleteAddress(a.id);
+                            if (editingAddressId === a.id) resetAddressForm();
+                            setDeletingAddressId(null);
+                          }}
+                          className="ming-btn-ghost px-3 py-2 text-[12px] text-ming-red hover:text-ming-red"
+                        >
+                          {t.orderAddressDelete}
                         </button>
                       </div>
                     </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
+                  ))}
+                </ul>
+              ) : null}
+
+              <div className="space-y-3 rounded-xl border border-dashed border-white/10 p-3">
+                <input
+                  className="ming-input"
+                  placeholder={t.orderAddressLabel}
+                  value={addrLabel}
+                  onChange={(e) => setAddrLabel(e.target.value)}
+                />
+                {googleMapsApiKey ? (
+                  <OrderAddressMap
+                    apiKey={googleMapsApiKey}
+                    lat={addrLat}
+                    lng={addrLng}
+                    address={addrLine}
+                    onLocationChange={({ lat, lng, address }) => {
+                      setAddrLat(lat);
+                      setAddrLng(lng);
+                      setAddrLine(address);
+                    }}
+                    onAddressChange={(v) => setAddrLine(v)}
+                    searchPlaceholder={t.orderMapSearchPlaceholder}
+                    pinHint={t.orderMapPinHint}
+                    loadingLabel={t.orderMapLoading}
+                    unavailableLabel={t.orderMapUnavailable}
+                    addressLabel={`${t.orderDeliveryAddress} *`}
+                  />
+                ) : (
+                  <input
+                    className="ming-input"
+                    placeholder={t.orderAddressStreet}
+                    value={addrLine}
+                    onChange={(e) => setAddrLine(e.target.value)}
+                  />
+                )}
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <input
+                    className="ming-input"
+                    placeholder={t.orderAddressApartment}
+                    value={addrApartment}
+                    onChange={(e) => setAddrApartment(e.target.value)}
+                    autoComplete="address-line2"
+                  />
+                  <input
+                    className="ming-input"
+                    placeholder={t.orderAddressFloor}
+                    value={addrFloor}
+                    onChange={(e) => setAddrFloor(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={savingAddr || !addrLine.trim()}
+                    onClick={async () => {
+                      setSavingAddr(true);
+                      await onSaveAddress({
+                        id: editingAddressId ?? undefined,
+                        label: addrLabel.trim() || t.orderAddressHomeLabel,
+                        line1: addrLine.trim(),
+                        apartment: addrApartment.trim() || undefined,
+                        floor: addrFloor.trim() || undefined,
+                        lat: addrLat,
+                        lng: addrLng,
+                        is_default: addresses.length === 0 || undefined,
+                      });
+                      resetAddressForm();
+                      setSavingAddr(false);
+                    }}
+                    className="ming-btn-primary"
+                  >
+                    {savingAddr ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        {editingAddressId ? t.orderAddressSaveChanges : t.orderAddAddress}
+                      </>
+                    )}
+                  </button>
+                  {editingAddressId ? (
+                    <button type="button" onClick={resetAddressForm} className="ming-btn-ghost">
+                      {t.orderAddressCancelEdit}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {activeSection === 'orders' ? (
+            <section className="ming-card p-5">
+              <p className="ming-eyebrow mb-3 flex items-center gap-2">
+                <Clock className="h-3 w-3" />
+                {t.orderMyOrders}
+              </p>
+              {ordersLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-ming-red" />
+              ) : orders.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-ming-ash">
+                  {t.orderNoOrders}
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {orders.map((o) => {
+                    const { label, tone } = formatOrderStatus(String(o.order_status ?? '—'));
+                    const toneClass =
+                      tone === 'done'
+                        ? 'bg-emerald-500/15 text-emerald-300'
+                        : tone === 'active'
+                          ? 'bg-ming-flame/15 text-ming-flame'
+                          : tone === 'pending'
+                            ? 'bg-ming-gold/15 text-ming-gold'
+                            : 'bg-white/[0.05] text-ming-ash';
+                    const isExpanded = expandedOrderId === o.id;
+                    const saleItems = Array.isArray(o.sale_items) ? o.sale_items : [];
+                    const trackUrl =
+                      o.track_token && typeof o.track_token === 'string'
+                        ? `${window.location.origin}/track?token=${encodeURIComponent(o.track_token)}`
+                        : null;
+                    const orderDate = o.created_at ?? o.sale_date;
+                    const fulfillmentLabel =
+                      o.source === 'online_delivery' ? t.orderFulfillmentDelivery : t.orderFulfillmentTakeaway;
+
+                    return (
+                      <li key={o.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="ming-mono text-[14px] font-bold text-ming-bone">
+                            #{o.display_number ?? '—'}
+                          </span>
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${toneClass}`}
+                          >
+                            {label}
+                          </span>
+                          <Price amount={o.total_price} className="ming-mono text-[14px] font-semibold text-ming-bone" />
+                        </div>
+                        <div className="mt-2 space-y-1 text-[12px] text-ming-ash">
+                          <p>
+                            {t.orderOrderDate}:{' '}
+                            <span className="text-ming-bone">
+                              {orderDate ? new Date(orderDate).toLocaleString() : '—'}
+                            </span>
+                          </p>
+                          <p>
+                            {t.orderFulfillmentLabel}: <span className="text-ming-bone">{fulfillmentLabel}</span>
+                          </p>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onReorder(o)}
+                            className="ming-btn-ghost px-3 py-2 text-[12px]"
+                          >
+                            {t.orderReorder}
+                          </button>
+                          {trackUrl ? (
+                            <a href={trackUrl} className="ming-btn-ghost px-3 py-2 text-[12px]">
+                              {t.orderTrackOrder}
+                            </a>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => setExpandedOrderId((prev) => (prev === o.id ? null : o.id))}
+                            className="ming-btn-ghost px-3 py-2 text-[12px]"
+                          >
+                            {isExpanded ? (
+                              <span className="inline-flex items-center gap-1">
+                                <ChevronUp className="h-3 w-3" />
+                                {t.orderHideDetails}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1">
+                                <ChevronDown className="h-3 w-3" />
+                                {t.orderViewDetails}
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                        {isExpanded ? (
+                          <ul className="mt-3 space-y-1 rounded-lg border border-white/[0.06] bg-ming-ink/40 p-2 text-[12px] text-ming-ash">
+                            {saleItems.length > 0 ? (
+                              saleItems.map((item) => (
+                                <li key={item.id}>
+                                  <span className="text-ming-bone">{item.quantity}×</span> {item.product_name}
+                                </li>
+                              ))
+                            ) : (
+                              <li>—</li>
+                            )}
+                          </ul>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          ) : null}
 
           {loyaltyEnabled ? (
             <section className="ming-card p-5">

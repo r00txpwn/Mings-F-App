@@ -30,6 +30,7 @@ import type {
   OnlinePaymentMethod,
   OnlineSettingsRow,
 } from '../types/online';
+import { isCardOnlinePaymentMethod } from '../lib/onlinePaymentMethod';
 import { normalizePhoneE164 } from '../lib/phoneE164';
 import { findZoneForPoint } from '../services/deliveryZones';
 import { Price } from '../components/Price';
@@ -141,7 +142,7 @@ function OrderContent() {
   const accessToken = session?.access_token ?? null;
 
   const { products, categories, loading, error } = useOnlineMenu();
-  const { profile, addresses, loading: dataLoading, saveProfile, saveAddress } = useCustomerData(
+  const { profile, addresses, loading: dataLoading, saveProfile, saveAddress, deleteAddress } = useCustomerData(
     user?.id
   );
   const { orders, loading: ordersLoading, reload: reloadOrders } = useOrderHistory(user?.id);
@@ -158,17 +159,20 @@ function OrderContent() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [fulfillment, setFulfillment] = useState<OnlineFulfillmentType>('takeaway');
-  const [paymentMethod, setPaymentMethod] = useState<OnlinePaymentMethod>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<OnlinePaymentMethod>('cash_pickup');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryApartment, setDeliveryApartment] = useState('');
+  const [deliveryFloor, setDeliveryFloor] = useState('');
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [geoStatus, setGeoStatus] = useState<string | null>(null);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<string | null>(null);
   const [saveAddressForNext, setSaveAddressForNext] = useState(true);
+  const [saveAddressLabel, setSaveAddressLabel] = useState('Home');
   const [promoCode, setPromoCode] = useState('');
   const [tipAmount, setTipAmount] = useState(0);
   const [orderNotes, setOrderNotes] = useState('');
@@ -329,8 +333,11 @@ function OrderContent() {
   }, [settings]);
 
   useEffect(() => {
-    if (paymentMethod === 'cash') setPaymentMethod('cod');
-  }, [paymentMethod]);
+    setPaymentMethod((pm) => {
+      if (pm !== 'cash_pickup' && pm !== 'cash_delivery') return pm;
+      return fulfillment === 'takeaway' ? 'cash_pickup' : 'cash_delivery';
+    });
+  }, [fulfillment]);
 
   useEffect(() => {
     if (!user || !profile) return;
@@ -350,14 +357,25 @@ function OrderContent() {
   }, [user, addresses]);
 
   useEffect(() => {
-    if (!selectedSavedAddressId) return;
+    setSaveAddressLabel((prev) => {
+      if (prev.trim()) return prev;
+      return addresses.length === 0 ? 'Home' : 'Address';
+    });
+  }, [addresses.length]);
+
+  useEffect(() => {
+    if (!selectedSavedAddressId) {
+      setDeliveryApartment('');
+      setDeliveryFloor('');
+      return;
+    }
     const a = addresses.find((x) => x.id === selectedSavedAddressId);
     if (!a) return;
     setDeliveryAddress(a.line1);
-    if (a.lat != null && a.lng != null) {
-      setLat(a.lat);
-      setLng(a.lng);
-    }
+    setDeliveryApartment(a.apartment?.trim() ?? '');
+    setDeliveryFloor(a.floor?.trim() ?? '');
+    setLat(a.lat ?? null);
+    setLng(a.lng ?? null);
   }, [selectedSavedAddressId, addresses]);
 
   const zoneMatch = useMemo(() => {
@@ -526,8 +544,7 @@ function OrderContent() {
   };
 
   const handlePaymentMethodChange = (method: OnlinePaymentMethod) => {
-    // Keep backend compatibility but expose a single cash choice in UI.
-    setPaymentMethod(method === 'cash' ? 'cod' : method);
+    setPaymentMethod(method);
     track('select_payment_method', { payment_method: method });
   };
 
@@ -652,6 +669,8 @@ function OrderContent() {
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim(),
         deliveryAddress: fulfillment === 'delivery' ? deliveryAddress.trim() : undefined,
+        deliveryApartment: fulfillment === 'delivery' ? deliveryApartment.trim() || undefined : undefined,
+        deliveryFloor: fulfillment === 'delivery' ? deliveryFloor.trim() || undefined : undefined,
         deliveryLat: fulfillment === 'delivery' ? lat ?? undefined : undefined,
         deliveryLng: fulfillment === 'delivery' ? lng ?? undefined : undefined,
         tableLabel: tableLabel.trim() || undefined,
@@ -669,7 +688,7 @@ function OrderContent() {
       }
 
       const data = res.data;
-      if (data.nextStep === 'epoint-create-payment' && paymentMethod === 'epoint') {
+      if (data.nextStep === 'epoint-create-payment' && isCardOnlinePaymentMethod(paymentMethod)) {
         if (!data.paymentInitToken) {
           setSubmitError(t.orderPaymentReturnFailed);
           setSubmitting(false);
@@ -741,8 +760,10 @@ function OrderContent() {
         const exists = addresses.some((a) => a.line1.trim() === deliveryAddress.trim());
         if (!exists) {
           await saveAddress({
-            label: addresses.length === 0 ? 'Home' : 'Address',
+            label: saveAddressLabel.trim() || (addresses.length === 0 ? 'Home' : 'Address'),
             line1: deliveryAddress.trim(),
+            apartment: deliveryApartment.trim() || undefined,
+            floor: deliveryFloor.trim() || undefined,
             lat,
             lng,
             is_default: addresses.length === 0,
@@ -860,6 +881,26 @@ function OrderContent() {
       orderMapUnavailable: t.orderMapUnavailable,
       orderDeliveryAddress: t.orderDeliveryAddress,
       orderReorder: t.orderReorder,
+      orderProfileSection: t.orderProfileSection,
+      orderAddressesSection: t.orderAddressesSection,
+      orderOrdersSection: t.orderOrdersSection,
+      orderAddressApartment: t.orderAddressApartment,
+      orderAddressFloor: t.orderAddressFloor,
+      orderAddressEdit: t.orderAddressEdit,
+      orderAddressDelete: t.orderAddressDelete,
+      orderAddressSetDefault: t.orderAddressSetDefault,
+      orderAddressCancelEdit: t.orderAddressCancelEdit,
+      orderAddressSaveChanges: t.orderAddressSaveChanges,
+      orderAddressDeleteConfirm: t.orderAddressDeleteConfirm,
+      orderAddressDefaultBadge: t.orderAddressDefaultBadge,
+      orderAddressHomeLabel: t.orderAddressHomeLabel,
+      orderOrderDate: t.orderOrderDate,
+      orderFulfillmentLabel: t.orderFulfillmentLabel,
+      orderFulfillmentDelivery: t.orderFulfillmentDelivery,
+      orderFulfillmentTakeaway: t.orderFulfillmentTakeaway,
+      orderTrackOrder: t.orderTrackOrder,
+      orderViewDetails: t.orderViewDetails,
+      orderHideDetails: t.orderHideDetails,
     }),
     [t]
   );
@@ -977,10 +1018,14 @@ function OrderContent() {
       onlineDisabled: t.orderOnlineDisabled,
       deliveryDisabledHint: t.orderDeliveryDisabledInSettings,
       saveAddressForNext: t.orderSaveAddressForNext,
+      saveAddressLabel: t.orderAddressLabel,
+      saveAddressSignInHint: t.orderAuthInlineHint,
       mapSearch: t.orderMapSearchPlaceholder,
       mapPinHint: t.orderMapPinHint,
       mapLoading: t.orderMapLoading,
       mapUnavailable: t.orderMapUnavailable,
+      apartmentUnit: t.orderAddressApartment,
+      floor: t.orderAddressFloor,
       authRequired: t.orderAuthRequired,
       scheduleNow: t.orderScheduleNow,
       scheduleLater: t.orderScheduleLater,
@@ -1237,11 +1282,11 @@ function OrderContent() {
               dataLoading={dataLoading}
               onSaveProfile={saveProfile}
               onSaveAddress={saveAddress}
+              onDeleteAddress={deleteAddress}
               orders={orders}
               ordersLoading={ordersLoading}
               onReloadOrders={reloadOrders}
               onReorder={handleReorder}
-              fulfillment={fulfillment}
               loyaltyEnabled={Boolean(settings?.loyalty_enabled)}
               loyaltyRewardEveryOrders={Number(settings?.loyalty_reward_every_orders ?? 10)}
               googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
@@ -1270,7 +1315,11 @@ function OrderContent() {
           onSelectSavedAddressId={setSelectedSavedAddressId}
           saveAddressForNext={saveAddressForNext}
           onSaveAddressForNextChange={setSaveAddressForNext}
+          saveAddressLabel={saveAddressLabel}
+          onSaveAddressLabelChange={setSaveAddressLabel}
           deliveryAddress={deliveryAddress}
+          deliveryApartment={deliveryApartment}
+          deliveryFloor={deliveryFloor}
           lat={lat}
           lng={lng}
           onLocationChange={({ lat: nextLat, lng: nextLng, address: nextAddr }) => {
@@ -1279,6 +1328,8 @@ function OrderContent() {
             setDeliveryAddress(nextAddr);
           }}
           onAddressChange={setDeliveryAddress}
+          onDeliveryApartmentChange={setDeliveryApartment}
+          onDeliveryFloorChange={setDeliveryFloor}
           googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
           onUseLocation={handleLocate}
           geoStatus={geoStatus}

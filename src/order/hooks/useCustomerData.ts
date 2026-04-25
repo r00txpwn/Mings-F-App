@@ -124,18 +124,30 @@ export function useCustomerData(userId: string | undefined) {
     const apartment = input.apartment?.trim() ? input.apartment.trim() : null;
     const floor = input.floor?.trim() ? input.floor.trim() : null;
     if (input.id) {
+      const updatePayload: {
+        label: string;
+        line1: string;
+        apartment: string | null;
+        floor: string | null;
+        lat: number | null;
+        lng: number | null;
+        updated_at: string;
+        is_default?: boolean;
+      } = {
+        label: input.label,
+        line1: input.line1,
+        apartment,
+        floor,
+        lat: input.lat ?? null,
+        lng: input.lng ?? null,
+        updated_at: new Date().toISOString(),
+      };
+      if (input.is_default !== undefined) {
+        updatePayload.is_default = input.is_default;
+      }
       const update = await supabase
         .from('customer_addresses')
-        .update({
-          label: input.label,
-          line1: input.line1,
-          apartment,
-          floor,
-          lat: input.lat ?? null,
-          lng: input.lng ?? null,
-          is_default: input.is_default ?? false,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('id', input.id)
         .eq('user_id', userId);
       if (update.error) throw new Error(update.error.message);
@@ -155,5 +167,28 @@ export function useCustomerData(userId: string | undefined) {
     await load();
   };
 
-  return { profile, addresses, loading, load, saveProfile, saveAddress };
+  const deleteAddress = async (id: string) => {
+    if (!userId) return;
+    const existing = addresses.find((addr) => addr.id === id);
+    if (!existing) return;
+
+    const remove = await supabase.from('customer_addresses').delete().eq('id', id).eq('user_id', userId);
+    if (remove.error) throw new Error(remove.error.message);
+
+    if (existing.is_default) {
+      const nextDefault = addresses.find((addr) => addr.id !== id);
+      if (nextDefault) {
+        const promote = await supabase
+          .from('customer_addresses')
+          .update({ is_default: true })
+          .eq('id', nextDefault.id)
+          .eq('user_id', userId);
+        if (promote.error) throw new Error(promote.error.message);
+      }
+    }
+
+    await load();
+  };
+
+  return { profile, addresses, loading, load, saveProfile, saveAddress, deleteAddress };
 }

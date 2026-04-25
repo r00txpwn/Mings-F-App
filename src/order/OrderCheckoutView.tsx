@@ -43,12 +43,18 @@ interface OrderCheckoutViewProps {
   onSelectSavedAddressId: (id: string | null) => void;
   saveAddressForNext: boolean;
   onSaveAddressForNextChange: (v: boolean) => void;
+  saveAddressLabel: string;
+  onSaveAddressLabelChange: (v: string) => void;
 
   deliveryAddress: string;
+  deliveryApartment: string;
+  deliveryFloor: string;
   lat: number | null;
   lng: number | null;
   onLocationChange: (loc: { lat: number | null; lng: number | null; address: string }) => void;
   onAddressChange: (v: string) => void;
+  onDeliveryApartmentChange: (v: string) => void;
+  onDeliveryFloorChange: (v: string) => void;
   googleMapsApiKey?: string;
   onUseLocation: () => void;
   geoStatus: string | null;
@@ -128,10 +134,14 @@ export interface CheckoutLabels {
   onlineDisabled: string;
   deliveryDisabledHint: string;
   saveAddressForNext: string;
+  saveAddressLabel: string;
+  saveAddressSignInHint: string;
   mapSearch: string;
   mapPinHint: string;
   mapLoading: string;
   mapUnavailable: string;
+  apartmentUnit: string;
+  floor: string;
   authRequired: string;
   scheduleNow: string;
   scheduleLater: string;
@@ -200,11 +210,17 @@ export function OrderCheckoutView({
   onSelectSavedAddressId,
   saveAddressForNext,
   onSaveAddressForNextChange,
+  saveAddressLabel,
+  onSaveAddressLabelChange,
   deliveryAddress,
+  deliveryApartment,
+  deliveryFloor,
   lat,
   lng,
   onLocationChange,
   onAddressChange,
+  onDeliveryApartmentChange,
+  onDeliveryFloorChange,
   googleMapsApiKey,
   onUseLocation,
   geoStatus,
@@ -259,6 +275,8 @@ export function OrderCheckoutView({
   const contactStep = fulfillment === 'delivery' ? 4 : 3;
   const paymentStep = fulfillment === 'delivery' ? 5 : 4;
   const reviewStep = fulfillment === 'delivery' ? 6 : 5;
+
+  const cashRadioValue: OnlinePaymentMethod = fulfillment === 'takeaway' ? 'cash_pickup' : 'cash_delivery';
 
   const scheduleDays = useMemo(() => {
     const today = new Date();
@@ -401,7 +419,7 @@ export function OrderCheckoutView({
   );
 
   const paymentOption = (value: OnlinePaymentMethod, title: string, sub: string, Icon: typeof CreditCard) => {
-    const selected = value === 'cod' ? paymentMethod === 'cod' || paymentMethod === 'cash' : paymentMethod === value;
+    const selected = paymentMethod === value;
     return (
       <button
         key={value}
@@ -559,6 +577,27 @@ export function OrderCheckoutView({
                   useLocationLabel={labels.useLocation}
                 />
 
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div>
+                    <label className="ming-label mb-1.5 block">{labels.apartmentUnit}</label>
+                    <input
+                      className="ming-input"
+                      value={deliveryApartment}
+                      onChange={(e) => onDeliveryApartmentChange(e.target.value)}
+                      autoComplete="address-line2"
+                    />
+                  </div>
+                  <div>
+                    <label className="ming-label mb-1.5 block">{labels.floor}</label>
+                    <input
+                      className="ming-input"
+                      value={deliveryFloor}
+                      onChange={(e) => onDeliveryFloorChange(e.target.value)}
+                      autoComplete="off"
+                    />
+                  </div>
+                </div>
+
                 {geoStatus ? <span className="text-[12px] text-ming-ash">{geoStatus}</span> : null}
 
                 {lat != null && lng != null ? (
@@ -580,16 +619,34 @@ export function OrderCheckoutView({
                   </p>
                 ) : null}
 
-                {userLoggedIn ? (
-                  <label className="flex items-center gap-2 text-[13px] text-ming-ash">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-ming-red"
-                      checked={saveAddressForNext}
-                      onChange={(e) => onSaveAddressForNextChange(e.target.checked)}
-                    />
-                    {labels.saveAddressForNext}
-                  </label>
+                {!selectedSavedAddressId ? (
+                  <div className="space-y-2 rounded-xl border border-white/[0.06] bg-ming-ink/40 p-3">
+                    <label className="flex items-center gap-2 text-[13px] text-ming-ash">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-ming-red"
+                        checked={saveAddressForNext}
+                        disabled={!userLoggedIn}
+                        onChange={(e) => onSaveAddressForNextChange(e.target.checked)}
+                      />
+                      {labels.saveAddressForNext}
+                    </label>
+                    {saveAddressForNext ? (
+                      <div>
+                        <label className="ming-label mb-1.5 block">{labels.saveAddressLabel}</label>
+                        <input
+                          className="ming-input"
+                          value={saveAddressLabel}
+                          disabled={!userLoggedIn}
+                          onChange={(e) => onSaveAddressLabelChange(e.target.value)}
+                          autoComplete="address-level2"
+                        />
+                      </div>
+                    ) : null}
+                    {!userLoggedIn ? (
+                      <p className="text-[12px] text-ming-ash">{labels.saveAddressSignInHint}</p>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </section>
@@ -826,9 +883,9 @@ export function OrderCheckoutView({
           <section className="ming-card p-5">
             <StepHeading n={paymentStep} title={labels.stepPayment} />
             <div className="space-y-2">
-              {paymentOption('cod', labels.payCod, labels.paymentCodHint, Wallet)}
-              {paymentOption('epoint', labels.payEpoint, labels.paymentEpointHint, CreditCard)}
-              {paymentMethod === 'epoint' ? (
+              {paymentOption(cashRadioValue, labels.payCod, labels.paymentCodHint, Wallet)}
+              {paymentOption('card_online', labels.payEpoint, labels.paymentEpointHint, CreditCard)}
+              {paymentMethod === 'card_online' ? (
                 <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-ming-ash">
                   <label className="flex items-center gap-2">
                     <input
@@ -909,8 +966,14 @@ export function OrderCheckoutView({
               {fulfillment === 'delivery' ? (
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-ming-ash">{labels.reviewAddress}</dt>
-                  <dd className="max-w-[65%] truncate text-right font-semibold text-ming-bone">
+                  <dd className="max-w-[65%] text-right font-semibold text-ming-bone">
                     {deliveryAddress.trim() || labels.reviewMissing}
+                    {deliveryApartment.trim() ? (
+                      <span className="block truncate text-[12px] text-ming-ash">{labels.apartmentUnit}: {deliveryApartment.trim()}</span>
+                    ) : null}
+                    {deliveryFloor.trim() ? (
+                      <span className="block truncate text-[12px] text-ming-ash">{labels.floor}: {deliveryFloor.trim()}</span>
+                    ) : null}
                   </dd>
                 </div>
               ) : null}
@@ -934,9 +997,7 @@ export function OrderCheckoutView({
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-ming-ash">{labels.reviewPayment}</dt>
                 <dd className="font-semibold text-ming-bone">
-                  {paymentMethod === 'epoint'
-                    ? labels.payEpoint
-                    : labels.payCod}
+                  {paymentMethod === 'card_online' ? labels.payEpoint : labels.payCod}
                 </dd>
               </div>
             </dl>

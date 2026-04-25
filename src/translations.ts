@@ -710,6 +710,21 @@ export interface Translations {
   orderItemNotes: string;
   orderItemNotesPlaceholder: string;
   orderReorder: string;
+  orderAddressesSection: string;
+  orderOrdersSection: string;
+  orderAddressApartment: string;
+  orderAddressFloor: string;
+  orderAddressEdit: string;
+  orderAddressDelete: string;
+  orderAddressSetDefault: string;
+  orderAddressCancelEdit: string;
+  orderAddressSaveChanges: string;
+  orderAddressDeleteConfirm: string;
+  orderOrderDate: string;
+  orderFulfillmentLabel: string;
+  orderTrackOrder: string;
+  orderViewDetails: string;
+  orderHideDetails: string;
   orderRemoveLine: string;
   orderDecreaseQty: string;
   orderIncreaseQty: string;
@@ -1724,12 +1739,27 @@ export const translations: Record<Language, Translations> = {
     orderMapSelectFailed: 'Could not resolve this address. Try another result.',
     orderMapLoadFailed: 'Map search is unavailable right now.',
     orderZonePillIn: 'Delivering to {zone} · ₼{fee}',
-    orderMapPinHint: 'Drag the pin or search — we use the pin location for delivery.',
+    orderMapPinHint: 'Move the map so the pin points to your building entrance.',
     orderMapLoading: 'Loading map…',
     orderMapUnavailable: 'Map preview unavailable. Type your address or use device location.',
     orderItemNotes: 'Item notes',
     orderItemNotesPlaceholder: 'Allergies, no onions, extra spicy…',
     orderReorder: 'Reorder',
+    orderAddressesSection: 'Saved addresses',
+    orderOrdersSection: 'Orders',
+    orderAddressApartment: 'Apartment / unit',
+    orderAddressFloor: 'Floor',
+    orderAddressEdit: 'Edit',
+    orderAddressDelete: 'Delete',
+    orderAddressSetDefault: 'Set default',
+    orderAddressCancelEdit: 'Cancel',
+    orderAddressSaveChanges: 'Save changes',
+    orderAddressDeleteConfirm: 'Delete this address?',
+    orderOrderDate: 'Date',
+    orderFulfillmentLabel: 'Fulfillment',
+    orderTrackOrder: 'Track order',
+    orderViewDetails: 'View details',
+    orderHideDetails: 'Hide details',
     orderRemoveLine: 'Remove item',
     orderDecreaseQty: 'Decrease quantity',
     orderIncreaseQty: 'Increase quantity',
@@ -2747,12 +2777,27 @@ export const translations: Record<Language, Translations> = {
     orderMapSelectFailed: 'Bu ünvan təsdiqlənmədi. Başqa nəticəni seçin.',
     orderMapLoadFailed: 'Xəritə axtarışı hazırda əlçatan deyil.',
     orderZonePillIn: '{zone} üçün çatdırılma · ₼{fee}',
-    orderMapPinHint: 'İşarəni sürüyün və ya axtarın — çatdırılma üçün məkan işarədən götürülür.',
+    orderMapPinHint: 'Xəritəni hərəkət etdirin ki, işarə binanızın giriş nöqtəsini göstərsin.',
     orderMapLoading: 'Xəritə yüklənir…',
     orderMapUnavailable: 'Xəritə əlçatan deyil. Ünvanı yazın və ya cihaz məkanından istifadə edin.',
     orderItemNotes: 'Məhsul qeydləri',
     orderItemNotesPlaceholder: 'Allergiya, soğansız, daha acı…',
     orderReorder: 'Yenidən sifariş et',
+    orderAddressesSection: 'Yadda saxlanılan ünvanlar',
+    orderOrdersSection: 'Sifarişlər',
+    orderAddressApartment: 'Mənzil / blok',
+    orderAddressFloor: 'Mərtəbə',
+    orderAddressEdit: 'Dəyiş',
+    orderAddressDelete: 'Sil',
+    orderAddressSetDefault: 'Əsas et',
+    orderAddressCancelEdit: 'Ləğv et',
+    orderAddressSaveChanges: 'Dəyişiklikləri saxla',
+    orderAddressDeleteConfirm: 'Bu ünvan silinsin?',
+    orderOrderDate: 'Tarix',
+    orderFulfillmentLabel: 'Təhvil üsulu',
+    orderTrackOrder: 'Sifarişi izlə',
+    orderViewDetails: 'Detallara bax',
+    orderHideDetails: 'Detalları gizlət',
     orderRemoveLine: 'Məhsulu sil',
     orderDecreaseQty: 'Sayı azaldın',
     orderIncreaseQty: 'Sayı artırın',
@@ -3770,12 +3815,27 @@ export const translations: Record<Language, Translations> = {
     orderMapSelectFailed: 'Не удалось определить этот адрес. Выберите другой вариант.',
     orderMapLoadFailed: 'Поиск по карте сейчас недоступен.',
     orderZonePillIn: 'Доставляем в {zone} · ₼{fee}',
-    orderMapPinHint: 'Перетащите метку или найдите адрес — доставка по положению метки.',
+    orderMapPinHint: 'Двигайте карту так, чтобы метка указывала на вход в здание.',
     orderMapLoading: 'Загрузка карты…',
     orderMapUnavailable: 'Карта недоступна. Введите адрес или используйте геолокацию.',
     orderItemNotes: 'Комментарий к позиции',
     orderItemNotesPlaceholder: 'Аллергия, без лука, поострее…',
     orderReorder: 'Повторить заказ',
+    orderAddressesSection: 'Сохранённые адреса',
+    orderOrdersSection: 'Заказы',
+    orderAddressApartment: 'Квартира / блок',
+    orderAddressFloor: 'Этаж',
+    orderAddressEdit: 'Изменить',
+    orderAddressDelete: 'Удалить',
+    orderAddressSetDefault: 'Сделать основным',
+    orderAddressCancelEdit: 'Отмена',
+    orderAddressSaveChanges: 'Сохранить изменения',
+    orderAddressDeleteConfirm: 'Удалить этот адрес?',
+    orderOrderDate: 'Дата',
+    orderFulfillmentLabel: 'Формат',
+    orderTrackOrder: 'Отследить заказ',
+    orderViewDetails: 'Показать детали',
+    orderHideDetails: 'Скрыть детали',
     orderRemoveLine: 'Удалить позицию',
     orderDecreaseQty: 'Уменьшить количество',
     orderIncreaseQty: 'Увеличить количество',
