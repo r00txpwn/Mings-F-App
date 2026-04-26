@@ -27,18 +27,23 @@
     - gross_sales comes from querying the sales table for the matching channel and date range
 */
 
-DROP POLICY IF EXISTS "Authenticated users can delete platform payouts" ON platform_payouts;
-DROP POLICY IF EXISTS "Authenticated users can insert platform payouts" ON platform_payouts;
-DROP POLICY IF EXISTS "Authenticated users can update platform payouts" ON platform_payouts;
-DROP POLICY IF EXISTS "Authenticated users can view platform payouts" ON platform_payouts;
-DROP POLICY IF EXISTS "Users can delete platform payouts" ON platform_payouts;
-DROP POLICY IF EXISTS "Users can insert platform payouts" ON platform_payouts;
-DROP POLICY IF EXISTS "Users can update platform payouts" ON platform_payouts;
-DROP POLICY IF EXISTS "Users can view platform payouts" ON platform_payouts;
-DROP POLICY IF EXISTS "Authenticated users can view payouts" ON platform_payouts;
-DROP POLICY IF EXISTS "Authenticated users can insert payouts" ON platform_payouts;
-DROP POLICY IF EXISTS "Authenticated users can update own payouts" ON platform_payouts;
-DROP POLICY IF EXISTS "Authenticated users can delete own payouts" ON platform_payouts;
+DO $$
+BEGIN
+  IF to_regclass('public.platform_payouts') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Authenticated users can delete platform payouts" ON platform_payouts';
+    EXECUTE 'DROP POLICY IF EXISTS "Authenticated users can insert platform payouts" ON platform_payouts';
+    EXECUTE 'DROP POLICY IF EXISTS "Authenticated users can update platform payouts" ON platform_payouts';
+    EXECUTE 'DROP POLICY IF EXISTS "Authenticated users can view platform payouts" ON platform_payouts';
+    EXECUTE 'DROP POLICY IF EXISTS "Users can delete platform payouts" ON platform_payouts';
+    EXECUTE 'DROP POLICY IF EXISTS "Users can insert platform payouts" ON platform_payouts';
+    EXECUTE 'DROP POLICY IF EXISTS "Users can update platform payouts" ON platform_payouts';
+    EXECUTE 'DROP POLICY IF EXISTS "Users can view platform payouts" ON platform_payouts';
+    EXECUTE 'DROP POLICY IF EXISTS "Authenticated users can view payouts" ON platform_payouts';
+    EXECUTE 'DROP POLICY IF EXISTS "Authenticated users can insert payouts" ON platform_payouts';
+    EXECUTE 'DROP POLICY IF EXISTS "Authenticated users can update own payouts" ON platform_payouts';
+    EXECUTE 'DROP POLICY IF EXISTS "Authenticated users can delete own payouts" ON platform_payouts';
+  END IF;
+END $$;
 
 DROP TABLE IF EXISTS platform_payouts;
 

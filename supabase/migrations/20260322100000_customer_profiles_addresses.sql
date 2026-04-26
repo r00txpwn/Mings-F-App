@@ -3,6 +3,20 @@
   # Tighten sales SELECT for authenticated: staff see all; customers see only their orders.
 */
 
+-- `online_settings` existed only in some legacy DBs; fresh installs need the table before
+-- branding columns (below) and later UPDATE/ALTER migrations can run.
+CREATE TABLE IF NOT EXISTS public.online_settings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  takeaway_enabled boolean NOT NULL DEFAULT true,
+  delivery_enabled boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO public.online_settings (id, takeaway_enabled, delivery_enabled)
+SELECT gen_random_uuid(), true, true
+WHERE NOT EXISTS (SELECT 1 FROM public.online_settings);
+
 -- ---------------------------------------------------------------------------
 -- 1. sales.customer_user_id
 -- ---------------------------------------------------------------------------

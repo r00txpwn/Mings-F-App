@@ -166,14 +166,19 @@ CREATE POLICY "Staff can manage online settings"
 
 -- ──────────────────────────────────────────────────────────────────────────────
 -- delivery_orders — staff read access for the dispatch tab
+-- (Table may not exist on fresh DBs until a later migration creates it.)
 -- ──────────────────────────────────────────────────────────────────────────────
 
-ALTER TABLE public.delivery_orders ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Staff can read all delivery orders" ON public.delivery_orders;
-CREATE POLICY "Staff can read all delivery orders"
-  ON public.delivery_orders FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('admin', 'staff'))
-  );
+DO $$
+BEGIN
+  IF to_regclass('public.delivery_orders') IS NOT NULL THEN
+    ALTER TABLE public.delivery_orders ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Staff can read all delivery orders" ON public.delivery_orders;
+    CREATE POLICY "Staff can read all delivery orders"
+      ON public.delivery_orders FOR SELECT
+      TO authenticated
+      USING (
+        EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('admin', 'staff'))
+      );
+  END IF;
+END $$;
