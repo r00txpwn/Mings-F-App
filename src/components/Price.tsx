@@ -18,12 +18,18 @@ export function Price({
   const formatted = formatMoney(amount);
 
   return (
-    <span className={className}>
-      {symbolPosition === 'prefix' ? <span className={symbolClassName}>{AZN_SYMBOL}</span> : null}
+    <span className={['whitespace-nowrap', className].filter(Boolean).join(' ')}>
+      {symbolPosition === 'prefix' ? (
+        <>
+          <span className={symbolClassName}>{AZN_SYMBOL}</span>
+          {/* nbsp keeps symbol + amount from splitting across lines */}
+          <span aria-hidden>{'\u00A0'}</span>
+        </>
+      ) : null}
       <span className={valueClassName}>{formatted}</span>
       {symbolPosition === 'suffix' ? (
         <>
-          {' '}
+          <span aria-hidden>{'\u00A0'}</span>
           <span className={symbolClassName}>{AZN_SYMBOL}</span>
         </>
       ) : null}

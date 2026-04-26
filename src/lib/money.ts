@@ -1,5 +1,8 @@
 export const AZN_SYMBOL = '₼';
 
+/** Non-breaking space so amount and currency stay on one line when wrapped. */
+const NBSP = '\u00A0';
+
 export function formatMoney(value: number | string | null | undefined): string {
   const amount = Number(value ?? 0);
   if (!Number.isFinite(amount)) return '0.00';
@@ -11,12 +14,14 @@ export function formatMoneyWithSymbol(
   position: 'prefix' | 'suffix' = 'suffix',
 ): string {
   const formatted = formatMoney(value);
-  return position === 'prefix' ? `${AZN_SYMBOL}${formatted}` : `${formatted} ${AZN_SYMBOL}`;
+  return position === 'prefix'
+    ? `${AZN_SYMBOL}${NBSP}${formatted}`
+    : `${formatted}${NBSP}${AZN_SYMBOL}`;
 }
 
 export function formatSignedMoney(value: number | string | null | undefined): string {
   const amount = Number(value ?? 0);
-  if (!Number.isFinite(amount) || amount === 0) return `0.00 ${AZN_SYMBOL}`;
+  if (!Number.isFinite(amount) || amount === 0) return `0.00${NBSP}${AZN_SYMBOL}`;
   const sign = amount > 0 ? '+' : '-';
-  return `${sign}${formatMoney(Math.abs(amount))} ${AZN_SYMBOL}`;
+  return `${sign}${formatMoney(Math.abs(amount))}${NBSP}${AZN_SYMBOL}`;
 }

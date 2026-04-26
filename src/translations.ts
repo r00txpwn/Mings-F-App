@@ -657,12 +657,15 @@ export interface Translations {
   orderFulfillmentTakeawayHint: string;
   orderFulfillmentDeliveryHint: string;
   orderOnlineDisabled: string;
+  /** Shown under the top bar when only pickup is offered (delivery UI hidden). */
+  orderTakeawayOnlyNotice: string;
   orderViewCart: string;
   orderSummaryTitle: string;
   orderAddressLabel: string;
   orderAddressStreet: string;
   orderLanguage: string;
   orderSelectSavedAddress: string;
+  orderAddressClearSelection: string;
   orderSaveAddressForNext: string;
   orderLoadingMenu: string;
   orderYourCart: string;
@@ -1693,17 +1696,19 @@ export const translations: Record<Language, Translations> = {
     orderFulfillmentTakeawayHint: "Pick up from Ming's kitchen",
     orderFulfillmentDeliveryHint: 'Delivered to your address',
     orderOnlineDisabled: 'Online ordering is turned off.',
+    orderTakeawayOnlyNotice: "Order ahead for pickup from Ming's.",
     orderViewCart: 'View cart',
     orderSummaryTitle: 'Summary',
     orderAddressLabel: 'Label',
     orderAddressStreet: 'Street, building, apt',
     orderLanguage: 'Language',
     orderSelectSavedAddress: 'Use saved address',
+    orderAddressClearSelection: 'Clear',
     orderSaveAddressForNext: 'Save this address for next time',
     orderLoadingMenu: 'Loading menu…',
     orderYourCart: 'Your cart',
     orderAuthRequired: 'Please sign in to continue to checkout.',
-    orderAuthInlineHint: 'Sign in at checkout before placing your order.',
+    orderAuthInlineHint: 'Quick SMS verification before we send your order to the kitchen.',
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Continue with Google',
@@ -2731,17 +2736,20 @@ export const translations: Record<Language, Translations> = {
     orderFulfillmentTakeawayHint: "Ming's mətbəxindən götür",
     orderFulfillmentDeliveryHint: 'Ünvana çatdırılma',
     orderOnlineDisabled: 'Onlayn sifariş söndürülüb.',
+    orderTakeawayOnlyNotice: "Ming's-dan götürmə üçün əvvəlcədən sifariş verin.",
     orderViewCart: 'Səbətə bax',
     orderSummaryTitle: 'Xülasə',
     orderAddressLabel: 'Etiket',
     orderAddressStreet: 'Küçə, bina, mənzil',
     orderLanguage: 'Dil',
     orderSelectSavedAddress: 'Saxlanılan ünvan',
+    orderAddressClearSelection: 'Təmizlə',
     orderSaveAddressForNext: 'Bu ünvanı növbəti dəfə üçün saxla',
     orderLoadingMenu: 'Menyu yüklənir…',
     orderYourCart: 'Səbətiniz',
     orderAuthRequired: 'Checkout üçün davam etməkdən əvvəl daxil olun.',
-    orderAuthInlineHint: 'Sifarişi təsdiqləməzdən əvvəl checkout-da daxil olun.',
+    orderAuthInlineHint:
+      'Sifarişi mətbəxə göndərməzdən əvvəl tez SMS təsdiqi — nömrənizi yoxlayırıq.',
     orderAuthEmail: 'E-poçt',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Google ilə davam et',
@@ -3769,17 +3777,20 @@ export const translations: Record<Language, Translations> = {
     orderFulfillmentTakeawayHint: 'Заберу из кухни Ming’s',
     orderFulfillmentDeliveryHint: 'Доставим по вашему адресу',
     orderOnlineDisabled: 'Онлайн-заказ отключён.',
+    orderTakeawayOnlyNotice: 'Закажите заранее на самовывоз из Ming’s.',
     orderViewCart: 'К корзине',
     orderSummaryTitle: 'Сводка',
     orderAddressLabel: 'Метка',
     orderAddressStreet: 'Улица, дом, кв.',
     orderLanguage: 'Язык',
     orderSelectSavedAddress: 'Сохранённый адрес',
+    orderAddressClearSelection: 'Очистить',
     orderSaveAddressForNext: 'Сохранить этот адрес',
     orderLoadingMenu: 'Загрузка меню…',
     orderYourCart: 'Ваша корзина',
     orderAuthRequired: 'Войдите в аккаунт, чтобы продолжить к оформлению.',
-    orderAuthInlineHint: 'Войдите на шаге checkout перед подтверждением заказа.',
+    orderAuthInlineHint:
+      'Короткая проверка по SMS перед отправкой заказа на кухню.',
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Продолжить через Google',

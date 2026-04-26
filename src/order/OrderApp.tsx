@@ -192,6 +192,11 @@ function OrderContent() {
     return raw === 'accepted';
   });
 
+  const acceptCookieConsent = useCallback(() => {
+    window.localStorage.setItem(ORDER_COOKIE_CONSENT_KEY, 'accepted');
+    setCookieConsent(true);
+  }, []);
+
   const tableLabel = useMemo(() => {
     const q = new URLSearchParams(window.location.search);
     return q.get('table') ?? q.get('ref') ?? '';
@@ -999,7 +1004,7 @@ function OrderContent() {
       delivery: t.orderFulfillmentDelivery,
       deliveryAddress: t.orderDeliveryAddress,
       selectSaved: t.orderSelectSavedAddress,
-      addressDismiss: t.cancel,
+      addressDismiss: t.orderAddressClearSelection,
       useLocation: t.orderUseLocation,
       outsideZone: t.orderOutsideZone,
       inZonePrefix: t.orderInZonePrefix,
@@ -1194,8 +1199,45 @@ function OrderContent() {
     />
   );
 
+  const takeawayOnlyNotice = showTakeaway && !showDelivery;
+
   return (
     <div className="ming-shell ming-noise flex min-h-screen flex-col pb-[env(safe-area-inset-bottom)]">
+      {!cookieConsent ? (
+        <>
+          {/* Mobile: in-flow at top so bottom nav, sticky cart, and checkout CTAs stay tappable */}
+          <div
+            role="region"
+            aria-label={t.cookieConsentCopy}
+            className="shrink-0 border-b border-white/10 bg-ming-charcoal/95 px-3 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] text-xs text-ming-ash shadow-sm lg:hidden"
+          >
+            <p>
+              {t.cookieConsentCopy}{' '}
+              <a href="/privacy" className="ming-btn-link inline px-0 py-0 text-xs">
+                {t.orderPrivacy}
+              </a>
+              .
+            </p>
+            <button type="button" className="ming-btn-primary mt-2 w-full py-2 text-[11px]" onClick={acceptCookieConsent}>
+              {t.cookieConsentAccept}
+            </button>
+          </div>
+          {/* Desktop: compact corner card */}
+          <div className="pointer-events-auto fixed bottom-4 right-4 z-[60] hidden max-w-sm rounded-xl border border-white/10 bg-ming-charcoal/95 p-3 text-xs text-ming-ash shadow-ming lg:block">
+            <p>
+              {t.cookieConsentCopy}{' '}
+              <a href="/privacy" className="ming-btn-link inline px-0 py-0 text-xs">
+                {t.orderPrivacy}
+              </a>
+              .
+            </p>
+            <button type="button" className="ming-btn-primary mt-2 w-full py-2 text-[11px]" onClick={acceptCookieConsent}>
+              {t.cookieConsentAccept}
+            </button>
+          </div>
+        </>
+      ) : null}
+
       {flow === 'browse' && (
         <>
           <OrderOnlineTopBar
@@ -1215,6 +1257,15 @@ function OrderContent() {
             takeawayLabel={t.orderFulfillmentTakeaway}
             deliveryLabel={t.orderFulfillmentDelivery}
           />
+
+          {takeawayOnlyNotice ? (
+            <div
+              role="status"
+              className="border-b border-ming-gold/20 bg-ming-gold/10 px-3 py-2.5 text-center text-[13px] font-medium leading-snug text-ming-bone sm:text-sm"
+            >
+              {t.orderTakeawayOnlyNotice}
+            </div>
+          ) : null}
 
           {paymentBanner}
 
@@ -1297,7 +1348,16 @@ function OrderContent() {
       )}
 
       {flow === 'checkout' && (
-        <OrderCheckoutView
+        <>
+          {takeawayOnlyNotice ? (
+            <div
+              role="status"
+              className="border-b border-ming-gold/20 bg-ming-gold/10 px-3 py-2.5 text-center text-[13px] font-medium leading-snug text-ming-bone sm:text-sm"
+            >
+              {t.orderTakeawayOnlyNotice}
+            </div>
+          ) : null}
+          <OrderCheckoutView
           fulfillment={fulfillment}
           showTakeaway={showTakeaway}
           showDelivery={showDelivery}
@@ -1368,6 +1428,7 @@ function OrderContent() {
           onBack={() => setFlow('browse')}
           labels={checkoutLabels}
         />
+        </>
       )}
 
       {showMobileStickyCart && (
@@ -1403,28 +1464,6 @@ function OrderContent() {
       <div className="sr-only" aria-live="polite">
         {t.orderNavCart}: {cartCount}
       </div>
-
-      {!cookieConsent ? (
-        <div className="fixed bottom-2 left-2 right-2 z-[60] rounded-xl border border-white/10 bg-ming-charcoal/95 p-3 text-xs text-ming-ash shadow-ming sm:left-auto sm:right-4 sm:max-w-sm">
-          <p>
-            {t.cookieConsentCopy}{' '}
-            <a href="/privacy" className="ming-btn-link inline px-0 py-0 text-xs">
-              {t.orderPrivacy}
-            </a>
-            .
-          </p>
-          <button
-            type="button"
-            className="ming-btn-primary mt-2 w-full py-2 text-[11px]"
-            onClick={() => {
-              window.localStorage.setItem(ORDER_COOKIE_CONSENT_KEY, 'accepted');
-              setCookieConsent(true);
-            }}
-          >
-            {t.cookieConsentAccept}
-          </button>
-        </div>
-      ) : null}
 
       {detailProduct && (
         <ProductDetailModal
