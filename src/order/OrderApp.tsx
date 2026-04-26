@@ -693,20 +693,24 @@ function OrderContent() {
       }
 
       const data = res.data;
-      if (data.nextStep === 'epoint-create-payment' && isCardOnlinePaymentMethod(paymentMethod)) {
+      if (
+        (data.nextStep === 'united-payment-create-payment' || data.nextStep === 'epoint-create-payment') &&
+        isCardOnlinePaymentMethod(paymentMethod)
+      ) {
         if (!data.paymentInitToken) {
           setSubmitError(t.orderPaymentReturnFailed);
           setSubmitting(false);
           return;
         }
         const pay = await invokeEdgeFunction<
-          { saleId: string; paymentInitToken: string; saveCard?: boolean; useWallet?: boolean },
+          { saleId: string; paymentInitToken: string; language?: string; saveCard?: boolean; useWallet?: boolean },
           { checkoutUrl?: string }
         >(
-          'epoint-create-payment',
+          data.nextStep,
           {
             saleId: data.saleId,
             paymentInitToken: data.paymentInitToken,
+            language,
             saveCard: saveCardForFuture,
             useWallet: payWithWallet,
           },

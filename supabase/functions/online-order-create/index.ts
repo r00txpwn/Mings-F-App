@@ -864,6 +864,6 @@ async function handleRequest(req: Request): Promise<Response> {
     deliveryFee,
     paymentMethod: persistedPaymentMethod,
     paymentInitToken,
-    nextStep: cardPayment ? 'epoint-create-payment' : 'track',
+    nextStep: cardPayment ? 'united-payment-create-payment' : 'track',
   });
 }

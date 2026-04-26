@@ -1,5 +1,10 @@
-const fnUrl = (name: string) =>
-  `${import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')}/functions/v1/${name}`;
+const functionsBaseUrl = () => {
+  const explicit = (import.meta.env.VITE_SUPABASE_FUNCTIONS_URL as string | undefined)?.trim();
+  if (explicit) return explicit.replace(/\/$/, '');
+  return `${import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')}/functions/v1`;
+};
+
+const fnUrl = (name: string) => `${functionsBaseUrl()}/${name}`;
 
 export async function invokeEdgeFunction<TBody extends object, TRes = unknown>(
   name: string,

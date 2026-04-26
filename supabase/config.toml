@@ -17,3 +17,15 @@ verify_jwt = false
 # Internal manual reconcile: Bearer PAYMENT_RECONCILE_SECRET (no browser / customer use).
 [functions."payment-reconcile"]
 verify_jwt = false
+
+[functions."united-payment-create-payment"]
+verify_jwt = false
+
+[functions."united-payment-return"]
+verify_jwt = false
+
+[functions."united-payment-webhook"]
+verify_jwt = false
+
+[functions."united-payment-status-check"]
+verify_jwt = false

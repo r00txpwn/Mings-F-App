@@ -17,9 +17,9 @@ export interface OnlineOrderCreateResponse {
   deliveryFee: number;
   /** Normalized value returned from server (new: card_online | cash_pickup | cash_delivery). */
   paymentMethod: OnlinePaymentMethod | 'epoint' | 'cod' | 'cash';
-  /** One-time-like secret used to initialize Epoint payment for this sale. */
+  /** One-time-like secret used to initialize the hosted card payment for this sale. */
   paymentInitToken?: string;
-  nextStep: 'epoint-create-payment' | 'track';
+  nextStep: 'united-payment-create-payment' | 'epoint-create-payment' | 'track';
   /** True when order was placed during soft-close (last-call) window. */
   closingSoon?: boolean;
 }
