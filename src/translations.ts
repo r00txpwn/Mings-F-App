@@ -777,6 +777,8 @@ export interface Translations {
   orderVenueAddress: string;
   orderVenuePhone: string;
   orderAddToCart: string;
+  /** Shown on menu cards and order modal when a product has no photo (trust / freshness). */
+  orderProductNoPhotoCaption: string;
   orderFavoriteAdd: string;
   orderFavoriteRemove: string;
   orderSearchNoResults: string;
@@ -1814,6 +1816,7 @@ export const translations: Record<Language, Translations> = {
     orderVenueAddress: 'Address',
     orderVenuePhone: 'Phone',
     orderAddToCart: 'Add',
+    orderProductNoPhotoCaption: 'Made fresh to order',
     orderFavoriteAdd: 'Add to favorites',
     orderFavoriteRemove: 'Remove from favorites',
     orderSearchNoResults: 'No dishes match your search.',
@@ -2855,6 +2858,7 @@ export const translations: Record<Language, Translations> = {
     orderVenueAddress: 'Ünvan',
     orderVenuePhone: 'Telefon',
     orderAddToCart: 'Əlavə et',
+    orderProductNoPhotoCaption: 'Sifarişlə təzə hazırlanır',
     orderFavoriteAdd: 'Sevimlilərə əlavə et',
     orderFavoriteRemove: 'Sevimlilərdən sil',
     orderSearchNoResults: 'Axtarışınıza uyğun yemək yoxdur.',
@@ -3896,6 +3900,7 @@ export const translations: Record<Language, Translations> = {
     orderVenueAddress: 'Адрес',
     orderVenuePhone: 'Телефон',
     orderAddToCart: 'В корзину',
+    orderProductNoPhotoCaption: 'Готовим свежим на заказ',
     orderFavoriteAdd: 'Добавить в избранное',
     orderFavoriteRemove: 'Убрать из избранного',
     orderSearchNoResults: 'Ничего не найдено.',

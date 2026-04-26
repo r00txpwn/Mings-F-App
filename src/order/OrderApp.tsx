@@ -934,6 +934,7 @@ function OrderContent() {
       clearSearch: t.clear,
       itemCountSingle: t.orderDishSingle,
       itemCountPlural: t.orderDishPlural,
+      orderProductNoPhotoCaption: t.orderProductNoPhotoCaption,
     }),
     [t]
   );

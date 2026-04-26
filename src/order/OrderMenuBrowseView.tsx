@@ -16,6 +16,21 @@ function normalizeCategoryLabel(input: string): string {
     .join(' ');
 }
 
+/** First display character for branded no-photo tiles (handles emoji / multi-codepoint). */
+function dishInitial(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return 'M';
+  const first = [...trimmed][0];
+  return first ? first.toLocaleUpperCase() : 'M';
+}
+
+function shortCategoryLine(label: string, maxLen = 14): string {
+  const n = normalizeCategoryLabel(label);
+  if (!n) return '';
+  if (n.length <= maxLen) return n;
+  return `${n.slice(0, Math.max(1, maxLen - 1))}…`;
+}
+
 function categoryIllustration(categoryLabel: string): { Icon: LucideIcon; iconClassName: string } {
   const value = categoryLabel.toLowerCase();
   if (value.includes('drink') || value.includes('beverage')) return { Icon: Coffee, iconClassName: 'text-ming-ash' };
@@ -49,6 +64,7 @@ export interface OrderMenuBrowseLabels {
   clearSearch: string;
   itemCountSingle: string;
   itemCountPlural: string;
+  orderProductNoPhotoCaption: string;
 }
 
 interface OrderMenuBrowseViewProps {
@@ -85,6 +101,7 @@ function ProductCard({
   onToggleFavorite,
   onAdd,
   categoryLabel,
+  noPhotoCaption,
 }: {
   product: Product;
   addLabel: string;
@@ -96,10 +113,12 @@ function ProductCard({
   onToggleFavorite?: () => void;
   onAdd: () => void;
   categoryLabel: string;
+  noPhotoCaption: string;
 }) {
   const hasMods = (product.modifier_groups?.length ?? 0) > 0;
   const illustration = categoryIllustration(categoryLabel);
   const FallbackIcon = illustration.Icon;
+  const catLine = shortCategoryLine(categoryLabel);
   return (
     <article
       className={`ming-product group cursor-pointer ${hasMods ? 'border-ming-gold/35 bg-ming-gold/[0.03]' : ''}`}
@@ -122,8 +141,35 @@ function ProductCard({
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-ming-graphite/80">
-            <FallbackIcon className={`h-8 w-8 opacity-80 ${illustration.iconClassName}`} strokeWidth={1.8} />
+          <div
+            className="relative flex h-full w-full flex-col overflow-hidden rounded-[inherit] bg-gradient-to-br from-ming-ink via-[#1a1418] to-ming-graphite"
+            aria-hidden
+          >
+            <div
+              className="pointer-events-none absolute -right-6 -top-10 h-28 w-28 rounded-full bg-ming-red/30 blur-2xl"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-ming-gold/40 to-transparent"
+              aria-hidden
+            />
+            <div className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-ming-red/50 via-transparent to-ming-gold/25 opacity-80" />
+            <div className="absolute right-2 top-2 opacity-[0.55]">
+              <FallbackIcon className="h-4 w-4 text-ming-gold/90" strokeWidth={2} aria-hidden />
+            </div>
+            <div className="relative z-[1] flex flex-1 flex-col items-center justify-center px-2 pt-4">
+              <span className="ming-display text-[28px] leading-none tracking-tight text-ming-bone/95 drop-shadow-[0_1px_10px_rgba(0,0,0,0.45)]">
+                {dishInitial(product.name)}
+              </span>
+            </div>
+            <div className="relative z-[1] px-1.5 pb-2 text-center">
+              <p className="text-[9px] font-bold uppercase leading-tight tracking-[0.12em] text-ming-ash/90">
+                {noPhotoCaption}
+              </p>
+              {catLine ? (
+                <p className="mt-0.5 truncate text-[9px] font-semibold text-ming-gold/75">{catLine}</p>
+              ) : null}
+            </div>
           </div>
         )}
       </div>
@@ -310,6 +356,7 @@ export function OrderMenuBrowseView({
               onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
               onAdd={() => onAddProduct(p)}
               categoryLabel={getCategoryLabelForProduct(p)}
+              noPhotoCaption={labels.orderProductNoPhotoCaption}
             />
           ))}
         </div>
@@ -348,6 +395,7 @@ export function OrderMenuBrowseView({
                       onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
                       onAdd={() => onAddProduct(p)}
                       categoryLabel={getCategoryLabelForProduct(p)}
+                      noPhotoCaption={labels.orderProductNoPhotoCaption}
                     />
                   ))}
                 </div>
@@ -382,6 +430,7 @@ export function OrderMenuBrowseView({
                 onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
                 onAdd={() => onAddProduct(p)}
                 categoryLabel={getCategoryLabelForProduct(p)}
+                noPhotoCaption={labels.orderProductNoPhotoCaption}
               />
             ))}
           </div>
