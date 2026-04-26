@@ -269,15 +269,18 @@ export function OrderMenuBrowseView({
     return qi === q.length;
   };
 
+  /** Tiny menus: search feels like noise when the list is already short. */
+  const showSearch = products.length >= 8;
+
   const searchFiltered = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = showSearch ? searchQuery.trim().toLowerCase() : '';
     if (!q) return products;
     return products.filter(
       (p) =>
         fuzzyMatch(p.name, q) ||
         fuzzyMatch(p.description ?? '', q)
     );
-  }, [products, searchQuery]);
+  }, [products, searchQuery, showSearch]);
 
   const categoryNameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -289,6 +292,9 @@ export function OrderMenuBrowseView({
     const productCategoryIds = new Set(products.map((p) => p.master_category_id));
     return categories.filter((c) => productCategoryIds.has(c.id));
   }, [categories, products]);
+
+  /** Single-category menus: chips / rail add no navigation value. */
+  const showCategoryNav = visibleCategories.length > 1;
 
   useEffect(() => {
     if (selectedCategoryId === ALL) return;
@@ -441,88 +447,94 @@ export function OrderMenuBrowseView({
 
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-0 lg:flex-row lg:gap-8 lg:px-10">
-      {/* Sticky category chip rail — always visible */}
-      <div className="sticky top-[48px] z-20 -mx-0 border-b border-white/[0.04] bg-ming-ink/85 backdrop-blur-xl lg:static lg:top-0 lg:order-1 lg:hidden">
-        <div className="relative">
-          <div
-            ref={chipsRef}
-            className="no-scrollbar flex snap-x gap-2 overflow-x-auto px-4 py-3 sm:px-5"
-            aria-label={labels.categoriesLabel}
-            role="tablist"
-          >
-            {chip(ALL, labels.allCategories)}
-            {visibleCategories.map((c) => chip(c.id, normalizeCategoryLabel(c.name)))}
-          </div>
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-ming-ink/90 to-transparent"
-          />
-        </div>
-      </div>
-
-      {/* Desktop left rail */}
-      <aside className="hidden shrink-0 pt-6 lg:block lg:w-60 lg:pt-8">
-        <div className="sticky top-20 space-y-2">
-          <p className="ming-eyebrow mb-3 px-2">{labels.menuLabel}</p>
-          <nav aria-label={labels.categoriesLabel} className="flex flex-col gap-1">
-            <button
-              type="button"
-              onClick={() => handlePickCategory(ALL)}
-              className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
-                selectedCategoryId === ALL
-                  ? 'bg-white/[0.08] text-ming-bone'
-                  : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
-              }`}
+      {/* Sticky category chip rail — mobile / tablet only; hidden for single-category menus */}
+      {showCategoryNav ? (
+        <div className="sticky top-[48px] z-20 -mx-0 border-b border-white/[0.04] bg-ming-ink/85 backdrop-blur-xl lg:static lg:top-0 lg:order-1 lg:hidden">
+          <div className="relative">
+            <div
+              ref={chipsRef}
+              className="no-scrollbar flex snap-x gap-2 overflow-x-auto px-4 py-3 sm:px-5"
+              aria-label={labels.categoriesLabel}
+              role="tablist"
             >
-              {labels.allCategories}
-            </button>
-            {visibleCategories.map((c) => (
+              {chip(ALL, labels.allCategories)}
+              {visibleCategories.map((c) => chip(c.id, normalizeCategoryLabel(c.name)))}
+            </div>
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-ming-ink/90 to-transparent"
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {/* Desktop left rail — hidden for single-category menus */}
+      {showCategoryNav ? (
+        <aside className="hidden shrink-0 pt-6 lg:block lg:w-60 lg:pt-8">
+          <div className="sticky top-20 space-y-2">
+            <p className="ming-eyebrow mb-3 px-2">{labels.menuLabel}</p>
+            <nav aria-label={labels.categoriesLabel} className="flex flex-col gap-1">
               <button
-                key={c.id}
                 type="button"
-                onClick={() => handlePickCategory(c.id)}
+                onClick={() => handlePickCategory(ALL)}
                 className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
-                  selectedCategoryId === c.id
+                  selectedCategoryId === ALL
                     ? 'bg-white/[0.08] text-ming-bone'
                     : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
                 }`}
               >
-                {normalizeCategoryLabel(c.name)}
+                {labels.allCategories}
               </button>
-            ))}
-          </nav>
-        </div>
-      </aside>
+              {visibleCategories.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => handlePickCategory(c.id)}
+                  className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                    selectedCategoryId === c.id
+                      ? 'bg-white/[0.08] text-ming-bone'
+                      : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
+                  }`}
+                >
+                  {normalizeCategoryLabel(c.name)}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </aside>
+      ) : null}
 
       {/* Main column */}
       <main className="min-w-0 flex-1 px-4 pb-40 pt-5 sm:px-5 lg:order-2 lg:px-0 lg:pb-24 lg:pt-8">
-        {/* Search bar + delivery hint row */}
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search
-              aria-hidden
-              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ming-mute"
-            />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={labels.orderSearchMenu}
-              className="ming-input pl-10"
-              autoComplete="off"
-            />
-            {searchQuery ? (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-ming-ash hover:text-ming-bone"
-                aria-label={labels.clearSearch}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : null}
+        {/* Search — hidden for tiny menus (< 8 products) */}
+        {showSearch ? (
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ming-mute"
+              />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={labels.orderSearchMenu}
+                className="ming-input pl-10"
+                autoComplete="off"
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-ming-ash hover:text-ming-bone"
+                  aria-label={labels.clearSearch}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         {!serverAllowsDelivery && fulfillment === 'delivery' ? (
           <p
