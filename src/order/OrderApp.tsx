@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { CheckCircle2, ShoppingBag, XCircle, X } from 'lucide-react';
+import { CheckCircle2, Loader2, ShoppingBag, XCircle, X } from 'lucide-react';
 import { Analytics, track } from '@vercel/analytics/react';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
@@ -18,12 +18,17 @@ import { OrderOnlineTopBar } from './OrderOnlineTopBar';
 import { OrderCartView } from './OrderCartView';
 import { OrderCheckoutView } from './OrderCheckoutView';
 import { OrderConfirmationView } from './OrderConfirmationView';
+import { OrderCheckbox } from './OrderCheckbox';
+import { ORDER_ADDRESS_TYPE_CONFIG } from './addressTypeConfig';
 import {
   formatVenueHoursLine,
   getOnlineFulfillmentVisibility,
   isDeliveryEnabledInSettings,
 } from './orderOnlineSettings';
 import type {
+  CustomerAddressAccessMethod,
+  CustomerAddressLeaveAt,
+  CustomerAddressType,
   DeliveryZoneRow,
   OnlineFulfillmentType,
   OnlineOrderCreateResponse,
@@ -46,11 +51,14 @@ function generateCartItemKey(productId: string, modifiers: SelectedModifiers): s
 type Flow = 'browse' | 'checkout' | 'done';
 const ORDER_CART_STORAGE_KEY = 'mings-order-cart-v2';
 const ORDER_COOKIE_CONSENT_KEY = 'mings-order-cookie-consent-v1';
+const ORDER_SIGNIN_PROMPT_DISMISS_KEY = 'mings-order-signin-prompt-dismissed-v1';
+const ORDER_TERMS_VERSION = '2026-04-order-v1';
 
 interface StoredOrderCartState {
   cart: CartItem[];
   fulfillment: OnlineFulfillmentType;
   selectedSavedAddressId: string | null;
+  dismissedSignInPrompt?: boolean;
 }
 
 interface SavedCardRow {
@@ -167,6 +175,17 @@ function OrderContent() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryApartment, setDeliveryApartment] = useState('');
   const [deliveryFloor, setDeliveryFloor] = useState('');
+  const [deliveryAddressType, setDeliveryAddressType] = useState<CustomerAddressType>('apartment');
+  const [deliveryBuildingName, setDeliveryBuildingName] = useState('');
+  const [deliveryEntrance, setDeliveryEntrance] = useState('');
+  const [deliveryDoorNameOrNumber, setDeliveryDoorNameOrNumber] = useState('');
+  const [deliveryCompanyName, setDeliveryCompanyName] = useState('');
+  const [deliveryLeaveAt, setDeliveryLeaveAt] = useState<CustomerAddressLeaveAt>('office');
+  const [deliveryAccessMethod, setDeliveryAccessMethod] = useState<CustomerAddressAccessMethod>('intercom');
+  const [deliveryIntercomNameOrNumber, setDeliveryIntercomNameOrNumber] = useState('');
+  const [deliveryDoorCode, setDeliveryDoorCode] = useState('');
+  const [deliveryAccessOtherInstructions, setDeliveryAccessOtherInstructions] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [geoStatus, setGeoStatus] = useState<string | null>(null);
@@ -176,7 +195,14 @@ function OrderContent() {
   const [promoCode, setPromoCode] = useState('');
   const [tipAmount, setTipAmount] = useState(0);
   const [orderNotes, setOrderNotes] = useState('');
-  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
+  const [showProfileCompletion, setShowProfileCompletion] = useState(false);
+  const [profileFirstName, setProfileFirstName] = useState('');
+  const [profileLastName, setProfileLastName] = useState('');
+  const [profilePhoneInput, setProfilePhoneInput] = useState('');
+  const [profileTermsAccepted, setProfileTermsAccepted] = useState(false);
+  const [profileCompletionError, setProfileCompletionError] = useState<string | null>(null);
+  const [profileCompletionBusy, setProfileCompletionBusy] = useState(false);
   const [saveCardForFuture, setSaveCardForFuture] = useState(false);
   const [payWithWallet, setPayWithWallet] = useState(false);
   const [savedCards, setSavedCards] = useState<SavedCardRow[]>([]);
@@ -313,9 +339,15 @@ function OrderContent() {
       cart,
       fulfillment,
       selectedSavedAddressId,
+      dismissedSignInPrompt: !showSignInPrompt,
     };
     window.localStorage.setItem(ORDER_CART_STORAGE_KEY, JSON.stringify(payload));
-  }, [cart, fulfillment, selectedSavedAddressId, cartStorageReady]);
+  }, [cart, fulfillment, selectedSavedAddressId, showSignInPrompt, cartStorageReady]);
+
+  useEffect(() => {
+    const dismissed = window.localStorage.getItem(ORDER_SIGNIN_PROMPT_DISMISS_KEY) === '1';
+    setShowSignInPrompt(!user && !dismissed);
+  }, [user]);
 
   const { showTakeaway, showDelivery } = useMemo(
     () => getOnlineFulfillmentVisibility(settings),
@@ -350,6 +382,29 @@ function OrderContent() {
     setCustomerPhone((p) =>
       p.trim() ? normalizePhoneE164(p) : normalizePhoneE164(profile.phone ?? '')
     );
+    setProfileFirstName(profile.first_name?.trim() ?? '');
+    setProfileLastName(profile.last_name?.trim() ?? '');
+    setProfilePhoneInput(profile.phone?.trim() ?? '');
+    setProfileTermsAccepted(Boolean(profile.terms_accepted_at));
+  }, [user, profile]);
+
+  useEffect(() => {
+    if (!user || !profile) {
+      setShowProfileCompletion(false);
+      return;
+    }
+    const hasFirst = Boolean(profile.first_name?.trim());
+    const hasLast = Boolean(profile.last_name?.trim());
+    const hasTerms = Boolean(profile.terms_accepted_at);
+    const provider = user.app_metadata?.provider;
+    const createdAt = user.created_at ? Date.parse(user.created_at) : NaN;
+    const lastSignInAt = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : NaN;
+    const likelyFirstGoogleSignIn =
+      provider === 'google' &&
+      Number.isFinite(createdAt) &&
+      Number.isFinite(lastSignInAt) &&
+      Math.abs(lastSignInAt - createdAt) <= 10 * 60 * 1000;
+    setShowProfileCompletion(likelyFirstGoogleSignIn && !(hasFirst && hasLast && hasTerms));
   }, [user, profile]);
 
   useEffect(() => {
@@ -370,18 +425,53 @@ function OrderContent() {
 
   useEffect(() => {
     if (!selectedSavedAddressId) {
+      setDeliveryAddressType('apartment');
+      setDeliveryBuildingName('');
+      setDeliveryEntrance('');
       setDeliveryApartment('');
       setDeliveryFloor('');
+      setDeliveryDoorNameOrNumber('');
+      setDeliveryCompanyName('');
+      setDeliveryLeaveAt('office');
+      setDeliveryAccessMethod('intercom');
+      setDeliveryIntercomNameOrNumber('');
+      setDeliveryDoorCode('');
+      setDeliveryAccessOtherInstructions('');
+      setDeliveryNotes('');
       return;
     }
     const a = addresses.find((x) => x.id === selectedSavedAddressId);
     if (!a) return;
     setDeliveryAddress(a.line1);
+    setDeliveryAddressType(a.address_type ?? 'apartment');
+    setDeliveryBuildingName(a.building_name?.trim() ?? '');
+    setDeliveryEntrance(a.entrance?.trim() ?? '');
     setDeliveryApartment(a.apartment?.trim() ?? '');
     setDeliveryFloor(a.floor?.trim() ?? '');
+    setDeliveryDoorNameOrNumber(a.door_name_or_number?.trim() ?? '');
+    setDeliveryCompanyName(a.company_name?.trim() ?? '');
+    setDeliveryLeaveAt(a.leave_at ?? 'office');
+    setDeliveryAccessMethod(a.access_method ?? 'intercom');
+    setDeliveryIntercomNameOrNumber(a.intercom_name_or_number?.trim() ?? '');
+    setDeliveryDoorCode(a.door_code?.trim() ?? '');
+    setDeliveryAccessOtherInstructions(a.access_other_instructions?.trim() ?? '');
+    setDeliveryNotes(a.courier_instructions?.trim() ?? '');
     setLat(a.lat ?? null);
     setLng(a.lng ?? null);
   }, [selectedSavedAddressId, addresses]);
+
+  useEffect(() => {
+    const selectedAddressConfig = ORDER_ADDRESS_TYPE_CONFIG[deliveryAddressType];
+    if (!selectedAddressConfig.showAccessMethod) {
+      setDeliveryAccessMethod('intercom');
+      setDeliveryIntercomNameOrNumber('');
+      setDeliveryDoorCode('');
+      setDeliveryAccessOtherInstructions('');
+    }
+    if (!selectedAddressConfig.showLeaveAt) {
+      setDeliveryLeaveAt('office');
+    }
+  }, [deliveryAddressType]);
 
   const zoneMatch = useMemo(() => {
     if (lat == null || lng == null) return null;
@@ -570,6 +660,137 @@ function OrderContent() {
     );
   };
 
+  const userPhoneVerified = useMemo(() => {
+    if (!user) return false;
+    const authPhoneVerified = Boolean((user as { phone_confirmed_at?: string | null }).phone_confirmed_at);
+    const profilePhoneVerified = Boolean(profile?.phone_verified_at);
+    return authPhoneVerified || profilePhoneVerified;
+  }, [user, profile?.phone_verified_at]);
+
+  const requiresCheckoutPhoneVerification = Boolean(user && !userPhoneVerified);
+
+  const buildCourierNotes = useCallback(() => {
+    const chunks: string[] = [];
+    const config = ORDER_ADDRESS_TYPE_CONFIG[deliveryAddressType];
+    const addField = (label: string, value: string) => {
+      const cleaned = value.trim();
+      if (cleaned) chunks.push(`${label}: ${cleaned}`);
+    };
+
+    if (config.showBuildingName) addField(t.orderAddressBuildingName, deliveryBuildingName);
+    if (config.showEntrance) addField(t.orderAddressEntrance, deliveryEntrance);
+    if (config.showFloor) addField(t.orderAddressFloor, deliveryFloor);
+    if (config.showApartmentUnit) addField(t.orderAddressApartment, deliveryApartment);
+    if (config.showDoorNameOrNumber) addField(t.orderAddressDoorNameOrNumber, deliveryDoorNameOrNumber);
+    if (config.showCompanyName) addField(t.orderAddressCompanyName, deliveryCompanyName);
+    if (config.showLeaveAt) {
+      chunks.push(
+        `${t.orderAddressLeaveAt}: ${
+          deliveryLeaveAt === 'reception' ? t.orderAddressLeaveAtReception : t.orderAddressLeaveAtOffice
+        }`
+      );
+    }
+
+    if (config.showAccessMethod) {
+      const accessSummary =
+        deliveryAccessMethod === 'intercom'
+          ? deliveryIntercomNameOrNumber.trim()
+            ? `${t.orderAccessIntercom}: ${deliveryIntercomNameOrNumber.trim()}`
+            : t.orderAccessIntercom
+          : deliveryAccessMethod === 'door_code'
+            ? deliveryDoorCode.trim()
+              ? `${t.orderAccessDoorCode}: ${deliveryDoorCode.trim()}`
+              : t.orderAccessDoorCode
+            : deliveryAccessMethod === 'door_open'
+              ? t.orderAccessDoorOpen
+              : deliveryAccessOtherInstructions.trim()
+                ? deliveryAccessOtherInstructions.trim()
+                : t.orderAddressTypeOther;
+      if (accessSummary.trim()) chunks.push(accessSummary.trim());
+    }
+    if (config.showCourierNotes && deliveryNotes.trim()) chunks.push(deliveryNotes.trim());
+    return chunks.join(' | ').trim();
+  }, [
+    deliveryAddressType,
+    deliveryBuildingName,
+    deliveryEntrance,
+    deliveryApartment,
+    deliveryFloor,
+    deliveryDoorNameOrNumber,
+    deliveryCompanyName,
+    deliveryLeaveAt,
+    deliveryAccessMethod,
+    deliveryIntercomNameOrNumber,
+    deliveryDoorCode,
+    deliveryAccessOtherInstructions,
+    deliveryNotes,
+    t.orderAddressBuildingName,
+    t.orderAddressEntrance,
+    t.orderAddressFloor,
+    t.orderAddressApartment,
+    t.orderAddressDoorNameOrNumber,
+    t.orderAddressCompanyName,
+    t.orderAddressLeaveAt,
+    t.orderAddressLeaveAtOffice,
+    t.orderAddressLeaveAtReception,
+    t.orderAccessIntercom,
+    t.orderAccessDoorCode,
+    t.orderAccessDoorOpen,
+    t.orderAddressTypeOther,
+  ]);
+
+  const handleCompleteProfile = useCallback(async () => {
+    if (!user) return;
+    const firstName = profileFirstName.trim();
+    const lastName = profileLastName.trim();
+    if (!firstName || !lastName) {
+      setProfileCompletionError(t.orderProfileCompletionNameRequired);
+      return;
+    }
+    if (!profileTermsAccepted) {
+      setProfileCompletionError(t.orderProfileCompletionConsentRequired);
+      return;
+    }
+
+    const normalizedPhone = normalizePhoneE164(profilePhoneInput.trim());
+    const hasPhoneInput = profilePhoneInput.trim().length > 0;
+    if (hasPhoneInput && !/^\+[1-9]\d{8,14}$/.test(normalizedPhone)) {
+      setProfileCompletionError(t.orderInvalidPhone);
+      return;
+    }
+
+    setProfileCompletionBusy(true);
+    setProfileCompletionError(null);
+    try {
+      await saveProfile({
+        first_name: firstName,
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`.trim(),
+        phone: hasPhoneInput ? normalizedPhone : null,
+        terms_accepted_at: new Date().toISOString(),
+        terms_version: ORDER_TERMS_VERSION,
+        privacy_version: ORDER_TERMS_VERSION,
+        refund_version: ORDER_TERMS_VERSION,
+      });
+      setShowProfileCompletion(false);
+    } catch (error) {
+      setProfileCompletionError(error instanceof Error ? error.message : t.orderErrGeneric);
+    } finally {
+      setProfileCompletionBusy(false);
+    }
+  }, [
+    user,
+    profileFirstName,
+    profileLastName,
+    profilePhoneInput,
+    profileTermsAccepted,
+    saveProfile,
+    t.orderProfileCompletionNameRequired,
+    t.orderProfileCompletionConsentRequired,
+    t.orderInvalidPhone,
+    t.orderErrGeneric,
+  ]);
+
   const mapOrderError = useCallback(
     (code?: string, fallback?: string) => {
       const byCode: Record<string, string> = {
@@ -635,8 +856,8 @@ function OrderContent() {
       return;
     }
     if (cart.length === 0) return;
-    if (!consentAccepted) {
-      setSubmitError(t.orderConsentRequired);
+    if (requiresCheckoutPhoneVerification) {
+      setSubmitError(t.orderPhoneVerificationRequired);
       return;
     }
     setSubmitting(true);
@@ -662,6 +883,7 @@ function OrderContent() {
         };
       });
 
+      const selectedAddressConfig = ORDER_ADDRESS_TYPE_CONFIG[deliveryAddressType];
       const body = {
         fulfillmentType: fulfillment,
         paymentMethod,
@@ -674,8 +896,13 @@ function OrderContent() {
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim(),
         deliveryAddress: fulfillment === 'delivery' ? deliveryAddress.trim() : undefined,
-        deliveryApartment: fulfillment === 'delivery' ? deliveryApartment.trim() || undefined : undefined,
-        deliveryFloor: fulfillment === 'delivery' ? deliveryFloor.trim() || undefined : undefined,
+        deliveryApartment:
+          fulfillment === 'delivery' && selectedAddressConfig.showApartmentUnit
+            ? deliveryApartment.trim() || undefined
+            : undefined,
+        deliveryFloor:
+          fulfillment === 'delivery' && selectedAddressConfig.showFloor ? deliveryFloor.trim() || undefined : undefined,
+        deliveryNotes: fulfillment === 'delivery' ? buildCourierNotes() || undefined : undefined,
         deliveryLat: fulfillment === 'delivery' ? lat ?? undefined : undefined,
         deliveryLng: fulfillment === 'delivery' ? lng ?? undefined : undefined,
         tableLabel: tableLabel.trim() || undefined,
@@ -771,8 +998,30 @@ function OrderContent() {
           await saveAddress({
             label: saveAddressLabel.trim() || (addresses.length === 0 ? 'Home' : 'Address'),
             line1: deliveryAddress.trim(),
-            apartment: deliveryApartment.trim() || undefined,
-            floor: deliveryFloor.trim() || undefined,
+            address_type: deliveryAddressType,
+            building_name: selectedAddressConfig.showBuildingName ? deliveryBuildingName.trim() || undefined : undefined,
+            entrance: selectedAddressConfig.showEntrance ? deliveryEntrance.trim() || undefined : undefined,
+            apartment: selectedAddressConfig.showApartmentUnit ? deliveryApartment.trim() || undefined : undefined,
+            floor: selectedAddressConfig.showFloor ? deliveryFloor.trim() || undefined : undefined,
+            door_name_or_number: selectedAddressConfig.showDoorNameOrNumber
+              ? deliveryDoorNameOrNumber.trim() || undefined
+              : undefined,
+            company_name: selectedAddressConfig.showCompanyName ? deliveryCompanyName.trim() || undefined : undefined,
+            leave_at: selectedAddressConfig.showLeaveAt ? deliveryLeaveAt : undefined,
+            access_method: selectedAddressConfig.showAccessMethod ? deliveryAccessMethod : undefined,
+            intercom_name_or_number:
+              selectedAddressConfig.showAccessMethod && deliveryAccessMethod === 'intercom'
+                ? deliveryIntercomNameOrNumber.trim() || undefined
+                : undefined,
+            door_code:
+              selectedAddressConfig.showAccessMethod && deliveryAccessMethod === 'door_code'
+                ? deliveryDoorCode.trim() || undefined
+                : undefined,
+            access_other_instructions:
+              selectedAddressConfig.showAccessMethod && deliveryAccessMethod === 'other'
+                ? deliveryAccessOtherInstructions.trim() || undefined
+                : undefined,
+            courier_instructions: selectedAddressConfig.showCourierNotes ? deliveryNotes.trim() || undefined : undefined,
             lat,
             lng,
             is_default: addresses.length === 0,
@@ -807,6 +1056,11 @@ function OrderContent() {
       fulfillment,
     });
     setFlow('checkout');
+  };
+
+  const dismissSignInPrompt = () => {
+    window.localStorage.setItem(ORDER_SIGNIN_PROMPT_DISMISS_KEY, '1');
+    setShowSignInPrompt(false);
   };
 
   const handleReorder = useCallback(
@@ -895,6 +1149,28 @@ function OrderContent() {
       orderOrdersSection: t.orderOrdersSection,
       orderAddressApartment: t.orderAddressApartment,
       orderAddressFloor: t.orderAddressFloor,
+      orderAddressTypeTitle: t.orderAddressTypeTitle,
+      orderAddressTypeApartment: t.orderAddressTypeApartment,
+      orderAddressTypeHouse: t.orderAddressTypeHouse,
+      orderAddressTypeOffice: t.orderAddressTypeOffice,
+      orderAddressTypeHotel: t.orderAddressTypeHotel,
+      orderAddressTypeOther: t.orderAddressTypeOther,
+      orderAddressBuildingName: t.orderAddressBuildingName,
+      orderAddressEntrance: t.orderAddressEntrance,
+      orderAddressDoorNameOrNumber: t.orderAddressDoorNameOrNumber,
+      orderAddressCompanyName: t.orderAddressCompanyName,
+      orderAddressLeaveAt: t.orderAddressLeaveAt,
+      orderAddressLeaveAtOffice: t.orderAddressLeaveAtOffice,
+      orderAddressLeaveAtReception: t.orderAddressLeaveAtReception,
+      orderAddressAccessMethod: t.orderAddressAccessMethod,
+      orderAccessIntercom: t.orderAccessIntercom,
+      orderAccessDoorCode: t.orderAccessDoorCode,
+      orderAccessDoorOpen: t.orderAccessDoorOpen,
+      orderAddressIntercomNameOrNumber: t.orderAddressIntercomNameOrNumber,
+      orderAddressDoorCode: t.orderAddressDoorCode,
+      orderAddressAccessOtherInstructions: t.orderAddressAccessOtherInstructions,
+      orderDeliveryNotesLabel: t.orderDeliveryNotesLabel,
+      orderDeliveryNotesPlaceholder: t.orderDeliveryNotesPlaceholder,
       orderAddressEdit: t.orderAddressEdit,
       orderAddressDelete: t.orderAddressDelete,
       orderAddressSetDefault: t.orderAddressSetDefault,
@@ -966,8 +1242,10 @@ function OrderContent() {
   const submitBlockers = useMemo(() => {
     const blockers: string[] = [];
     if (!user) blockers.push(t.orderAuthRequired);
+    if (showProfileCompletion) blockers.push(t.orderProfileCompletionPending);
     if (cart.length === 0) blockers.push(t.orderErrCartEmpty);
     if (customerPhone.trim().length === 0) blockers.push(t.orderErrPhoneRequired);
+    if (requiresCheckoutPhoneVerification) blockers.push(t.orderPhoneVerificationRequired);
     if (isScheduled && !scheduledFor) blockers.push(t.orderErrScheduleRequired);
     if (fulfillment === 'delivery' && !serverAllowsDelivery) blockers.push(t.orderDeliveryDisabledInSettings);
     if (fulfillment === 'delivery' && !deliveryAddress.trim()) blockers.push(t.orderErrAddressRequired);
@@ -977,8 +1255,10 @@ function OrderContent() {
     return blockers;
   }, [
     user,
+    showProfileCompletion,
     cart.length,
     customerPhone,
+    requiresCheckoutPhoneVerification,
     isScheduled,
     scheduledFor,
     fulfillment,
@@ -1036,7 +1316,36 @@ function OrderContent() {
       mapUnavailable: t.orderMapUnavailable,
       apartmentUnit: t.orderAddressApartment,
       floor: t.orderAddressFloor,
+      addressTypeTitle: t.orderAddressTypeTitle,
+      addressTypeApartment: t.orderAddressTypeApartment,
+      addressTypeHouse: t.orderAddressTypeHouse,
+      addressTypeOffice: t.orderAddressTypeOffice,
+      addressTypeHotel: t.orderAddressTypeHotel,
+      addressTypeOther: t.orderAddressTypeOther,
+      buildingName: t.orderAddressBuildingName,
+      entrance: t.orderAddressEntrance,
+      doorNameOrNumber: t.orderAddressDoorNameOrNumber,
+      companyName: t.orderAddressCompanyName,
+      leaveAt: t.orderAddressLeaveAt,
+      leaveAtOffice: t.orderAddressLeaveAtOffice,
+      leaveAtReception: t.orderAddressLeaveAtReception,
+      accessMethod: t.orderAddressAccessMethod,
+      accessIntercom: t.orderAccessIntercom,
+      accessDoorCode: t.orderAccessDoorCode,
+      accessDoorOpen: t.orderAccessDoorOpen,
+      accessOther: t.orderAddressTypeOther,
+      intercomNameOrNumber: t.orderAddressIntercomNameOrNumber,
+      doorCode: t.orderAddressDoorCode,
+      accessOtherInstructions: t.orderAddressAccessOtherInstructions,
+      deliveryNotesLabel: t.orderDeliveryNotesLabel,
+      deliveryNotesPlaceholder: t.orderDeliveryNotesPlaceholder,
       authRequired: t.orderAuthRequired,
+      authGoogle: t.orderAuthGoogle,
+      authSms: t.orderAuthSms,
+      authTitle: t.orderCheckoutAuthTitle,
+      authHelper: t.orderCheckoutAuthHelper,
+      authGooglePhoneNext: t.orderCheckoutAuthGooglePhoneNext,
+      authSmsCta: t.orderCheckoutAuthSmsCta,
       scheduleNow: t.orderScheduleNow,
       scheduleLater: t.orderScheduleLater,
       scheduleFor: t.orderScheduleFor,
@@ -1048,7 +1357,6 @@ function OrderContent() {
       promoCode: t.orderPromoCode,
       tip: t.orderTip,
       orderNotes: t.orderOrderNotes,
-      consentLabel: t.orderConsentLabel,
       terms: t.orderTerms,
       privacy: t.orderPrivacy,
       refundPolicy: t.orderRefundPolicy,
@@ -1080,11 +1388,14 @@ function OrderContent() {
       contactVerify: t.orderVerifySms,
       contactChangePhone: t.orderChangePhone,
       contactAuthErrorFallback: t.orderAuthErrorFallback,
+      contactOr: t.orderOr,
       smsSentHint: t.orderSmsSentHint,
       smsResend: t.orderSmsResend,
       smsResendWait: t.orderSmsResendWait,
       phoneFormatHint: t.orderInvalidPhone,
-      consentRequired: t.orderConsentRequired,
+      legalPassivePrefix: t.orderLegalPassivePrefix,
+      profileCompletionPending: t.orderProfileCompletionPending,
+      phoneVerificationRequired: t.orderPhoneVerificationRequired,
     }),
     [t, fulfillment]
   );
@@ -1274,6 +1585,44 @@ function OrderContent() {
 
           {paymentBanner}
 
+          {showSignInPrompt ? (
+            <div className="mx-auto w-full max-w-5xl px-3 sm:px-6">
+              <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <div>
+                  <p className="text-sm font-semibold text-ming-bone">{t.orderSignInPromptTitle}</p>
+                  <p className="mt-1 text-xs text-ming-ash">{t.orderSignInPromptSubtitle}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="ming-btn-primary px-3 py-2 text-xs"
+                      onClick={() => void signInWithGoogle('/order')}
+                    >
+                      {t.orderAuthGoogle}
+                    </button>
+                    <button
+                      type="button"
+                      className="ming-btn-ghost px-3 py-2 text-xs"
+                      onClick={() => {
+                        setNavTab('account');
+                        setShowSignInPrompt(false);
+                      }}
+                    >
+                      {t.orderAuthSms}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  aria-label={t.close}
+                  className="rounded-lg p-1 text-ming-ash hover:bg-white/10"
+                  onClick={dismissSignInPrompt}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           {navTab === 'menu' && (
             <>
               <OrderBrandHeader
@@ -1375,6 +1724,15 @@ function OrderContent() {
           userLoggedIn={!!user}
           sendPhoneOtp={sendPhoneOtp}
           verifyPhoneOtp={verifyPhoneOtp}
+          signInWithGoogle={signInWithGoogle}
+          requirePhoneVerification={requiresCheckoutPhoneVerification}
+          onPhoneVerified={async (normalizedPhone) => {
+            await saveProfile({
+              phone: normalizedPhone,
+              phone_verified_at: new Date().toISOString(),
+            });
+            setCustomerPhone(normalizedPhone);
+          }}
           savedAddresses={addresses}
           selectedSavedAddressId={selectedSavedAddressId}
           onSelectSavedAddressId={setSelectedSavedAddressId}
@@ -1393,8 +1751,30 @@ function OrderContent() {
             setDeliveryAddress(nextAddr);
           }}
           onAddressChange={setDeliveryAddress}
+          deliveryAddressType={deliveryAddressType}
+          onDeliveryAddressTypeChange={setDeliveryAddressType}
+          deliveryBuildingName={deliveryBuildingName}
+          onDeliveryBuildingNameChange={setDeliveryBuildingName}
+          deliveryEntrance={deliveryEntrance}
+          onDeliveryEntranceChange={setDeliveryEntrance}
           onDeliveryApartmentChange={setDeliveryApartment}
           onDeliveryFloorChange={setDeliveryFloor}
+          deliveryDoorNameOrNumber={deliveryDoorNameOrNumber}
+          onDeliveryDoorNameOrNumberChange={setDeliveryDoorNameOrNumber}
+          deliveryCompanyName={deliveryCompanyName}
+          onDeliveryCompanyNameChange={setDeliveryCompanyName}
+          deliveryLeaveAt={deliveryLeaveAt}
+          onDeliveryLeaveAtChange={setDeliveryLeaveAt}
+          deliveryAccessMethod={deliveryAccessMethod}
+          onDeliveryAccessMethodChange={setDeliveryAccessMethod}
+          deliveryIntercomNameOrNumber={deliveryIntercomNameOrNumber}
+          onDeliveryIntercomNameOrNumberChange={setDeliveryIntercomNameOrNumber}
+          deliveryDoorCode={deliveryDoorCode}
+          onDeliveryDoorCodeChange={setDeliveryDoorCode}
+          deliveryAccessOtherInstructions={deliveryAccessOtherInstructions}
+          onDeliveryAccessOtherInstructionsChange={setDeliveryAccessOtherInstructions}
+          deliveryNotes={deliveryNotes}
+          onDeliveryNotesChange={setDeliveryNotes}
           googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
           onUseLocation={handleLocate}
           geoStatus={geoStatus}
@@ -1420,8 +1800,6 @@ function OrderContent() {
           onTipAmountChange={setTipAmount}
           orderNotes={orderNotes}
           onOrderNotesChange={setOrderNotes}
-          consentAccepted={consentAccepted}
-          onConsentAcceptedChange={setConsentAccepted}
           cartTotal={cartTotal}
           deliveryFee={deliveryFee}
           grandTotal={grandTotal}
@@ -1523,6 +1901,83 @@ function OrderContent() {
                 {t.orderUpsellNo}
               </button>
             </div>
+          </div>
+        </div>
+      ) : null}
+      {showProfileCompletion && user ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-ming-ink/80 backdrop-blur-[2px]"
+            aria-label={t.close}
+            onClick={() => {
+              // Keep completion required for first-time users; backdrop is non-dismiss action.
+            }}
+          />
+          <div className="ming-card-raised relative z-10 w-full max-w-lg p-5">
+            <p className="ming-eyebrow">{t.orderProfileCompletionTitle}</p>
+            <h3 className="mt-1 text-lg font-semibold text-ming-bone">{t.orderProfileCompletionSubtitle}</h3>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <input
+                className="ming-input"
+                placeholder={t.orderProfileFirstName}
+                value={profileFirstName}
+                onChange={(e) => setProfileFirstName(e.target.value)}
+              />
+              <input
+                className="ming-input"
+                placeholder={t.orderProfileLastName}
+                value={profileLastName}
+                onChange={(e) => setProfileLastName(e.target.value)}
+              />
+            </div>
+            <div className="mt-3">
+              <input
+                className="ming-input"
+                placeholder={t.orderProfilePhoneOptional}
+                value={profilePhoneInput}
+                onChange={(e) => setProfilePhoneInput(e.target.value)}
+                autoComplete="tel"
+              />
+              <p className="mt-1 text-xs text-ming-ash">{t.orderProfilePhoneOptionalHint}</p>
+            </div>
+            <label className="mt-3 flex items-start gap-2 text-xs text-ming-ash">
+              <span className="mt-0.5">
+                <OrderCheckbox
+                checked={profileTermsAccepted}
+                ariaLabel={t.orderConsentLabel}
+                onChange={setProfileTermsAccepted}
+                />
+              </span>
+              <span>
+                {t.orderConsentLabel}{' '}
+                <a href="/terms" className="ming-btn-link inline px-0 py-0">
+                  {t.orderTerms}
+                </a>
+                ,{' '}
+                <a href="/privacy" className="ming-btn-link inline px-0 py-0">
+                  {t.orderPrivacy}
+                </a>
+                ,{' '}
+                <a href="/refund" className="ming-btn-link inline px-0 py-0">
+                  {t.orderRefundPolicy}
+                </a>
+                .
+              </span>
+            </label>
+            {profileCompletionError ? (
+              <p className="mt-2 rounded-lg border border-ming-red/40 bg-ming-red/10 px-3 py-2 text-xs text-ming-red">
+                {profileCompletionError}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              className="ming-btn-primary mt-4 w-full"
+              disabled={profileCompletionBusy}
+              onClick={() => void handleCompleteProfile()}
+            >
+              {profileCompletionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t.orderProfileCompletionSave}
+            </button>
           </div>
         </div>
       ) : null}

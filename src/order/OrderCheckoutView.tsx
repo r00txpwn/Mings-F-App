@@ -10,9 +10,20 @@ import {
   ShoppingBag,
   Wallet,
 } from 'lucide-react';
-import type { CustomerAddressRow, DeliveryZoneRow, OnlineFulfillmentType, OnlinePaymentMethod } from '../types/online';
+import type {
+  CustomerAddressAccessMethod,
+  CustomerAddressLeaveAt,
+  CustomerAddressRow,
+  CustomerAddressType,
+  DeliveryZoneRow,
+  OnlineFulfillmentType,
+  OnlinePaymentMethod,
+} from '../types/online';
 import { isLikelyE164, maskPhoneForOtp, normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
+import { OrderCompactSelect } from './OrderCompactSelect';
+import { OrderCheckbox } from './OrderCheckbox';
+import { ORDER_ADDRESS_TYPE_CONFIG } from './addressTypeConfig';
 import { Price } from '../components/Price';
 import { formatMoneyWithSymbol } from '../lib/money';
 
@@ -38,6 +49,9 @@ interface OrderCheckoutViewProps {
   userLoggedIn: boolean;
   sendPhoneOtp: (phone: string) => Promise<{ error: unknown }>;
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: unknown }>;
+  signInWithGoogle: (redirectPath?: string) => Promise<{ error: unknown }>;
+  requirePhoneVerification: boolean;
+  onPhoneVerified: (normalizedPhone: string) => Promise<void> | void;
   savedAddresses: CustomerAddressRow[];
   selectedSavedAddressId: string | null;
   onSelectSavedAddressId: (id: string | null) => void;
@@ -47,14 +61,36 @@ interface OrderCheckoutViewProps {
   onSaveAddressLabelChange: (v: string) => void;
 
   deliveryAddress: string;
+  deliveryAddressType: CustomerAddressType;
+  deliveryBuildingName: string;
+  deliveryEntrance: string;
   deliveryApartment: string;
   deliveryFloor: string;
+  deliveryDoorNameOrNumber: string;
+  deliveryCompanyName: string;
+  deliveryLeaveAt: CustomerAddressLeaveAt;
+  deliveryAccessMethod: CustomerAddressAccessMethod;
+  deliveryIntercomNameOrNumber: string;
+  deliveryDoorCode: string;
+  deliveryAccessOtherInstructions: string;
+  deliveryNotes: string;
   lat: number | null;
   lng: number | null;
   onLocationChange: (loc: { lat: number | null; lng: number | null; address: string }) => void;
   onAddressChange: (v: string) => void;
+  onDeliveryAddressTypeChange: (v: CustomerAddressType) => void;
+  onDeliveryBuildingNameChange: (v: string) => void;
+  onDeliveryEntranceChange: (v: string) => void;
   onDeliveryApartmentChange: (v: string) => void;
   onDeliveryFloorChange: (v: string) => void;
+  onDeliveryDoorNameOrNumberChange: (v: string) => void;
+  onDeliveryCompanyNameChange: (v: string) => void;
+  onDeliveryLeaveAtChange: (v: CustomerAddressLeaveAt) => void;
+  onDeliveryAccessMethodChange: (v: CustomerAddressAccessMethod) => void;
+  onDeliveryIntercomNameOrNumberChange: (v: string) => void;
+  onDeliveryDoorCodeChange: (v: string) => void;
+  onDeliveryAccessOtherInstructionsChange: (v: string) => void;
+  onDeliveryNotesChange: (v: string) => void;
   googleMapsApiKey?: string;
   onUseLocation: () => void;
   geoStatus: string | null;
@@ -79,8 +115,6 @@ interface OrderCheckoutViewProps {
   onTipAmountChange: (v: number) => void;
   orderNotes: string;
   onOrderNotesChange: (v: string) => void;
-  consentAccepted: boolean;
-  onConsentAcceptedChange: (v: boolean) => void;
 
   cartTotal: number;
   deliveryFee: number;
@@ -142,7 +176,36 @@ export interface CheckoutLabels {
   mapUnavailable: string;
   apartmentUnit: string;
   floor: string;
+  addressTypeTitle: string;
+  addressTypeApartment: string;
+  addressTypeHouse: string;
+  addressTypeOffice: string;
+  addressTypeHotel: string;
+  addressTypeOther: string;
+  buildingName: string;
+  entrance: string;
+  doorNameOrNumber: string;
+  companyName: string;
+  leaveAt: string;
+  leaveAtOffice: string;
+  leaveAtReception: string;
+  accessMethod: string;
+  accessIntercom: string;
+  accessDoorCode: string;
+  accessDoorOpen: string;
+  accessOther: string;
+  intercomNameOrNumber: string;
+  doorCode: string;
+  accessOtherInstructions: string;
+  deliveryNotesLabel: string;
+  deliveryNotesPlaceholder: string;
   authRequired: string;
+  authGoogle: string;
+  authSms: string;
+  authTitle: string;
+  authHelper: string;
+  authGooglePhoneNext: string;
+  authSmsCta: string;
   scheduleNow: string;
   scheduleLater: string;
   scheduleFor: string;
@@ -154,7 +217,6 @@ export interface CheckoutLabels {
   promoCode: string;
   tip: string;
   orderNotes: string;
-  consentLabel: string;
   terms: string;
   privacy: string;
   refundPolicy: string;
@@ -183,13 +245,15 @@ export interface CheckoutLabels {
   contactVerify: string;
   contactChangePhone: string;
   contactAuthErrorFallback: string;
+  contactOr: string;
   smsSentHint: string;
   smsResend: string;
   smsResendWait: string;
   /** Shown under phone when blurred and format is invalid (same meaning as account invalid-phone hint). */
   phoneFormatHint: string;
-  /** Inline helper shown next to terms consent when missing. */
-  consentRequired: string;
+  legalPassivePrefix: string;
+  profileCompletionPending: string;
+  phoneVerificationRequired: string;
 }
 
 export function OrderCheckoutView({
@@ -205,6 +269,9 @@ export function OrderCheckoutView({
   userLoggedIn,
   sendPhoneOtp,
   verifyPhoneOtp,
+  signInWithGoogle,
+  requirePhoneVerification,
+  onPhoneVerified,
   savedAddresses,
   selectedSavedAddressId,
   onSelectSavedAddressId,
@@ -213,14 +280,36 @@ export function OrderCheckoutView({
   saveAddressLabel,
   onSaveAddressLabelChange,
   deliveryAddress,
+  deliveryAddressType,
+  deliveryBuildingName,
+  deliveryEntrance,
   deliveryApartment,
   deliveryFloor,
+  deliveryDoorNameOrNumber,
+  deliveryCompanyName,
+  deliveryLeaveAt,
+  deliveryAccessMethod,
+  deliveryIntercomNameOrNumber,
+  deliveryDoorCode,
+  deliveryAccessOtherInstructions,
+  deliveryNotes,
   lat,
   lng,
   onLocationChange,
   onAddressChange,
+  onDeliveryAddressTypeChange,
+  onDeliveryBuildingNameChange,
+  onDeliveryEntranceChange,
   onDeliveryApartmentChange,
   onDeliveryFloorChange,
+  onDeliveryDoorNameOrNumberChange,
+  onDeliveryCompanyNameChange,
+  onDeliveryLeaveAtChange,
+  onDeliveryAccessMethodChange,
+  onDeliveryIntercomNameOrNumberChange,
+  onDeliveryDoorCodeChange,
+  onDeliveryAccessOtherInstructionsChange,
+  onDeliveryNotesChange,
   googleMapsApiKey,
   onUseLocation,
   geoStatus,
@@ -243,8 +332,6 @@ export function OrderCheckoutView({
   onTipAmountChange,
   orderNotes,
   onOrderNotesChange,
-  consentAccepted,
-  onConsentAcceptedChange,
   cartTotal,
   deliveryFee,
   grandTotal,
@@ -258,7 +345,9 @@ export function OrderCheckoutView({
 }: OrderCheckoutViewProps) {
   const [selectedScheduleDay, setSelectedScheduleDay] = useState<string>('');
   const [showPaymentExtras, setShowPaymentExtras] = useState(false);
-  const [authStep, setAuthStep] = useState<'phone' | 'otp'>('phone');
+  const [authStep, setAuthStep] = useState<'choice' | 'phone' | 'otp'>(
+    userLoggedIn ? 'phone' : 'choice'
+  );
   const [otpCode, setOtpCode] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState('');
@@ -277,6 +366,9 @@ export function OrderCheckoutView({
   const reviewStep = fulfillment === 'delivery' ? 6 : 5;
 
   const cashRadioValue: OnlinePaymentMethod = fulfillment === 'takeaway' ? 'cash_pickup' : 'cash_delivery';
+  const showInlineAuth = !userLoggedIn || requirePhoneVerification;
+
+  const addressTypeConfig = ORDER_ADDRESS_TYPE_CONFIG[deliveryAddressType];
 
   const scheduleDays = useMemo(() => {
     const today = new Date();
@@ -353,6 +445,10 @@ export function OrderCheckoutView({
   useEffect(() => {
     if (userLoggedIn) {
       setAuthStep('phone');
+      setOtpCode('');
+      setAuthError('');
+    } else {
+      setAuthStep('choice');
       setOtpCode('');
       setAuthError('');
     }
@@ -577,26 +673,157 @@ export function OrderCheckoutView({
                   useLocationLabel={labels.useLocation}
                 />
 
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <div>
-                    <label className="ming-label mb-1.5 block">{labels.apartmentUnit}</label>
-                    <input
-                      className="ming-input"
-                      value={deliveryApartment}
-                      onChange={(e) => onDeliveryApartmentChange(e.target.value)}
-                      autoComplete="address-line2"
-                    />
-                  </div>
-                  <div>
-                    <label className="ming-label mb-1.5 block">{labels.floor}</label>
-                    <input
-                      className="ming-input"
-                      value={deliveryFloor}
-                      onChange={(e) => onDeliveryFloorChange(e.target.value)}
-                      autoComplete="off"
-                    />
-                  </div>
+                <div>
+                  <label className="ming-label mb-1.5 block">{labels.addressTypeTitle}</label>
+                  <OrderCompactSelect
+                    ariaLabel={labels.addressTypeTitle}
+                    value={deliveryAddressType}
+                    onChange={onDeliveryAddressTypeChange}
+                    options={[
+                      { value: 'apartment', label: labels.addressTypeApartment },
+                      { value: 'house', label: labels.addressTypeHouse },
+                      { value: 'office', label: labels.addressTypeOffice },
+                      { value: 'hotel', label: labels.addressTypeHotel },
+                      { value: 'other', label: labels.addressTypeOther },
+                    ]}
+                  />
                 </div>
+
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {addressTypeConfig.showBuildingName ? (
+                    <div>
+                      <label className="ming-label mb-1.5 block">{labels.buildingName}</label>
+                      <input
+                        className="ming-input"
+                        value={deliveryBuildingName}
+                        onChange={(e) => onDeliveryBuildingNameChange(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                  ) : null}
+                  {addressTypeConfig.showEntrance ? (
+                    <div>
+                      <label className="ming-label mb-1.5 block">{labels.entrance}</label>
+                      <input
+                        className="ming-input"
+                        value={deliveryEntrance}
+                        onChange={(e) => onDeliveryEntranceChange(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                  ) : null}
+                  {addressTypeConfig.showApartmentUnit ? (
+                    <div>
+                      <label className="ming-label mb-1.5 block">{labels.apartmentUnit}</label>
+                      <input
+                        className="ming-input"
+                        value={deliveryApartment}
+                        onChange={(e) => onDeliveryApartmentChange(e.target.value)}
+                        autoComplete="address-line2"
+                      />
+                    </div>
+                  ) : null}
+                  {addressTypeConfig.showFloor ? (
+                    <div>
+                      <label className="ming-label mb-1.5 block">{labels.floor}</label>
+                      <input
+                        className="ming-input"
+                        value={deliveryFloor}
+                        onChange={(e) => onDeliveryFloorChange(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                  ) : null}
+                  {addressTypeConfig.showDoorNameOrNumber ? (
+                    <div>
+                      <label className="ming-label mb-1.5 block">{labels.doorNameOrNumber}</label>
+                      <input
+                        className="ming-input"
+                        value={deliveryDoorNameOrNumber}
+                        onChange={(e) => onDeliveryDoorNameOrNumberChange(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                  ) : null}
+                  {addressTypeConfig.showCompanyName ? (
+                    <div>
+                      <label className="ming-label mb-1.5 block">{labels.companyName}</label>
+                      <input
+                        className="ming-input"
+                        value={deliveryCompanyName}
+                        onChange={(e) => onDeliveryCompanyNameChange(e.target.value)}
+                        autoComplete="organization"
+                      />
+                    </div>
+                  ) : null}
+                  {addressTypeConfig.showLeaveAt ? (
+                    <div>
+                      <label className="ming-label mb-1.5 block">{labels.leaveAt}</label>
+                      <OrderCompactSelect
+                        ariaLabel={labels.leaveAt}
+                        value={deliveryLeaveAt}
+                        onChange={onDeliveryLeaveAtChange}
+                        options={[
+                          { value: 'office', label: labels.leaveAtOffice },
+                          { value: 'reception', label: labels.leaveAtReception },
+                        ]}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+
+                {addressTypeConfig.showAccessMethod ? (
+                  <div className="space-y-2 rounded-xl border border-white/[0.06] bg-ming-ink/40 p-3">
+                    <label className="ming-label mb-1.5 block">{labels.accessMethod}</label>
+                    <OrderCompactSelect
+                      ariaLabel={labels.accessMethod}
+                      value={deliveryAccessMethod}
+                      onChange={onDeliveryAccessMethodChange}
+                      options={[
+                        { value: 'intercom', label: labels.accessIntercom },
+                        { value: 'door_code', label: labels.accessDoorCode },
+                        { value: 'door_open', label: labels.accessDoorOpen },
+                        { value: 'other', label: labels.accessOther },
+                      ]}
+                    />
+                    {deliveryAccessMethod === 'intercom' ? (
+                      <input
+                        className="ming-input"
+                        value={deliveryIntercomNameOrNumber}
+                        onChange={(e) => onDeliveryIntercomNameOrNumberChange(e.target.value)}
+                        placeholder={labels.intercomNameOrNumber}
+                      />
+                    ) : null}
+                    {deliveryAccessMethod === 'door_code' ? (
+                      <input
+                        className="ming-input"
+                        value={deliveryDoorCode}
+                        onChange={(e) => onDeliveryDoorCodeChange(e.target.value)}
+                        placeholder={labels.doorCode}
+                      />
+                    ) : null}
+                    {deliveryAccessMethod === 'other' ? (
+                      <textarea
+                        className="ming-input min-h-[70px] resize-y"
+                        value={deliveryAccessOtherInstructions}
+                        onChange={(e) => onDeliveryAccessOtherInstructionsChange(e.target.value)}
+                        placeholder={labels.accessOtherInstructions}
+                      />
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {addressTypeConfig.showCourierNotes ? (
+                  <div>
+                    <label className="ming-label mb-1.5 block">{labels.deliveryNotesLabel}</label>
+                    <textarea
+                      className="ming-input min-h-[84px] resize-y"
+                      value={deliveryNotes}
+                      onChange={(e) => onDeliveryNotesChange(e.target.value)}
+                      placeholder={labels.deliveryNotesPlaceholder}
+                    />
+                  </div>
+                ) : null}
 
                 {geoStatus ? <span className="text-[12px] text-ming-ash">{geoStatus}</span> : null}
 
@@ -622,12 +849,11 @@ export function OrderCheckoutView({
                 {!selectedSavedAddressId ? (
                   <div className="space-y-2 rounded-xl border border-white/[0.06] bg-ming-ink/40 p-3">
                     <label className="flex items-center gap-2 text-[13px] text-ming-ash">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 accent-ming-red"
+                      <OrderCheckbox
                         checked={saveAddressForNext}
+                        ariaLabel={labels.saveAddressForNext}
                         disabled={!userLoggedIn}
-                        onChange={(e) => onSaveAddressForNextChange(e.target.checked)}
+                        onChange={onSaveAddressForNextChange}
                       />
                       {labels.saveAddressForNext}
                     </label>
@@ -737,73 +963,135 @@ export function OrderCheckoutView({
 
           <section className="ming-card p-5">
             <StepHeading n={contactStep} title={labels.contact} />
-            <div className="space-y-3">
-              <div>
-                <label className="ming-label mb-1.5 block" htmlFor="ming-phone">
-                  {labels.phone} *
-                </label>
-                <input
-                  id="ming-phone"
-                  className={`ming-input-focus-neutral${checkoutPhoneInvalid ? ' ming-input-error' : ''}`}
-                  value={customerPhone}
-                  onChange={(e) => onCustomerPhoneChange(normalizePhoneE164(e.target.value))}
-                  onFocus={() => setCheckoutPhoneBlurred(false)}
-                  onBlur={(e) => {
-                    setCheckoutPhoneBlurred(true);
-                    onCustomerPhoneChange(normalizePhoneE164(e.target.value));
-                  }}
-                  placeholder="+994..."
-                  autoComplete="tel"
-                  inputMode="tel"
-                  aria-invalid={checkoutPhoneInvalid}
-                />
-                {checkoutPhoneInvalid && !authError ? (
-                  <p className="mt-1 text-[12px] text-ming-gold">{labels.phoneFormatHint}</p>
-                ) : null}
+            {userLoggedIn ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="ming-label mb-1.5 block" htmlFor="ming-phone">
+                    {labels.phone} *
+                  </label>
+                  <input
+                    id="ming-phone"
+                    className={`ming-input-focus-neutral${checkoutPhoneInvalid ? ' ming-input-error' : ''}`}
+                    value={customerPhone}
+                    onChange={(e) => onCustomerPhoneChange(normalizePhoneE164(e.target.value))}
+                    onFocus={() => setCheckoutPhoneBlurred(false)}
+                    onBlur={(e) => {
+                      setCheckoutPhoneBlurred(true);
+                      onCustomerPhoneChange(normalizePhoneE164(e.target.value));
+                    }}
+                    placeholder="+994..."
+                    autoComplete="tel"
+                    inputMode="tel"
+                    aria-invalid={checkoutPhoneInvalid}
+                  />
+                  {checkoutPhoneInvalid && !authError ? (
+                    <p className="mt-1 text-[12px] text-ming-gold">{labels.phoneFormatHint}</p>
+                  ) : null}
+                </div>
+                <div>
+                  <label className="ming-label mb-1.5 block" htmlFor="ming-name">
+                    {labels.nameOptional}
+                  </label>
+                  <input
+                    id="ming-name"
+                    className="ming-input"
+                    value={customerName}
+                    onChange={(e) => onCustomerNameChange(e.target.value)}
+                    autoComplete="name"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="ming-label mb-1.5 block" htmlFor="ming-name">
-                  {labels.nameOptional}
-                </label>
-                <input
-                  id="ming-name"
-                  className="ming-input"
-                  value={customerName}
-                  onChange={(e) => onCustomerNameChange(e.target.value)}
-                  autoComplete="name"
-                />
-              </div>
-            </div>
-            {!userLoggedIn ? (
-              <div className="mt-4 space-y-2 rounded-xl border border-ming-gold/40 bg-ming-gold/10 p-3">
-                <p className="text-sm text-ming-gold">{labels.contactGuestHint}</p>
+            ) : null}
+            {showInlineAuth ? (
+              <div className="mt-4 space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+                <p className="text-sm font-semibold text-ming-bone">
+                  {userLoggedIn ? labels.phoneVerificationRequired : labels.authTitle}
+                </p>
+                <p className="text-xs text-ming-ash">{userLoggedIn ? labels.contactVerifyHint : labels.authHelper}</p>
                 {authError ? (
                   <p className="rounded-lg border border-ming-red/40 bg-ming-red/10 px-2.5 py-2 text-xs text-ming-red">
                     {authError}
                   </p>
                 ) : null}
-                {authStep === 'phone' ? (
-                  <button
-                    type="button"
-                    className="ming-btn-primary w-full"
-                    disabled={authBusy || !customerPhone.trim()}
-                    onClick={async () => {
-                      setAuthError('');
-                      setAuthBusy(true);
-                      const res = await sendPhoneOtp(customerPhone.trim());
-                      setAuthBusy(false);
-                      if (res.error) {
-                        const msg = String((res.error as { message?: string }).message ?? res.error);
-                        setAuthError(msg || labels.contactAuthErrorFallback);
-                        return;
-                      }
-                      setAuthStep('otp');
-                      setOtpCode('');
-                      setResendSeconds(30);
-                    }}
-                  >
-                    {authBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : labels.contactSendCode}
-                  </button>
+                {authStep === 'choice' ? (
+                  <>
+                    <button
+                      type="button"
+                      className="ming-btn-primary w-full"
+                      disabled={authBusy}
+                      onClick={async () => {
+                        setAuthError('');
+                        setAuthBusy(true);
+                        const res = await signInWithGoogle('/order');
+                        setAuthBusy(false);
+                        if (res.error) {
+                          const msg = String((res.error as { message?: string }).message ?? res.error);
+                          setAuthError(msg || labels.contactAuthErrorFallback);
+                        }
+                      }}
+                    >
+                      {labels.authGoogle}
+                    </button>
+                    <p className="text-center text-[11px] text-ming-ash">{labels.authGooglePhoneNext}</p>
+                    <p className="text-center text-xs text-ming-ash">{labels.contactOr}</p>
+                    <button
+                      type="button"
+                      className="ming-btn-ghost w-full justify-center"
+                      onClick={() => {
+                        setAuthError('');
+                        setAuthStep('phone');
+                      }}
+                    >
+                      {labels.authSmsCta}
+                    </button>
+                  </>
+                ) : authStep === 'phone' ? (
+                  <div className="space-y-2">
+                    <div>
+                      <label className="ming-label mb-1.5 block" htmlFor="ming-phone-auth">
+                        {labels.phone} *
+                      </label>
+                      <input
+                        id="ming-phone-auth"
+                        className={`ming-input-focus-neutral${checkoutPhoneInvalid ? ' ming-input-error' : ''}`}
+                        value={customerPhone}
+                        onChange={(e) => onCustomerPhoneChange(normalizePhoneE164(e.target.value))}
+                        onFocus={() => setCheckoutPhoneBlurred(false)}
+                        onBlur={(e) => {
+                          setCheckoutPhoneBlurred(true);
+                          onCustomerPhoneChange(normalizePhoneE164(e.target.value));
+                        }}
+                        placeholder="+994..."
+                        autoComplete="tel"
+                        inputMode="tel"
+                        aria-invalid={checkoutPhoneInvalid}
+                      />
+                      {checkoutPhoneInvalid && !authError ? (
+                        <p className="mt-1 text-[12px] text-ming-gold">{labels.phoneFormatHint}</p>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      className="ming-btn-primary w-full"
+                      disabled={authBusy || !customerPhone.trim()}
+                      onClick={async () => {
+                        setAuthError('');
+                        setAuthBusy(true);
+                        const res = await sendPhoneOtp(customerPhone.trim());
+                        setAuthBusy(false);
+                        if (res.error) {
+                          const msg = String((res.error as { message?: string }).message ?? res.error);
+                          setAuthError(msg || labels.contactAuthErrorFallback);
+                          return;
+                        }
+                        setAuthStep('otp');
+                        setOtpCode('');
+                        setResendSeconds(30);
+                      }}
+                    >
+                      {authBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : labels.authSms}
+                    </button>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     <p className="text-xs text-ming-ash">
@@ -832,6 +1120,7 @@ export function OrderCheckoutView({
                           setAuthError(msg || labels.contactAuthErrorFallback);
                           return;
                         }
+                        await onPhoneVerified(normalizePhoneE164(customerPhone.trim()));
                         setAuthStep('phone');
                         setOtpCode('');
                       }}
@@ -863,7 +1152,7 @@ export function OrderCheckoutView({
                       type="button"
                       className="inline-flex w-full justify-center rounded-lg px-2 py-1.5 text-xs font-medium text-ming-ash transition-colors hover:text-ming-bone"
                       onClick={() => {
-                        setAuthStep('phone');
+                        setAuthStep(userLoggedIn ? 'phone' : 'choice');
                         setOtpCode('');
                         setAuthError('');
                       }}
@@ -888,20 +1177,18 @@ export function OrderCheckoutView({
               {paymentMethod === 'card_online' ? (
                 <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-ming-ash">
                   <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-ming-red"
+                    <OrderCheckbox
                       checked={payWithWallet}
-                      onChange={(e) => onPayWithWalletChange(e.target.checked)}
+                      ariaLabel={labels.payCardWithWallet}
+                      onChange={onPayWithWalletChange}
                     />
                     {labels.payCardWithWallet}
                   </label>
                   <label className="mt-2 flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-ming-red"
+                    <OrderCheckbox
                       checked={saveCardForFuture}
-                      onChange={(e) => onSaveCardForFutureChange(e.target.checked)}
+                      ariaLabel={labels.saveCardForFuture}
+                      onChange={onSaveCardForFutureChange}
                     />
                     {labels.saveCardForFuture}
                   </label>
@@ -1001,32 +1288,21 @@ export function OrderCheckoutView({
                 </dd>
               </div>
             </dl>
-            <label className="mt-4 flex items-start gap-2 text-[13px] text-ming-ash">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 accent-ming-red"
-                checked={consentAccepted}
-                onChange={(e) => onConsentAcceptedChange(e.target.checked)}
-              />
-              <span>
-                {labels.consentLabel}{' '}
-                <a href="/terms" className="ming-btn-link inline px-0 py-0">
-                  {labels.terms}
-                </a>
-                ,{' '}
-                <a href="/privacy" className="ming-btn-link inline px-0 py-0">
-                  {labels.privacy}
-                </a>
-                ,{' '}
-                <a href="/refund" className="ming-btn-link inline px-0 py-0">
-                  {labels.refundPolicy}
-                </a>
-                .
-              </span>
-            </label>
-            {!consentAccepted ? (
-              <p className="mt-2 text-xs text-ming-gold">{labels.consentRequired}</p>
-            ) : null}
+            <p className="mt-4 text-xs text-ming-ash">
+              {labels.legalPassivePrefix}{' '}
+              <a href="/terms" className="ming-btn-link inline px-0 py-0">
+                {labels.terms}
+              </a>
+              ,{' '}
+              <a href="/privacy" className="ming-btn-link inline px-0 py-0">
+                {labels.privacy}
+              </a>
+              ,{' '}
+              <a href="/refund" className="ming-btn-link inline px-0 py-0">
+                {labels.refundPolicy}
+              </a>
+              .
+            </p>
             {submitError ? (
               <div className="mt-3 rounded-xl border border-ming-red/40 bg-ming-red/10 px-4 py-3 text-sm text-ming-red">
                 <p>{submitError}</p>
@@ -1047,7 +1323,7 @@ export function OrderCheckoutView({
               </div>
             ) : null}
             {(() => {
-              const disabledReason = !consentAccepted ? labels.consentRequired : submitBlockers[0] ?? null;
+              const disabledReason = submitBlockers[0] ?? null;
               return (
                 <>
                   <button
@@ -1115,7 +1391,7 @@ export function OrderCheckoutView({
               </div>
             </dl>
             {(() => {
-              const disabledReason = !consentAccepted ? labels.consentRequired : submitBlockers[0] ?? null;
+              const disabledReason = submitBlockers[0] ?? null;
               return (
                 <>
                   <button
