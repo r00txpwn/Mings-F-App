@@ -79,7 +79,22 @@ export function useCustomerData(userId: string | undefined) {
     });
   }, [load]);
 
-  const saveProfile = async (patch: Partial<Pick<CustomerProfileRow, 'full_name' | 'phone'>>) => {
+  const saveProfile = async (
+    patch: Partial<
+      Pick<
+        CustomerProfileRow,
+        | 'full_name'
+        | 'first_name'
+        | 'last_name'
+        | 'phone'
+        | 'phone_verified_at'
+        | 'terms_accepted_at'
+        | 'terms_version'
+        | 'privacy_version'
+        | 'refund_version'
+      >
+    >
+  ) => {
     if (!userId) return;
     const now = new Date().toISOString();
     const nextPhone =
@@ -95,7 +110,14 @@ export function useCustomerData(userId: string | undefined) {
       {
         id: userId,
         full_name: patch.full_name ?? profile?.full_name ?? null,
+        first_name: patch.first_name ?? profile?.first_name ?? null,
+        last_name: patch.last_name ?? profile?.last_name ?? null,
         phone: nextPhone,
+        phone_verified_at: patch.phone_verified_at ?? profile?.phone_verified_at ?? null,
+        terms_accepted_at: patch.terms_accepted_at ?? profile?.terms_accepted_at ?? null,
+        terms_version: patch.terms_version ?? profile?.terms_version ?? null,
+        privacy_version: patch.privacy_version ?? profile?.privacy_version ?? null,
+        refund_version: patch.refund_version ?? profile?.refund_version ?? null,
         updated_at: now,
         created_at: profile?.created_at ?? now,
       },
@@ -108,10 +130,23 @@ export function useCustomerData(userId: string | undefined) {
   const saveAddress = async (input: {
     label: string;
     line1: string;
+    address_type?: CustomerAddressRow['address_type'];
+    building_name?: string | null;
+    entrance?: string | null;
     apartment?: string | null;
     floor?: string | null;
+    door_name_or_number?: string | null;
+    company_name?: string | null;
+    leave_at?: CustomerAddressRow['leave_at'];
+    access_method?: CustomerAddressRow['access_method'];
+    intercom_name_or_number?: string | null;
+    door_code?: string | null;
+    access_other_instructions?: string | null;
+    courier_instructions?: string | null;
     lat?: number | null;
     lng?: number | null;
+    entry_point_lat?: number | null;
+    entry_point_lng?: number | null;
     is_default?: boolean;
     id?: string;
   }) => {
@@ -121,25 +156,63 @@ export function useCustomerData(userId: string | undefined) {
       if (reset.error) throw new Error(reset.error.message);
     }
     // Normalize empty strings → null so DB stays clean.
+    const buildingName = input.building_name?.trim() ? input.building_name.trim() : null;
+    const entrance = input.entrance?.trim() ? input.entrance.trim() : null;
     const apartment = input.apartment?.trim() ? input.apartment.trim() : null;
     const floor = input.floor?.trim() ? input.floor.trim() : null;
+    const doorNameOrNumber = input.door_name_or_number?.trim() ? input.door_name_or_number.trim() : null;
+    const companyName = input.company_name?.trim() ? input.company_name.trim() : null;
+    const intercomNameOrNumber = input.intercom_name_or_number?.trim()
+      ? input.intercom_name_or_number.trim()
+      : null;
+    const doorCode = input.door_code?.trim() ? input.door_code.trim() : null;
+    const accessOtherInstructions = input.access_other_instructions?.trim()
+      ? input.access_other_instructions.trim()
+      : null;
+    const courierInstructions = input.courier_instructions?.trim() ? input.courier_instructions.trim() : null;
     if (input.id) {
       const updatePayload: {
         label: string;
         line1: string;
+        address_type: CustomerAddressRow['address_type'];
+        building_name: string | null;
+        entrance: string | null;
         apartment: string | null;
         floor: string | null;
+        door_name_or_number: string | null;
+        company_name: string | null;
+        leave_at: CustomerAddressRow['leave_at'];
+        access_method: CustomerAddressRow['access_method'];
+        intercom_name_or_number: string | null;
+        door_code: string | null;
+        access_other_instructions: string | null;
+        courier_instructions: string | null;
         lat: number | null;
         lng: number | null;
+        entry_point_lat: number | null;
+        entry_point_lng: number | null;
         updated_at: string;
         is_default?: boolean;
       } = {
         label: input.label,
         line1: input.line1,
+        address_type: input.address_type ?? null,
+        building_name: buildingName,
+        entrance,
         apartment,
         floor,
+        door_name_or_number: doorNameOrNumber,
+        company_name: companyName,
+        leave_at: input.leave_at ?? null,
+        access_method: input.access_method ?? null,
+        intercom_name_or_number: intercomNameOrNumber,
+        door_code: doorCode,
+        access_other_instructions: accessOtherInstructions,
+        courier_instructions: courierInstructions,
         lat: input.lat ?? null,
         lng: input.lng ?? null,
+        entry_point_lat: input.entry_point_lat ?? null,
+        entry_point_lng: input.entry_point_lng ?? null,
         updated_at: new Date().toISOString(),
       };
       if (input.is_default !== undefined) {
@@ -156,10 +229,23 @@ export function useCustomerData(userId: string | undefined) {
         user_id: userId,
         label: input.label,
         line1: input.line1,
+        address_type: input.address_type ?? null,
+        building_name: buildingName,
+        entrance,
         apartment,
         floor,
+        door_name_or_number: doorNameOrNumber,
+        company_name: companyName,
+        leave_at: input.leave_at ?? null,
+        access_method: input.access_method ?? null,
+        intercom_name_or_number: intercomNameOrNumber,
+        door_code: doorCode,
+        access_other_instructions: accessOtherInstructions,
+        courier_instructions: courierInstructions,
         lat: input.lat ?? null,
         lng: input.lng ?? null,
+        entry_point_lat: input.entry_point_lat ?? null,
+        entry_point_lng: input.entry_point_lng ?? null,
         is_default: input.is_default ?? false,
       });
       if (insert.error) throw new Error(insert.error.message);

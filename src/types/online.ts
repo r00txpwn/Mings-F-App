@@ -76,22 +76,46 @@ export interface OnlineSettingsRow {
 export interface CustomerProfileRow {
   id: string;
   full_name: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
   phone: string | null;
+  phone_verified_at?: string | null;
+  terms_accepted_at?: string | null;
+  terms_version?: string | null;
+  privacy_version?: string | null;
+  refund_version?: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type CustomerAddressType = 'apartment' | 'house' | 'office' | 'hotel' | 'other';
+export type CustomerAddressAccessMethod = 'intercom' | 'door_code' | 'door_open' | 'other';
+export type CustomerAddressLeaveAt = 'office' | 'reception';
 
 export interface CustomerAddressRow {
   id: string;
   user_id: string;
   label: string;
   line1: string;
+  address_type?: CustomerAddressType | null;
+  building_name?: string | null;
+  entrance?: string | null;
   /** Apartment / flat / unit number. Optional — added in 20260420 migration. */
   apartment?: string | null;
   /** Floor number. Optional — added in 20260420 migration. */
   floor?: string | null;
+  door_name_or_number?: string | null;
+  company_name?: string | null;
+  leave_at?: CustomerAddressLeaveAt | null;
+  access_method?: CustomerAddressAccessMethod | null;
+  intercom_name_or_number?: string | null;
+  door_code?: string | null;
+  access_other_instructions?: string | null;
+  courier_instructions?: string | null;
   lat: number | null;
   lng: number | null;
+  entry_point_lat?: number | null;
+  entry_point_lng?: number | null;
   is_default: boolean;
   created_at: string;
   updated_at: string;

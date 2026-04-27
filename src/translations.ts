@@ -793,6 +793,45 @@ export interface Translations {
   orderPhoneFormatHint: string;
   orderDeliveryNotesLabel: string;
   orderDeliveryNotesPlaceholder: string;
+  orderAddressTypeTitle: string;
+  orderAddressTypeApartment: string;
+  orderAddressTypeHouse: string;
+  orderAddressTypeOffice: string;
+  orderAddressTypeHotel: string;
+  orderAddressTypeOther: string;
+  orderAddressBuildingName: string;
+  orderAddressEntrance: string;
+  orderAddressDoorNameOrNumber: string;
+  orderAddressCompanyName: string;
+  orderAddressLeaveAt: string;
+  orderAddressLeaveAtOffice: string;
+  orderAddressLeaveAtReception: string;
+  orderAddressAccessMethod: string;
+  orderAccessIntercom: string;
+  orderAccessDoorCode: string;
+  orderAccessDoorOpen: string;
+  orderAddressIntercomNameOrNumber: string;
+  orderAddressDoorCode: string;
+  orderAddressAccessOtherInstructions: string;
+  orderSignInPromptTitle: string;
+  orderSignInPromptSubtitle: string;
+  orderOr: string;
+  orderLegalPassivePrefix: string;
+  orderProfileCompletionTitle: string;
+  orderProfileCompletionSubtitle: string;
+  orderProfileFirstName: string;
+  orderProfileLastName: string;
+  orderProfilePhoneOptional: string;
+  orderProfilePhoneOptionalHint: string;
+  orderProfileCompletionSave: string;
+  orderProfileCompletionNameRequired: string;
+  orderProfileCompletionConsentRequired: string;
+  orderProfileCompletionPending: string;
+  orderPhoneVerificationRequired: string;
+  orderCheckoutAuthTitle: string;
+  orderCheckoutAuthHelper: string;
+  orderCheckoutAuthGooglePhoneNext: string;
+  orderCheckoutAuthSmsCta: string;
   orderUpsellTitle: string;
   orderUpsellMakeItComboNamed: string;
   orderUpsellYes: string;
@@ -1830,9 +1869,47 @@ export const translations: Record<Language, Translations> = {
     orderComboCustomize: 'Customize',
     orderComboBadge: 'Combo',
     orderPhoneFormatHint: 'Use Azerbaijan format: +994 followed by 9 digits.',
-    orderDeliveryNotesLabel: 'Apartment / notes for courier',
-    orderDeliveryNotesPlaceholder:
-      'Apartment no., floor, entry code, or notes for the courier',
+    orderDeliveryNotesLabel: 'Notes for courier',
+    orderDeliveryNotesPlaceholder: 'Anything that helps us find you faster',
+    orderAddressTypeTitle: 'Where are we delivering?',
+    orderAddressTypeApartment: 'Apartment',
+    orderAddressTypeHouse: 'House',
+    orderAddressTypeOffice: 'Office',
+    orderAddressTypeHotel: 'Hotel',
+    orderAddressTypeOther: 'Other',
+    orderAddressBuildingName: 'Building name',
+    orderAddressEntrance: 'Entrance / staircase',
+    orderAddressDoorNameOrNumber: 'Name/number on door',
+    orderAddressCompanyName: 'Company name',
+    orderAddressLeaveAt: 'Where should we leave delivery?',
+    orderAddressLeaveAtOffice: 'To the office',
+    orderAddressLeaveAtReception: 'To reception',
+    orderAddressAccessMethod: 'How do we get in?',
+    orderAccessIntercom: 'Doorbell / Intercom',
+    orderAccessDoorCode: 'Door code',
+    orderAccessDoorOpen: 'Door is open',
+    orderAddressIntercomNameOrNumber: 'Name/number on intercom',
+    orderAddressDoorCode: 'Door code',
+    orderAddressAccessOtherInstructions: 'Other instructions for access',
+    orderSignInPromptTitle: 'Sign in for faster checkout',
+    orderSignInPromptSubtitle: 'Use Google or phone OTP. You can still browse without signing in.',
+    orderOr: 'or',
+    orderLegalPassivePrefix: 'By placing this order, you agree to our',
+    orderProfileCompletionTitle: 'Complete your profile',
+    orderProfileCompletionSubtitle: 'Please confirm your name and accept policies to continue.',
+    orderProfileFirstName: 'First name',
+    orderProfileLastName: 'Last name',
+    orderProfilePhoneOptional: 'Phone (optional)',
+    orderProfilePhoneOptionalHint: 'If skipped, checkout will ask for phone verification later.',
+    orderProfileCompletionSave: 'Save and continue',
+    orderProfileCompletionNameRequired: 'First and last name are required.',
+    orderProfileCompletionConsentRequired: 'Please accept Terms, Privacy, and Refund Policy.',
+    orderProfileCompletionPending: 'Please complete your profile before placing the order.',
+    orderPhoneVerificationRequired: 'Please verify your phone before placing the order.',
+    orderCheckoutAuthTitle: 'Sign in to place your order',
+    orderCheckoutAuthHelper: 'Track your order and receive delivery updates.',
+    orderCheckoutAuthGooglePhoneNext: "You'll verify your phone next.",
+    orderCheckoutAuthSmsCta: 'Continue with SMS code',
     orderUpsellTitle: 'Make {name} a combo?',
     orderUpsellMakeItComboNamed: 'Make it {name} for +₼{price}?',
     orderUpsellYes: 'Yes, upgrade',
@@ -2872,8 +2949,47 @@ export const translations: Record<Language, Translations> = {
     orderComboCustomize: 'Fərdiləşdir',
     orderComboBadge: 'Kombo',
     orderPhoneFormatHint: 'Azərbaycan formatı: +994 və 9 rəqəm.',
-    orderDeliveryNotesLabel: 'Mənzil / kuryer üçün qeyd',
-    orderDeliveryNotesPlaceholder: 'Mənzil, mərtəbə, kod və ya kuryer üçün qeyd',
+    orderDeliveryNotesLabel: 'Kuryer üçün qeydlər',
+    orderDeliveryNotesPlaceholder: 'Sizi daha tez tapmağımıza kömək edən hər şey',
+    orderAddressTypeTitle: 'Hara çatdıraq?',
+    orderAddressTypeApartment: 'Mənzil',
+    orderAddressTypeHouse: 'Ev',
+    orderAddressTypeOffice: 'Ofis',
+    orderAddressTypeHotel: 'Otel',
+    orderAddressTypeOther: 'Digər',
+    orderAddressBuildingName: 'Bina adı',
+    orderAddressEntrance: 'Giriş / blok',
+    orderAddressDoorNameOrNumber: 'Qapıdakı ad/nömrə',
+    orderAddressCompanyName: 'Şirkət adı',
+    orderAddressLeaveAt: 'Sifarişi hara qoyaq?',
+    orderAddressLeaveAtOffice: 'Ofisə',
+    orderAddressLeaveAtReception: 'Resepsiyaya',
+    orderAddressAccessMethod: 'Necə daxil olaq?',
+    orderAccessIntercom: 'Domofon / zəng',
+    orderAccessDoorCode: 'Qapı kodu',
+    orderAccessDoorOpen: 'Qapı açıqdır',
+    orderAddressIntercomNameOrNumber: 'Domofonda ad/nömrə',
+    orderAddressDoorCode: 'Qapı kodu',
+    orderAddressAccessOtherInstructions: 'Digər giriş təlimatı',
+    orderSignInPromptTitle: 'Daha sürətli checkout üçün daxil olun',
+    orderSignInPromptSubtitle: 'Google və ya SMS OTP ilə daxil olun. Daxil olmadan da baxa bilərsiniz.',
+    orderOr: 'və ya',
+    orderLegalPassivePrefix: 'Bu sifarişi verərək aşağıdakılarla razılaşırsınız:',
+    orderProfileCompletionTitle: 'Profilinizi tamamlayın',
+    orderProfileCompletionSubtitle: 'Davam etmək üçün adınızı təsdiqləyin və siyasətləri qəbul edin.',
+    orderProfileFirstName: 'Ad',
+    orderProfileLastName: 'Soyad',
+    orderProfilePhoneOptional: 'Telefon (opsional)',
+    orderProfilePhoneOptionalHint: 'Boş buraxsanız, checkout zamanı telefon təsdiqi istənəcək.',
+    orderProfileCompletionSave: 'Yadda saxla və davam et',
+    orderProfileCompletionNameRequired: 'Ad və soyad mütləqdir.',
+    orderProfileCompletionConsentRequired: 'Şərtlər, Məxfilik və Geri qaytarma siyasətini qəbul edin.',
+    orderProfileCompletionPending: 'Sifarişdən əvvəl profilinizi tamamlayın.',
+    orderPhoneVerificationRequired: 'Sifarişdən əvvəl telefonunuzu təsdiqləyin.',
+    orderCheckoutAuthTitle: 'Sifariş üçün daxil olun',
+    orderCheckoutAuthHelper: 'Sifarişinizi izləyin və çatdırılma yeniliklərini alın.',
+    orderCheckoutAuthGooglePhoneNext: 'Növbəti addımda telefon təsdiqi edəcəksiniz.',
+    orderCheckoutAuthSmsCta: 'SMS kodu ilə davam et',
     orderUpsellTitle: '{name} kombo edək?',
     orderUpsellMakeItComboNamed: '{name} komboya +₼{price} əlavə edək?',
     orderUpsellYes: 'Bəli, yenilə',
@@ -3914,8 +4030,47 @@ export const translations: Record<Language, Translations> = {
     orderComboCustomize: 'Настроить',
     orderComboBadge: 'Комбо',
     orderPhoneFormatHint: 'Формат Азербайджана: +994 и 9 цифр.',
-    orderDeliveryNotesLabel: 'Квартира / примечания для курьера',
-    orderDeliveryNotesPlaceholder: 'Квартира, этаж, код домофона или примечания',
+    orderDeliveryNotesLabel: 'Заметки для курьера',
+    orderDeliveryNotesPlaceholder: 'Всё, что поможет быстрее вас найти',
+    orderAddressTypeTitle: 'Куда доставить?',
+    orderAddressTypeApartment: 'Квартира',
+    orderAddressTypeHouse: 'Дом',
+    orderAddressTypeOffice: 'Офис',
+    orderAddressTypeHotel: 'Отель',
+    orderAddressTypeOther: 'Другое',
+    orderAddressBuildingName: 'Название здания',
+    orderAddressEntrance: 'Подъезд / вход',
+    orderAddressDoorNameOrNumber: 'Имя/номер на двери',
+    orderAddressCompanyName: 'Название компании',
+    orderAddressLeaveAt: 'Где оставить доставку?',
+    orderAddressLeaveAtOffice: 'В офис',
+    orderAddressLeaveAtReception: 'На ресепшен',
+    orderAddressAccessMethod: 'Как попасть внутрь?',
+    orderAccessIntercom: 'Домофон / звонок',
+    orderAccessDoorCode: 'Код двери',
+    orderAccessDoorOpen: 'Дверь открыта',
+    orderAddressIntercomNameOrNumber: 'Имя/номер на домофоне',
+    orderAddressDoorCode: 'Код двери',
+    orderAddressAccessOtherInstructions: 'Другие инструкции для входа',
+    orderSignInPromptTitle: 'Войдите для быстрого оформления',
+    orderSignInPromptSubtitle: 'Google или OTP по телефону. Просмотр меню доступен без входа.',
+    orderOr: 'или',
+    orderLegalPassivePrefix: 'Оформляя заказ, вы соглашаетесь с',
+    orderProfileCompletionTitle: 'Заполните профиль',
+    orderProfileCompletionSubtitle: 'Подтвердите имя и примите политики для продолжения.',
+    orderProfileFirstName: 'Имя',
+    orderProfileLastName: 'Фамилия',
+    orderProfilePhoneOptional: 'Телефон (необязательно)',
+    orderProfilePhoneOptionalHint: 'Если пропустить, подтверждение телефона потребуется на checkout.',
+    orderProfileCompletionSave: 'Сохранить и продолжить',
+    orderProfileCompletionNameRequired: 'Имя и фамилия обязательны.',
+    orderProfileCompletionConsentRequired: 'Примите Условия, Политику конфиденциальности и возврата.',
+    orderProfileCompletionPending: 'Перед заказом завершите заполнение профиля.',
+    orderPhoneVerificationRequired: 'Перед заказом подтвердите телефон.',
+    orderCheckoutAuthTitle: 'Войдите, чтобы оформить заказ',
+    orderCheckoutAuthHelper: 'Отслеживайте заказ и получайте обновления по доставке.',
+    orderCheckoutAuthGooglePhoneNext: 'Телефон вы подтвердите следующим шагом.',
+    orderCheckoutAuthSmsCta: 'Продолжить через SMS-код',
     orderUpsellTitle: 'Сделать «{name}» комбо?',
     orderUpsellMakeItComboNamed: 'Сделать {name} комбо за +₼{price}?',
     orderUpsellYes: 'Да, улучшить',

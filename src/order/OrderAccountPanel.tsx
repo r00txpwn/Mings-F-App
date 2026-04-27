@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Clock, Loader2, LogOut, Mail, MapPin, Phone, Plus, UserCircle2 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
-import type { CustomerAddressRow, CustomerProfileRow } from '../types/online';
+import type {
+  CustomerAddressAccessMethod,
+  CustomerAddressLeaveAt,
+  CustomerAddressRow,
+  CustomerAddressType,
+  CustomerProfileRow,
+} from '../types/online';
 import type { Sale } from '../lib/supabase';
 import { isLikelyE164, maskPhoneForOtp, normalizePhoneE164 } from '../lib/phoneE164';
 import { OrderAddressMap } from './OrderAddressMap';
+import { OrderCompactSelect } from './OrderCompactSelect';
+import { ORDER_ADDRESS_TYPE_CONFIG } from './addressTypeConfig';
 import { supabase } from '../lib/supabase';
 import { Price } from '../components/Price';
 
@@ -20,14 +28,29 @@ interface OrderAccountPanelProps {
   profile: CustomerProfileRow | null;
   addresses: CustomerAddressRow[];
   dataLoading: boolean;
-  onSaveProfile: (p: Partial<Pick<CustomerProfileRow, 'full_name' | 'phone'>>) => Promise<void>;
+  onSaveProfile: (
+    p: Partial<Pick<CustomerProfileRow, 'full_name' | 'phone' | 'phone_verified_at'>>
+  ) => Promise<void>;
   onSaveAddress: (input: {
     label: string;
     line1: string;
+    address_type?: CustomerAddressType | null;
+    building_name?: string | null;
+    entrance?: string | null;
     apartment?: string | null;
     floor?: string | null;
+    door_name_or_number?: string | null;
+    company_name?: string | null;
+    leave_at?: CustomerAddressLeaveAt | null;
+    access_method?: CustomerAddressAccessMethod | null;
+    intercom_name_or_number?: string | null;
+    door_code?: string | null;
+    access_other_instructions?: string | null;
+    courier_instructions?: string | null;
     lat?: number | null;
     lng?: number | null;
+    entry_point_lat?: number | null;
+    entry_point_lng?: number | null;
     is_default?: boolean;
     id?: string;
   }) => Promise<void>;
@@ -92,6 +115,28 @@ interface OrderAccountPanelProps {
     orderOrdersSection: string;
     orderAddressApartment: string;
     orderAddressFloor: string;
+    orderAddressTypeTitle: string;
+    orderAddressTypeApartment: string;
+    orderAddressTypeHouse: string;
+    orderAddressTypeOffice: string;
+    orderAddressTypeHotel: string;
+    orderAddressTypeOther: string;
+    orderAddressBuildingName: string;
+    orderAddressEntrance: string;
+    orderAddressDoorNameOrNumber: string;
+    orderAddressCompanyName: string;
+    orderAddressLeaveAt: string;
+    orderAddressLeaveAtOffice: string;
+    orderAddressLeaveAtReception: string;
+    orderAddressAccessMethod: string;
+    orderAccessIntercom: string;
+    orderAccessDoorCode: string;
+    orderAccessDoorOpen: string;
+    orderAddressIntercomNameOrNumber: string;
+    orderAddressDoorCode: string;
+    orderAddressAccessOtherInstructions: string;
+    orderDeliveryNotesLabel: string;
+    orderDeliveryNotesPlaceholder: string;
     orderAddressEdit: string;
     orderAddressDelete: string;
     orderAddressSetDefault: string;
@@ -165,6 +210,17 @@ export function OrderAccountPanel({
   const [addrLine, setAddrLine] = useState('');
   const [addrApartment, setAddrApartment] = useState('');
   const [addrFloor, setAddrFloor] = useState('');
+  const [addrType, setAddrType] = useState<CustomerAddressType>('apartment');
+  const [addrBuildingName, setAddrBuildingName] = useState('');
+  const [addrEntrance, setAddrEntrance] = useState('');
+  const [addrDoorNameOrNumber, setAddrDoorNameOrNumber] = useState('');
+  const [addrCompanyName, setAddrCompanyName] = useState('');
+  const [addrLeaveAt, setAddrLeaveAt] = useState<CustomerAddressLeaveAt>('office');
+  const [addrAccessMethod, setAddrAccessMethod] = useState<CustomerAddressAccessMethod>('intercom');
+  const [addrIntercomNameOrNumber, setAddrIntercomNameOrNumber] = useState('');
+  const [addrDoorCode, setAddrDoorCode] = useState('');
+  const [addrAccessOtherInstructions, setAddrAccessOtherInstructions] = useState('');
+  const [addrCourierInstructions, setAddrCourierInstructions] = useState('');
   const [addrLat, setAddrLat] = useState<number | null>(null);
   const [addrLng, setAddrLng] = useState<number | null>(null);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
@@ -180,6 +236,7 @@ export function OrderAccountPanel({
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   const smsPhoneNorm = normalizePhoneE164(phoneInput.trim());
+  const addressTypeConfig = ORDER_ADDRESS_TYPE_CONFIG[addrType];
   const smsPhoneInvalid = phoneInput.trim().length > 0 && !isLikelyE164(smsPhoneNorm);
   const smsShowInvalidHint = phoneSmsBlurred && smsPhoneInvalid && !authErr;
   const smsInputError = phoneSmsBlurred && smsPhoneInvalid;
@@ -275,7 +332,13 @@ export function OrderAccountPanel({
     const res = await verifyPhoneOtp(normalizePhoneE164(phoneInput.trim()), otp);
     if (res.error) setAuthErr(String((res.error as { message?: string }).message ?? res.error));
     setAuthBusy(false);
-    if (!res.error) void onReloadOrders();
+    if (!res.error) {
+      await onSaveProfile({
+        phone: normalizePhoneE164(phoneInput.trim()),
+        phone_verified_at: new Date().toISOString(),
+      });
+      void onReloadOrders();
+    }
   };
 
   const handleForgotPassword = async () => {
@@ -329,6 +392,17 @@ export function OrderAccountPanel({
     setAddrLine('');
     setAddrApartment('');
     setAddrFloor('');
+    setAddrType('apartment');
+    setAddrBuildingName('');
+    setAddrEntrance('');
+    setAddrDoorNameOrNumber('');
+    setAddrCompanyName('');
+    setAddrLeaveAt('office');
+    setAddrAccessMethod('intercom');
+    setAddrIntercomNameOrNumber('');
+    setAddrDoorCode('');
+    setAddrAccessOtherInstructions('');
+    setAddrCourierInstructions('');
     setAddrLat(null);
     setAddrLng(null);
   };
@@ -337,8 +411,19 @@ export function OrderAccountPanel({
     setEditingAddressId(address.id);
     setAddrLabel(address.label);
     setAddrLine(address.line1);
+    setAddrType(address.address_type ?? 'apartment');
+    setAddrBuildingName(address.building_name?.trim() ?? '');
+    setAddrEntrance(address.entrance?.trim() ?? '');
     setAddrApartment(address.apartment?.trim() ?? '');
     setAddrFloor(address.floor?.trim() ?? '');
+    setAddrDoorNameOrNumber(address.door_name_or_number?.trim() ?? '');
+    setAddrCompanyName(address.company_name?.trim() ?? '');
+    setAddrLeaveAt(address.leave_at ?? 'office');
+    setAddrAccessMethod(address.access_method ?? 'intercom');
+    setAddrIntercomNameOrNumber(address.intercom_name_or_number?.trim() ?? '');
+    setAddrDoorCode(address.door_code?.trim() ?? '');
+    setAddrAccessOtherInstructions(address.access_other_instructions?.trim() ?? '');
+    setAddrCourierInstructions(address.courier_instructions?.trim() ?? '');
     setAddrLat(address.lat);
     setAddrLng(address.lng);
     setActiveSection('addresses');
@@ -777,10 +862,23 @@ export function OrderAccountPanel({
                                 id: a.id,
                                 label: a.label,
                                 line1: a.line1,
+                                address_type: a.address_type ?? null,
+                                building_name: a.building_name ?? null,
+                                entrance: a.entrance ?? null,
                                 apartment: a.apartment ?? null,
                                 floor: a.floor ?? null,
+                                door_name_or_number: a.door_name_or_number ?? null,
+                                company_name: a.company_name ?? null,
+                                leave_at: a.leave_at ?? null,
+                                access_method: a.access_method ?? null,
+                                intercom_name_or_number: a.intercom_name_or_number ?? null,
+                                door_code: a.door_code ?? null,
+                                access_other_instructions: a.access_other_instructions ?? null,
+                                courier_instructions: a.courier_instructions ?? null,
                                 lat: a.lat,
                                 lng: a.lng,
+                                entry_point_lat: a.entry_point_lat ?? null,
+                                entry_point_lng: a.entry_point_lng ?? null,
                                 is_default: true,
                               });
                               setSettingDefaultAddressId(null);
@@ -844,21 +942,134 @@ export function OrderAccountPanel({
                   />
                 )}
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <input
-                    className="ming-input"
-                    placeholder={t.orderAddressApartment}
-                    value={addrApartment}
-                    onChange={(e) => setAddrApartment(e.target.value)}
-                    autoComplete="address-line2"
+                  <OrderCompactSelect
+                    ariaLabel={t.orderAddressTypeTitle}
+                    value={addrType}
+                    onChange={(next) => setAddrType(next as CustomerAddressType)}
+                    options={[
+                      { value: 'apartment', label: t.orderAddressTypeApartment },
+                      { value: 'house', label: t.orderAddressTypeHouse },
+                      { value: 'office', label: t.orderAddressTypeOffice },
+                      { value: 'hotel', label: t.orderAddressTypeHotel },
+                      { value: 'other', label: t.orderAddressTypeOther },
+                    ]}
                   />
-                  <input
-                    className="ming-input"
-                    placeholder={t.orderAddressFloor}
-                    value={addrFloor}
-                    onChange={(e) => setAddrFloor(e.target.value)}
-                    autoComplete="off"
-                  />
+                  {addressTypeConfig.showBuildingName ? (
+                    <input
+                      className="ming-input"
+                      placeholder={t.orderAddressBuildingName}
+                      value={addrBuildingName}
+                      onChange={(e) => setAddrBuildingName(e.target.value)}
+                      autoComplete="off"
+                    />
+                  ) : null}
+                  {addressTypeConfig.showEntrance ? (
+                    <input
+                      className="ming-input"
+                      placeholder={t.orderAddressEntrance}
+                      value={addrEntrance}
+                      onChange={(e) => setAddrEntrance(e.target.value)}
+                      autoComplete="off"
+                    />
+                  ) : null}
+                  {addressTypeConfig.showApartmentUnit ? (
+                    <input
+                      className="ming-input"
+                      placeholder={t.orderAddressApartment}
+                      value={addrApartment}
+                      onChange={(e) => setAddrApartment(e.target.value)}
+                      autoComplete="address-line2"
+                    />
+                  ) : null}
+                  {addressTypeConfig.showFloor ? (
+                    <input
+                      className="ming-input"
+                      placeholder={t.orderAddressFloor}
+                      value={addrFloor}
+                      onChange={(e) => setAddrFloor(e.target.value)}
+                      autoComplete="off"
+                    />
+                  ) : null}
+                  {addressTypeConfig.showDoorNameOrNumber ? (
+                    <input
+                      className="ming-input"
+                      placeholder={t.orderAddressDoorNameOrNumber}
+                      value={addrDoorNameOrNumber}
+                      onChange={(e) => setAddrDoorNameOrNumber(e.target.value)}
+                      autoComplete="off"
+                    />
+                  ) : null}
+                  {addressTypeConfig.showCompanyName ? (
+                    <input
+                      className="ming-input"
+                      placeholder={t.orderAddressCompanyName}
+                      value={addrCompanyName}
+                      onChange={(e) => setAddrCompanyName(e.target.value)}
+                      autoComplete="organization"
+                    />
+                  ) : null}
+                  {addressTypeConfig.showLeaveAt ? (
+                    <OrderCompactSelect
+                      ariaLabel={t.orderAddressLeaveAt}
+                      value={addrLeaveAt}
+                      onChange={(next) => setAddrLeaveAt(next as CustomerAddressLeaveAt)}
+                      options={[
+                        { value: 'office', label: t.orderAddressLeaveAtOffice },
+                        { value: 'reception', label: t.orderAddressLeaveAtReception },
+                      ]}
+                    />
+                  ) : null}
                 </div>
+                {addressTypeConfig.showAccessMethod ? (
+                  <div className="space-y-2 rounded-xl border border-white/[0.06] bg-ming-ink/40 p-3">
+                    <label className="ming-label mb-1.5 block">{t.orderAddressAccessMethod}</label>
+                    <OrderCompactSelect
+                      ariaLabel={t.orderAddressAccessMethod}
+                      value={addrAccessMethod}
+                      onChange={(next) => setAddrAccessMethod(next as CustomerAddressAccessMethod)}
+                      options={[
+                        { value: 'intercom', label: t.orderAccessIntercom },
+                        { value: 'door_code', label: t.orderAccessDoorCode },
+                        { value: 'door_open', label: t.orderAccessDoorOpen },
+                        { value: 'other', label: t.orderAddressTypeOther },
+                      ]}
+                    />
+                    {addrAccessMethod === 'intercom' ? (
+                      <input
+                        className="ming-input"
+                        placeholder={t.orderAddressIntercomNameOrNumber}
+                        value={addrIntercomNameOrNumber}
+                        onChange={(e) => setAddrIntercomNameOrNumber(e.target.value)}
+                        autoComplete="off"
+                      />
+                    ) : null}
+                    {addrAccessMethod === 'door_code' ? (
+                      <input
+                        className="ming-input"
+                        placeholder={t.orderAddressDoorCode}
+                        value={addrDoorCode}
+                        onChange={(e) => setAddrDoorCode(e.target.value)}
+                        autoComplete="off"
+                      />
+                    ) : null}
+                    {addrAccessMethod === 'other' ? (
+                      <textarea
+                        className="ming-input min-h-[74px] resize-y"
+                        placeholder={t.orderAddressAccessOtherInstructions}
+                        value={addrAccessOtherInstructions}
+                        onChange={(e) => setAddrAccessOtherInstructions(e.target.value)}
+                      />
+                    ) : null}
+                  </div>
+                ) : null}
+                {addressTypeConfig.showCourierNotes ? (
+                  <textarea
+                    className="ming-input min-h-[74px] resize-y"
+                    placeholder={t.orderDeliveryNotesPlaceholder}
+                    value={addrCourierInstructions}
+                    onChange={(e) => setAddrCourierInstructions(e.target.value)}
+                  />
+                ) : null}
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -869,10 +1080,36 @@ export function OrderAccountPanel({
                         id: editingAddressId ?? undefined,
                         label: addrLabel.trim() || t.orderAddressHomeLabel,
                         line1: addrLine.trim(),
-                        apartment: addrApartment.trim() || undefined,
-                        floor: addrFloor.trim() || undefined,
+                        address_type: addrType,
+                        building_name: addressTypeConfig.showBuildingName ? addrBuildingName.trim() || undefined : undefined,
+                        entrance: addressTypeConfig.showEntrance ? addrEntrance.trim() || undefined : undefined,
+                        apartment: addressTypeConfig.showApartmentUnit ? addrApartment.trim() || undefined : undefined,
+                        floor: addressTypeConfig.showFloor ? addrFloor.trim() || undefined : undefined,
+                        door_name_or_number: addressTypeConfig.showDoorNameOrNumber
+                          ? addrDoorNameOrNumber.trim() || undefined
+                          : undefined,
+                        company_name: addressTypeConfig.showCompanyName ? addrCompanyName.trim() || undefined : undefined,
+                        leave_at: addressTypeConfig.showLeaveAt ? addrLeaveAt : undefined,
+                        access_method: addressTypeConfig.showAccessMethod ? addrAccessMethod : undefined,
+                        intercom_name_or_number:
+                          addressTypeConfig.showAccessMethod && addrAccessMethod === 'intercom'
+                            ? addrIntercomNameOrNumber.trim() || undefined
+                            : undefined,
+                        door_code:
+                          addressTypeConfig.showAccessMethod && addrAccessMethod === 'door_code'
+                            ? addrDoorCode.trim() || undefined
+                            : undefined,
+                        access_other_instructions:
+                          addressTypeConfig.showAccessMethod && addrAccessMethod === 'other'
+                            ? addrAccessOtherInstructions.trim() || undefined
+                            : undefined,
+                        courier_instructions: addressTypeConfig.showCourierNotes
+                          ? addrCourierInstructions.trim() || undefined
+                          : undefined,
                         lat: addrLat,
                         lng: addrLng,
+                        entry_point_lat: addrLat,
+                        entry_point_lng: addrLng,
                         is_default: addresses.length === 0 || undefined,
                       });
                       resetAddressForm();
