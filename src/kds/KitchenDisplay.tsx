@@ -11,12 +11,29 @@ interface KioskOrder extends Sale {
   sale_items: SaleItem[];
 }
 
+async function getFunctionErrorMessage(error: unknown): Promise<string> {
+  if (error && typeof error === 'object' && 'context' in error) {
+    const context = (error as { context?: unknown }).context;
+    if (context instanceof Response) {
+      try {
+        const body = await context.clone().json();
+        const message = body?.error?.message ?? body?.error?.code;
+        if (typeof message === 'string' && message.trim()) return message;
+      } catch {
+        // Fall through to the generic error message below.
+      }
+    }
+  }
+  return error instanceof Error ? error.message : 'Status update failed';
+}
+
 function KdsContent() {
   const { t } = useLanguage();
   const [orders, setOrders] = useState<KioskOrder[]>([]);
   const [now, setNow] = useState(Date.now());
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'reconnecting'>('reconnecting');
   const [channelHealth, setChannelHealth] = useState<string>('CONNECTING');
+  const [actionError, setActionError] = useState<string | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -99,19 +116,30 @@ function KdsContent() {
     newStatus: string,
     opts?: { prepMinutes?: number }
   ) => {
-    const updates: Record<string, unknown> = { order_status: newStatus };
-    if (newStatus === 'preparing') {
-      updates.prep_started_at = new Date().toISOString();
-      if (opts?.prepMinutes != null) {
-        updates.estimated_ready_at = new Date(Date.now() + opts.prepMinutes * 60_000).toISOString();
-      }
+    setActionError(null);
+    const { data, error } = await supabase.functions.invoke('kds-order-status-update', {
+      headers: {
+        'x-kds-secret': import.meta.env.VITE_KDS_SECRET || '',
+      },
+      body: {
+        saleId: orderId,
+        nextStatus: newStatus,
+        prepMinutes: opts?.prepMinutes,
+      },
+    });
+    if (error) {
+      const message = await getFunctionErrorMessage(error);
+      setActionError(`${t.errorOccurred}: ${message}`);
+      await loadOrders();
+      return;
     }
-    if (newStatus === 'ready') {
-      updates.ready_at = new Date().toISOString();
+    if (data && typeof data === 'object' && 'ok' in data && data.ok === false) {
+      const details = data as { error?: { message?: string; code?: string } };
+      setActionError(`${t.errorOccurred}: ${details.error?.message ?? details.error?.code ?? 'Status update failed'}`);
+      await loadOrders();
+      return;
     }
-
-    await supabase.from('sales').update(updates).eq('id', orderId);
-    loadOrders();
+    await loadOrders();
   };
 
   const reconnectRealtime = () => {
@@ -139,6 +167,15 @@ function KdsContent() {
         >
           <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-white" aria-hidden />
           {t.kdsConnectionLostBanner}
+        </button>
+      ) : null}
+      {actionError ? (
+        <button
+          type="button"
+          onClick={() => setActionError(null)}
+          className="flex min-h-12 w-full shrink-0 items-center justify-center bg-rose-700 px-4 text-center text-sm font-semibold text-white transition-colors hover:bg-rose-600"
+        >
+          {actionError}
         </button>
       ) : null}
       <KdsHeader
