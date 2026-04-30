@@ -15,6 +15,7 @@ import { OrderCompactSelect } from './OrderCompactSelect';
 import { ORDER_ADDRESS_TYPE_CONFIG } from './addressTypeConfig';
 import { supabase } from '../lib/supabase';
 import { Price } from '../components/Price';
+import { getCustomerFullNameValidation } from './customerName';
 
 interface OrderAccountPanelProps {
   user: User | null;
@@ -75,6 +76,8 @@ interface OrderAccountPanelProps {
     orderPassword: string;
     orderCreateAccountHint: string;
     orderYourName: string;
+    orderErrNameRequired: string;
+    orderErrNameInvalid: string;
     orderYourPhone: string;
     orderSaveProfile: string;
     orderAddAddress: string;
@@ -230,6 +233,7 @@ export function OrderAccountPanel({
   const [settingDefaultAddressId, setSettingDefaultAddressId] = useState<string | null>(null);
   const [phoneSmsBlurred, setPhoneSmsBlurred] = useState(false);
   const [phoneProfileBlurred, setPhoneProfileBlurred] = useState(false);
+  const [profileNameError, setProfileNameError] = useState<string | null>(null);
   const [resendSeconds, setResendSeconds] = useState(30);
   const [showAnonAuthForm, setShowAnonAuthForm] = useState(false);
   const [activeSection, setActiveSection] = useState<'profile' | 'addresses' | 'orders'>('profile');
@@ -250,9 +254,11 @@ export function OrderAccountPanel({
     if (profile) {
       setNameEdit(profile.full_name ?? '');
       setPhoneEdit(profile.phone ? normalizePhoneE164(profile.phone) : '');
+      setProfileNameError(null);
     } else {
       setNameEdit('');
       setPhoneEdit('');
+      setProfileNameError(null);
     }
   }, [profile]);
 
@@ -770,11 +776,18 @@ export function OrderAccountPanel({
                 <div>
                   <label className="ming-label mb-1.5 block">{t.orderYourName}</label>
                   <input
-                    className="ming-input"
+                    className={`ming-input${profileNameError ? ' ming-input-error' : ''}`}
                     value={nameEdit}
-                    onChange={(e) => setNameEdit(e.target.value)}
+                    onChange={(e) => {
+                      setNameEdit(e.target.value);
+                      setProfileNameError(null);
+                    }}
                     placeholder={t.orderYourName}
+                    aria-invalid={Boolean(profileNameError)}
                   />
+                  {profileNameError ? (
+                    <p className="mt-1 text-[12px] text-ming-gold">{profileNameError}</p>
+                  ) : null}
                 </div>
                 <div>
                   <label className="ming-label mb-1.5 block">{t.orderAccountPhone}</label>
@@ -798,12 +811,22 @@ export function OrderAccountPanel({
                   type="button"
                   disabled={savingProfile}
                   onClick={async () => {
+                    const nameValidation = getCustomerFullNameValidation(nameEdit);
+                    if (!nameValidation.valid) {
+                      setProfileNameError(
+                        nameValidation.reason === 'required' ? t.orderErrNameRequired : t.orderErrNameInvalid
+                      );
+                      return;
+                    }
                     setSavingProfile(true);
-                    await onSaveProfile({
-                      full_name: nameEdit.trim() || null,
-                      phone: phoneEdit.trim() === '' ? null : normalizePhoneE164(phoneEdit),
-                    });
-                    setSavingProfile(false);
+                    try {
+                      await onSaveProfile({
+                        full_name: nameValidation.normalized,
+                        phone: phoneEdit.trim() === '' ? null : normalizePhoneE164(phoneEdit),
+                      });
+                    } finally {
+                      setSavingProfile(false);
+                    }
                   }}
                   className="ming-btn-ghost"
                 >

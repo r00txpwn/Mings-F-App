@@ -301,7 +301,7 @@ export function AddressAutocomplete({
     <div className={`relative ${className ?? ''}`}>
       <div className="relative">
         <Search
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--order-coral)]"
           aria-hidden
         />
         <input
@@ -321,7 +321,7 @@ export function AddressAutocomplete({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={!canSearch}
-          className="w-full rounded-lg border border-white/10 bg-slate-900 py-2 pl-9 pr-9 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cockpit-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-2xl border border-black/10 bg-white py-3 pl-9 pr-9 text-sm font-semibold text-[color:var(--order-ink)] placeholder:text-[rgba(40,20,20,0.45)] focus:border-[color:var(--order-coral)] focus:outline-none focus:ring-4 focus:ring-red-400/20 disabled:cursor-not-allowed disabled:opacity-60"
           aria-expanded={open}
           aria-autocomplete="list"
           aria-controls="address-autocomplete-listbox"
@@ -329,7 +329,7 @@ export function AddressAutocomplete({
         />
         {loading ? (
           <Loader2
-            className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-500"
+            className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[color:var(--order-coral)]"
             aria-hidden
           />
         ) : null}
@@ -340,7 +340,7 @@ export function AddressAutocomplete({
           ref={listRef}
           id="address-autocomplete-listbox"
           role="listbox"
-          className="animate-scaleIn absolute left-0 right-0 top-[calc(100%+4px)] z-20 max-h-64 origin-top overflow-y-auto rounded-lg border border-white/10 bg-slate-900 text-sm text-slate-200 shadow-xl"
+          className="animate-scaleIn absolute left-0 right-0 top-[calc(100%+4px)] z-20 max-h-64 origin-top overflow-y-auto rounded-2xl border border-black/10 bg-white text-sm text-[color:var(--order-ink)] shadow-xl"
         >
           {suggestions.map((s, idx) => (
             <li
@@ -353,14 +353,14 @@ export function AddressAutocomplete({
                 void handlePick(s);
               }}
               className={`flex cursor-pointer items-start gap-2 px-3 py-2 ${
-                idx === activeIdx ? 'bg-white/5' : 'hover:bg-white/5'
+                idx === activeIdx ? 'bg-[color:var(--order-mint)]' : 'hover:bg-[color:var(--order-mint)]'
               }`}
             >
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cockpit-500" aria-hidden />
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--order-coral)]" aria-hidden />
               <div className="min-w-0">
-                <p className="truncate font-medium text-slate-100">{s.mainText}</p>
+                <p className="truncate font-bold text-[color:var(--order-ink)]">{s.mainText}</p>
                 {s.secondaryText ? (
-                  <p className="truncate text-xs text-slate-500">{s.secondaryText}</p>
+                  <p className="truncate text-xs font-semibold text-[rgba(40,20,20,0.58)]">{s.secondaryText}</p>
                 ) : null}
               </div>
             </li>
@@ -368,7 +368,7 @@ export function AddressAutocomplete({
         </ul>
       ) : open && !loading && query.trim().length >= 2 && !searchError ? (
         <div
-          className="animate-scaleIn absolute left-0 right-0 top-[calc(100%+4px)] z-20 origin-top rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-xs text-slate-500 shadow-xl"
+          className="animate-scaleIn absolute left-0 right-0 top-[calc(100%+4px)] z-20 origin-top rounded-2xl border border-black/10 bg-white px-3 py-2 text-xs font-semibold text-[rgba(40,20,20,0.58)] shadow-xl"
           role="status"
         >
           {noResultsLabel ?? '…'}

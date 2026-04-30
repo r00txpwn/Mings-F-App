@@ -4,6 +4,7 @@ import type { Category, Product } from '../lib/supabase';
 import type { OnlineFulfillmentType } from '../types/online';
 import { OrderVenueInfo } from './OrderVenueInfo';
 import { formatMoneyWithSymbol } from '../lib/money';
+import { getOrderCardShapeClass, getOrderCardShadowClass } from './orderDesign';
 
 const ALL = '__all__';
 
@@ -39,6 +40,11 @@ function categoryIllustration(categoryLabel: string): { Icon: LucideIcon; iconCl
     return { Icon: Utensils, iconClassName: 'text-ming-ash' };
   }
   return { Icon: Package, iconClassName: 'text-ming-mute' };
+}
+
+function orderingCtaLabel(addLabel: string, customizeLabel: string, hasMods: boolean): string {
+  if (!hasMods) return addLabel;
+  return customizeLabel;
 }
 
 export interface OrderMenuBrowseLabels {
@@ -119,9 +125,14 @@ function ProductCard({
   const illustration = categoryIllustration(categoryLabel);
   const FallbackIcon = illustration.Icon;
   const catLine = shortCategoryLine(categoryLabel);
+  const shapeClass = getOrderCardShapeClass(product.name.length);
+  const shadowClass = getOrderCardShadowClass(product.name.length);
+  const ctaLabel = orderingCtaLabel(addLabel, customizeLabel, hasMods);
   return (
     <article
-      className={`ming-product group cursor-pointer ${hasMods ? 'border-ming-gold/35 bg-ming-gold/[0.03]' : ''}`}
+      className={`ming-product group cursor-pointer ${shapeClass} ${shadowClass} ${
+        hasMods ? 'rotate-[-0.5deg]' : ''
+      }`}
       onClick={onAdd}
       role="button"
       tabIndex={0}
@@ -142,23 +153,23 @@ function ProductCard({
           />
         ) : (
           <div
-            className="relative flex h-full w-full flex-col overflow-hidden rounded-[inherit] bg-gradient-to-br from-ming-ink via-[#1a1418] to-ming-graphite"
+            className="relative flex h-full w-full flex-col overflow-hidden rounded-[inherit] bg-gradient-to-br from-[color:var(--order-kraft-soft)] via-[color:var(--order-kraft)] to-[color:var(--order-coral)]"
             aria-hidden
           >
             <div
-              className="pointer-events-none absolute -right-6 -top-10 h-28 w-28 rounded-full bg-ming-red/30 blur-2xl"
+              className="pointer-events-none absolute -right-6 -top-10 h-28 w-28 rounded-full bg-white/40 blur-2xl"
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-ming-gold/40 to-transparent"
+              className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"
               aria-hidden
             />
-            <div className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-ming-red/50 via-transparent to-ming-gold/25 opacity-80" />
+            <div className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[color:var(--order-coral)] via-transparent to-[color:var(--order-orange)] opacity-80" />
             <div className="absolute right-2 top-2 opacity-[0.55]">
-              <FallbackIcon className="h-4 w-4 text-ming-gold/90" strokeWidth={2} aria-hidden />
+              <FallbackIcon className="h-4 w-4 text-white" strokeWidth={2} aria-hidden />
             </div>
             <div className="relative z-[1] flex flex-1 flex-col items-center justify-center px-2 pt-4">
-              <span className="ming-display text-[28px] leading-none tracking-tight text-ming-bone/95 drop-shadow-[0_1px_10px_rgba(0,0,0,0.45)]">
+              <span className="ming-display text-[28px] leading-none tracking-tight text-white drop-shadow-[0_1px_10px_rgba(0,0,0,0.45)]">
                 {dishInitial(product.name)}
               </span>
             </div>
@@ -167,7 +178,7 @@ function ProductCard({
                 {noPhotoCaption}
               </p>
               {catLine ? (
-                <p className="mt-0.5 truncate text-[9px] font-semibold text-ming-gold/75">{catLine}</p>
+                <p className="mt-0.5 truncate text-[9px] font-black text-white">{catLine}</p>
               ) : null}
             </div>
           </div>
@@ -175,7 +186,7 @@ function ProductCard({
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2">
-          <h3 className="ming-display text-[17px] leading-[1.15] text-ming-bone">{product.name}</h3>
+          <h3 className="ming-display text-[17px] leading-[1.05] text-[color:var(--order-ink)]">{product.name}</h3>
           {product.is_halal ? (
             <span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
               {halalLabel}
@@ -183,21 +194,21 @@ function ProductCard({
           ) : null}
         </div>
         {product.description ? (
-          <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-ming-ash">
+            <p className="mt-1.5 line-clamp-2 text-[13px] font-semibold leading-relaxed text-[rgba(40,20,20,0.65)]">
             {product.description}
           </p>
         ) : null}
         <div className="mt-auto flex items-end justify-between gap-2 pt-3">
           <div className="flex min-w-0 flex-col">
-            <span className="ming-price text-ming-red">{formatMoneyWithSymbol(product.selling_price)}</span>
+            <span className="ming-price">{formatMoneyWithSymbol(product.selling_price)}</span>
           </div>
           <button
             type="button"
-            aria-label={addLabel}
-            className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider shadow-ming transition-all active:scale-95 ${
+            aria-label={ctaLabel}
+            className={`inline-flex min-h-9 shrink-0 items-center gap-1 rounded-full px-3.5 py-2 text-[11px] font-black uppercase tracking-wide shadow-[4px_4px_0_rgba(40,20,20,0.22)] transition-all active:scale-95 sm:px-4 ${
               hasMods
-                ? 'bg-ming-gold text-ming-ink hover:bg-ming-gold/90'
-                : 'bg-ming-red text-white hover:bg-ming-red-700 hover:shadow-ming-glow'
+                ? 'bg-[color:var(--order-ink)] text-[color:var(--order-mint)] hover:-translate-y-0.5'
+                : 'bg-[color:var(--order-coral)] text-white hover:-translate-y-0.5'
             }`}
             onClick={(e) => {
               e.stopPropagation();
@@ -205,7 +216,7 @@ function ProductCard({
             }}
           >
             <Plus className="h-3.5 w-3.5" />
-            {hasMods ? customizeLabel : addLabel}
+            {ctaLabel}
           </button>
           {onToggleFavorite ? (
             <button
@@ -213,8 +224,8 @@ function ProductCard({
               aria-label={isFavorite ? favoriteRemoveLabel : favoriteAddLabel}
               className={`inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
                 isFavorite
-                  ? 'border-ming-red/35 bg-ming-red/10 text-ming-red'
-                  : 'border-white/[0.08] bg-transparent text-ming-mute hover:border-white/[0.16] hover:bg-white/[0.02] hover:text-ming-ash'
+                  ? 'border-red-400/35 bg-red-400/10 text-[color:var(--order-coral)]'
+                  : 'border-black/10 bg-white text-[rgba(40,20,20,0.45)] hover:border-black/20 hover:text-[color:var(--order-coral)]'
               }`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -342,13 +353,13 @@ export function OrderMenuBrowseView({
       if (searchFiltered.length === 0) {
         return (
           <div className="ming-card flex flex-col items-center gap-2 p-10 text-center">
-            <Search className="h-6 w-6 text-ming-mute" />
-            <p className="text-sm text-ming-ash">{labels.orderSearchNoResults}</p>
+            <Search className="h-6 w-6 text-[color:var(--order-coral)]" />
+            <p className="text-sm font-bold text-[rgba(40,20,20,0.7)]">{labels.orderSearchNoResults}</p>
           </div>
         );
       }
       return (
-        <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
           {searchFiltered.map((p) => (
             <ProductCard
               key={p.id}
@@ -383,11 +394,11 @@ export function OrderMenuBrowseView({
               >
                 <div className="mb-4 flex items-end justify-between gap-3">
                   <h2 className="ming-section-title">{normalizeCategoryLabel(cat.name)}</h2>
-                  <span className="hidden text-[11px] font-bold uppercase tracking-[0.14em] text-ming-mute sm:block">
+                  <span className="hidden text-[11px] font-black uppercase tracking-[0.14em] text-[rgba(40,20,20,0.55)] sm:block">
                     {list.length} {list.length === 1 ? labels.itemCountSingle : labels.itemCountPlural}
                   </span>
                 </div>
-                <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                   {list.map((p) => (
                     <ProductCard
                       key={p.id}
@@ -418,11 +429,11 @@ export function OrderMenuBrowseView({
       <section>
         <h2 className="ming-section-title mb-4">{title}</h2>
         {list.length === 0 ? (
-          <p className="rounded-2xl border border-white/[0.06] bg-ming-charcoal p-8 text-center text-sm text-ming-ash">
+          <p className="rounded-[26px_16px_26px_16px] border border-black/5 bg-white p-8 text-center text-sm font-bold text-[rgba(40,20,20,0.7)] shadow-[6px_6px_0_rgba(40,20,20,0.12)]">
             {labels.orderCategoryEmpty}
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             {list.map((p) => (
               <ProductCard
                 key={p.id}
@@ -445,11 +456,15 @@ export function OrderMenuBrowseView({
     );
   };
 
+  const fulfillmentLabel =
+    fulfillment === 'delivery' ? labels.orderFulfillmentDelivery : labels.orderFulfillmentTakeaway;
+  const venueDetail = hoursLine || (fulfillment === 'delivery' ? venueAddress : venuePhone);
+
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-0 lg:flex-row lg:gap-8 lg:px-10">
       {/* Sticky category chip rail — mobile / tablet only; hidden for single-category menus */}
       {showCategoryNav ? (
-        <div className="sticky top-[48px] z-20 -mx-0 border-b border-white/[0.04] bg-ming-ink/85 backdrop-blur-xl lg:static lg:top-0 lg:order-1 lg:hidden">
+        <div className="sticky top-[48px] z-20 -mx-0 border-b border-black/5 bg-[rgba(180,230,220,0.9)] backdrop-blur-xl lg:static lg:top-0 lg:order-1 lg:hidden">
           <div className="relative">
             <div
               ref={chipsRef}
@@ -462,7 +477,7 @@ export function OrderMenuBrowseView({
             </div>
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-ming-ink/90 to-transparent"
+              className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[rgba(180,230,220,0.9)] to-transparent"
             />
           </div>
         </div>
@@ -477,10 +492,10 @@ export function OrderMenuBrowseView({
               <button
                 type="button"
                 onClick={() => handlePickCategory(ALL)}
-                className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                className={`w-full rounded-2xl px-3 py-2.5 text-left text-sm font-extrabold transition-colors ${
                   selectedCategoryId === ALL
-                    ? 'bg-white/[0.08] text-ming-bone'
-                    : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
+                    ? 'bg-[color:var(--order-ink)] text-[color:var(--order-mint)]'
+                    : 'text-[rgba(40,20,20,0.65)] hover:bg-white hover:text-[color:var(--order-ink)]'
                 }`}
               >
                 {labels.allCategories}
@@ -490,10 +505,10 @@ export function OrderMenuBrowseView({
                   key={c.id}
                   type="button"
                   onClick={() => handlePickCategory(c.id)}
-                  className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                  className={`w-full rounded-2xl px-3 py-2.5 text-left text-sm font-extrabold transition-colors ${
                     selectedCategoryId === c.id
-                      ? 'bg-white/[0.08] text-ming-bone'
-                      : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
+                      ? 'bg-[color:var(--order-ink)] text-[color:var(--order-mint)]'
+                      : 'text-[rgba(40,20,20,0.65)] hover:bg-white hover:text-[color:var(--order-ink)]'
                   }`}
                 >
                   {normalizeCategoryLabel(c.name)}
@@ -506,13 +521,24 @@ export function OrderMenuBrowseView({
 
       {/* Main column */}
       <main className="min-w-0 flex-1 px-4 pb-40 pt-5 sm:px-5 lg:order-2 lg:px-0 lg:pb-24 lg:pt-8">
+        {venueDetail ? (
+          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[22px_14px_22px_14px] border border-black/10 bg-white/75 px-3 py-2.5 shadow-[4px_4px_0_rgba(40,20,20,0.10)]">
+            <span className="inline-flex items-center rounded-full bg-[color:var(--order-coral)] px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-white shadow-[3px_3px_0_var(--order-ink)]">
+              {fulfillmentLabel}
+            </span>
+            <span className="min-w-0 truncate text-[12px] font-bold text-[rgba(40,20,20,0.65)]">
+              {venueDetail}
+            </span>
+          </div>
+        ) : null}
+
         {/* Search — hidden for tiny menus (< 8 products) */}
         {showSearch ? (
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mb-5 flex flex-col gap-3 rounded-[26px_16px_26px_16px] bg-white/70 p-3 shadow-[6px_6px_0_rgba(40,20,20,0.12)] sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search
                 aria-hidden
-                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ming-mute"
+                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--order-coral)]"
               />
               <input
                 type="search"
@@ -526,7 +552,7 @@ export function OrderMenuBrowseView({
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-ming-ash hover:text-ming-bone"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[rgba(40,20,20,0.6)] hover:text-[color:var(--order-coral)]"
                   aria-label={labels.clearSearch}
                 >
                   <X className="h-4 w-4" />
@@ -539,7 +565,7 @@ export function OrderMenuBrowseView({
         {!serverAllowsDelivery && fulfillment === 'delivery' ? (
           <p
             role="status"
-            className="mb-5 rounded-xl border border-ming-gold/40 bg-ming-gold/10 px-4 py-3 text-[13px] leading-relaxed text-ming-gold"
+            className="mb-5 rounded-2xl border border-orange-300/40 bg-white px-4 py-3 text-[13px] font-bold leading-relaxed text-[color:var(--order-ink)] shadow-[4px_4px_0_rgba(250,150,60,0.35)]"
           >
             {deliveryDisabledHint}
           </p>

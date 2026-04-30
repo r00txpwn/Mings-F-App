@@ -11,6 +11,7 @@ import {
   type KitchenLocation,
 } from '../order-manager/deliveryUtils';
 import { Price } from '../components/Price';
+import { orderBrandAssets } from './orderDesign';
 
 interface TrackingPayload {
   sale: Record<string, unknown> | null;
@@ -78,7 +79,7 @@ function TrackingContent() {
 
   if (loading) {
     return (
-      <div className="neon-shell flex min-h-screen items-center justify-center">
+      <div className="ming-shell flex min-h-screen items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-cockpit-500" />
       </div>
     );
@@ -86,18 +87,42 @@ function TrackingContent() {
 
   if (!token) {
     return (
-      <div className="neon-shell flex min-h-screen flex-col items-center justify-center gap-2 p-6 text-center text-slate-300">
-        <Package className="h-12 w-12 text-slate-600" />
-        <p>{t.trackingMissingToken}</p>
+      <div className="ming-shell order-bg-graphics flex min-h-screen items-center justify-center p-6 text-center">
+        <div className="ming-card relative z-10 w-full max-w-sm p-6 sm:p-7">
+          <img src={orderBrandAssets.wordmark} alt="Ming's" className="mx-auto h-14 w-auto rounded-3xl bg-white p-3 shadow-[6px_6px_0_rgba(40,20,20,0.16)]" />
+          <div className="mx-auto mt-6 flex h-16 w-16 items-center justify-center rounded-[22px] bg-[color:var(--order-coral)] text-white shadow-[6px_6px_0_var(--order-ink)]">
+            <Package className="h-8 w-8" />
+          </div>
+          <p className="mt-5 text-xl font-black text-[color:var(--order-ink)]">{t.trackingMissingToken}</p>
+          <p className="mx-auto mt-3 max-w-[280px] text-sm font-semibold leading-6 text-[rgba(40,20,20,0.64)]">
+            {t.trackingMissingTokenHint}
+          </p>
+          <a href="/order" className="ming-btn-primary mt-6 w-full py-3">
+            {t.trackingOrderAgain}
+          </a>
+          <p className="mt-4 text-xs font-bold text-[rgba(40,20,20,0.54)]">{t.trackingNeedHelp}</p>
+        </div>
       </div>
     );
   }
 
   if (err || !data?.sale) {
     return (
-      <div className="neon-shell flex min-h-screen flex-col items-center justify-center gap-2 p-6 text-center text-slate-300">
-        <Package className="h-12 w-12 text-slate-600" />
-        <p>{err ?? t.trackingNotFound}</p>
+      <div className="ming-shell order-bg-graphics flex min-h-screen items-center justify-center p-6 text-center">
+        <div className="ming-card relative z-10 w-full max-w-sm p-6 sm:p-7">
+          <img src={orderBrandAssets.wordmark} alt="Ming's" className="mx-auto h-14 w-auto rounded-3xl bg-white p-3 shadow-[6px_6px_0_rgba(40,20,20,0.16)]" />
+          <div className="mx-auto mt-6 flex h-16 w-16 items-center justify-center rounded-[22px] bg-[color:var(--order-coral)] text-white shadow-[6px_6px_0_var(--order-ink)]">
+            <Package className="h-8 w-8" />
+          </div>
+          <p className="mt-5 text-xl font-black text-[color:var(--order-ink)]">{err ?? t.trackingNotFound}</p>
+          <p className="mx-auto mt-3 max-w-[280px] text-sm font-semibold leading-6 text-[rgba(40,20,20,0.64)]">
+            {t.trackingMissingTokenHint}
+          </p>
+          <a href="/order" className="ming-btn-primary mt-6 w-full py-3">
+            {t.trackingOrderAgain}
+          </a>
+          <p className="mt-4 text-xs font-bold text-[rgba(40,20,20,0.54)]">{t.trackingNeedHelp}</p>
+        </div>
       </div>
     );
   }
@@ -131,26 +156,27 @@ function TrackingContent() {
 
   if (status === 'cancelled' && cancellationReason) {
     return (
-      <div className="neon-shell min-h-screen px-4 py-10 text-slate-100">
-        <div className="neon-card mx-auto max-w-md border-rose-500/40 bg-rose-500/10 p-6 text-rose-100">
-          <XCircle className="mx-auto h-14 w-14 text-rose-400" aria-hidden />
-          <p className="mt-3 text-center font-mono text-lg text-cockpit-400">
+      <div className="ming-shell order-bg-graphics min-h-screen px-4 py-10">
+        <div className="ming-card relative z-[1] mx-auto max-w-md p-6 text-center">
+          <img src={orderBrandAssets.wordmark} alt="Ming's" className="mx-auto h-14 w-auto rounded-3xl bg-white p-3 shadow-[6px_6px_0_rgba(40,20,20,0.16)]" />
+          <XCircle className="mx-auto mt-6 h-14 w-14 text-[color:var(--order-coral)]" aria-hidden />
+          <p className="mt-3 text-center font-mono text-lg font-black text-[color:var(--order-coral)]">
             {t.trackingOrderLabel} #{display}
           </p>
-          <h1 className="mt-4 text-center text-xl font-bold text-white">{t.orderCancelledTitle}</h1>
-          <p className="mt-3 text-center text-sm leading-relaxed text-rose-100/95">
+          <h1 className="mt-4 text-center text-xl font-black text-[color:var(--order-ink)]">{t.orderCancelledTitle}</h1>
+          <p className="mt-3 text-center text-sm font-semibold leading-relaxed text-[rgba(40,20,20,0.7)]">
             {t.orderCancelledReason.replace('{reason}', cancellationReason)}
           </p>
           {pay === 'paid' ? (
-            <p className="mt-4 text-center text-sm text-rose-100/90">{t.orderCancelledRefundNote}</p>
+            <p className="mt-4 text-center text-sm font-semibold text-[rgba(40,20,20,0.7)]">{t.orderCancelledRefundNote}</p>
           ) : null}
           <a
             href="/order"
-            className="neon-btn-primary mt-6 flex w-full items-center justify-center py-4 text-center font-semibold text-white"
+            className="ming-btn-primary mt-6 flex w-full items-center justify-center py-4 text-center"
           >
             {t.trackingOrderAgain}
           </a>
-          <p className="mt-4 text-center text-xs text-slate-500">{t.trackingCancelledContact}</p>
+          <p className="mt-4 text-center text-xs font-semibold text-[rgba(40,20,20,0.55)]">{t.trackingCancelledContact}</p>
         </div>
       </div>
     );
@@ -158,21 +184,22 @@ function TrackingContent() {
 
   if (status === 'cancelled') {
     return (
-      <div className="neon-shell min-h-screen px-4 py-10 text-slate-100">
-        <div className="neon-card mx-auto max-w-md p-6">
-          <h1 className="text-xl font-bold text-white">{t.trackingPageTitle}</h1>
-          <p className="mt-2 font-mono text-2xl text-cockpit-400">
+      <div className="ming-shell order-bg-graphics min-h-screen px-4 py-10">
+        <div className="ming-card relative z-[1] mx-auto max-w-md p-6">
+          <img src={orderBrandAssets.wordmark} alt="Ming's" className="h-12 w-auto rounded-3xl bg-white p-3 shadow-[5px_5px_0_rgba(40,20,20,0.16)]" />
+          <h1 className="mt-5 text-xl font-black text-[color:var(--order-ink)]">{t.trackingPageTitle}</h1>
+          <p className="mt-2 font-mono text-2xl font-black text-[color:var(--order-coral)]">
             {t.trackingOrderLabel} #{display}
           </p>
-          <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-rose-100">
-            <p className="text-sm leading-relaxed text-rose-100/95">{t.orderCancelledGeneric}</p>
+          <div className="mt-4 rounded-2xl border border-red-400/30 bg-red-400/10 p-4">
+            <p className="text-sm font-semibold leading-relaxed text-[rgba(40,20,20,0.72)]">{t.orderCancelledGeneric}</p>
             <a
               href="/order"
-              className="neon-btn-primary mt-4 flex w-full items-center justify-center py-3 text-center text-sm font-semibold"
+              className="ming-btn-primary mt-4 flex w-full items-center justify-center py-3 text-center text-sm"
             >
               {t.trackingOrderAgain}
             </a>
-            <p className="mt-3 text-center text-xs text-slate-500">{t.trackingCancelledContact}</p>
+            <p className="mt-3 text-center text-xs font-semibold text-[rgba(40,20,20,0.55)]">{t.trackingCancelledContact}</p>
           </div>
         </div>
       </div>
@@ -268,15 +295,22 @@ function TrackingContent() {
       ];
 
   return (
-    <div className="neon-shell min-h-screen px-4 py-8 text-slate-100">
+    <div className="ming-shell order-bg-graphics min-h-screen px-4 py-8">
       <div className="mx-auto max-w-md space-y-4">
-        <div className="neon-card p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{t.trackingOrderLabel}</p>
-          <p className="mt-1 font-mono text-2xl font-bold text-cockpit-400">#{display}</p>
+        <div className="relative z-[1] flex items-center justify-between">
+          <div className="flex w-32 items-center rounded-2xl bg-white px-3 py-2 shadow-[5px_5px_0_rgba(40,20,20,0.18)]">
+            <img src={orderBrandAssets.wordmark} alt="Ming's" className="w-full object-contain" />
+          </div>
+          <span className="order-sticker rotate-6">live</span>
+        </div>
 
-          <p className="mt-3 text-lg font-semibold text-white">{friendly}</p>
+        <div className="ming-card p-5">
+          <p className="text-xs font-black uppercase tracking-widest text-[color:var(--order-coral)]">{t.trackingOrderLabel}</p>
+          <p className="mt-1 font-mono text-3xl font-black text-[color:var(--order-ink)]">#{display}</p>
+
+          <p className="mt-3 ming-display text-3xl leading-[0.9] text-[color:var(--order-ink)]">{friendly}</p>
           {isScheduled && scheduledFor ? (
-            <p className="mt-2 text-sm text-cockpit-300">
+            <p className="mt-2 text-sm font-semibold text-[rgba(40,20,20,0.68)]">
               {t.trackScheduledForLabel}{' '}
               <span className="font-semibold">
                 {new Date(scheduledFor).toLocaleString('az-AZ', {
@@ -292,17 +326,17 @@ function TrackingContent() {
           ) : null}
 
           {status === 'dispatched' && etaTime ? (
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-cockpit-500/30 bg-cockpit-500/10 px-3 py-1.5">
-              <Clock className="h-3.5 w-3.5 text-cockpit-400" />
-              <span className="text-sm font-semibold text-cockpit-300">
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5">
+              <Clock className="h-3.5 w-3.5 text-emerald-700" />
+              <span className="text-sm font-bold text-emerald-800">
                 {t.trackEtaLabel} {etaTime}
               </span>
             </div>
           ) : null}
         </div>
 
-        <div className="neon-card p-5">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-500">{t.trackTimelineTitle}</p>
+        <div className="ming-card p-5">
+          <p className="mb-4 text-xs font-black uppercase tracking-widest text-[rgba(40,20,20,0.52)]">{t.trackTimelineTitle}</p>
           <ol className="space-y-0">
             {stages.map((stage, idx) => {
               const isLast = idx === stages.length - 1;
@@ -312,24 +346,24 @@ function TrackingContent() {
                     <div
                       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
                         stage.status === 'done'
-                          ? 'border-cockpit-500 bg-cockpit-500/20'
+                          ? 'border-[color:var(--order-coral)] bg-red-400/10'
                           : stage.status === 'active'
-                            ? 'border-cockpit-400 bg-cockpit-400/10'
-                            : 'border-white/15 bg-transparent'
+                            ? 'border-[color:var(--order-coral)] bg-white'
+                            : 'border-black/15 bg-white'
                       }`}
                     >
                       {stage.status === 'done' ? (
-                        <CheckCircle2 className="h-4 w-4 text-cockpit-400" />
+                        <CheckCircle2 className="h-4 w-4 text-[color:var(--order-coral)]" />
                       ) : stage.status === 'active' ? (
-                        <div className="h-2 w-2 animate-pulse rounded-full bg-cockpit-400" />
+                        <div className="h-2 w-2 animate-pulse rounded-full bg-[color:var(--order-coral)]" />
                       ) : (
-                        <Circle className="h-4 w-4 text-white/20" />
+                        <Circle className="h-4 w-4 text-[rgba(40,20,20,0.22)]" />
                       )}
                     </div>
                     {!isLast ? (
                       <div
                         className={`mt-1 min-h-[24px] w-0.5 flex-1 rounded-full ${
-                          stage.status === 'done' ? 'bg-cockpit-500/40' : 'bg-white/10'
+                          stage.status === 'done' ? 'bg-red-400/35' : 'bg-black/10'
                         }`}
                       />
                     ) : null}
@@ -339,19 +373,19 @@ function TrackingContent() {
                     <p
                       className={`text-sm font-semibold ${
                         stage.status === 'done'
-                          ? 'text-white'
+                          ? 'text-[color:var(--order-ink)]'
                           : stage.status === 'active'
-                            ? 'text-cockpit-300'
-                            : 'text-slate-500'
+                            ? 'text-[color:var(--order-coral)]'
+                            : 'text-[rgba(40,20,20,0.5)]'
                       }`}
                     >
                       {stage.label}
                     </p>
                     {stage.timestamp ? (
-                      <p className="mt-0.5 text-xs text-slate-500">{fmt(stage.timestamp)}</p>
+                      <p className="mt-0.5 text-xs font-semibold text-[rgba(40,20,20,0.52)]">{fmt(stage.timestamp)}</p>
                     ) : null}
                     {stage.sublabel && stage.status !== 'done' ? (
-                      <p className="mt-0.5 text-xs text-cockpit-400">{stage.sublabel}</p>
+                      <p className="mt-0.5 text-xs font-bold text-[color:var(--order-coral)]">{stage.sublabel}</p>
                     ) : null}
                   </div>
                 </li>
@@ -363,7 +397,7 @@ function TrackingContent() {
               href={trackingUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500/30 bg-blue-600/20 px-3 py-3 text-sm font-semibold text-blue-300 transition-colors hover:bg-blue-600/30"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm font-black text-[color:var(--order-ink)] shadow-[4px_4px_0_rgba(40,20,20,0.14)] transition-colors hover:bg-[color:var(--order-mint)]"
             >
               <Truck className="h-4 w-4" />
               {t.trackOnWolt}
@@ -371,8 +405,8 @@ function TrackingContent() {
           ) : null}
         </div>
 
-        <div className="neon-card p-5">
-          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500">{t.orderDetails}</p>
+        <div className="ming-card p-5">
+          <p className="mb-3 text-xs font-black uppercase tracking-widest text-[rgba(40,20,20,0.52)]">{t.orderDetails}</p>
           {Array.isArray(saleItems) && saleItems.length > 0 ? (
             <ul className="space-y-2 text-sm">
               {saleItems.map((item) => {
@@ -393,18 +427,18 @@ function TrackingContent() {
                 if (row.is_combo && row.combo_selections) {
                   const cs = row.combo_selections;
                   return (
-                    <li key={String(row.id)} className="rounded-lg border border-amber-500/35 bg-amber-500/5 p-3">
-                      <p className="text-xs font-bold uppercase tracking-wide text-amber-200">
+                    <li key={String(row.id)} className="rounded-2xl border border-orange-400/35 bg-orange-400/10 p-3">
+                      <p className="text-xs font-black uppercase tracking-wide text-[color:var(--order-coral)]">
                         {cs.combo ?? row.product_name}
                       </p>
                       {cs.items?.map((line, i) => (
                         <div key={i}>
-                          <p className="text-slate-200">
+                          <p className="text-[color:var(--order-ink)]">
                             {row.quantity ?? 1}× {line.item}{' '}
-                            <span className="text-xs text-slate-500">({line.group})</span>
+                            <span className="text-xs text-[rgba(40,20,20,0.55)]">({line.group})</span>
                           </p>
                           {line.modifiers && line.modifiers.length > 0 ? (
-                            <p className="ml-4 text-xs text-slate-500">{line.modifiers.join(', ')}</p>
+                            <p className="ml-4 text-xs text-[rgba(40,20,20,0.55)]">{line.modifiers.join(', ')}</p>
                           ) : null}
                         </div>
                       ))}
@@ -412,7 +446,7 @@ function TrackingContent() {
                   );
                 }
                 return (
-                  <li key={String(row.id)} className="flex justify-between gap-2 text-slate-200">
+                  <li key={String(row.id)} className="flex justify-between gap-2 text-[color:var(--order-ink)]">
                     <span>
                       {row.quantity ?? 1}× {row.product_name}
                     </span>
@@ -422,15 +456,15 @@ function TrackingContent() {
             </ul>
           ) : null}
 
-          <div className="mt-4 flex justify-between border-t border-white/10 pt-3 text-sm">
-            <span className="text-slate-400">{t.trackingTotal}</span>
-            <Price amount={total} className="font-mono font-bold text-white" />
+          <div className="mt-4 flex justify-between border-t border-black/10 pt-3 text-sm">
+            <span className="font-semibold text-[rgba(40,20,20,0.62)]">{t.trackingTotal}</span>
+            <Price amount={total} className="font-mono font-black text-[color:var(--order-ink)]" />
           </div>
         </div>
 
         <a
           href="/order"
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-semibold text-slate-300 hover:bg-white/10"
+          className="ming-btn-ghost flex w-full items-center justify-center gap-2 py-3 text-sm"
         >
           {t.trackingOrderAgain}
         </a>

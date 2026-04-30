@@ -63,13 +63,13 @@ export function OrderCartView({
   const summary = !isEmpty && (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-ming-ash">{labels.subtotal}</span>
-        <Price amount={cartTotal} className="ming-mono font-semibold text-ming-bone" />
+        <span className="font-bold text-[rgba(40,20,20,0.65)]">{labels.subtotal}</span>
+        <Price amount={cartTotal} className="ming-mono font-black text-[color:var(--order-ink)]" />
       </div>
       {showDeliveryFee ? (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-ming-ash">{labels.deliveryFee}</span>
-          <Price amount={deliveryFee} className="ming-mono font-semibold text-ming-bone" />
+          <span className="font-bold text-[rgba(40,20,20,0.65)]">{labels.deliveryFee}</span>
+          <Price amount={deliveryFee} className="ming-mono font-black text-[color:var(--order-ink)]" />
         </div>
       ) : null}
       <div className="ming-divider my-2" />
@@ -77,7 +77,7 @@ export function OrderCartView({
         <span className="ming-label">{labels.total}</span>
         <Price
           amount={grandTotal}
-          className="ming-display text-2xl text-ming-gold"
+          className="ming-display text-2xl text-[color:var(--order-coral)]"
           valueClassName="ming-mono"
           symbolClassName="text-base"
         />
@@ -135,13 +135,13 @@ export function OrderCartView({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
-                <p className="min-w-0 truncate text-[15px] font-semibold text-ming-bone">
+                <p className="min-w-0 truncate text-[15px] font-black text-[color:var(--order-ink)]">
                   {item.product.name}
                 </p>
                 <button
                   type="button"
                   onClick={() => onRemoveLine(item.cartItemKey)}
-                  className="shrink-0 rounded-lg p-1.5 text-ming-mute transition-colors hover:bg-white/[0.06] hover:text-ming-red"
+                  className="shrink-0 rounded-lg p-1.5 text-[rgba(40,20,20,0.45)] transition-colors hover:bg-[color:var(--order-mint)] hover:text-[color:var(--order-coral)]"
                   aria-label={labels.removeLine}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -149,7 +149,7 @@ export function OrderCartView({
               </div>
               {modNames ? (
                 <p
-                  className="mt-0.5 whitespace-normal break-words text-[12px] leading-relaxed text-ming-ash"
+                  className="mt-0.5 whitespace-normal break-words text-[12px] font-semibold leading-relaxed text-[rgba(40,20,20,0.6)]"
                   title={modNames}
                 >
                   {modNames}
@@ -176,7 +176,7 @@ export function OrderCartView({
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
-                  <span className="ming-mono min-w-[1.75rem] text-center text-[14px] font-bold text-ming-bone">
+                  <span className="ming-mono min-w-[1.75rem] text-center text-[14px] font-black text-[color:var(--order-ink)]">
                     {item.quantity}
                   </span>
                   <button
@@ -188,7 +188,7 @@ export function OrderCartView({
                     <Plus className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <Price amount={linePrice} className="ming-mono text-[15px] font-bold text-ming-bone" />
+                <Price amount={linePrice} className="ming-mono text-[15px] font-black text-[color:var(--order-coral)]" />
               </div>
             </div>
           </li>
@@ -198,14 +198,14 @@ export function OrderCartView({
   );
 
   const emptyState = (
-    <div className="flex flex-col items-center justify-center gap-4 py-14 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.04]">
-        <ShoppingBag className="h-7 w-7 text-ming-mute" />
+    <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-[24px_14px_24px_14px] bg-white text-[color:var(--order-coral)] shadow-[5px_5px_0_rgba(40,20,20,0.16)]">
+        <ShoppingBag className="h-7 w-7" />
       </div>
       <div>
-        <p className="ming-display text-[20px] text-ming-bone">{labels.empty}</p>
+        <p className="ming-display text-[20px] text-[color:var(--order-ink)]">{labels.empty}</p>
       </div>
-      <button type="button" onClick={onBackToMenu} className="ming-btn-ghost">
+      <button type="button" onClick={onBackToMenu} className="ming-btn-primary px-5 py-3">
         {labels.emptyAction}
       </button>
     </div>
@@ -215,7 +215,7 @@ export function OrderCartView({
     return (
       <aside className="ming-card flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden">
         <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
-          <h2 className="ming-display text-lg text-ming-bone">{labels.title}</h2>
+          <h2 className="ming-display text-lg text-[color:var(--order-ink)]">{labels.title}</h2>
           {!isEmpty ? (
             <span className="ming-label">
               {cart.reduce((s, i) => s + i.quantity, 0)} {labels.itemsCountLabel}
@@ -250,7 +250,7 @@ export function OrderCartView({
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 pb-40 pt-6 sm:px-6 lg:pb-20">
       <header>
         <p className="ming-eyebrow mb-1">Ming&apos;s · Cart</p>
-        <h1 className="ming-display text-[28px] leading-tight text-ming-bone sm:text-[32px]">
+        <h1 className="ming-display text-[34px] leading-[0.9] text-[color:var(--order-ink)] sm:text-[42px]">
           {labels.title}
         </h1>
       </header>

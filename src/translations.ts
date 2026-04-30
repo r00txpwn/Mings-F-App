@@ -832,6 +832,7 @@ export interface Translations {
   orderCheckoutAuthHelper: string;
   orderCheckoutAuthGooglePhoneNext: string;
   orderCheckoutAuthSmsCta: string;
+  orderCheckoutOrderingAs: string;
   orderUpsellTitle: string;
   orderUpsellMakeItComboNamed: string;
   orderUpsellYes: string;
@@ -863,6 +864,8 @@ export interface Translations {
   orderErrCartEmpty: string;
   orderErrPhoneRequired: string;
   orderErrPhoneInvalid: string;
+  orderErrNameRequired: string;
+  orderErrNameInvalid: string;
   orderErrOnlineUnavailable: string;
   orderErrTakeawayDisabled: string;
   orderErrDeliveryDisabled: string;
@@ -886,6 +889,8 @@ export interface Translations {
   trackingLoading: string;
   trackingNotFound: string;
   trackingMissingToken: string;
+  trackingMissingTokenHint: string;
+  trackingNeedHelp: string;
   trackOnWolt: string;
   trackStatusPending: string;
   trackStatusPreparing: string;
@@ -1910,6 +1915,7 @@ export const translations: Record<Language, Translations> = {
     orderCheckoutAuthHelper: 'Track your order and receive delivery updates.',
     orderCheckoutAuthGooglePhoneNext: "You'll verify your phone next.",
     orderCheckoutAuthSmsCta: 'Continue with SMS code',
+    orderCheckoutOrderingAs: 'Ordering as {name}',
     orderUpsellTitle: 'Make {name} a combo?',
     orderUpsellMakeItComboNamed: 'Make it {name} for +₼{price}?',
     orderUpsellYes: 'Yes, upgrade',
@@ -1927,6 +1933,8 @@ export const translations: Record<Language, Translations> = {
     orderErrCartEmpty: 'Your cart is empty.',
     orderErrPhoneRequired: 'Phone number is required.',
     orderErrPhoneInvalid: 'Enter a valid phone number with country code.',
+    orderErrNameRequired: 'Name is required.',
+    orderErrNameInvalid: 'Enter a valid full name (2-80 characters).',
     orderErrOnlineUnavailable: 'Online ordering is currently unavailable.',
     orderErrTakeawayDisabled: 'Takeaway is currently unavailable.',
     orderErrDeliveryDisabled: 'Delivery is currently unavailable.',
@@ -1963,6 +1971,8 @@ export const translations: Record<Language, Translations> = {
     trackingLoading: 'Loading…',
     trackingNotFound: 'Order not found',
     trackingMissingToken: 'Missing tracking link',
+    trackingMissingTokenHint: 'Open the tracking link from your order confirmation, or place a new order when you are ready.',
+    trackingNeedHelp: 'Need help? Call +994518962446',
     trackOnWolt: 'Track your order on Wolt',
     trackStatusPending: 'We received your order!',
     trackStatusPreparing: 'Your food is being prepared',
@@ -2990,6 +3000,7 @@ export const translations: Record<Language, Translations> = {
     orderCheckoutAuthHelper: 'Sifarişinizi izləyin və çatdırılma yeniliklərini alın.',
     orderCheckoutAuthGooglePhoneNext: 'Növbəti addımda telefon təsdiqi edəcəksiniz.',
     orderCheckoutAuthSmsCta: 'SMS kodu ilə davam et',
+    orderCheckoutOrderingAs: 'Sifariş verən: {name}',
     orderUpsellTitle: '{name} kombo edək?',
     orderUpsellMakeItComboNamed: '{name} komboya +₼{price} əlavə edək?',
     orderUpsellYes: 'Bəli, yenilə',
@@ -3007,6 +3018,8 @@ export const translations: Record<Language, Translations> = {
     orderErrCartEmpty: 'Səbət boşdur.',
     orderErrPhoneRequired: 'Telefon nömrəsi tələb olunur.',
     orderErrPhoneInvalid: 'Ölkə kodu ilə düzgün telefon nömrəsi daxil edin.',
+    orderErrNameRequired: 'Ad tələb olunur.',
+    orderErrNameInvalid: 'Düzgün tam ad daxil edin (2-80 simvol).',
     orderErrOnlineUnavailable: 'Onlayn sifariş hazırda əlçatan deyil.',
     orderErrTakeawayDisabled: 'Götürmə hazırda əlçatan deyil.',
     orderErrDeliveryDisabled: 'Çatdırılma hazırda əlçatan deyil.',
@@ -3043,6 +3056,8 @@ export const translations: Record<Language, Translations> = {
     trackingLoading: 'Yüklənir…',
     trackingNotFound: 'Sifariş tapılmadı',
     trackingMissingToken: 'İzləmə linki yoxdur',
+    trackingMissingTokenHint: 'İzləmə linkini sifariş təsdiqindən açın və ya hazır olduğunuzda yeni sifariş verin.',
+    trackingNeedHelp: 'Kömək lazımdır? +994518962446',
     trackOnWolt: 'Wolt-da izlə',
     trackStatusPending: 'Sifarişiniz qəbul edildi!',
     trackStatusPreparing: 'Yeməyiniz hazırlanır',
@@ -4071,6 +4086,7 @@ export const translations: Record<Language, Translations> = {
     orderCheckoutAuthHelper: 'Отслеживайте заказ и получайте обновления по доставке.',
     orderCheckoutAuthGooglePhoneNext: 'Телефон вы подтвердите следующим шагом.',
     orderCheckoutAuthSmsCta: 'Продолжить через SMS-код',
+    orderCheckoutOrderingAs: 'Оформляете как {name}',
     orderUpsellTitle: 'Сделать «{name}» комбо?',
     orderUpsellMakeItComboNamed: 'Сделать {name} комбо за +₼{price}?',
     orderUpsellYes: 'Да, улучшить',
@@ -4089,6 +4105,8 @@ export const translations: Record<Language, Translations> = {
     orderErrCartEmpty: 'Корзина пуста.',
     orderErrPhoneRequired: 'Требуется номер телефона.',
     orderErrPhoneInvalid: 'Укажите корректный номер с кодом страны.',
+    orderErrNameRequired: 'Требуется имя.',
+    orderErrNameInvalid: 'Укажите корректное полное имя (2-80 символов).',
     orderErrOnlineUnavailable: 'Онлайн-заказы сейчас недоступны.',
     orderErrTakeawayDisabled: 'Самовывоз сейчас недоступен.',
     orderErrDeliveryDisabled: 'Доставка сейчас недоступна.',
@@ -4125,6 +4143,8 @@ export const translations: Record<Language, Translations> = {
     trackingLoading: 'Загрузка…',
     trackingNotFound: 'Заказ не найден',
     trackingMissingToken: 'Нет ссылки отслеживания',
+    trackingMissingTokenHint: 'Откройте ссылку отслеживания из подтверждения заказа или оформите новый заказ.',
+    trackingNeedHelp: 'Нужна помощь? +994518962446',
     trackOnWolt: 'Отследить в Wolt',
     trackStatusPending: 'Мы получили ваш заказ!',
     trackStatusPreparing: 'Ваш заказ готовится',

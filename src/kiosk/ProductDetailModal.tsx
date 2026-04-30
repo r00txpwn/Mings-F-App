@@ -32,14 +32,14 @@ function ProductDetailModalCloseButton({
       onClick={onClose}
       className={`absolute ${positionClassName} flex h-10 w-10 items-center justify-center rounded-full transition-colors`}
       style={{
-        backgroundColor: isOrderTheme ? 'rgba(11,11,13,0.62)' : 'rgba(0,0,0,0.5)',
-        color: palette.text,
+        backgroundColor: isOrderTheme ? 'rgba(255,255,255,0.86)' : 'rgba(0,0,0,0.5)',
+        color: isOrderTheme ? '#281414' : palette.text,
       }}
       onMouseEnter={(e) =>
-        (e.currentTarget.style.backgroundColor = isOrderTheme ? 'rgba(11,11,13,0.82)' : 'rgba(0,0,0,0.7)')
+        (e.currentTarget.style.backgroundColor = isOrderTheme ? 'rgba(255,255,255,1)' : 'rgba(0,0,0,0.7)')
       }
       onMouseLeave={(e) =>
-        (e.currentTarget.style.backgroundColor = isOrderTheme ? 'rgba(11,11,13,0.62)' : 'rgba(0,0,0,0.5)')
+        (e.currentTarget.style.backgroundColor = isOrderTheme ? 'rgba(255,255,255,0.86)' : 'rgba(0,0,0,0.5)')
       }
     >
       <X className="w-5 h-5" />
@@ -62,16 +62,16 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
   const isOrderTheme = theme === 'order';
   const palette = isOrderTheme
     ? {
-        panelBg: '#1f1f24',
-        heroBg: '#2a2a31',
-        text: '#EEECEF',
-        muted: '#B5B3BD',
-        accent: '#E11D48',
-        border: 'rgba(255,255,255,0.08)',
-        tileBg: 'rgba(255,255,255,0.03)',
-        selectedTileBg: 'rgba(225,29,72,0.14)',
-        controlBg: '#23232a',
-        footerBg: 'rgba(23,23,28,0.96)',
+        panelBg: '#ffffff',
+        heroBg: '#f7efe0',
+        text: '#281414',
+        muted: 'rgba(40,20,20,0.62)',
+        accent: '#f04646',
+        border: 'rgba(40,20,20,0.12)',
+        tileBg: 'rgba(180,230,220,0.34)',
+        selectedTileBg: 'rgba(240,70,70,0.12)',
+        controlBg: 'rgba(40,20,20,0.07)',
+        footerBg: 'rgba(255,255,255,0.94)',
       }
     : {
         panelBg: 'var(--kiosk-card)',
@@ -215,7 +215,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
         className="absolute inset-0 backdrop-blur-[2px]"
         style={{
           background: isOrderTheme
-            ? 'radial-gradient(1200px 520px at 50% -20%, rgba(225, 29, 72, 0.18), transparent 58%), rgba(11, 11, 13, 0.76)'
+            ? 'radial-gradient(1200px 520px at 50% -20%, rgba(240,70,70,0.18), transparent 58%), rgba(40,20,20,0.42)'
             : 'radial-gradient(900px 420px at 8% -8%, rgba(225, 29, 72, 0.22), transparent 60%), rgba(11, 11, 13, 0.84)',
         }}
         onClick={handleClose}
@@ -227,7 +227,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
           'relative flex w-full flex-col overflow-hidden transition-transform duration-200',
           closing ? 'translate-y-8' : 'translate-y-0',
           isOrderTheme
-            ? 'ming-card-raised border border-white/[0.08] max-sm:mt-auto max-sm:mx-0 max-sm:mb-0 max-sm:min-h-0 max-sm:max-h-[min(96dvh,100svh)] max-sm:rounded-b-none max-sm:rounded-t-[20px] sm:mx-auto sm:my-4 sm:h-auto sm:w-full sm:max-h-[92vh] sm:max-w-lg sm:rounded-[20px]'
+            ? 'border border-black/10 shadow-[10px_10px_0_rgba(40,20,20,0.2)] max-sm:mt-auto max-sm:mx-0 max-sm:mb-0 max-sm:min-h-0 max-sm:max-h-[min(96dvh,100svh)] max-sm:rounded-b-none max-sm:rounded-t-[24px] sm:mx-auto sm:my-4 sm:h-auto sm:w-full sm:max-h-[92vh] sm:max-w-lg sm:rounded-[24px]'
             : 'mx-2 my-2 h-[calc(100vh-1rem)] w-auto sm:mx-auto sm:my-4 sm:h-auto sm:max-h-[92vh] sm:max-w-lg',
         ].join(' ')}
         role="dialog"
@@ -258,33 +258,33 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
           ) : orderMissingPhotoHero ? (
             <>
               <div
-                className="relative w-full overflow-hidden border-b border-ming-gold/18"
+                className="relative w-full overflow-hidden border-b border-black/10"
                 style={{
-                  borderRadius: '20px 20px 0 0',
-                  background: 'linear-gradient(118deg, #2a1518 0%, #1c1c22 42%, #131318 100%)',
+                  borderRadius: '24px 24px 0 0',
+                  background: 'linear-gradient(118deg, #fff7eb 0%, #b4e6dc 54%, #ffffff 100%)',
                 }}
               >
                 <div
                   aria-hidden
                   className="pointer-events-none absolute inset-0"
                   style={{
-                    background: 'radial-gradient(95% 120% at 100% 0%, rgba(225,29,72,0.42), transparent 55%)',
+                    background: 'radial-gradient(95% 120% at 100% 0%, rgba(240,70,70,0.22), transparent 55%)',
                     opacity: 0.9,
                   }}
                 />
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-ming-red/45 to-transparent opacity-80" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/15 to-transparent opacity-80" />
                 <div className="relative flex items-center gap-3 px-4 py-2.5 sm:px-5 sm:py-3">
                   <div
-                    className="ming-display flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-white shadow-ming"
-                    style={{ background: 'linear-gradient(145deg, #e11d48 0%, #9f1239 100%)' }}
+                    className="ming-display flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-white shadow-[4px_4px_0_var(--order-ink)]"
+                    style={{ background: 'linear-gradient(145deg, #f04646 0%, #fa963c 100%)' }}
                   >
                     {dishInitialFromName(product.name)}
                   </div>
                   <div className="min-w-0 flex-1 pr-12">
-                    <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-ming-gold/85">
+                    <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--order-coral)]">
                       {t.orderCheckoutBrand}
                     </p>
-                    <p className="text-[11px] font-semibold leading-snug text-ming-ash">{t.orderProductNoPhotoCaption}</p>
+                    <p className="text-[11px] font-semibold leading-snug text-[rgba(40,20,20,0.62)]">{t.orderProductNoPhotoCaption}</p>
                   </div>
                 </div>
               </div>
@@ -324,7 +324,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
               {product.name}
             </h2>
             {product.is_halal ? (
-              <span className="mb-2 inline-flex rounded-full border border-emerald-500/45 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
+              <span className="mb-2 inline-flex rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
                 {t.halal}
               </span>
             ) : null}
@@ -390,7 +390,8 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
                               className="w-full flex items-center gap-3 p-3.5 rounded-[18px] transition-all"
                               style={{
                                 backgroundColor: optionQty > 0 ? palette.selectedTileBg : palette.tileBg,
-                                outline: optionQty > 0 ? `2.5px solid ${palette.accent}` : '2.5px solid transparent',
+                                outline: optionQty > 0 ? `2px solid ${palette.accent}` : '2px solid transparent',
+                                border: `1px solid ${palette.border}`,
                               }}
                             >
                               {option.image_url && (
@@ -461,10 +462,11 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
                             style={{
                               backgroundColor: selected ? palette.selectedTileBg : palette.tileBg,
                               outline: selected
-                                ? `2.5px solid ${palette.accent}`
+                                ? `2px solid ${palette.accent}`
                                 : atMax
-                                  ? '2.5px solid transparent'
-                                  : '2.5px solid transparent',
+                                  ? '2px solid transparent'
+                                  : '2px solid transparent',
+                              border: `1px solid ${palette.border}`,
                               opacity: atMax ? 0.4 : 1,
                             }}
                           >
@@ -571,6 +573,7 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
               style={{
                 backgroundColor: allRequiredMet ? palette.accent : palette.muted,
                 cursor: allRequiredMet ? 'pointer' : 'not-allowed',
+                boxShadow: isOrderTheme && allRequiredMet ? '5px 5px 0 #281414' : undefined,
               }}
               onMouseEnter={e => { if (allRequiredMet) e.currentTarget.style.filter = 'brightness(1.1)'; }}
               onMouseLeave={e => (e.currentTarget.style.filter = 'none')}

@@ -21,6 +21,11 @@ import { OrderConfirmationView } from './OrderConfirmationView';
 import { OrderCheckbox } from './OrderCheckbox';
 import { ORDER_ADDRESS_TYPE_CONFIG } from './addressTypeConfig';
 import {
+  getCustomerFullNameValidation,
+  normalizeCustomerFullName,
+  toCustomerFullNamePatch,
+} from './customerName';
+import {
   formatVenueHoursLine,
   getOnlineFulfillmentVisibility,
   isDeliveryEnabledInSettings,
@@ -169,6 +174,8 @@ function OrderContent() {
   const [fulfillment, setFulfillment] = useState<OnlineFulfillmentType>('takeaway');
   const [paymentMethod, setPaymentMethod] = useState<OnlinePaymentMethod>('cash_pickup');
   const [customerName, setCustomerName] = useState('');
+  const [editingCustomerName, setEditingCustomerName] = useState(false);
+  const [customerNameError, setCustomerNameError] = useState<string | null>(null);
   const [customerPhone, setCustomerPhone] = useState('');
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
@@ -387,6 +394,17 @@ function OrderContent() {
     setProfilePhoneInput(profile.phone?.trim() ?? '');
     setProfileTermsAccepted(Boolean(profile.terms_accepted_at));
   }, [user, profile]);
+
+  useEffect(() => {
+    if (!user) {
+      setEditingCustomerName(false);
+      return;
+    }
+    const hasSavedName = Boolean(profile?.full_name?.trim());
+    if (!hasSavedName) {
+      setEditingCustomerName(true);
+    }
+  }, [user, profile?.full_name]);
 
   useEffect(() => {
     if (!user || !profile) {
@@ -860,9 +878,24 @@ function OrderContent() {
       setSubmitError(t.orderPhoneVerificationRequired);
       return;
     }
+    const normalizedCustomerName = normalizeCustomerFullName(customerName);
+    const nameValidation = getCustomerFullNameValidation(normalizedCustomerName);
+    if (!nameValidation.valid) {
+      setSubmitError(
+        nameValidation.reason === 'required'
+          ? t.orderErrNameRequired
+          : t.orderErrNameInvalid
+      );
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {
+      const namePatch = toCustomerFullNamePatch(nameValidation.normalized, profile?.full_name);
+      if (namePatch) {
+        await saveProfile(namePatch);
+      }
+
       const lines = cart.map((item) => {
         if (item.isCombo && item.comboId) {
           return {
@@ -893,7 +926,7 @@ function OrderContent() {
         orderNotes: orderNotes.trim() || undefined,
         isScheduled,
         scheduledFor: isScheduled ? scheduledFor ?? undefined : undefined,
-        customerName: customerName.trim() || undefined,
+        customerName: nameValidation.normalized,
         customerPhone: customerPhone.trim(),
         deliveryAddress: fulfillment === 'delivery' ? deliveryAddress.trim() : undefined,
         deliveryApartment:
@@ -1049,6 +1082,28 @@ function OrderContent() {
     setSubmitting(false);
   };
 
+  const handleSaveCustomerName = useCallback(async () => {
+    if (!user) return;
+    const validation = getCustomerFullNameValidation(customerName);
+    if (!validation.valid) {
+      setCustomerNameError(
+        validation.reason === 'required' ? t.orderErrNameRequired : t.orderErrNameInvalid
+      );
+      setEditingCustomerName(true);
+      return;
+    }
+
+    setCustomerNameError(null);
+    setCustomerName(validation.normalized);
+    try {
+      // Persist canonical checkout name on every explicit save action.
+      await saveProfile({ full_name: validation.normalized });
+      setEditingCustomerName(false);
+    } catch (e) {
+      setCustomerNameError(mapOrderError(undefined, e instanceof Error ? e.message : t.orderErrGeneric));
+    }
+  }, [customerName, mapOrderError, saveProfile, t.orderErrGeneric, t.orderErrNameInvalid, t.orderErrNameRequired, user]);
+
   const openCheckout = () => {
     track('begin_checkout', {
       item_count: cartCount,
@@ -1109,6 +1164,8 @@ function OrderContent() {
       orderPassword: t.orderPassword,
       orderCreateAccountHint: t.orderCreateAccountHint,
       orderYourName: t.orderYourName,
+      orderErrNameRequired: t.orderErrNameRequired,
+      orderErrNameInvalid: t.orderErrNameInvalid,
       orderYourPhone: t.orderYourPhone,
       orderSaveProfile: t.orderSaveProfile,
       orderAddAddress: t.orderAddAddress,
@@ -1245,6 +1302,15 @@ function OrderContent() {
     if (showProfileCompletion) blockers.push(t.orderProfileCompletionPending);
     if (cart.length === 0) blockers.push(t.orderErrCartEmpty);
     if (customerPhone.trim().length === 0) blockers.push(t.orderErrPhoneRequired);
+    const normalizedCustomerName = normalizeCustomerFullName(customerName);
+    const nameValidation = getCustomerFullNameValidation(normalizedCustomerName);
+    if (!nameValidation.valid) {
+      blockers.push(
+        nameValidation.reason === 'required'
+          ? t.orderErrNameRequired
+          : t.orderErrNameInvalid
+      );
+    }
     if (requiresCheckoutPhoneVerification) blockers.push(t.orderPhoneVerificationRequired);
     if (isScheduled && !scheduledFor) blockers.push(t.orderErrScheduleRequired);
     if (fulfillment === 'delivery' && !serverAllowsDelivery) blockers.push(t.orderDeliveryDisabledInSettings);
@@ -1258,6 +1324,7 @@ function OrderContent() {
     showProfileCompletion,
     cart.length,
     customerPhone,
+    customerName,
     requiresCheckoutPhoneVerification,
     isScheduled,
     scheduledFor,
@@ -1284,12 +1351,16 @@ function OrderContent() {
       phone: t.orderPhone,
       email: t.orderEmail,
       nameOptional: t.orderNameOptional,
+      nameRequired: t.orderYourName,
+      orderingAs: t.orderCheckoutOrderingAs,
+      editName: t.edit,
+      saveName: t.save,
       pickupOrDelivery: t.orderChooseFulfillmentTitle,
       takeaway: t.orderFulfillmentTakeaway,
       delivery: t.orderFulfillmentDelivery,
       deliveryAddress: t.orderDeliveryAddress,
       selectSaved: t.orderSelectSavedAddress,
-      addressDismiss: t.orderAddressClearSelection,
+      addAddress: t.orderAddAddress,
       useLocation: t.orderUseLocation,
       outsideZone: t.orderOutsideZone,
       inZonePrefix: t.orderInZonePrefix,
@@ -1428,7 +1499,7 @@ function OrderContent() {
   }
 
   if (flow === 'done' && result) {
-    const trackUrl = `${window.location.origin}/track?token=${encodeURIComponent(result.trackToken)}`;
+    const trackUrl = `${window.location.origin}/order/track?token=${encodeURIComponent(result.trackToken)}`;
     return (
       <div className="ming-shell">
         <OrderConfirmationView
@@ -1525,29 +1596,37 @@ function OrderContent() {
           <div
             role="region"
             aria-label={t.cookieConsentCopy}
-            className="shrink-0 border-b border-white/10 bg-ming-charcoal/95 px-3 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] text-xs text-ming-ash shadow-sm lg:hidden"
+            className="shrink-0 border-b border-black/10 bg-white/85 px-3 pb-2.5 pt-[max(0.45rem,env(safe-area-inset-top))] text-[11px] font-semibold text-[rgba(40,20,20,0.66)] shadow-[0_2px_0_rgba(40,20,20,0.08)] backdrop-blur-xl lg:hidden"
           >
-            <p>
+            <p className="leading-4">
               {t.cookieConsentCopy}{' '}
               <a href="/privacy" className="ming-btn-link inline px-0 py-0 text-xs">
                 {t.orderPrivacy}
               </a>
               .
             </p>
-            <button type="button" className="ming-btn-primary mt-2 w-full py-2 text-[11px]" onClick={acceptCookieConsent}>
+            <button
+              type="button"
+              className="mt-2 inline-flex w-full items-center justify-center rounded-2xl bg-[color:var(--order-coral)] px-4 py-2 text-[11px] font-black uppercase tracking-wide text-white shadow-[3px_3px_0_var(--order-ink)]"
+              onClick={acceptCookieConsent}
+            >
               {t.cookieConsentAccept}
             </button>
           </div>
           {/* Desktop: compact corner card */}
-          <div className="pointer-events-auto fixed bottom-4 right-4 z-[60] hidden max-w-sm rounded-xl border border-white/10 bg-ming-charcoal/95 p-3 text-xs text-ming-ash shadow-ming lg:block">
-            <p>
+          <div className="pointer-events-auto fixed bottom-4 right-4 z-[60] hidden max-w-sm rounded-2xl border border-black/10 bg-white/90 p-3 text-xs font-semibold text-[rgba(40,20,20,0.66)] shadow-[6px_6px_0_rgba(40,20,20,0.14)] backdrop-blur-xl lg:block">
+            <p className="leading-5">
               {t.cookieConsentCopy}{' '}
               <a href="/privacy" className="ming-btn-link inline px-0 py-0 text-xs">
                 {t.orderPrivacy}
               </a>
               .
             </p>
-            <button type="button" className="ming-btn-primary mt-2 w-full py-2 text-[11px]" onClick={acceptCookieConsent}>
+            <button
+              type="button"
+              className="mt-2 inline-flex w-full items-center justify-center rounded-2xl bg-[color:var(--order-coral)] px-4 py-2 text-[11px] font-black uppercase tracking-wide text-white shadow-[3px_3px_0_var(--order-ink)]"
+              onClick={acceptCookieConsent}
+            >
               {t.cookieConsentAccept}
             </button>
           </div>
@@ -1587,21 +1666,23 @@ function OrderContent() {
 
           {showSignInPrompt ? (
             <div className="mx-auto w-full max-w-5xl px-3 sm:px-6">
-              <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <div>
-                  <p className="text-sm font-semibold text-ming-bone">{t.orderSignInPromptTitle}</p>
-                  <p className="mt-1 text-xs text-ming-ash">{t.orderSignInPromptSubtitle}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex items-center justify-between gap-2 rounded-[18px] border border-black/10 bg-white/60 px-3 py-2 shadow-[3px_3px_0_rgba(40,20,20,0.09)]">
+                <div className="min-w-0 flex-1 sm:block">
+                  <p className="truncate text-[12px] font-black text-[color:var(--order-ink)] sm:text-sm">
+                    {t.orderSignInPromptTitle}
+                  </p>
+                  <p className="mt-0.5 hidden text-xs text-[rgba(40,20,20,0.62)] sm:block">{t.orderSignInPromptSubtitle}</p>
+                  <div className="mt-1.5 flex flex-wrap gap-2 sm:mt-2">
                     <button
                       type="button"
-                      className="ming-btn-primary px-3 py-2 text-xs"
+                      className="ming-btn-primary px-3 py-1.5 text-[10px] sm:py-2 sm:text-[11px]"
                       onClick={() => void signInWithGoogle('/order')}
                     >
                       {t.orderAuthGoogle}
                     </button>
                     <button
                       type="button"
-                      className="ming-btn-ghost px-3 py-2 text-xs"
+                      className="ming-btn-ghost px-3 py-1.5 text-[10px] sm:py-2 sm:text-[11px]"
                       onClick={() => {
                         setNavTab('account');
                         setShowSignInPrompt(false);
@@ -1614,7 +1695,7 @@ function OrderContent() {
                 <button
                   type="button"
                   aria-label={t.close}
-                  className="rounded-lg p-1 text-ming-ash hover:bg-white/10"
+                  className="rounded-xl p-1 text-[rgba(40,20,20,0.58)] hover:bg-white hover:text-[color:var(--order-ink)]"
                   onClick={dismissSignInPrompt}
                 >
                   <X className="h-4 w-4" />
@@ -1720,7 +1801,18 @@ function OrderContent() {
           customerPhone={customerPhone}
           customerName={customerName}
           onCustomerPhoneChange={setCustomerPhone}
-          onCustomerNameChange={setCustomerName}
+          onCustomerNameChange={(value) => {
+            setCustomerName(value);
+            setCustomerNameError(null);
+          }}
+          editingCustomerName={editingCustomerName}
+          customerNameError={customerNameError}
+          onEditCustomerName={() => {
+            setCustomerName((profile?.full_name ?? customerName).trim());
+            setCustomerNameError(null);
+            setEditingCustomerName(true);
+          }}
+          onSaveCustomerName={handleSaveCustomerName}
           userLoggedIn={!!user}
           sendPhoneOtp={sendPhoneOtp}
           verifyPhoneOtp={verifyPhoneOtp}

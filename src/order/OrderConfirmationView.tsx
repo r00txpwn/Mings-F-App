@@ -1,5 +1,6 @@
 import { Check, ExternalLink } from 'lucide-react';
 import { Price } from '../components/Price';
+import { orderBrandAssets } from './orderDesign';
 
 interface OrderConfirmationViewProps {
   displayNumber: string | number;
@@ -48,21 +49,25 @@ export function OrderConfirmationView({ displayNumber, trackUrl, snapshot, label
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center px-5 py-10">
+    <div className="order-bg-graphics relative flex min-h-screen flex-col items-center px-5 py-10">
       <div className="ming-anim-up w-full max-w-xl text-center">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-ming-red shadow-ming-glow">
-          <Check className="h-9 w-9 text-white" strokeWidth={3} />
+        <div className="mx-auto mb-6 flex w-40 items-center rounded-[20px] bg-white px-4 py-3 shadow-[6px_6px_0_rgba(40,20,20,0.18)]">
+          <img src={orderBrandAssets.wordmark} alt="Ming's" className="w-full object-contain" />
+        </div>
+
+        <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[34px_16px_34px_16px] bg-[color:var(--order-coral)] shadow-[8px_8px_0_var(--order-ink)]">
+          <Check className="h-10 w-10 text-white" strokeWidth={3} />
         </div>
 
         <p className="ming-eyebrow mb-2">Ming&apos;s · Order placed</p>
-        <h1 className="ming-display text-[34px] leading-[1.05] text-ming-bone sm:text-[40px]">
+        <h1 className="ming-display text-[44px] leading-[0.86] text-[color:var(--order-ink)] sm:text-[58px]">
           {labels.title}
         </h1>
-        <p className="mt-3 text-sm text-ming-ash">{labels.subtitle}</p>
+        <p className="mt-3 text-sm font-bold text-[rgba(40,20,20,0.68)]">{labels.subtitle}</p>
 
         <div className="ming-card mt-8 p-6">
           <p className="ming-label mb-2">{labels.orderNumber}</p>
-          <p className="ming-display ming-mono text-[44px] leading-none text-ming-gold sm:text-[52px]">
+          <p className="ming-display ming-mono text-[44px] leading-none text-[color:var(--order-coral)] sm:text-[52px]">
             #{displayNumber}
           </p>
         </div>

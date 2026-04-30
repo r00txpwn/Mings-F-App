@@ -297,7 +297,7 @@ export function OrderAddressMap({
     if (zoneStatus.kind === 'idle') {
       if (!zonePillChecking) return null;
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-slate-800/80 px-2.5 py-1 text-xs text-slate-400">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-2.5 py-1 text-xs font-semibold text-[rgba(40,20,20,0.62)]">
           <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
           {zonePillChecking}
         </span>
@@ -309,7 +309,7 @@ export function OrderAddressMap({
           .replace('{zone}', zoneStatus.zoneName)
           .replace('{fee}', formatMoney(zoneStatus.fee));
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-cockpit-500/40 bg-cockpit-500/10 px-2.5 py-1 text-xs font-medium text-cockpit-200">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-700">
           <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
           {label}
         </span>
@@ -317,7 +317,7 @@ export function OrderAddressMap({
     }
     // out
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-200">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-red-400/35 bg-red-400/10 px-2.5 py-1 text-xs font-bold text-[color:var(--order-coral)]">
         <XCircle className="h-3.5 w-3.5" aria-hidden />
         {zonePillOut ?? unavailableLabel}
       </span>
@@ -328,13 +328,13 @@ export function OrderAddressMap({
   if (!apiKey?.trim()) {
     return (
       <div className="space-y-2">
-        <p className="rounded-xl border border-dashed border-white/20 bg-slate-900/40 px-3 py-2 text-xs text-slate-500">
+        <p className="rounded-xl border border-dashed border-black/15 bg-white px-3 py-2 text-xs font-semibold text-[rgba(40,20,20,0.62)]">
           {unavailableLabel}
         </p>
         <div className="space-y-2">
-          <label className="text-xs text-slate-500">{addressLabel}</label>
+          <label className="ming-label">{addressLabel}</label>
           <textarea
-            className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
+            className="ming-input min-h-[72px] resize-y"
             rows={2}
             value={address}
             onChange={(e) => onAddressChange(e.target.value)}
@@ -359,27 +359,27 @@ export function OrderAddressMap({
 
       {pill ? <div className="flex">{pill}</div> : null}
 
-      <div className="relative overflow-hidden rounded-xl border border-white/10">
+      <div className="relative overflow-hidden rounded-[22px] border border-black/10 bg-white shadow-[4px_4px_0_rgba(40,20,20,0.12)]">
         {onUseLocation ? (
           <button
             type="button"
             onClick={onUseLocation}
             aria-label={useLocationLabel ?? pinHint}
             title={useLocationLabel ?? pinHint}
-            className="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-slate-950/70 text-white backdrop-blur transition-colors hover:bg-slate-900/85"
+            className="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-black/10 bg-white text-[color:var(--order-ink)] shadow-[2px_2px_0_rgba(40,20,20,0.16)] backdrop-blur transition-colors hover:bg-[color:var(--order-mint)]"
           >
             <Navigation className="h-4 w-4" />
           </button>
         ) : null}
         {loading ? (
-          <div className="flex h-52 flex-col items-center justify-center gap-2 bg-slate-900/80">
-            <Loader2 className="h-8 w-8 animate-spin text-cockpit-500" />
-            <span className="text-xs text-slate-500">{loadingLabel}</span>
+          <div className="flex h-52 flex-col items-center justify-center gap-2 bg-white">
+            <Loader2 className="h-8 w-8 animate-spin text-[color:var(--order-coral)]" />
+            <span className="text-xs font-semibold text-[rgba(40,20,20,0.62)]">{loadingLabel}</span>
           </div>
         ) : null}
         <div
           ref={mapElRef}
-          className={`h-52 w-full min-h-[13rem] bg-slate-800 ${loading ? 'hidden' : ''}`}
+          className={`h-52 w-full min-h-[13rem] bg-[color:var(--order-mint-soft)] ${loading ? 'hidden' : ''}`}
           style={{ touchAction: 'none' }}
         />
         <div className="pointer-events-none absolute inset-0">
@@ -409,18 +409,18 @@ export function OrderAddressMap({
             </div>
           </div>
         </div>
-        {loadError ? <p className="p-3 text-xs text-rose-400">{loadError}</p> : null}
+        {loadError ? <p className="p-3 text-xs font-semibold text-[color:var(--order-coral)]">{loadError}</p> : null}
       </div>
 
-      <p className="flex gap-2 text-xs text-slate-500">
-        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cockpit-500" />
+      <p className="flex gap-2 text-xs font-semibold text-[rgba(40,20,20,0.62)]">
+        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--order-coral)]" />
         <span>{pinHint}</span>
       </p>
 
       <div className="space-y-2">
-        <label className="text-xs text-slate-500">{addressLabel}</label>
+        <label className="ming-label">{addressLabel}</label>
         <textarea
-          className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
+          className="ming-input min-h-[72px] resize-y"
           rows={2}
           value={address}
           onChange={(e) => onAddressChange(e.target.value)}

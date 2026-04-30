@@ -45,6 +45,10 @@ interface OrderCheckoutViewProps {
   customerName: string;
   onCustomerPhoneChange: (v: string) => void;
   onCustomerNameChange: (v: string) => void;
+  editingCustomerName: boolean;
+  customerNameError: string | null;
+  onEditCustomerName: () => void;
+  onSaveCustomerName: () => void | Promise<void>;
 
   userLoggedIn: boolean;
   sendPhoneOtp: (phone: string) => Promise<{ error: unknown }>;
@@ -144,12 +148,16 @@ export interface CheckoutLabels {
   phone: string;
   email: string;
   nameOptional: string;
+  nameRequired: string;
+  orderingAs: string;
+  editName: string;
+  saveName: string;
   pickupOrDelivery: string;
   takeaway: string;
   delivery: string;
   deliveryAddress: string;
   selectSaved: string;
-  addressDismiss: string;
+  addAddress: string;
   useLocation: string;
   outsideZone: string;
   inZonePrefix: string;
@@ -266,6 +274,10 @@ export function OrderCheckoutView({
   customerName,
   onCustomerPhoneChange,
   onCustomerNameChange,
+  editingCustomerName,
+  customerNameError,
+  onEditCustomerName,
+  onSaveCustomerName,
   userLoggedIn,
   sendPhoneOtp,
   verifyPhoneOtp,
@@ -367,8 +379,24 @@ export function OrderCheckoutView({
 
   const cashRadioValue: OnlinePaymentMethod = fulfillment === 'takeaway' ? 'cash_pickup' : 'cash_delivery';
   const showInlineAuth = !userLoggedIn || requirePhoneVerification;
+  const hasCanonicalCustomerName = customerName.trim().length > 0;
 
   const addressTypeConfig = ORDER_ADDRESS_TYPE_CONFIG[deliveryAddressType];
+  const selectedSavedAddress = selectedSavedAddressId
+    ? savedAddresses.find((address) => address.id === selectedSavedAddressId) ?? null
+    : null;
+  const showManualAddressForm = !selectedSavedAddress;
+  const selectedSavedAddressMeta = selectedSavedAddress
+    ? [
+        selectedSavedAddress.building_name
+          ? `${labels.buildingName}: ${selectedSavedAddress.building_name}`
+          : null,
+        selectedSavedAddress.apartment ? `${labels.apartmentUnit}: ${selectedSavedAddress.apartment}` : null,
+        selectedSavedAddress.floor ? `${labels.floor}: ${selectedSavedAddress.floor}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
 
   const scheduleDays = useMemo(() => {
     const today = new Date();
@@ -471,13 +499,13 @@ export function OrderCheckoutView({
 
   const StepHeading = ({ n, title, optional }: { n: number; title: string; optional?: boolean }) => (
     <div className="mb-3 flex items-center gap-3">
-      <span className="ming-display inline-flex h-7 w-7 items-center justify-center rounded-full bg-ming-red text-[13px] text-white shadow-ming">
+      <span className="ming-display inline-flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--order-coral)] text-[13px] text-white shadow-[3px_3px_0_var(--order-ink)]">
         {n}
       </span>
-      <h3 className="ming-display text-[17px] text-ming-bone">
+      <h3 className="ming-display text-[17px] text-[color:var(--order-ink)]">
         {title}
         {optional ? (
-          <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-[0.14em] text-ming-mute">
+          <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-[0.14em] text-[rgba(40,20,20,0.5)]">
             · {labels.optional}
           </span>
         ) : null}
@@ -496,21 +524,21 @@ export function OrderCheckoutView({
     onToggle: () => void;
     children: ReactNode;
   }) => (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02]">
+    <div className="rounded-2xl border border-black/10 bg-white">
       <button
         type="button"
         onClick={onToggle}
         className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left"
         aria-expanded={expanded}
       >
-        <span className="text-[13px] font-semibold text-ming-bone">{title}</span>
+        <span className="text-[13px] font-bold text-[color:var(--order-ink)]">{title}</span>
         {expanded ? (
-          <ChevronUp className="h-4 w-4 text-ming-ash" />
+          <ChevronUp className="h-4 w-4 text-[rgba(40,20,20,0.62)]" />
         ) : (
-          <ChevronDown className="h-4 w-4 text-ming-ash" />
+          <ChevronDown className="h-4 w-4 text-[rgba(40,20,20,0.62)]" />
         )}
       </button>
-      {expanded ? <div className="border-t border-white/10 px-3.5 py-3">{children}</div> : null}
+      {expanded ? <div className="border-t border-black/10 px-3.5 py-3">{children}</div> : null}
     </div>
   );
 
@@ -523,25 +551,25 @@ export function OrderCheckoutView({
         onClick={() => onPaymentMethodChange(value)}
         className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-colors ${
           selected
-            ? 'border-ming-red bg-ming-red/10 text-ming-bone shadow-[0_0_0_1px_rgba(225,29,72,0.4)_inset]'
-            : 'border-white/10 bg-white/[0.02] text-ming-ash hover:border-white/20 hover:bg-white/[0.05] hover:text-ming-bone'
+            ? 'border-[color:var(--order-coral)] bg-red-400/10 text-[color:var(--order-ink)] shadow-[3px_3px_0_rgba(40,20,20,0.14)]'
+            : 'border-black/10 bg-white text-[rgba(40,20,20,0.62)] hover:border-black/20 hover:text-[color:var(--order-ink)]'
         }`}
         aria-pressed={selected}
       >
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-            selected ? 'bg-ming-red text-white' : 'bg-white/[0.05] text-ming-ash'
+            selected ? 'bg-[color:var(--order-coral)] text-white' : 'bg-[color:var(--order-mint)] text-[color:var(--order-ink)]'
           }`}
         >
           <Icon className="h-4.5 w-4.5" />
         </span>
         <span className="flex-1">
-          <span className={`block text-[14px] font-semibold ${selected ? 'text-ming-bone' : ''}`}>{title}</span>
-          <span className="mt-0.5 block text-[12px] text-ming-ash">{sub}</span>
+          <span className={`block text-[14px] font-bold ${selected ? 'text-[color:var(--order-ink)]' : ''}`}>{title}</span>
+          <span className="mt-0.5 block text-[12px] font-semibold text-[rgba(40,20,20,0.58)]">{sub}</span>
         </span>
         <span
           className={`h-4 w-4 shrink-0 rounded-full border-2 ${
-            selected ? 'border-ming-red bg-ming-red' : 'border-white/20'
+            selected ? 'border-[color:var(--order-coral)] bg-[color:var(--order-coral)]' : 'border-black/20'
           }`}
           aria-hidden
         />
@@ -551,7 +579,7 @@ export function OrderCheckoutView({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-[48px] z-20 flex items-center gap-3 border-b border-white/[0.06] bg-ming-ink/90 px-4 py-3 backdrop-blur-xl sm:px-6 lg:static lg:top-0 lg:border-0 lg:bg-transparent lg:px-10 lg:py-6">
+      <header className="relative z-10 flex items-center gap-3 border-b border-black/10 bg-[rgba(180,230,220,0.92)] px-4 py-3 backdrop-blur-xl sm:px-6 lg:border-0 lg:bg-transparent lg:px-10 lg:py-6">
         <button
           type="button"
           onClick={onBack}
@@ -632,12 +660,12 @@ export function OrderCheckoutView({
                         type="button"
                         onClick={() => onSelectSavedAddressId(null)}
                         className={`shrink-0 rounded-xl border px-3 py-2 text-[13px] font-semibold transition-colors ${
-                          !selectedSavedAddressId
-                            ? 'border-ming-red bg-ming-red/10 text-ming-bone'
-                            : 'border-white/10 bg-white/[0.02] text-ming-ash hover:border-white/20 hover:text-ming-bone'
+                          showManualAddressForm
+                            ? 'border-[color:var(--order-red)] bg-[color:var(--order-red)] text-white shadow-[2px_2px_0_rgba(35,18,18,0.16)]'
+                            : 'border-black/10 bg-white text-[rgba(40,20,20,0.68)] hover:border-[color:var(--order-red)] hover:text-[color:var(--order-red)]'
                         }`}
                       >
-                        {labels.addressDismiss}
+                        {labels.addAddress}
                       </button>
                       {savedAddresses.map((a) => (
                         <button
@@ -646,8 +674,8 @@ export function OrderCheckoutView({
                           onClick={() => onSelectSavedAddressId(a.id)}
                           className={`shrink-0 rounded-xl border px-3 py-2 text-left text-[13px] font-semibold transition-colors ${
                             selectedSavedAddressId === a.id
-                              ? 'border-ming-red bg-ming-red/10 text-ming-bone'
-                              : 'border-white/10 bg-white/[0.02] text-ming-ash hover:border-white/20 hover:text-ming-bone'
+                              ? 'border-[color:var(--order-red)] bg-[color:var(--order-blush)] text-[color:var(--order-ink)] shadow-[2px_2px_0_rgba(35,18,18,0.14)]'
+                              : 'border-black/10 bg-white text-[rgba(40,20,20,0.68)] hover:border-[color:var(--order-red)] hover:text-[color:var(--order-red)]'
                           }`}
                         >
                           <span className="block max-w-[220px] truncate">{a.label}: {a.line1}</span>
@@ -657,171 +685,202 @@ export function OrderCheckoutView({
                   </div>
                 ) : null}
 
-                <OrderAddressMap
-                  apiKey={googleMapsApiKey}
-                  lat={lat}
-                  lng={lng}
-                  address={deliveryAddress}
-                  onLocationChange={onLocationChange}
-                  onAddressChange={onAddressChange}
-                  searchPlaceholder={labels.mapSearch}
-                  pinHint={labels.mapPinHint}
-                  loadingLabel={labels.mapLoading}
-                  unavailableLabel={labels.mapUnavailable}
-                  addressLabel={`${labels.deliveryAddress} *`}
-                  onUseLocation={onUseLocation}
-                  useLocationLabel={labels.useLocation}
-                />
+                {showManualAddressForm ? (
+                  <>
+                    <OrderAddressMap
+                      apiKey={googleMapsApiKey}
+                      lat={lat}
+                      lng={lng}
+                      address={deliveryAddress}
+                      onLocationChange={onLocationChange}
+                      onAddressChange={onAddressChange}
+                      searchPlaceholder={labels.mapSearch}
+                      pinHint={labels.mapPinHint}
+                      loadingLabel={labels.mapLoading}
+                      unavailableLabel={labels.mapUnavailable}
+                      addressLabel={`${labels.deliveryAddress} *`}
+                      onUseLocation={onUseLocation}
+                      useLocationLabel={labels.useLocation}
+                    />
 
-                <div>
-                  <label className="ming-label mb-1.5 block">{labels.addressTypeTitle}</label>
-                  <OrderCompactSelect
-                    ariaLabel={labels.addressTypeTitle}
-                    value={deliveryAddressType}
-                    onChange={onDeliveryAddressTypeChange}
-                    options={[
-                      { value: 'apartment', label: labels.addressTypeApartment },
-                      { value: 'house', label: labels.addressTypeHouse },
-                      { value: 'office', label: labels.addressTypeOffice },
-                      { value: 'hotel', label: labels.addressTypeHotel },
-                      { value: 'other', label: labels.addressTypeOther },
-                    ]}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {addressTypeConfig.showBuildingName ? (
                     <div>
-                      <label className="ming-label mb-1.5 block">{labels.buildingName}</label>
-                      <input
-                        className="ming-input"
-                        value={deliveryBuildingName}
-                        onChange={(e) => onDeliveryBuildingNameChange(e.target.value)}
-                        autoComplete="off"
-                      />
-                    </div>
-                  ) : null}
-                  {addressTypeConfig.showEntrance ? (
-                    <div>
-                      <label className="ming-label mb-1.5 block">{labels.entrance}</label>
-                      <input
-                        className="ming-input"
-                        value={deliveryEntrance}
-                        onChange={(e) => onDeliveryEntranceChange(e.target.value)}
-                        autoComplete="off"
-                      />
-                    </div>
-                  ) : null}
-                  {addressTypeConfig.showApartmentUnit ? (
-                    <div>
-                      <label className="ming-label mb-1.5 block">{labels.apartmentUnit}</label>
-                      <input
-                        className="ming-input"
-                        value={deliveryApartment}
-                        onChange={(e) => onDeliveryApartmentChange(e.target.value)}
-                        autoComplete="address-line2"
-                      />
-                    </div>
-                  ) : null}
-                  {addressTypeConfig.showFloor ? (
-                    <div>
-                      <label className="ming-label mb-1.5 block">{labels.floor}</label>
-                      <input
-                        className="ming-input"
-                        value={deliveryFloor}
-                        onChange={(e) => onDeliveryFloorChange(e.target.value)}
-                        autoComplete="off"
-                      />
-                    </div>
-                  ) : null}
-                  {addressTypeConfig.showDoorNameOrNumber ? (
-                    <div>
-                      <label className="ming-label mb-1.5 block">{labels.doorNameOrNumber}</label>
-                      <input
-                        className="ming-input"
-                        value={deliveryDoorNameOrNumber}
-                        onChange={(e) => onDeliveryDoorNameOrNumberChange(e.target.value)}
-                        autoComplete="off"
-                      />
-                    </div>
-                  ) : null}
-                  {addressTypeConfig.showCompanyName ? (
-                    <div>
-                      <label className="ming-label mb-1.5 block">{labels.companyName}</label>
-                      <input
-                        className="ming-input"
-                        value={deliveryCompanyName}
-                        onChange={(e) => onDeliveryCompanyNameChange(e.target.value)}
-                        autoComplete="organization"
-                      />
-                    </div>
-                  ) : null}
-                  {addressTypeConfig.showLeaveAt ? (
-                    <div>
-                      <label className="ming-label mb-1.5 block">{labels.leaveAt}</label>
+                      <label className="ming-label mb-1.5 block">{labels.addressTypeTitle}</label>
                       <OrderCompactSelect
-                        ariaLabel={labels.leaveAt}
-                        value={deliveryLeaveAt}
-                        onChange={onDeliveryLeaveAtChange}
+                        ariaLabel={labels.addressTypeTitle}
+                        value={deliveryAddressType}
+                        onChange={onDeliveryAddressTypeChange}
                         options={[
-                          { value: 'office', label: labels.leaveAtOffice },
-                          { value: 'reception', label: labels.leaveAtReception },
+                          { value: 'apartment', label: labels.addressTypeApartment },
+                          { value: 'house', label: labels.addressTypeHouse },
+                          { value: 'office', label: labels.addressTypeOffice },
+                          { value: 'hotel', label: labels.addressTypeHotel },
+                          { value: 'other', label: labels.addressTypeOther },
                         ]}
                       />
                     </div>
-                  ) : null}
-                </div>
 
-                {addressTypeConfig.showAccessMethod ? (
-                  <div className="space-y-2 rounded-xl border border-white/[0.06] bg-ming-ink/40 p-3">
-                    <label className="ming-label mb-1.5 block">{labels.accessMethod}</label>
-                    <OrderCompactSelect
-                      ariaLabel={labels.accessMethod}
-                      value={deliveryAccessMethod}
-                      onChange={onDeliveryAccessMethodChange}
-                      options={[
-                        { value: 'intercom', label: labels.accessIntercom },
-                        { value: 'door_code', label: labels.accessDoorCode },
-                        { value: 'door_open', label: labels.accessDoorOpen },
-                        { value: 'other', label: labels.accessOther },
-                      ]}
-                    />
-                    {deliveryAccessMethod === 'intercom' ? (
-                      <input
-                        className="ming-input"
-                        value={deliveryIntercomNameOrNumber}
-                        onChange={(e) => onDeliveryIntercomNameOrNumberChange(e.target.value)}
-                        placeholder={labels.intercomNameOrNumber}
-                      />
-                    ) : null}
-                    {deliveryAccessMethod === 'door_code' ? (
-                      <input
-                        className="ming-input"
-                        value={deliveryDoorCode}
-                        onChange={(e) => onDeliveryDoorCodeChange(e.target.value)}
-                        placeholder={labels.doorCode}
-                      />
-                    ) : null}
-                    {deliveryAccessMethod === 'other' ? (
-                      <textarea
-                        className="ming-input min-h-[70px] resize-y"
-                        value={deliveryAccessOtherInstructions}
-                        onChange={(e) => onDeliveryAccessOtherInstructionsChange(e.target.value)}
-                        placeholder={labels.accessOtherInstructions}
-                      />
-                    ) : null}
-                  </div>
-                ) : null}
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {addressTypeConfig.showBuildingName ? (
+                        <div>
+                          <label className="ming-label mb-1.5 block">{labels.buildingName}</label>
+                          <input
+                            className="ming-input"
+                            value={deliveryBuildingName}
+                            onChange={(e) => onDeliveryBuildingNameChange(e.target.value)}
+                            autoComplete="off"
+                          />
+                        </div>
+                      ) : null}
+                      {addressTypeConfig.showEntrance ? (
+                        <div>
+                          <label className="ming-label mb-1.5 block">{labels.entrance}</label>
+                          <input
+                            className="ming-input"
+                            value={deliveryEntrance}
+                            onChange={(e) => onDeliveryEntranceChange(e.target.value)}
+                            autoComplete="off"
+                          />
+                        </div>
+                      ) : null}
+                      {addressTypeConfig.showApartmentUnit ? (
+                        <div>
+                          <label className="ming-label mb-1.5 block">{labels.apartmentUnit}</label>
+                          <input
+                            className="ming-input"
+                            value={deliveryApartment}
+                            onChange={(e) => onDeliveryApartmentChange(e.target.value)}
+                            autoComplete="address-line2"
+                          />
+                        </div>
+                      ) : null}
+                      {addressTypeConfig.showFloor ? (
+                        <div>
+                          <label className="ming-label mb-1.5 block">{labels.floor}</label>
+                          <input
+                            className="ming-input"
+                            value={deliveryFloor}
+                            onChange={(e) => onDeliveryFloorChange(e.target.value)}
+                            autoComplete="off"
+                          />
+                        </div>
+                      ) : null}
+                      {addressTypeConfig.showDoorNameOrNumber ? (
+                        <div>
+                          <label className="ming-label mb-1.5 block">{labels.doorNameOrNumber}</label>
+                          <input
+                            className="ming-input"
+                            value={deliveryDoorNameOrNumber}
+                            onChange={(e) => onDeliveryDoorNameOrNumberChange(e.target.value)}
+                            autoComplete="off"
+                          />
+                        </div>
+                      ) : null}
+                      {addressTypeConfig.showCompanyName ? (
+                        <div>
+                          <label className="ming-label mb-1.5 block">{labels.companyName}</label>
+                          <input
+                            className="ming-input"
+                            value={deliveryCompanyName}
+                            onChange={(e) => onDeliveryCompanyNameChange(e.target.value)}
+                            autoComplete="organization"
+                          />
+                        </div>
+                      ) : null}
+                      {addressTypeConfig.showLeaveAt ? (
+                        <div>
+                          <label className="ming-label mb-1.5 block">{labels.leaveAt}</label>
+                          <OrderCompactSelect
+                            ariaLabel={labels.leaveAt}
+                            value={deliveryLeaveAt}
+                            onChange={onDeliveryLeaveAtChange}
+                            options={[
+                              { value: 'office', label: labels.leaveAtOffice },
+                              { value: 'reception', label: labels.leaveAtReception },
+                            ]}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
 
-                {addressTypeConfig.showCourierNotes ? (
-                  <div>
-                    <label className="ming-label mb-1.5 block">{labels.deliveryNotesLabel}</label>
-                    <textarea
-                      className="ming-input min-h-[84px] resize-y"
-                      value={deliveryNotes}
-                      onChange={(e) => onDeliveryNotesChange(e.target.value)}
-                      placeholder={labels.deliveryNotesPlaceholder}
-                    />
+                    {addressTypeConfig.showAccessMethod ? (
+                      <div className="space-y-2 rounded-xl border border-white/[0.06] bg-ming-ink/40 p-3">
+                        <label className="ming-label mb-1.5 block">{labels.accessMethod}</label>
+                        <OrderCompactSelect
+                          ariaLabel={labels.accessMethod}
+                          value={deliveryAccessMethod}
+                          onChange={onDeliveryAccessMethodChange}
+                          options={[
+                            { value: 'intercom', label: labels.accessIntercom },
+                            { value: 'door_code', label: labels.accessDoorCode },
+                            { value: 'door_open', label: labels.accessDoorOpen },
+                            { value: 'other', label: labels.accessOther },
+                          ]}
+                        />
+                        {deliveryAccessMethod === 'intercom' ? (
+                          <input
+                            className="ming-input"
+                            value={deliveryIntercomNameOrNumber}
+                            onChange={(e) => onDeliveryIntercomNameOrNumberChange(e.target.value)}
+                            placeholder={labels.intercomNameOrNumber}
+                          />
+                        ) : null}
+                        {deliveryAccessMethod === 'door_code' ? (
+                          <input
+                            className="ming-input"
+                            value={deliveryDoorCode}
+                            onChange={(e) => onDeliveryDoorCodeChange(e.target.value)}
+                            placeholder={labels.doorCode}
+                          />
+                        ) : null}
+                        {deliveryAccessMethod === 'other' ? (
+                          <textarea
+                            className="ming-input min-h-[70px] resize-y"
+                            value={deliveryAccessOtherInstructions}
+                            onChange={(e) => onDeliveryAccessOtherInstructionsChange(e.target.value)}
+                            placeholder={labels.accessOtherInstructions}
+                          />
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {addressTypeConfig.showCourierNotes ? (
+                      <div>
+                        <label className="ming-label mb-1.5 block">{labels.deliveryNotesLabel}</label>
+                        <textarea
+                          className="ming-input min-h-[84px] resize-y"
+                          value={deliveryNotes}
+                          onChange={(e) => onDeliveryNotesChange(e.target.value)}
+                          placeholder={labels.deliveryNotesPlaceholder}
+                        />
+                      </div>
+                    ) : null}
+                  </>
+                ) : selectedSavedAddress ? (
+                  <div className="rounded-[24px_16px_24px_16px] border border-black/10 bg-white p-4 shadow-[4px_4px_0_rgba(35,18,18,0.12)]">
+                    <p className="ming-label mb-2 block">{labels.selectSaved}</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-black text-[color:var(--order-ink)]">
+                          {selectedSavedAddress.label}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold leading-5 text-[rgba(40,20,20,0.7)]">
+                          {selectedSavedAddress.line1}
+                        </p>
+                        {selectedSavedAddressMeta ? (
+                          <p className="mt-2 text-[12px] font-semibold text-[rgba(40,20,20,0.56)]">
+                            {selectedSavedAddressMeta}
+                          </p>
+                        ) : null}
+                      </div>
+                      <MapPin className="mt-1 h-5 w-5 shrink-0 text-[color:var(--order-red)]" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onSelectSavedAddressId(null)}
+                      className="ming-btn-ghost mt-4 px-4 py-2 text-xs"
+                    >
+                      {labels.addAddress}
+                    </button>
                   </div>
                 ) : null}
 
@@ -846,7 +905,7 @@ export function OrderCheckoutView({
                   </p>
                 ) : null}
 
-                {!selectedSavedAddressId ? (
+                {showManualAddressForm ? (
                   <div className="space-y-2 rounded-xl border border-white/[0.06] bg-ming-ink/40 p-3">
                     <label className="flex items-center gap-2 text-[13px] text-ming-ash">
                       <OrderCheckbox
@@ -990,15 +1049,33 @@ export function OrderCheckoutView({
                 </div>
                 <div>
                   <label className="ming-label mb-1.5 block" htmlFor="ming-name">
-                    {labels.nameOptional}
+                    {hasCanonicalCustomerName && !editingCustomerName ? labels.orderingAs : `${labels.nameRequired} *`}
                   </label>
-                  <input
-                    id="ming-name"
-                    className="ming-input"
-                    value={customerName}
-                    onChange={(e) => onCustomerNameChange(e.target.value)}
-                    autoComplete="name"
-                  />
+                  {hasCanonicalCustomerName && !editingCustomerName ? (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2.5">
+                      <span className="text-sm text-ming-bone">{labels.orderingAs.replace('{name}', customerName.trim())}</span>
+                      <button type="button" className="ming-btn-link px-0 py-0 text-xs" onClick={onEditCustomerName}>
+                        {labels.editName}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <input
+                        id="ming-name"
+                        className={`ming-input${customerNameError ? ' ming-input-error' : ''}`}
+                        value={customerName}
+                        onChange={(e) => onCustomerNameChange(e.target.value)}
+                        autoComplete="name"
+                        aria-invalid={Boolean(customerNameError)}
+                      />
+                      {customerNameError ? (
+                        <p className="text-[12px] text-ming-gold">{customerNameError}</p>
+                      ) : null}
+                      <button type="button" className="ming-btn-link px-0 py-0 text-xs" onClick={onSaveCustomerName}>
+                        {labels.saveName}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : null}

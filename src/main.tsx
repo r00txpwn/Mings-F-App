@@ -65,7 +65,7 @@ async function renderApp() {
   }
 
   if (hostSurface === 'order') {
-    if (pathNorm === '/track') {
+    if (pathNorm === '/track' || pathNorm === '/order/track') {
       const { TrackingApp } = await import('./order/TrackingApp');
       root.render(
         <StrictMode>
@@ -167,7 +167,7 @@ async function renderApp() {
         </ConfigCheck>
       </StrictMode>
     );
-  } else if (pathNorm === '/track') {
+  } else if (pathNorm === '/track' || pathNorm === '/order/track') {
     const { TrackingApp } = await import('./order/TrackingApp');
     root.render(
       <StrictMode>
