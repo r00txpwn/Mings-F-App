@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-05-16T06:20:35.522Z
+## Last Run: 2026-05-16T16:41:56.928Z
 
 | Check | Status |
 |-------|--------|
@@ -36,7 +36,7 @@
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns correct percentage[32m 2[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 when denominator is zero[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 for non-finite inputs[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mcomputes all KPIs correctly[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mcomputes all KPIs correctly[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdefaults discounts and refunds to 0 when omitted[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mreturns avgOrderValue of 0 when orderCount is 0[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mhandles negative operating profit (loss scenario)[32m 0[2mms[22m[39m
