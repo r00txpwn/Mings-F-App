@@ -2,22 +2,27 @@ Mings-F-App
 
 ## Local production preview
 
-**One command (build + serve production bundle):**
+**Staff bundle (cockpit, KDS, order-manager):**
 
 ```bash
 npm run deploy:local
 ```
 
-Runs `npm run build`, writes **`dist/build-meta.json`** (git HEAD + timestamp), then `vite preview` on **127.0.0.1:4175** with strict port enforcement.
-If `4175` is busy, stop the existing preview process first (do not start a second instance on another port).
+Serves **`dist-staff/`** on **http://127.0.0.1:4175/** — cockpit at **`/spec-ops`**.
 
-**QA / second-pass checks:** always run `deploy:local` from the **repo root** after pulling the commit under test. Before testing in the browser, open **`http://127.0.0.1:4175/build-meta.json`** and confirm `gitSha` matches `git rev-parse HEAD` in the same terminal — if it does not, you are still looking at an old `dist/` (wrong directory, skipped build, or a preview started with `vite preview` only).
+**Storefront bundle (customer order + track):**
 
-**Cockpit on local preview:** the admin app is served at **`http://127.0.0.1:4175/spec-ops`** by default (`VITE_ADMIN_APP_PATH` overrides). Deep links such as Order Support use **`/spec-ops?screen=order-support`**, not `/?screen=order-support` (root is not the cockpit on path-based localhost).
+```bash
+npm run deploy:local:storefront
+```
+
+Serves **`dist-storefront/`** on **http://127.0.0.1:4176/** — menu at **`/order`** or **`/`** on order host.
+
+Each build writes **`build-meta.json`** with `gitSha` and `buildTarget`. Confirm SHA before QA.
 
 ## Deploy
 
-See **[DEPLOY.md](DEPLOY.md)** for Vercel/Netlify/Supabase CLI steps. Production build: `npm run build` → `dist/`.
+See **[DEPLOY.md](DEPLOY.md)** for the **two-project** Vercel split (`order.mings.az` + `sp.mings.az`). Builds: `npm run build:staff` / `npm run build:storefront`.
 
 ## Auth basics (`/order` + staff)
 

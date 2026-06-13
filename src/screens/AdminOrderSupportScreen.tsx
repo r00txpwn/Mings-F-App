@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
+import { adminUpdate } from '../lib/adminApi';
 import type { SaleItem } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -194,9 +195,9 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
     setBusy(true);
     setActionError(null);
     try {
-      const { error } = await supabase.from('sales').update(patch).eq('id', order.id);
-      if (error) {
-        setActionError(`${t.errorOccurred}: ${error.message}`);
+      const result = await adminUpdate('sales', order.id, patch);
+      if (!result.ok) {
+        setActionError(`${t.errorOccurred}: ${result.error ?? 'Update failed'}`);
         return;
       }
       const next = await refreshOrder();

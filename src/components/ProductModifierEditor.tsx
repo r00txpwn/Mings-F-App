@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Pencil, ChevronDown, ChevronUp, Loader2, GripVertical, Check, Package } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, ModifierGroup, ModifierOption } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 
 interface ModifierLibraryProps {
@@ -83,10 +84,10 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
     };
 
     if (editingGroupId) {
-      await supabase.from('modifier_groups').update(data).eq('id', editingGroupId);
+      await adminUpdate('modifier_groups', editingGroupId, data);
     } else {
       const maxOrder = groups.reduce((max, g) => Math.max(max, g.display_order || 0), 0);
-      await supabase.from('modifier_groups').insert({
+      await adminInsert('modifier_groups', {
         ...data,
         display_order: maxOrder + 1,
       });
@@ -100,7 +101,7 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
   };
 
   const handleDeleteGroup = async (groupId: string) => {
-    await supabase.from('modifier_groups').delete().eq('id', groupId);
+    await adminDelete('modifier_groups', groupId);
     loadGroups();
   };
 
@@ -110,8 +111,8 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
     await Promise.all([
-      supabase.from('modifier_groups').update({ display_order: sorted[swapIdx].display_order }).eq('id', sorted[idx].id),
-      supabase.from('modifier_groups').update({ display_order: sorted[idx].display_order }).eq('id', sorted[swapIdx].id),
+      adminUpdate('modifier_groups', sorted[idx].id, { display_order: sorted[swapIdx].display_order }),
+      adminUpdate('modifier_groups', sorted[swapIdx].id, { display_order: sorted[idx].display_order }),
     ]);
     loadGroups();
   };
@@ -140,11 +141,11 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
     };
 
     if (editingOptionId) {
-      await supabase.from('modifier_options').update(data).eq('id', editingOptionId);
+      await adminUpdate('modifier_options', editingOptionId, data);
     } else {
       const group = groups.find(g => g.id === groupId);
       const maxOrder = group?.modifier_options?.reduce((max, o) => Math.max(max, o.display_order || 0), 0) || 0;
-      await supabase.from('modifier_options').insert({
+      await adminInsert('modifier_options', {
         ...data,
         modifier_group_id: groupId,
         display_order: maxOrder + 1,
@@ -159,7 +160,7 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
   };
 
   const handleDeleteOption = async (optionId: string) => {
-    await supabase.from('modifier_options').delete().eq('id', optionId);
+    await adminDelete('modifier_options', optionId);
     loadGroups();
   };
 

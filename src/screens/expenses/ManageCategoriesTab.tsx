@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Tag, ShoppingCart, DollarSign } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../../lib/adminApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { DangerConfirmRow } from '../../components/ui/DangerConfirmRow';
@@ -76,9 +76,9 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
     };
 
     if (editingCategory) {
-      await supabase.from('master_categories').update(payload).eq('id', editingCategory.id);
+      await adminUpdate('master_categories', editingCategory.id, payload);
     } else {
-      await supabase.from('master_categories').insert(payload);
+      await adminInsert('master_categories', payload);
     }
 
     setCategoryForm({ name: '', description: '', type: activePanel, color: '#3B82F6' });
@@ -90,9 +90,9 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
   const handleCreateSubItem = async (categoryId: string) => {
     if (!subItemForm.name.trim() || !user) return;
     if (editingSubItem) {
-      await supabase.from('expense_items').update({ name: subItemForm.name.trim() }).eq('id', editingSubItem.id);
+      await adminUpdate('expense_items', editingSubItem.id, { name: subItemForm.name.trim() });
     } else {
-      await supabase.from('expense_items').insert({
+      await adminInsert('expense_items', {
         name: subItemForm.name.trim(),
         master_category_id: categoryId,
         user_id: user.id,
@@ -105,13 +105,13 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
   };
 
   const handleDeleteCategory = async (id: string) => {
-    await supabase.from('master_categories').delete().eq('id', id);
+    await adminDelete('master_categories', id);
     setDeleteConfirm(null);
     onDataChanged();
   };
 
   const handleDeleteSubItem = async (id: string) => {
-    await supabase.from('expense_items').delete().eq('id', id);
+    await adminDelete('expense_items', id);
     setDeleteConfirm(null);
     onDataChanged();
   };

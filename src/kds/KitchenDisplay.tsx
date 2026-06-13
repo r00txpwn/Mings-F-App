@@ -17,6 +17,7 @@ function KdsContent() {
   const [now, setNow] = useState(Date.now());
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'reconnecting'>('reconnecting');
   const [channelHealth, setChannelHealth] = useState<string>('CONNECTING');
+  const [actionError, setActionError] = useState<string | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -99,19 +100,32 @@ function KdsContent() {
     newStatus: string,
     opts?: { prepMinutes?: number }
   ) => {
-    const updates: Record<string, unknown> = { order_status: newStatus };
-    if (newStatus === 'preparing') {
-      updates.prep_started_at = new Date().toISOString();
-      if (opts?.prepMinutes != null) {
-        updates.estimated_ready_at = new Date(Date.now() + opts.prepMinutes * 60_000).toISOString();
-      }
-    }
-    if (newStatus === 'ready') {
-      updates.ready_at = new Date().toISOString();
+    setActionError(null);
+    const { data, error } = await supabase.functions.invoke('kds-order-status-update', {
+      headers: {
+        'x-kds-secret': import.meta.env.VITE_KDS_SECRET || '',
+      },
+      body: {
+        saleId: orderId,
+        nextStatus: newStatus,
+        prepMinutes: opts?.prepMinutes,
+      },
+    });
+
+    if (error) {
+      setActionError(`${t.errorOccurred}: ${error.message}`);
+      await loadOrders();
+      return;
     }
 
-    await supabase.from('sales').update(updates).eq('id', orderId);
-    loadOrders();
+    if (data && typeof data === 'object' && 'ok' in data && data.ok === false) {
+      const details = data as { error?: { message?: string } };
+      setActionError(`${t.errorOccurred}: ${details.error?.message ?? 'Status update failed'}`);
+      await loadOrders();
+      return;
+    }
+
+    await loadOrders();
   };
 
   const reconnectRealtime = () => {
@@ -140,6 +154,11 @@ function KdsContent() {
           <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-white" aria-hidden />
           {t.kdsConnectionLostBanner}
         </button>
+      ) : null}
+      {actionError ? (
+        <div className="shrink-0 bg-amber-900/90 px-4 py-2 text-center text-sm text-amber-100">
+          {actionError}
+        </div>
       ) : null}
       <KdsHeader
         pendingCount={pendingCount}

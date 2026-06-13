@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getAuthStorageKey } from './buildTarget';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -12,7 +13,7 @@ export const supabase = createClient(
   {
     auth: {
       persistSession: true,
-      storageKey: 'mings-auth-token',
+      storageKey: getAuthStorageKey(),
       storage: window.localStorage,
       autoRefreshToken: true,
       detectSessionInUrl: true,

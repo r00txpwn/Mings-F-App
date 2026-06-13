@@ -29,3 +29,11 @@ verify_jwt = false
 
 [functions."united-payment-status-check"]
 verify_jwt = false
+
+# Staff cockpit mutations — JWT validated inside function; service role writes + audit log.
+[functions."admin-api"]
+verify_jwt = false
+
+# KDS status updates — gated by x-kds-secret (KDS_SECRET env) when set.
+[functions."kds-order-status-update"]
+verify_jwt = false

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Plus, ChevronUp, ChevronDown, Trash2, Pencil, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, Category } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 
 interface MenuCategoryManagerProps {
@@ -31,13 +32,14 @@ export function MenuCategoryManager({ categories, onClose }: MenuCategoryManager
     setSaving(true);
 
     if (editingId) {
-      await supabase
-        .from('master_categories')
-        .update({ name: form.name.trim(), icon: form.icon, color: form.color })
-        .eq('id', editingId);
+      await adminUpdate('master_categories', editingId, {
+        name: form.name.trim(),
+        icon: form.icon,
+        color: form.color,
+      });
     } else {
       const maxOrder = localCategories.reduce((max, c) => Math.max(max, (c as Category & { display_order?: number }).display_order || 0), 0);
-      await supabase.from('master_categories').insert({
+      await adminInsert('master_categories', {
         name: form.name.trim(),
         icon: form.icon,
         color: form.color,
@@ -58,7 +60,7 @@ export function MenuCategoryManager({ categories, onClose }: MenuCategoryManager
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('master_categories').delete().eq('id', id);
+    await adminDelete('master_categories', id);
     setLocalCategories(prev => prev.filter(c => c.id !== id));
   };
 
@@ -69,8 +71,8 @@ export function MenuCategoryManager({ categories, onClose }: MenuCategoryManager
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
 
     await Promise.all([
-      supabase.from('master_categories').update({ display_order: swapIdx }).eq('id', sorted[idx].id),
-      supabase.from('master_categories').update({ display_order: idx }).eq('id', sorted[swapIdx].id),
+      adminUpdate('master_categories', sorted[idx].id, { display_order: swapIdx }),
+      adminUpdate('master_categories', sorted[swapIdx].id, { display_order: idx }),
     ]);
 
     const temp = sorted[idx];

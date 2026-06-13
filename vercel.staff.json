@@ -1,0 +1,36 @@
+{
+  "redirects": [
+    {
+      "source": "/spec-ops",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/order",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/track",
+      "has": [{ "type": "host", "value": "sp.mings.az" }],
+      "destination": "/",
+      "permanent": false
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com; font-src 'self' https://fonts.gstatic.com data:; frame-src 'self';"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    }
+  ],
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

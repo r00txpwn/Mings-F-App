@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Truck, Plus, Edit2, Trash2, Save, X, Package } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, Supplier } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 
 export function SuppliersScreen() {
@@ -95,7 +96,7 @@ export function SuppliersScreen() {
     if (!formData.name.trim()) return;
 
     if (isAdding) {
-      await supabase.from('suppliers').insert({
+      await adminInsert('suppliers', {
         name: formData.name,
         contact_person: formData.contact_person,
         email: formData.email,
@@ -104,17 +105,14 @@ export function SuppliersScreen() {
         notes: formData.notes,
       });
     } else if (editingId) {
-      await supabase
-        .from('suppliers')
-        .update({
-          name: formData.name,
-          contact_person: formData.contact_person,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-          notes: formData.notes,
-        })
-        .eq('id', editingId);
+      await adminUpdate('suppliers', editingId, {
+        name: formData.name,
+        contact_person: formData.contact_person,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        notes: formData.notes,
+      });
     }
 
     handleCancel();
@@ -122,17 +120,14 @@ export function SuppliersScreen() {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('suppliers').delete().eq('id', id);
+    await adminDelete('suppliers', id);
     setDeleteConfirm(null);
     loadSuppliers();
     loadProductCounts();
   };
 
   const handleToggleActive = async (supplier: Supplier) => {
-    await supabase
-      .from('suppliers')
-      .update({ is_active: !supplier.is_active })
-      .eq('id', supplier.id);
+    await adminUpdate('suppliers', supplier.id, { is_active: !supplier.is_active });
     loadSuppliers();
   };
 

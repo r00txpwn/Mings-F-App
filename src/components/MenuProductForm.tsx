@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { X, Image, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { supabase, Product, Category } from '../lib/supabase';
+import { Product, Category } from '../lib/supabase';
+import { adminInsert, adminUpdate } from '../lib/adminApi';
 
 interface MenuProductFormProps {
   product: Product | null;
@@ -45,9 +46,9 @@ export function MenuProductForm({ product, categories, selectedCategoryId, onSav
     };
 
     if (product) {
-      await supabase.from('products').update(data).eq('id', product.id);
+      await adminUpdate('products', product.id, data);
     } else {
-      await supabase.from('products').insert({ ...data, unit: 'pcs', quantity: 0, min_stock_level: 0 });
+      await adminInsert('products', { ...data, unit: 'pcs', quantity: 0, min_stock_level: 0 });
     }
 
     setSaving(false);

@@ -26,7 +26,18 @@ Mings Financial Automation is a business management system for small to medium-s
 
 **Reliability QA:** [docs/RELIABILITY_QA_PRIORITIES.md](docs/RELIABILITY_QA_PRIORITIES.md) — manual smoke priorities for order/payment, KDS, Wolt dispatch.
 
-[`src/main.tsx`](src/main.tsx) chooses the root app by **pathname** (no `react-router`):
+## Build targets (production)
+
+Two Vite builds isolate customer JS from staff cockpit code:
+
+| Build | Command | Output | Domain |
+|-------|---------|--------|--------|
+| Staff | `npm run build:staff` | `dist-staff/` | `sp.mings.az` |
+| Storefront | `npm run build:storefront` | `dist-storefront/` | `order.mings.az` |
+
+Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.tsx`](src/main-storefront.tsx). Dev uses [`src/main.tsx`](src/main.tsx) with `vite --mode staff|storefront`.
+
+[`src/main.tsx`](src/main.tsx) / staff entry chooses the root app by **pathname** (no `react-router`):
 
 | Path      | App |
 |-----------|-----|

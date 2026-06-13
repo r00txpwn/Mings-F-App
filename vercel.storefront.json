@@ -1,0 +1,42 @@
+{
+  "redirects": [
+    {
+      "source": "/order",
+      "has": [{ "type": "host", "value": "order.mings.az" }],
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/spec-ops",
+      "destination": "/404",
+      "permanent": false
+    },
+    {
+      "source": "/kds",
+      "destination": "/404",
+      "permanent": false
+    },
+    {
+      "source": "/kiosk",
+      "destination": "/404",
+      "permanent": false
+    },
+    {
+      "source": "/order-manager",
+      "destination": "/404",
+      "permanent": false
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://va.vercel-scripts.com https://maps.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://places.googleapis.com https://www.google-analytics.com https://epoint.az; font-src 'self' https://fonts.gstatic.com data:; frame-src https://epoint.az;"
+        }
+      ]
+    }
+  ],
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Package, Plus, Edit2, Trash2, Search, AlertCircle, Truck, ShoppingCart, History, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, Product, Supplier } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
 import { IconActionButton } from '../components/ui/IconActionButton';
@@ -165,10 +166,9 @@ export function ProductsScreen() {
 
     if (error || !product) return;
 
-    await supabase
-      .from('products')
-      .update({ quantity: Number(product.quantity || 0) + deltaQuantity })
-      .eq('id', productId);
+    await adminUpdate('products', productId, {
+      quantity: Number(product.quantity || 0) + deltaQuantity,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -191,14 +191,9 @@ export function ProductsScreen() {
     };
 
     if (editingProduct) {
-      await supabase
-        .from('products')
-        .update(productData)
-        .eq('id', editingProduct.id);
+      await adminUpdate('products', editingProduct.id, productData);
     } else {
-      await supabase
-        .from('products')
-        .insert([productData]);
+      await adminInsert('products', productData);
     }
 
     resetForm();
@@ -228,10 +223,7 @@ export function ProductsScreen() {
       const newProductId = purchaseData.product_id || null;
       const newQuantity = quantity;
 
-      await supabase
-        .from('purchases')
-        .update(purchaseData)
-        .eq('id', editingPurchase.id);
+      await adminUpdate('purchases', editingPurchase.id, purchaseData);
 
       if (oldProductId && newProductId && oldProductId === newProductId) {
         await reconcileProductStock(newProductId, newQuantity - oldQuantity);
@@ -240,9 +232,7 @@ export function ProductsScreen() {
         await reconcileProductStock(newProductId, newQuantity);
       }
     } else {
-      await supabase
-        .from('purchases')
-        .insert(purchaseData);
+      await adminInsert('purchases', purchaseData);
       await reconcileProductStock(purchaseData.product_id, quantity);
     }
 
@@ -259,26 +249,24 @@ export function ProductsScreen() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('products')
-      .insert({
-        name: inlineProductData.name,
-        description: inlineProductData.description,
-        cost_price: Number(inlineProductData.cost_price) || 0,
-        unit: inlineProductData.unit,
-        supplier_id: inlineProductData.supplier_id || null,
-        selling_price: 0,
-        quantity: 0,
-        min_stock_level: 10,
-      })
-      .select()
-      .single();
+    const result = await adminInsert<{ id: string }>('products', {
+      name: inlineProductData.name,
+      description: inlineProductData.description,
+      cost_price: Number(inlineProductData.cost_price) || 0,
+      unit: inlineProductData.unit,
+      supplier_id: inlineProductData.supplier_id || null,
+      selling_price: 0,
+      quantity: 0,
+      min_stock_level: 10,
+    });
 
-    if (error) {
-      console.error('Error creating product:', error);
-      alert(`Error creating product: ${error.message}`);
+    if (!result.ok) {
+      console.error('Error creating product:', result.error);
+      alert(`Error creating product: ${result.error}`);
       return;
     }
+
+    const data = result.data;
 
     if (data) {
       await loadProducts();
@@ -291,17 +279,15 @@ export function ProductsScreen() {
   const handleCreateInlineSupplier = async () => {
     if (!inlineSupplierData.name) return;
 
-    const { data } = await supabase
-      .from('suppliers')
-      .insert({
-        name: inlineSupplierData.name,
-        contact_person: inlineSupplierData.contact_person,
-        phone: inlineSupplierData.phone,
-        email: inlineSupplierData.email,
-        is_active: true
-      })
-      .select()
-      .single();
+    const result = await adminInsert<{ id: string }>('suppliers', {
+      name: inlineSupplierData.name,
+      contact_person: inlineSupplierData.contact_person,
+      phone: inlineSupplierData.phone,
+      email: inlineSupplierData.email,
+      is_active: true,
+    });
+
+    const data = result.data;
 
     if (data) {
       await loadSuppliers();
@@ -368,7 +354,7 @@ export function ProductsScreen() {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('products').delete().eq('id', id);
+    await adminDelete('products', id);
     setDeleteConfirm(null);
     loadProducts();
   };
@@ -396,7 +382,7 @@ export function ProductsScreen() {
 
   const handleDeletePurchase = async (id: string) => {
     const purchase = purchases.find(p => p.id === id);
-    await supabase.from('purchases').delete().eq('id', id);
+    await adminDelete('purchases', id);
     await reconcileProductStock(purchase?.product_id, -(Number(purchase?.quantity) || 0));
     if (viewingProduct) {
       loadPurchases(viewingProduct.id);

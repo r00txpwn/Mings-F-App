@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate, type AdminMutateResult } from '../../lib/adminApi';
 import { expireOnlineKitchenPauseIfDue } from '../../order/orderOnlineSettings';
 import type {
   DeliveryZoneRow,
@@ -45,6 +46,13 @@ const INITIAL: State = {
   loading: true,
   error: null,
 };
+
+function asDbResult<T = unknown>(result: AdminMutateResult<T>) {
+  return {
+    data: result.data ?? null,
+    error: result.ok ? null : { message: result.error ?? 'Request failed' },
+  };
+}
 
 export function useDeliveryAdmin() {
   const [state, setState] = useState<State>(INITIAL);
@@ -153,28 +161,28 @@ export function useDeliveryAdmin() {
     async (zone: Partial<DeliveryZoneRow> & { name: string; polygon: DeliveryZoneRow['polygon'] }) => {
       const payload = { ...zone };
       if (payload.id) {
-        return supabase.from('delivery_zones').update(payload).eq('id', payload.id);
+        return asDbResult(await adminUpdate('delivery_zones', payload.id, payload));
       }
-      return supabase.from('delivery_zones').insert(payload);
+      return asDbResult(await adminInsert('delivery_zones', payload));
     },
     [],
   );
 
   const setZoneActive = useCallback(async (id: string, isActive: boolean) => {
-    return supabase.from('delivery_zones').update({ is_active: isActive }).eq('id', id);
+    return asDbResult(await adminUpdate('delivery_zones', id, { is_active: isActive }));
   }, []);
 
   const deleteZone = useCallback(async (id: string) => {
-    return supabase.from('delivery_zones').delete().eq('id', id);
+    return asDbResult(await adminDelete('delivery_zones', id));
   }, []);
 
   const updateSettings = useCallback(
     async (patch: Partial<OnlineSettingsRow>) => {
       const settings = state.settings;
       if (!settings?.id) {
-        return supabase.from('online_settings').insert(patch as Record<string, unknown>);
+        return asDbResult(await adminInsert('online_settings', patch as Record<string, unknown>));
       }
-      return supabase.from('online_settings').update(patch).eq('id', settings.id);
+      return asDbResult(await adminUpdate('online_settings', settings.id, patch));
     },
     [state.settings],
   );

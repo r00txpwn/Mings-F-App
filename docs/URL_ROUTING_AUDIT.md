@@ -1,8 +1,19 @@
 # URL & path audit (client routes, Edge Functions, logical risks)
 
-Last reviewed: 2026-04-22
+Last reviewed: 2026-06-10
 
-## 1. SPA entry (`src/main.tsx`)
+## Split builds (staff vs storefront)
+
+Production uses **two static bundles** (see [DEPLOY.md](../DEPLOY.md)):
+
+| Domain | Build | Surfaces in bundle |
+|--------|-------|-------------------|
+| `order.mings.az` | `dist-storefront/` | `/`, `/order`, `/track` only |
+| `sp.mings.az` | `dist-staff/` | cockpit, `/order-manager`, `/kds`, `/kiosk` |
+
+Local dev: `npm run dev:staff` (port 5173, `/spec-ops`) or `npm run dev:storefront` (port 5173, `/order`). Auth storage keys differ (`mings-staff-auth` vs `mings-storefront-auth`).
+
+## 1. SPA entry (`src/main-staff.tsx` / `src/main-storefront.tsx`)
 
 Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (`VITE_SURFACE_*_HOSTS`). When a host matches, the app shell loads at `/` (and `/track` on order hosts still opens tracking).
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Check, ChevronDown, ChevronRight, Edit2, Trash2, X, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, SalesChannel, Sale } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { useAuth } from '../contexts/AuthContext';
 import { PageHeader } from '../components/cockpit';
 import { SingleDatePicker } from '../components/SingleDatePicker';
@@ -117,7 +118,7 @@ export function SalesScreen() {
     const qty = Number(orderCount);
     const unitPrice = totalPrice / qty;
 
-    const { error: err } = await supabase.from('sales').insert({
+    const result = await adminInsert('sales', {
       total_price: totalPrice,
       quantity: qty,
       unit_price: unitPrice,
@@ -129,8 +130,8 @@ export function SalesScreen() {
 
     setSaving(false);
 
-    if (err) {
-      setError(err.message);
+    if (!result.ok) {
+      setError(result.error ?? 'Insert failed');
       return;
     }
 
@@ -199,20 +200,17 @@ export function SalesScreen() {
       ? Number(editingSale.total_price) / editingSale.quantity
       : Number(editingSale.total_price);
 
-    const { error: err } = await supabase
-      .from('sales')
-      .update({
-        total_price: Number(editingSale.total_price),
-        quantity: editingSale.quantity,
-        unit_price: unitPrice,
-        sales_channel_id: editingSale.sales_channel_id,
-        notes: editingSale.notes,
-        sale_date: editingSale.sale_date.split('T')[0],
-      })
-      .eq('id', editingSale.id);
+    const result = await adminUpdate('sales', editingSale.id, {
+      total_price: Number(editingSale.total_price),
+      quantity: editingSale.quantity,
+      unit_price: unitPrice,
+      sales_channel_id: editingSale.sales_channel_id,
+      notes: editingSale.notes,
+      sale_date: editingSale.sale_date.split('T')[0],
+    });
 
-    if (err) {
-      setError(err.message);
+    if (!result.ok) {
+      setError(result.error ?? 'Update failed');
       return;
     }
 
@@ -222,13 +220,10 @@ export function SalesScreen() {
 
   const handleDelete = async (id: string) => {
     setError(null);
-    const { error: err } = await supabase
-      .from('sales')
-      .delete()
-      .eq('id', id);
+    const result = await adminDelete('sales', id);
 
-    if (err) {
-      setError(err.message);
+    if (!result.ok) {
+      setError(result.error ?? 'Delete failed');
       return;
     }
 

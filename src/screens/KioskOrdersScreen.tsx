@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ClipboardList, Monitor, RefreshCw, ExternalLink, Search } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
+import { adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 import { KioskOrdersBoard, type KioskOrder, type KioskOrderStatus } from '../components/kiosk';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -75,12 +76,12 @@ export function KioskOrdersScreen() {
     const updates: Record<string, unknown> = { order_status: newStatus };
     if (newStatus === 'preparing') updates.prep_started_at = new Date().toISOString();
     if (newStatus === 'ready') updates.ready_at = new Date().toISOString();
-    await supabase.from('sales').update(updates).eq('id', orderId);
+    await adminUpdate('sales', orderId, updates);
     await loadOrders();
   };
 
   const handleConfirmPayment = async (orderId: string) => {
-    await supabase.from('sales').update({ payment_status: 'paid' }).eq('id', orderId);
+    await adminUpdate('sales', orderId, { payment_status: 'paid' });
     await loadOrders();
   };
 

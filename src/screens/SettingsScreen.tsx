@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Language } from '../translations';
 import { supabase } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 
 interface SalesChannel {
@@ -75,19 +76,15 @@ export function SettingsScreen() {
   const handleAddSalesChannel = async () => {
     if (!newChannelName.trim()) return;
 
-    const { error } = await supabase
-      .from('sales_channels')
-      .insert([
-        {
-          name: newChannelName.trim(),
-          description: newChannelDescription.trim() || 'Sales channel',
-          is_active: true
-        }
-      ]);
+    const result = await adminInsert('sales_channels', {
+      name: newChannelName.trim(),
+      description: newChannelDescription.trim() || 'Sales channel',
+      is_active: true,
+    });
 
-    if (error) {
-      console.error('Error adding sales channel:', error);
-      alert(`Error adding sales channel: ${error.message}`);
+    if (!result.ok) {
+      console.error('Error adding sales channel:', result.error);
+      alert(`Error adding sales channel: ${result.error}`);
       return;
     }
 
@@ -99,23 +96,17 @@ export function SettingsScreen() {
   };
 
   const handleToggleSalesChannel = async (id: string, currentStatus: boolean) => {
-    const { error } = await supabase
-      .from('sales_channels')
-      .update({ is_active: !currentStatus })
-      .eq('id', id);
+    const result = await adminUpdate('sales_channels', id, { is_active: !currentStatus });
 
-    if (!error) {
+    if (result.ok) {
       fetchSalesChannels();
     }
   };
 
   const handleDeleteSalesChannel = async (id: string) => {
-    const { error } = await supabase
-      .from('sales_channels')
-      .delete()
-      .eq('id', id);
+    const result = await adminDelete('sales_channels', id);
 
-    if (!error) {
+    if (result.ok) {
       setDeleteChannelConfirm(null);
       fetchSalesChannels();
     }

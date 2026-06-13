@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flame, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
@@ -119,7 +120,7 @@ export function CombosScreen() {
   const createCombo = async () => {
     const p = Number(price);
     if (!name.trim() || Number.isNaN(p) || p < 0) return;
-    await supabase.from('combo_deals').insert({
+    await adminInsert('combo_deals', {
       name: name.trim(),
       base_price: p,
       is_active: true,
@@ -136,19 +137,19 @@ export function CombosScreen() {
   );
 
   const toggle = async (id: string, is_active: boolean) => {
-    await supabase.from('combo_deals').update({ is_active: !is_active }).eq('id', id);
+    await adminUpdate('combo_deals', id, { is_active: !is_active });
     await load();
   };
 
   const updateComboField = async (id: string, patch: Partial<ComboRow>) => {
     setBusy(true);
-    await supabase.from('combo_deals').update(patch).eq('id', id);
+    await adminUpdate('combo_deals', id, patch);
     setBusy(false);
     await load();
   };
 
   const remove = async (id: string) => {
-    await supabase.from('combo_deals').delete().eq('id', id);
+    await adminDelete('combo_deals', id);
     if (selectedComboId === id) setSelectedComboId(null);
     await load();
   };
@@ -156,7 +157,7 @@ export function CombosScreen() {
   const addGroup = async () => {
     if (!selectedComboId || !newGroupName.trim()) return;
     setBusy(true);
-    await supabase.from('combo_groups').insert({
+    await adminInsert('combo_groups', {
       combo_id: selectedComboId,
       name: newGroupName.trim(),
       required: true,
@@ -170,14 +171,14 @@ export function CombosScreen() {
 
   const updateGroup = async (groupId: string, patch: Partial<ComboGroupRow>) => {
     setBusy(true);
-    await supabase.from('combo_groups').update(patch).eq('id', groupId);
+    await adminUpdate('combo_groups', groupId, patch);
     setBusy(false);
     await load();
   };
 
   const removeGroup = async (groupId: string) => {
     setBusy(true);
-    await supabase.from('combo_groups').delete().eq('id', groupId);
+    await adminDelete('combo_groups', groupId);
     setBusy(false);
     await load();
   };
@@ -186,7 +187,7 @@ export function CombosScreen() {
     const productId = newItemByGroup[groupId];
     if (!productId) return;
     setBusy(true);
-    await supabase.from('combo_group_items').insert({
+    await adminInsert('combo_group_items', {
       group_id: groupId,
       menu_item_id: productId,
       price_adjustment: 0,
@@ -198,14 +199,14 @@ export function CombosScreen() {
 
   const updateGroupItem = async (groupItemId: string, patch: Partial<ComboGroupItemRow>) => {
     setBusy(true);
-    await supabase.from('combo_group_items').update(patch).eq('id', groupItemId);
+    await adminUpdate('combo_group_items', groupItemId, patch);
     setBusy(false);
     await load();
   };
 
   const removeGroupItem = async (groupItemId: string) => {
     setBusy(true);
-    await supabase.from('combo_group_items').delete().eq('id', groupItemId);
+    await adminDelete('combo_group_items', groupItemId);
     setBusy(false);
     await load();
   };
@@ -214,7 +215,7 @@ export function CombosScreen() {
     productId: string,
     patch: { combo_upsell_eligible?: boolean; upsell_combo_id?: string | null }
   ) => {
-    await supabase.from('products').update(patch).eq('id', productId);
+    await adminUpdate('products', productId, patch);
     await load();
   };
 

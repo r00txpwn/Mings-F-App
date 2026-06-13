@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
+import { adminUpdate } from '../lib/adminApi';
 
 type MenuEditorMode = 'products' | 'combos';
 
@@ -62,12 +63,12 @@ export function MenuEditorTab() {
   );
 
   const toggleProduct = async (id: string, patch: Partial<Pick<ProductRow, 'kiosk_visible' | 'online_visible'>>) => {
-    await supabase.from('products').update(patch).eq('id', id);
+    await adminUpdate('products', id, patch);
     await load();
   };
 
   const toggleCombo = async (id: string, isActive: boolean) => {
-    await supabase.from('combo_deals').update({ is_active: !isActive }).eq('id', id);
+    await adminUpdate('combo_deals', id, { is_active: !isActive });
     await load();
   };
 

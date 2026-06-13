@@ -3,6 +3,7 @@ import { Banknote, Plus, Check, Edit2, Trash2, X, Loader2, AlertCircle, ChevronD
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, SalesChannel, PlatformPayout } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { SingleDatePicker } from '../components/SingleDatePicker';
 import { fetchPayoutReconciliation } from '../services/analytics';
@@ -168,22 +169,22 @@ export function PayoutsScreen() {
       created_by: user?.id || null,
     };
 
-    let err;
+    let err: string | undefined;
     if (editingPayout) {
-      const res = await supabase
-        .from('platform_payouts')
-        .update({ ...payload, updated_at: new Date().toISOString() })
-        .eq('id', editingPayout.id);
+      const res = await adminUpdate('platform_payouts', editingPayout.id, {
+        ...payload,
+        updated_at: new Date().toISOString(),
+      });
       err = res.error;
     } else {
-      const res = await supabase.from('platform_payouts').insert(payload);
+      const res = await adminInsert('platform_payouts', payload);
       err = res.error;
     }
 
     setSaving(false);
 
     if (err) {
-      setError(err.message);
+      setError(err);
       return;
     }
 
@@ -205,9 +206,9 @@ export function PayoutsScreen() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error: err } = await supabase.from('platform_payouts').delete().eq('id', id);
-    if (err) {
-      setError(err.message);
+    const res = await adminDelete('platform_payouts', id);
+    if (res.error) {
+      setError(res.error);
       return;
     }
     setDeleteConfirm(null);

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Settings2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ExpensesSummaryBar } from './expenses/ExpensesSummaryBar';
 import { CategoryGroupedView } from './expenses/CategoryGroupedView';
@@ -266,7 +267,7 @@ export function ExpensesScreen() {
   };
 
   const handleDeleteExpense = async (id: string) => {
-    await supabase.from('operational_expenses').delete().eq('id', id);
+    await adminDelete('operational_expenses', id);
     await loadAllData();
   };
 
@@ -290,7 +291,7 @@ export function ExpensesScreen() {
 
   const handleDeletePurchase = async (id: string) => {
     const purchase = purchases.find(p => p.id === id);
-    await supabase.from('purchases').delete().eq('id', id);
+    await adminDelete('purchases', id);
     await reconcileProductStock(purchase?.product_id, -(Number(purchase?.quantity) || 0));
     await loadAllData();
   };
@@ -433,9 +434,9 @@ export function ExpensesScreen() {
     };
 
     if (editingExpense) {
-      await supabase.from('operational_expenses').update(payload).eq('id', editingExpense.id);
+      await adminUpdate('operational_expenses', editingExpense.id, payload);
     } else {
-      await supabase.from('operational_expenses').insert(payload);
+      await adminInsert('operational_expenses', payload);
     }
 
     resetExpenseForm();
@@ -453,10 +454,9 @@ export function ExpensesScreen() {
 
     if (error || !product) return;
 
-    await supabase
-      .from('products')
-      .update({ quantity: Number(product.quantity || 0) + deltaQuantity })
-      .eq('id', productId);
+    await adminUpdate('products', productId, {
+      quantity: Number(product.quantity || 0) + deltaQuantity,
+    });
   };
 
   const handleSubmitPurchase = async (e: React.FormEvent) => {
@@ -479,16 +479,16 @@ export function ExpensesScreen() {
       const oldQuantity = Number(editingPurchase.quantity) || 0;
       const newQuantity = Number(purchaseFormData.quantity) || 0;
 
-      const { error } = await supabase.from('purchases').update(payload).eq('id', editingPurchase.id);
-      if (error) {
-        console.error('Failed to update purchase:', error);
+      const result = await adminUpdate('purchases', editingPurchase.id, payload);
+      if (!result.ok) {
+        console.error('Failed to update purchase:', result.error);
         return;
       }
       await reconcileProductStock(oldProductId, newQuantity - oldQuantity);
     } else {
-      const { error } = await supabase.from('purchases').insert(payload);
-      if (error) {
-        console.error('Failed to create purchase:', error);
+      const result = await adminInsert('purchases', payload);
+      if (!result.ok) {
+        console.error('Failed to create purchase:', result.error);
         return;
       }
     }

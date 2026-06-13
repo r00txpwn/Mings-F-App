@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw, WifiOff } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
+import { adminUpdate } from '../lib/adminApi';
 import { InDeliveryCard } from './InDeliveryCard';
 import { InProgressCard } from './InProgressCard';
 import { NewOrderCard } from './NewOrderCard';
@@ -114,9 +115,9 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
       setBusyOrderId(orderId);
       setActionError(null);
       try {
-        const { error } = await supabase.from('sales').update(patch).eq('id', orderId);
-        if (error) {
-          setActionError(`${t.errorOccurred}: ${error.message}`);
+        const result = await adminUpdate('sales', orderId, patch);
+        if (!result.ok) {
+          setActionError(`${t.errorOccurred}: ${result.error ?? 'Update failed'}`);
           return false;
         }
         await loadOrders();

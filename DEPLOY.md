@@ -1,14 +1,50 @@
 # Deploy Mings
 
-## What runs locally (already done)
+## What runs locally
 
-- `npm run build` → output in `dist/`
+- `npm run build:staff` → `dist-staff/` (sp.mings.az — cockpit, order-manager, KDS, kiosk)
+- `npm run build:storefront` → `dist-storefront/` (order.mings.az — menu + tracking)
+- `npm run build:all` → both artifacts
+- `npm run deploy:local` → staff preview on **http://127.0.0.1:4175/**
+- `npm run deploy:local:storefront` → storefront preview on **http://127.0.0.1:4176/**
 
-## 1. Frontend (static host)
+## 1. Frontend (two Vercel projects — recommended)
 
-Pick **one** of:
+Deploy **separate** static bundles so customer-facing JS never ships admin cockpit code.
 
-### Vercel
+| Vercel project | Domain | Build command | Output directory | Config file |
+|----------------|--------|---------------|------------------|-------------|
+| `mings-staff` | `sp.mings.az` | `npm run build:staff` | `dist-staff` | [`vercel.staff.json`](vercel.staff.json) |
+| `mings-order` | `order.mings.az` | `npm run build:storefront` | `dist-storefront` | [`vercel.storefront.json`](vercel.storefront.json) |
+
+In each Vercel project **Settings → General**:
+
+1. Set **Root Directory** to repo root (default).
+2. Override **Build Command** and **Output Directory** as in the table.
+3. Copy the matching `vercel.*.json` into the project root as `vercel.json`, **or** point Vercel at the file if using monorepo config.
+
+### Staff project env (`sp.mings.az`)
+
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- `VITE_SURFACE_ADMIN_HOSTS=sp.mings.az`
+- `VITE_PUBLIC_ORDER_URL=https://order.mings.az`
+- **`VITE_KDS_SECRET`**, **`VITE_KIOSK_SECRET`** (staff only — do not set on storefront project)
+- Optional: `VITE_PUBLIC_KIOSK_URL=https://sp.mings.az/kiosk`
+
+### Storefront project env (`order.mings.az`)
+
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- `VITE_SURFACE_ORDER_HOSTS=order.mings.az`
+- `VITE_GOOGLE_MAPS_API_KEY` (delivery map)
+- **Do not** set `VITE_KDS_SECRET` / `VITE_KIOSK_SECRET` here
+
+Auth sessions use separate storage keys (`mings-staff-auth` vs `mings-storefront-auth`) so staff and customer logins do not bleed across origins.
+
+### Legacy single-build deploy
+
+The root [`vercel.json`](vercel.json) remains for backward compatibility but ships **one** bundle with all surfaces. Prefer the split deploy above for production.
+
+### Vercel CLI (single project — legacy)
 
 1. Install [Vercel CLI](https://vercel.com/docs/cli): `npm i -g vercel`
 2. From repo root: `vercel` (first time) then `vercel --prod`
@@ -137,6 +173,15 @@ supabase functions deploy wolt-drive-webhook
 supabase functions deploy wolt-drive-manual-dispatch
 supabase functions deploy wolt-dispatch-book-lock
 supabase functions deploy user-management
+supabase functions deploy admin-api
+supabase functions deploy kds-order-status-update
+```
+
+**Staff security layer:** after migration `20260610120000_harden_staff_only_rls.sql`, cockpit **mutations** go through **`admin-api`** (audited service-role writes). KDS status buttons call **`kds-order-status-update`** (set Edge secret **`KDS_SECRET`** to match staff `VITE_KDS_SECRET`). Deploy:
+
+```bash
+npm run supabase:deploy:admin-api
+npm run supabase:deploy:kds-status
 ```
 
 **Numbering rollout dependency:** deploy the `20260425173000_direct_order_number_allocator.sql` migration before deploying storefront/kiosk builds that call `allocate_direct_display_number()`. The migration keeps compatibility wrappers (`generate_daily_order_number*`) for staggered rollout safety, but direct callers should move to the shared allocator RPC.
@@ -156,6 +201,8 @@ npm run supabase:sync
 ### Secrets (Dashboard → Edge Functions → Secrets)
 
 Set at least: `APP_BASE_URL` (your live site URL). Add E-point / Wolt secrets when you enable them — see `.env.example`.
+
+**Staff isolation:** set **`KDS_SECRET`** (Edge) to match staff **`VITE_KDS_SECRET`** (frontend). Deploy **`admin-api`** and **`kds-order-status-update`** after migration `20260610120000_harden_staff_only_rls.sql`.
 
 ### Epoint (card payments on `/order`)
 
