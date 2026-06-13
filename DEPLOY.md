@@ -115,11 +115,13 @@ supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 ```
 
-**From this repo (uses `npx`, no global CLI required):**
+**From this repo (uses local `tools/supabase` on Windows when present, else `npx`):**
 
 ```bash
 npm run supabase:push
 ```
+
+**Windows:** if `npx supabase` fails with “No matching … win32-x64”, download [Supabase CLI](https://github.com/supabase/cli/releases) (`supabase_windows_amd64.tar.gz`) into `tools/` (see `scripts/run-supabase-cli.mjs`). Then run `tools/supabase.exe login` and `tools/supabase.exe link --project-ref $(node scripts/get-supabase-ref.mjs)`.
 
 Recent online-order schema additions included in this repo:
 

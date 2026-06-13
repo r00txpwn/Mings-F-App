@@ -26,6 +26,8 @@ dist-ssr
 .env.*
 !.env.example
 supabase/.temp/
+tools/supabase*
+!tools/.gitkeep
 .vercel
 .playwright-mcp/
 pw-*.png
