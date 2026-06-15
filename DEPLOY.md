@@ -17,6 +17,8 @@ Deploy **separate** static bundles so customer-facing JS never ships admin cockp
 | `mings-staff` | `sp.mings.az` | `npm run build:staff` | `dist-staff` | [`vercel.staff.json`](vercel.staff.json) |
 | `mings-order` | `order.mings.az` | `npm run build:storefront` | `dist-storefront` | [`vercel.storefront.json`](vercel.storefront.json) |
 
+See **[docs/VERCEL_SPLIT_DEPLOY.md](docs/VERCEL_SPLIT_DEPLOY.md)** for `vercel link` + deploy commands (wrong link ships the wrong bundle).
+
 In each Vercel project **Settings → General**:
 
 1. Set **Root Directory** to repo root (default).
@@ -140,6 +142,22 @@ If you see **“Remote migration versions not found in local migrations director
 **Kitchen hours + pause + soft-close:** migrations add `online_settings.offline_until` and `closing_soon_minutes` (see `20260423120000_online_settings_kitchen_pause.sql`), plus RPC **`expire_online_kitchen_pause_if_due`** (`20260423180000_expire_online_kitchen_pause_rpc.sql`) so timed pauses auto-open in the DB. Customer and edge validation share **[docs/KITCHEN_HOURS.md](docs/KITCHEN_HOURS.md)**. After changing **`online-order-create`** or **`supabase/functions/_shared/kitchenAcceptance.ts`**, redeploy **`online-order-create`** (same command as below).
 
 ### Edge Functions (deploy each)
+
+**Supabase MCP project ref (Cursor):** the hosted MCP URL must use the **same** project as `VITE_SUPABASE_URL`. A stale `project_ref` (e.g. a paused/deleted project) shows as **MCP server errored** with no tools.
+
+1. Check local ref: `node scripts/get-supabase-ref.mjs`
+2. Fix env + Cursor MCP in one step (pass the live ref from Supabase dashboard or production):
+
+   ```bash
+   npm run fix:supabase-ref -- dmrvycswdteuhfydchdr
+   ```
+
+   This updates `.env`, repo `.mcp.json`, and `%USERPROFILE%\.cursor\mcp.json`.
+
+3. **Cursor → Settings → Tools & MCP → Supabase** — disable/re-enable or restart Cursor, then complete OAuth if prompted.
+4. Verify: ask the agent to run MCP `list_tables` or `get_project_url`.
+
+See [Supabase MCP docs](https://supabase.com/docs/guides/getting-started/mcp) for `read_only=true` and `features=` options.
 
 **Cursor Supabase MCP (preferred when the CLI is not logged in):** for **`online-order-create`** only, you can deploy the exact repo bundle without `supabase login`:
 

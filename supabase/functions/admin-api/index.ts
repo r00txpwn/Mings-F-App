@@ -35,7 +35,6 @@ const TABLE_MIN_ROLE: Record<string, StaffRole[]> = {
   product_modifier_groups: ['admin', 'manager'],
   modifier_groups: ['admin', 'manager'],
   modifier_options: ['admin', 'manager'],
-  categories: ['admin', 'manager'],
   transactions: ['admin', 'manager'],
 };
 

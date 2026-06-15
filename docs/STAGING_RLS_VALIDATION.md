@@ -1,6 +1,16 @@
 # Staging RLS validation (customer vs staff)
 
-Run on **staging Supabase** after applying `20260610120000_harden_staff_only_rls.sql` and deploying `admin-api` + `kds-order-status-update`.
+Run on **production/staging Supabase** after applying `20260614170000_harden_staff_only_rls_no_categories.sql` and deploying **`admin-api`**.
+
+Automated partial check (no staff password required for anon + KDS):
+
+```bash
+npm run staging:rls-check
+```
+
+Set `STAFF_PASSWORD` in `.env` (staff login password) to also verify staff JWT + admin-api paths.
+
+**KDS secret:** production Edge Function uses `KDS_ORDER_STATUS_SECRET` (Supabase Edge secrets). Staff bundle sends `VITE_KDS_SECRET` as `x-kds-secret` — values must match.
 
 ## Setup
 
@@ -33,8 +43,8 @@ Mutations from the staff cockpit should succeed via **`admin-api`** (Network tab
 
 ## KDS
 
-- With `KDS_SECRET` set on Edge + staff deploy `VITE_KDS_SECRET`, status button calls `kds-order-status-update` with `x-kds-secret`.
-- Without secret header → **403**.
+- With `KDS_ORDER_STATUS_SECRET` set on Supabase Edge + staff deploy `VITE_KDS_SECRET` (same value), status button calls `kds-order-status-update` with `x-kds-secret`.
+- Without secret header → **401** (`invalid_device_secret`).
 
 ## Record results
 

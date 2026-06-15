@@ -676,6 +676,9 @@ export interface Translations {
   orderAuthEmail: string;
   orderAuthSms: string;
   orderAuthGoogle: string;
+  /** Staff cockpit login — Google OAuth button. */
+  orderSignInGoogle: string;
+  orderSignInGoogleRedirecting: string;
   orderForgotPassword: string;
   orderForgotPasswordSent: string;
   orderSignUpInlinePrompt: string;
@@ -1753,6 +1756,8 @@ export const translations: Record<Language, Translations> = {
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Continue with Google',
+    orderSignInGoogle: 'Sign in with Google',
+    orderSignInGoogleRedirecting: 'Redirecting to Google…',
     orderForgotPassword: 'Forgot password?',
     orderForgotPasswordSent: 'If this email exists, reset instructions were sent.',
     orderSignUpInlinePrompt: "Don't have an account yet?",
@@ -2833,6 +2838,8 @@ export const translations: Record<Language, Translations> = {
     orderAuthEmail: 'E-poçt',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Google ilə davam et',
+    orderSignInGoogle: 'Google ilə daxil olun',
+    orderSignInGoogleRedirecting: 'Google-a yönləndirilir…',
     orderForgotPassword: 'Şifrəni unutmusunuz?',
     orderForgotPasswordSent: 'Bu e-poçt mövcuddursa, bərpa təlimatı göndərildi.',
     orderSignUpInlinePrompt: 'Hələ hesabınız yoxdur?',
@@ -3914,6 +3921,8 @@ export const translations: Record<Language, Translations> = {
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Продолжить через Google',
+    orderSignInGoogle: 'Войти через Google',
+    orderSignInGoogleRedirecting: 'Переход в Google…',
     orderForgotPassword: 'Забыли пароль?',
     orderForgotPasswordSent: 'Если такой email существует, инструкция по сбросу отправлена.',
     orderSignUpInlinePrompt: 'Еще нет аккаунта?',

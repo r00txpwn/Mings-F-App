@@ -40,7 +40,10 @@
     "supabase:repair:remote": "bash scripts/supabase-repair-remote-orphans.sh",
     "supabase:repair:remote:ps": "powershell -ExecutionPolicy Bypass -File scripts/supabase-repair-remote-orphans.ps1",
     "supabase:mark:applied": "bash scripts/supabase-mark-local-applied.sh",
-    "supabase:mark:applied:ps": "powershell -ExecutionPolicy Bypass -File scripts/supabase-mark-local-applied.ps1"
+    "supabase:mark:applied:ps": "powershell -ExecutionPolicy Bypass -File scripts/supabase-mark-local-applied.ps1",
+    "fix:supabase-ref": "node scripts/fix-supabase-project-ref.mjs",
+    "mcp:bundle:admin-api": "node scripts/mcp-bundle-admin-functions.mjs admin-api test-results/mcp-deploy-admin-api.json",
+    "staging:rls-check": "node scripts/staging-rls-check.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

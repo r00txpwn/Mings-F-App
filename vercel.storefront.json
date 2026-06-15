@@ -1,4 +1,7 @@
 {
+  "buildCommand": "npm run build:storefront",
+  "outputDirectory": "dist-storefront",
+  "installCommand": "npm install",
   "redirects": [
     {
       "source": "/order",
