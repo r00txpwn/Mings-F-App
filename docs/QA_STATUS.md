@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-06-14T17:05:47.740Z
+## Last Run: 2026-06-15T10:22:45.926Z
 
 | Check | Status |
 |-------|--------|
@@ -28,7 +28,7 @@
  [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateNetFormula[2m > [22mreturns no issues for consistent data[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateNetFormula[2m > [22mreturns error when operating profit is inconsistent[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateNetFormula[2m > [22mhandles negative operating profit correctly[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidatePayoutReconciliationTotals[2m > [22mreturns no issues for null/undefined input[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidatePayoutReconciliationTotals[2m > [22mreturns no issues for null/undefined input[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidatePayoutReconciliationTotals[2m > [22mreturns no issues for consistent payout data[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidatePayoutReconciliationTotals[2m > [22mreports all mismatches for inconsistent payout data[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateAnalyticsSnapshot[2m > [22mreturns empty array for fully consistent snapshot[32m 0[2mms[22m[39m
