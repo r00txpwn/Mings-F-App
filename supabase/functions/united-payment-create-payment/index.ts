@@ -6,6 +6,7 @@ type Body = {
   saleId?: string;
   paymentInitToken?: string;
   language?: string;
+  saveCard?: boolean;
 };
 
 type SaleRow = {
@@ -179,6 +180,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const token = await UnitedPayment.getAuthToken();
+    const applePayEnv = (Deno.env.get('UNITED_PAYMENT_APPLE_PAY') ?? 'false').trim().toLowerCase();
     const result = await UnitedPayment.createCheckout({
       token,
       clientOrderId,
@@ -193,7 +195,8 @@ Deno.serve(async (req: Request) => {
       phoneNumber: sale.customer_phone ?? undefined,
       clientName: sale.customer_name ?? undefined,
       additionalInformation: sale.display_number ?? saleId,
-      applePay: true,
+      applePay: applePayEnv === 'true' || applePayEnv === '1',
+      addCard: body.saveCard === true,
     });
 
     if (!result.ok || !result.checkoutUrl) {

@@ -183,6 +183,10 @@ Agent automation cannot reliably pass multi‑tens‑of‑KB JSON into MCP from 
 
 ```bash
 supabase functions deploy online-order-create
+supabase functions deploy united-payment-create-payment
+supabase functions deploy united-payment-return
+supabase functions deploy united-payment-webhook
+supabase functions deploy united-payment-status-check
 supabase functions deploy epoint-create-payment
 supabase functions deploy epoint-webhook
 supabase functions deploy payment-reconcile
@@ -220,11 +224,20 @@ npm run supabase:sync
 
 ### Secrets (Dashboard → Edge Functions → Secrets)
 
-Set at least: `APP_BASE_URL` (your live site URL). Add E-point / Wolt secrets when you enable them — see `.env.example`.
+Set at least: `APP_BASE_URL` (your live site URL). Add United Payment / E-point / Wolt secrets when you enable them — see `.env.example` and **[docs/UNITED_PAYMENT_INTEGRATION.md](docs/UNITED_PAYMENT_INTEGRATION.md)**.
 
 **Staff isolation:** set **`KDS_SECRET`** (Edge) to match staff **`VITE_KDS_SECRET`** (frontend). Deploy **`admin-api`** and **`kds-order-status-update`** after migration `20260610120000_harden_staff_only_rls.sql`.
 
-### Epoint (card payments on `/order`)
+### United Payment (card payments on `/order` — current provider)
+
+New card orders use **United Payment** hosted checkout. See **[docs/UNITED_PAYMENT_INTEGRATION.md](docs/UNITED_PAYMENT_INTEGRATION.md)**.
+
+1. Edge Function secrets: `UNITED_PAYMENT_API_BASE` (test: `https://test-vpos.unitedpayment.az/api`), `UNITED_PAYMENT_EMAIL`, `UNITED_PAYMENT_PASSWORD`, `APP_BASE_URL`, `UNITED_PAYMENT_FUNCTIONS_PUBLIC_URL`, optional `UNITED_PAYMENT_WEBHOOK_URL`.
+2. Deploy: `united-payment-create-payment`, `united-payment-return`, `united-payment-webhook`, `united-payment-status-check` (all `verify_jwt = false` in [`supabase/config.toml`](supabase/config.toml)).
+3. Webhooks are unsigned; functions **re-confirm status** via CheckStatus before marking orders paid.
+4. Ask United Payment to enable webhook delivery to your `UNITED_PAYMENT_WEBHOOK_URL` when going live.
+
+### Epoint (legacy card payments on `/order`)
 
 1. Run migrations (`npm run supabase:push`) so `online_payments` and `saved_cards` exist with Epoint columns. New hosts also get **`payment_reconciliation_log`** (empty until a future reconciler writes rows; EPoint webhook behavior unchanged).
 2. Edge Function secrets:

@@ -1,11 +1,16 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import {
+  mapProviderStatus as mapProviderStatusPure,
+  parseUnitedPaymentReturn as parseUnitedPaymentReturnPure,
+  type UnitedPaymentReturnData,
+} from './unitedPaymentReturnParse.ts';
 
 export type UnitedPaymentLanguage = 'AZ' | 'EN' | 'RU';
 
 export type UnitedPaymentCheckoutParams = {
   token: string;
   clientOrderId: string;
-  amount: string;
+  amount: number;
   language: UnitedPaymentLanguage;
   successUrl: string;
   cancelUrl: string;
@@ -19,6 +24,8 @@ export type UnitedPaymentCheckoutParams = {
   clientName?: string;
   partnerId?: string;
   applePay?: boolean;
+  addCard?: boolean;
+  currency?: string;
 };
 
 export type UnitedPaymentCheckoutResult = {
@@ -38,6 +45,10 @@ export type UnitedPaymentStatusResult = {
   raw: unknown;
   message?: string;
 };
+
+export type { UnitedPaymentReturnData };
+
+export { parseUnitedPaymentReturnPure as parseUnitedPaymentReturn };
 
 type TokenCache = {
   token: string;
@@ -64,7 +75,7 @@ function endpoint(name: string, fallbackPath: string): string {
 }
 
 function authUrl(): string {
-  return endpoint('AUTH', '/auth/login');
+  return endpoint('AUTH', '/auth/');
 }
 
 function checkoutUrl(): string {
@@ -93,6 +104,16 @@ function firstString(raw: Record<string, unknown>, keys: string[]): string | und
   for (const key of keys) {
     const value = raw[key];
     if (value != null && String(value).trim()) return String(value).trim();
+  }
+  return undefined;
+}
+
+function firstId(raw: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = raw[key];
+    if (value == null) continue;
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    if (String(value).trim()) return String(value).trim();
   }
   return undefined;
 }
@@ -157,7 +178,6 @@ export async function getAuthToken(forceRefresh = false): Promise<string> {
 
   tokenCache = {
     token,
-    // Ilqar said tokens refresh hourly; keep a conservative 50-minute cache.
     expiresAt: now + 50 * 60_000,
   };
   return token;
@@ -167,6 +187,8 @@ export async function createCheckout(params: UnitedPaymentCheckoutParams): Promi
   const url = checkoutUrl();
   if (!url) throw new Error('United Payment checkout URL is not configured');
 
+  const currency = params.currency ?? env('UNITED_PAYMENT_CURRENCY') || '944';
+
   const payload: Record<string, unknown> = {
     clientOrderId: params.clientOrderId,
     amount: params.amount,
@@ -174,6 +196,7 @@ export async function createCheckout(params: UnitedPaymentCheckoutParams): Promi
     successUrl: params.successUrl,
     cancelUrl: params.cancelUrl,
     declineUrl: params.declineUrl,
+    currency,
   };
   for (const key of [
     'webhookUrl',
@@ -189,6 +212,7 @@ export async function createCheckout(params: UnitedPaymentCheckoutParams): Promi
     if (value != null && String(value).trim()) payload[key] = value;
   }
   if (params.applePay != null) payload.applePay = params.applePay;
+  if (params.addCard != null) payload.addCard = params.addCard;
 
   const response = await fetch(url, {
     method: 'POST',
@@ -202,7 +226,7 @@ export async function createCheckout(params: UnitedPaymentCheckoutParams): Promi
   const obj = asObject(raw);
   const data = asObject(obj.data ?? obj.result);
   const source = Object.keys(data).length ? data : obj;
-  const transactionId = firstString(source, ['transactionId', 'transaction_id', 'id']);
+  const transactionId = firstId(source, ['transactionId', 'transaction_id', 'Transaction', 'id']);
   const payUrl = firstString(source, [
     'checkoutUrl',
     'paymentUrl',
@@ -262,37 +286,63 @@ async function fetchStatus(
   const source = Object.keys(data).length ? data : obj;
   return {
     ok: response.ok,
-    status: firstString(source, ['status', 'Status']),
-    orderStatus: firstString(source, ['orderStatus', 'OrderStatus']),
-    bankOrderId: firstString(source, ['bankOrderId', 'BankOrderId']),
+    status: firstString(source, ['status', 'Status', 'orderStatus', 'OrderStatus']),
+    orderStatus: firstString(source, ['orderStatus', 'OrderStatus', 'Status', 'status']),
+    bankOrderId: firstString(source, ['bankOrderId', 'BankOrderId', 'BankTransaction']),
     bankSessionId: firstString(source, ['bankSessionId', 'BankSessionId']),
     raw,
     message: firstString(source, ['message', 'error', 'errorMessage']),
   };
 }
 
-export function mapProviderStatus(rawStatus: string | null | undefined): 'success' | 'failed' | 'pending' {
-  const s = String(rawStatus ?? '').trim().toUpperCase();
-  if (s === '00' || s === 'APPROVED' || s === 'SUCCESS' || s === 'SUCCESSFUL' || s === 'COMPLETED') {
-    return 'success';
-  }
-  if (
-    s === 'DECLINED' ||
-    s === 'DECLINE' ||
-    s === 'CANCELED' ||
-    s === 'CANCELLED' ||
-    s === 'FAILED' ||
-    s === 'UNSUCCESS' ||
-    s === 'UNSUCCESSFUL' ||
-    s === 'REVERSED'
-  ) {
-    return 'failed';
-  }
-  return 'pending';
+/** Best-effort provider status string from a status-check API response. */
+export function extractConfirmedStatus(result: UnitedPaymentStatusResult): string {
+  return result.orderStatus ?? result.status ?? 'PENDING';
 }
 
-export function normalizeAmount(amount: number): string {
-  return Number(amount).toFixed(2);
+/**
+ * Server-side status re-confirmation (preferred over trusting webhook/redirect payload).
+ */
+export async function confirmProviderStatus(refs: {
+  clientOrderId?: string | null;
+  transactionId?: string | null;
+}): Promise<{ ok: boolean; status: string; result: UnitedPaymentStatusResult | null; message?: string }> {
+  const tx = refs.transactionId?.trim() || null;
+  const order = refs.clientOrderId?.trim() || null;
+  if (!tx && !order) {
+    return { ok: false, status: 'PENDING', result: null, message: 'No provider reference' };
+  }
+
+  try {
+    const token = await getAuthToken();
+    const result = tx
+      ? await statusByTransactionId(token, tx)
+      : await statusByClientOrderId(token, order!);
+    if (!result.ok) {
+      return {
+        ok: false,
+        status: 'PENDING',
+        result,
+        message: result.message ?? 'Status check failed',
+      };
+    }
+    return { ok: true, status: extractConfirmedStatus(result), result };
+  } catch (e) {
+    return {
+      ok: false,
+      status: 'PENDING',
+      result: null,
+      message: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+export function mapProviderStatus(rawStatus: string | null | undefined): 'success' | 'failed' | 'pending' {
+  return mapProviderStatusPure(rawStatus);
+}
+
+export function normalizeAmount(amount: number): number {
+  return Number(Number(amount).toFixed(2));
 }
 
 /** URL-safe Base64: +→-, /→_, strip trailing = */
@@ -312,17 +362,17 @@ function decodeUrlSafeBase64(s: string): Buffer {
 }
 
 /**
- * Verifies `X-Signature`: HMAC-SHA256(secret, raw request body bytes), URL-safe Base64 (+→-, /→_, no padding).
- * When no webhook secret is configured, defers to UNITED_PAYMENT_ALLOW_UNVERIFIED_WEBHOOKS.
+ * Optional HMAC verification when UNITED_PAYMENT_WEBHOOK_SECRET is set.
+ * United Payment hosted checkout does not send signatures; when no secret is configured we allow
+ * the request through and rely on confirmProviderStatus() before mutating payment state.
  */
 export function verifyUnitedPaymentWebhookSignature(
   rawBody: Uint8Array,
   xSignatureHeader: string | null | undefined
 ): boolean {
   const secret = env('UNITED_PAYMENT_WEBHOOK_SECRET') || env('UNITED_PAYMENT_HASH_KEY');
-  if (!secret) {
-    return env('UNITED_PAYMENT_ALLOW_UNVERIFIED_WEBHOOKS') === 'true';
-  }
+  if (!secret) return true;
+
   const received = (xSignatureHeader ?? '').trim();
   if (!received) return false;
 

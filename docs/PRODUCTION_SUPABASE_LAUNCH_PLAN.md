@@ -152,7 +152,7 @@ Not approved in this PR:
 - No new cash_collection_status column yet
 - No production data backfill
 - No cron
-- No United Payment implementation
+- No United Payment implementation *(superseded — see [docs/UNITED_PAYMENT_INTEGRATION.md](UNITED_PAYMENT_INTEGRATION.md); card checkout now uses United Payment in code)*
 - No provider switch
 - No production deploy
 - No reconciliation of real payment rows

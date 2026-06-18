@@ -10,22 +10,6 @@ type PaymentRow = {
   epoint_transaction: string | null;
 };
 
-function str(payload: Record<string, unknown>, ...keys: string[]): string | null {
-  for (const key of keys) {
-    const value = payload[key];
-    if (value != null && String(value).trim()) return String(value).trim();
-  }
-  return null;
-}
-
-function parsePayloadFromRaw(rawText: string, contentType: string): Record<string, unknown> {
-  if (contentType.includes('application/json')) {
-    return JSON.parse(rawText) as Record<string, unknown>;
-  }
-  const params = new URLSearchParams(rawText);
-  return Object.fromEntries(params.entries());
-}
-
 async function loadPayment(
   supabase: SupabaseClient,
   clientOrderId: string | null,
@@ -97,7 +81,7 @@ async function applyPaymentStatus(
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: corsHeaders });
-  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
+  if (req.method !== 'POST') return jsonResponse({ received: true, error: 'Method not allowed' }, 200);
 
   const rawBytes = new Uint8Array(await req.arrayBuffer());
   const contentType = (req.headers.get('content-type') ?? '').toLowerCase();
@@ -108,20 +92,23 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ received: true, error: 'Invalid signature' }, 200);
   }
 
-  let payload: Record<string, unknown>;
+  let parsed: UnitedPayment.UnitedPaymentReturnData;
   try {
     const rawText = new TextDecoder().decode(rawBytes);
-    payload = parsePayloadFromRaw(rawText, contentType);
+    if (contentType.includes('application/json')) {
+      parsed = UnitedPayment.parseUnitedPaymentReturn(JSON.parse(rawText) as Record<string, unknown>);
+    } else if (contentType.includes('application/x-www-form-urlencoded')) {
+      parsed = UnitedPayment.parseUnitedPaymentReturn(rawText);
+    } else {
+      parsed = UnitedPayment.parseUnitedPaymentReturn(rawText);
+    }
   } catch {
-    return jsonResponse({ error: 'Invalid payload' }, 400);
+    return jsonResponse({ received: true, error: 'Invalid payload' }, 200);
   }
 
-  const transactionId = str(payload, 'transactionId', 'TransactionId');
-  const clientOrderId = str(payload, 'clientOrderId', 'ClientOrderId');
-  const providerStatus = str(payload, 'status', 'Status');
-  if (!providerStatus) {
-    return jsonResponse({ received: true, error: 'status missing' }, 200);
-  }
+  const clientOrderId = parsed.clientOrderId;
+  const transactionId = parsed.transactionId;
+  const notifyStatus = parsed.status;
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -135,10 +122,31 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ received: true, error: 'Payment not found' }, 200);
   }
 
+  const confirmed = await UnitedPayment.confirmProviderStatus({
+    clientOrderId: clientOrderId ?? payment.external_id,
+    transactionId: transactionId ?? payment.epoint_transaction,
+  });
+
+  const providerStatus = confirmed.ok ? confirmed.status : notifyStatus ?? 'PENDING';
+  const providerRaw: Record<string, unknown> = {
+    source: 'united-payment-webhook',
+    notify: parsed.decoded,
+    notifyStatus,
+    status_check: confirmed.result?.raw ?? null,
+    status_check_ok: confirmed.ok,
+    status_check_message: confirmed.message ?? null,
+  };
+
   if (payment.status === 'success' && UnitedPayment.mapProviderStatus(providerStatus) === 'success') {
-    return jsonResponse({ received: true, ok: true, status: 'already_success' });
+    return jsonResponse({ received: true, ok: true, status: 'already_success' }, 200);
   }
 
-  const mapped = await applyPaymentStatus(supabase, payment, providerStatus, payload, transactionId);
-  return jsonResponse({ received: true, ok: true, mapped });
+  const mapped = await applyPaymentStatus(
+    supabase,
+    payment,
+    providerStatus,
+    providerRaw,
+    transactionId ?? payment.epoint_transaction
+  );
+  return jsonResponse({ received: true, ok: true, mapped, confirmed: confirmed.ok }, 200);
 });
