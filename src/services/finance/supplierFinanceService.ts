@@ -2,10 +2,18 @@ import { supabase } from '../../lib/supabase';
 import {
   allocatePaymentsFIFO,
   computeSupplierOutstanding,
-  type AllocatedPurchase,
   type DerivedPurchasePaymentStatus,
 } from '../finance/supplierLedger';
 import type { AnalyticsServiceResponse } from '../../types/analytics';
+
+export interface SupplierManualDebtRow {
+  id: string;
+  amount: number;
+  debtDate: string;
+  notes: string;
+  paid: number;
+  status: DerivedPurchasePaymentStatus;
+}
 
 export interface SupplierAccountPurchase {
   id: string;
@@ -27,12 +35,11 @@ export interface SupplierAccountPaymentRow {
 export interface SupplierAccountSummary {
   supplierId: string;
   supplierName: string;
-  openingBalance: number;
-  openingBalanceDate: string | null;
+  manualDebtsTotal: number;
   creditPurchasesTotal: number;
   paymentsTotal: number;
   outstanding: number;
-  openingRemaining: number;
+  manualDebts: SupplierManualDebtRow[];
   purchases: SupplierAccountPurchase[];
   payments: SupplierAccountPaymentRow[];
 }
@@ -62,8 +69,12 @@ function safeNumber(value: unknown): number {
 }
 
 export async function fetchSupplierAccounts(): Promise<AnalyticsServiceResponse<SupplierAccountSummary[]>> {
-  const [suppliersRes, purchasesRes, paymentsRes] = await Promise.all([
-    supabase.from('suppliers').select('id, name, opening_balance, opening_balance_date').order('name'),
+  const [suppliersRes, debtsRes, purchasesRes, paymentsRes] = await Promise.all([
+    supabase.from('suppliers').select('id, name').order('name'),
+    supabase
+      .from('supplier_debts')
+      .select('id, supplier_id, amount, debt_date, notes')
+      .order('debt_date', { ascending: true }),
     supabase
       .from('purchases')
       .select('id, supplier_id, total_cost, purchase_date, notes, is_on_credit')
@@ -74,14 +85,24 @@ export async function fetchSupplierAccounts(): Promise<AnalyticsServiceResponse<
       .order('paid_date', { ascending: false }),
   ]);
 
-  const firstError = suppliersRes.error ?? purchasesRes.error ?? paymentsRes.error;
+  const firstError = suppliersRes.error ?? debtsRes.error ?? purchasesRes.error ?? paymentsRes.error;
   if (firstError) {
     return { data: null, error: firstError.message };
   }
 
   const suppliers = suppliersRes.data ?? [];
+  const debts = debtsRes.data ?? [];
   const purchases = purchasesRes.data ?? [];
   const payments = paymentsRes.data ?? [];
+
+  const debtsBySupplier = new Map<string, typeof debts>();
+  for (const row of debts) {
+    const sid = row.supplier_id as string;
+    if (!sid) continue;
+    const list = debtsBySupplier.get(sid) ?? [];
+    list.push(row);
+    debtsBySupplier.set(sid, list);
+  }
 
   const purchasesBySupplier = new Map<string, typeof purchases>();
   for (const row of purchases) {
@@ -103,22 +124,25 @@ export async function fetchSupplierAccounts(): Promise<AnalyticsServiceResponse<
 
   const summaries: SupplierAccountSummary[] = suppliers.map((supplier) => {
     const supplierId = supplier.id as string;
-    const openingBalance = safeNumber(supplier.opening_balance);
+    const supplierDebts = debtsBySupplier.get(supplierId) ?? [];
     const supplierPurchases = (purchasesBySupplier.get(supplierId) ?? []).filter((p) => {
       if (p.is_on_credit === false) return false;
-      if (p.is_on_credit == null) {
-        return true;
-      }
+      if (p.is_on_credit == null) return true;
       return Boolean(p.is_on_credit);
     });
-
     const supplierPayments = paymentsBySupplier.get(supplierId) ?? [];
+
+    const debtTotals = supplierDebts.map((d) => safeNumber(d.amount));
     const creditTotals = supplierPurchases.map((p) => safeNumber(p.total_cost));
     const paymentTotals = supplierPayments.map((p) => safeNumber(p.amount));
     const paymentsTotal = paymentTotals.reduce((s, v) => s + v, 0);
 
     const fifo = allocatePaymentsFIFO(
-      openingBalance,
+      supplierDebts.map((d) => ({
+        id: d.id as string,
+        total: safeNumber(d.amount),
+        debtDate: String(d.debt_date).slice(0, 10),
+      })),
       supplierPurchases.map((p) => ({
         id: p.id as string,
         total: safeNumber(p.total_cost),
@@ -127,27 +151,33 @@ export async function fetchSupplierAccounts(): Promise<AnalyticsServiceResponse<
       paymentsTotal,
     );
 
-    const fifoMap = new Map<string, AllocatedPurchase>(
-      fifo.purchases.map((p) => [p.id, p]),
-    );
+    const manualDebtMap = new Map(fifo.manualDebts.map((l) => [l.id, l]));
+    const purchaseMap = new Map(fifo.purchases.map((l) => [l.id, l]));
 
     return {
       supplierId,
       supplierName: String(supplier.name ?? ''),
-      openingBalance,
-      openingBalanceDate: supplier.opening_balance_date
-        ? String(supplier.opening_balance_date).slice(0, 10)
-        : null,
+      manualDebtsTotal: debtTotals.reduce((s, v) => s + v, 0),
       creditPurchasesTotal: creditTotals.reduce((s, v) => s + v, 0),
       paymentsTotal,
       outstanding: computeSupplierOutstanding({
-        openingBalance,
+        manualDebts: debtTotals,
         creditPurchases: creditTotals,
         payments: paymentTotals,
       }),
-      openingRemaining: fifo.openingRemaining,
+      manualDebts: supplierDebts.map((d) => {
+        const alloc = manualDebtMap.get(d.id as string);
+        return {
+          id: d.id as string,
+          amount: safeNumber(d.amount),
+          debtDate: String(d.debt_date).slice(0, 10),
+          notes: String(d.notes ?? ''),
+          paid: alloc?.paid ?? 0,
+          status: alloc?.status ?? 'unpaid',
+        };
+      }),
       purchases: supplierPurchases.map((p) => {
-        const alloc = fifoMap.get(p.id as string);
+        const alloc = purchaseMap.get(p.id as string);
         return {
           id: p.id as string,
           total: safeNumber(p.total_cost),

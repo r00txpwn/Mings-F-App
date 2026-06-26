@@ -1186,6 +1186,12 @@ export interface Translations {
   supplierPayButton: string;
   supplierOpeningBalance: string;
   supplierOpeningBalanceDate: string;
+  supplierAddDebt: string;
+  supplierDebtHistory: string;
+  supplierDebtCleared: string;
+  supplierDebtFromPurchase: string;
+  supplierManualDebt: string;
+  supplierClearDebt: string;
   supplierAccountView: string;
   supplierRecentPayments: string;
   purchaseOnAccount: string;
@@ -1196,6 +1202,9 @@ export interface Translations {
   liabilityTypeLoan: string;
   liabilityTypeOther: string;
   liabilityCounterparty: string;
+  liabilityLenderOwedTo: string;
+  liabilityLenderHelp: string;
+  cashDebtLoansHelp: string;
   liabilityEmpty: string;
   withdrawalLog: string;
   withdrawalMethodCashier: string;
@@ -2467,6 +2476,12 @@ export const translations: Record<Language, Translations> = {
     supplierPayButton: 'Pay supplier',
     supplierOpeningBalance: 'Opening balance',
     supplierOpeningBalanceDate: 'Balance as of',
+    supplierAddDebt: 'Add debt',
+    supplierDebtHistory: 'Debt history',
+    supplierDebtCleared: 'Cleared',
+    supplierDebtFromPurchase: 'Purchase (on account)',
+    supplierManualDebt: 'Manual debt',
+    supplierClearDebt: 'Clear debt',
     supplierAccountView: 'Account',
     supplierRecentPayments: 'Recent payments',
     purchaseOnAccount: 'On account',
@@ -2477,6 +2492,9 @@ export const translations: Record<Language, Translations> = {
     liabilityTypeLoan: 'Loan',
     liabilityTypeOther: 'Other',
     liabilityCounterparty: 'Counterparty',
+    liabilityLenderOwedTo: 'Lender / owed to',
+    liabilityLenderHelp: 'Who you owe — bank name, friend, etc. Supplier debt is tracked on the Suppliers screen.',
+    cashDebtLoansHelp: 'Use this for bank loans and personal debt. Supplier debt belongs on Suppliers.',
     liabilityEmpty: 'No loans or other liabilities yet.',
     withdrawalLog: 'Log withdrawal',
     withdrawalMethodCashier: 'Cashier (0.5%)',
@@ -3751,6 +3769,12 @@ export const translations: Record<Language, Translations> = {
     supplierPayButton: 'Təchizatçıya ödə',
     supplierOpeningBalance: 'Açılış balansı',
     supplierOpeningBalanceDate: 'Balans tarixi',
+    supplierAddDebt: 'Borc əlavə et',
+    supplierDebtHistory: 'Borc tarixçəsi',
+    supplierDebtCleared: 'Bağlanıb',
+    supplierDebtFromPurchase: 'Alış (hesabdan)',
+    supplierManualDebt: 'Manual borc',
+    supplierClearDebt: 'Borcu bağla',
     supplierAccountView: 'Hesab',
     supplierRecentPayments: 'Son ödənişlər',
     purchaseOnAccount: 'Hesabdan',
@@ -3761,6 +3785,9 @@ export const translations: Record<Language, Translations> = {
     liabilityTypeLoan: 'Kredit',
     liabilityTypeOther: 'Digər',
     liabilityCounterparty: 'Kontragent',
+    liabilityLenderOwedTo: 'Kreditor / borclu olduğunuz',
+    liabilityLenderHelp: 'Kimə borclusunuz — bank, dost və s. Təchizatçı borcu Təchizatçılar ekranındadır.',
+    cashDebtLoansHelp: 'Bank kreditləri və şəxsi borclar üçün. Təchizatçı borcu Təchizatçılar ekranındadır.',
     liabilityEmpty: 'Hələ kredit və ya digər öhdəlik yoxdur.',
     withdrawalLog: 'Çıxarış qeyd et',
     withdrawalMethodCashier: 'Kassir (0.5%)',
@@ -5036,6 +5063,12 @@ export const translations: Record<Language, Translations> = {
     supplierPayButton: 'Оплатить поставщику',
     supplierOpeningBalance: 'Начальный остаток',
     supplierOpeningBalanceDate: 'Остаток на дату',
+    supplierAddDebt: 'Добавить долг',
+    supplierDebtHistory: 'История долга',
+    supplierDebtCleared: 'Погашено',
+    supplierDebtFromPurchase: 'Закупка (в долг)',
+    supplierManualDebt: 'Ручной долг',
+    supplierClearDebt: 'Погасить долг',
     supplierAccountView: 'Счёт',
     supplierRecentPayments: 'Недавние платежи',
     purchaseOnAccount: 'В долг',
@@ -5046,6 +5079,9 @@ export const translations: Record<Language, Translations> = {
     liabilityTypeLoan: 'Кредит',
     liabilityTypeOther: 'Прочее',
     liabilityCounterparty: 'Контрагент',
+    liabilityLenderOwedTo: 'Кредитор / кому должны',
+    liabilityLenderHelp: 'Кому вы должны — банк, друг и т.д. Долг поставщикам — на экране Поставщики.',
+    cashDebtLoansHelp: 'Для банковских кредитов и личных долгов. Долг поставщикам — на экране Поставщики.',
     liabilityEmpty: 'Кредитов и прочих обязательств пока нет.',
     withdrawalLog: 'Записать снятие',
     withdrawalMethodCashier: 'Касса (0.5%)',

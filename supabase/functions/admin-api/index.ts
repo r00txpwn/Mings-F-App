@@ -26,6 +26,7 @@ const TABLE_MIN_ROLE: Record<string, StaffRole[]> = {
   expense_items: ['admin', 'manager'],
   suppliers: ['admin', 'manager'],
   supplier_account_payments: ['admin', 'manager'],
+  supplier_debts: ['admin', 'manager'],
   liabilities: ['admin', 'manager'],
   liability_payments: ['admin', 'manager'],
   bank_withdrawals: ['admin', 'manager'],

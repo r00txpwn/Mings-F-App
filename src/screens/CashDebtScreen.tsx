@@ -200,6 +200,10 @@ export function CashDebtScreen() {
         </div>
       ) : null}
 
+      {activeTab === 'loans' ? (
+        <p className="text-sm text-slate-500">{t.cashDebtLoansHelp}</p>
+      ) : null}
+
       <div className="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
         <button
           type="button"
@@ -245,10 +249,11 @@ export function CashDebtScreen() {
                 </select>
                 <input
                   className="cockpit-input"
-                  placeholder={t.liabilityCounterparty}
+                  placeholder={t.liabilityLenderOwedTo}
                   value={liabilityForm.counterparty}
                   onChange={(e) => setLiabilityForm((p) => ({ ...p, counterparty: e.target.value }))}
                 />
+                <p className="text-xs text-slate-500 sm:col-span-2">{t.liabilityLenderHelp}</p>
                 <input
                   type="number"
                   min="0"

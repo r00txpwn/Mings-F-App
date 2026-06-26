@@ -211,6 +211,16 @@ export interface SupplierAccountPayment {
   created_at: string;
 }
 
+export interface SupplierDebt {
+  id: string;
+  supplier_id: string;
+  amount: number;
+  debt_date: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface Liability {
   id: string;
   type: 'loan' | 'other';

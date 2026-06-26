@@ -6,43 +6,69 @@ export interface CreditPurchaseInput {
   purchaseDate: string;
 }
 
-export interface AllocatedPurchase {
+export interface ManualDebtInput {
+  id: string;
+  total: number;
+  debtDate: string;
+}
+
+export interface LedgerLineInput {
+  id: string;
+  total: number;
+  lineDate: string;
+  source: 'manual' | 'purchase';
+}
+
+export interface AllocatedLine {
   id: string;
   total: number;
   paid: number;
   status: DerivedPurchasePaymentStatus;
+  source: 'manual' | 'purchase';
 }
 
 export interface SupplierOutstandingInput {
-  openingBalance: number;
+  manualDebts: number[];
   creditPurchases: number[];
   payments: number[];
 }
 
 export function computeSupplierOutstanding(input: SupplierOutstandingInput): number {
-  const opening = safeAmount(input.openingBalance);
+  const debts = sum(input.manualDebts);
   const purchases = sum(input.creditPurchases);
   const paid = sum(input.payments);
-  return roundMoney(Math.max(0, opening + purchases - paid));
+  return roundMoney(Math.max(0, debts + purchases - paid));
 }
 
 export function allocatePaymentsFIFO(
-  openingBalance: number,
+  manualDebts: ManualDebtInput[],
   purchases: CreditPurchaseInput[],
   totalPaid: number,
-): { openingPaid: number; openingRemaining: number; purchases: AllocatedPurchase[] } {
+): {
+  manualDebts: AllocatedLine[];
+  purchases: AllocatedLine[];
+  totalRemaining: number;
+} {
+  const lines: LedgerLineInput[] = [
+    ...manualDebts.map((d) => ({
+      id: d.id,
+      total: d.total,
+      lineDate: d.debtDate,
+      source: 'manual' as const,
+    })),
+    ...purchases.map((p) => ({
+      id: p.id,
+      total: p.total,
+      lineDate: p.purchaseDate,
+      source: 'purchase' as const,
+    })),
+  ].sort((a, b) => a.lineDate.localeCompare(b.lineDate) || a.id.localeCompare(b.id));
+
   let remainingPayment = safeAmount(totalPaid);
-  const opening = safeAmount(openingBalance);
+  const allocated: AllocatedLine[] = [];
 
-  const openingPaid = Math.min(opening, remainingPayment);
-  remainingPayment -= openingPaid;
-  const openingRemaining = roundMoney(opening - openingPaid);
-
-  const sorted = [...purchases].sort((a, b) => a.purchaseDate.localeCompare(b.purchaseDate));
-  const allocated: AllocatedPurchase[] = [];
-
-  for (const purchase of sorted) {
-    const total = safeAmount(purchase.total);
+  for (const line of lines) {
+    const total = safeAmount(line.total);
     const paid = Math.min(total, remainingPayment);
     remainingPayment -= paid;
 
@@ -51,17 +77,44 @@ export function allocatePaymentsFIFO(
     else if (paid > 0) status = 'partial';
 
     allocated.push({
-      id: purchase.id,
+      id: line.id,
       total: roundMoney(total),
       paid: roundMoney(paid),
       status,
+      source: line.source,
     });
   }
 
+  const manualAllocated = allocated.filter((l) => l.source === 'manual');
+  const purchaseAllocated = allocated.filter((l) => l.source === 'purchase');
+  const totalDebt = sum(lines.map((l) => l.total));
+  const totalRemaining = roundMoney(Math.max(0, totalDebt - safeAmount(totalPaid)));
+
   return {
-    openingPaid: roundMoney(openingPaid),
+    manualDebts: manualAllocated,
+    purchases: purchaseAllocated,
+    totalRemaining,
+  };
+}
+
+/** @deprecated Use allocatePaymentsFIFO with manualDebts array. Kept for tests migrating from openingBalance. */
+export function allocatePaymentsFIFOFromOpening(
+  openingBalance: number,
+  purchases: CreditPurchaseInput[],
+  totalPaid: number,
+): { openingPaid: number; openingRemaining: number; purchases: AllocatedLine[] } {
+  const manualDebts: ManualDebtInput[] =
+    openingBalance > 0
+      ? [{ id: '__opening__', total: openingBalance, debtDate: '0000-01-01' }]
+      : [];
+  const result = allocatePaymentsFIFO(manualDebts, purchases, totalPaid);
+  const openingLine = result.manualDebts.find((l) => l.id === '__opening__');
+  const openingPaid = openingLine?.paid ?? 0;
+  const openingRemaining = roundMoney(Math.max(0, openingBalance - openingPaid));
+  return {
+    openingPaid,
     openingRemaining,
-    purchases: allocated,
+    purchases: result.purchases,
   };
 }
 

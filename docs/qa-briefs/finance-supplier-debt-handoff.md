@@ -1,62 +1,40 @@
 ## Cursor → QA handoff
 
-**Status:** Implementation complete; production DB + `admin-api` deployed. Frontend needs merge/deploy to production staff host.
+**Status:** Supplier debt ledger rework + finance table grants fix applied on production. Frontend needs local preview / merge.
 
 **Summary**
 
-Supplier debt as a running account (opening balance + on-credit purchases − lump payments), FIFO display badges, Cash & Debt screen (loans/other + bank withdrawals), and Net Profit KPI (`operatingProfit − bankFees`). Payments reconciliation screen (phase 1) included in same branch.
+- **Suppliers screen:** dated manual debt entries (add/edit/delete), on-account purchases accrue automatically, lump-sum **Clear debt** payments reduce running balance, full history on expanded card.
+- **Cash & Debt:** bank/friend loans (label: Lender / owed to) + bank withdrawals. Supplier debt stays on Suppliers.
+- **Bug fix:** `permission denied for table liabilities` — finance tables now have correct `GRANT`s.
 
-**Production backend (already applied)**
+**Production backend (applied)**
 
-- Project: `dmrvycswdteuhfydchdr` (`https://dmrvycswdteuhfydchdr.supabase.co`)
-- Migration `20260626150000` DDL applied manually (history was drifted; tables now exist)
-- `admin-api` redeployed with allowlist for `supplier_account_payments`, `liabilities`, `liability_payments`, `bank_withdrawals`
+- Project: `dmrvycswdteuhfydchdr`
+- Migrations: `20260626150000` (DDL), `20260626163000` (grants + `supplier_debts`)
+- `admin-api` deployed with `supplier_debts` allowlist
 
-**Commit**
+**URLs (local preview after `npm run deploy:local`)**
 
-- Branch: `session/2026-06-26-finance-supplier-debt`
-- SHA: `9cecd0becc4a748f47e8a931388adba0fb25a6fb`
-
-**Surfaces / URLs to test (local preview)**
-
-From repo root: `npm run deploy:local` → verify `http://127.0.0.1:4175/build-meta.json` `gitSha` matches `git rev-parse HEAD`.
-
-- Home KPIs: `http://127.0.0.1:4175/spec-ops?screen=home`
-- Suppliers (opening balance, pay supplier, FIFO): `http://127.0.0.1:4175/spec-ops?screen=suppliers`
+- Suppliers: `http://127.0.0.1:4175/spec-ops?screen=suppliers`
 - Cash & Debt: `http://127.0.0.1:4175/spec-ops?screen=liabilities`
-- Payments reconciliation: `http://127.0.0.1:4175/spec-ops?screen=payments`
+- Home KPIs: `http://127.0.0.1:4175/spec-ops?screen=home`
 
 **Scenarios to verify**
 
-1. **Opening balance** — Set supplier opening balance ₼1200 on Suppliers screen; outstanding shows ₼1200.
-2. **On-account purchase** — Log purchase as On account; outstanding increases; COGS still counts purchase.
-3. **Lump payment** — Pay supplier ₼500; outstanding decreases; FIFO badges update (no per-invoice marking).
-4. **Bank withdrawal** — Log cashier withdrawal; fee appears; Home Net Profit = operating profit − fees.
-5. **Regression** — Operating profit unchanged when no withdrawals; Kiosk/order payment flows unaffected.
+1. **Add manual debt** — Supplier ABC → Add debt ₼100 → card shows Owed ₼100.
+2. **On-account purchase** — Log purchase On account → outstanding increases; appears in debt history.
+3. **Clear debt** — Lump payment ₼60 → outstanding drops; payment in history; cleared when zero.
+4. **Edit/delete debt** — Edit amount or delete manual entry; balance recalculates.
+5. **Liabilities screen** — Loads without permission error; add bank loan with Lender field.
+6. **Bank withdrawal** — Fee hits Net Profit on Home.
 
-**Credentials**
-
-Staff cockpit login required (Google or email/password). Use admin or manager account.
+**Credentials:** Staff cockpit login (admin or manager).
 
 ---
 
-## Claude Extension — QA session (fresh context)
+## Claude Extension — QA session
 
-You are performing **second-pass QA** for Ming's OS finance debt features on the **staff cockpit** (`spec-ops`).
+Test staff cockpit finance debt on `http://127.0.0.1:4175/spec-ops?screen=…` after `npm run deploy:local`. Confirm `build-meta.json` `gitSha` matches `git rev-parse HEAD`.
 
-### Where to test
-- Local: `http://127.0.0.1:4175/spec-ops?screen=…` after `npm run deploy:local`
-- Confirm `http://127.0.0.1:4175/build-meta.json` `gitSha` matches repo `git rev-parse HEAD`
-
-### Scenarios (pass/fail each)
-1. Supplier opening balance → outstanding
-2. On-account purchase → outstanding + COGS
-3. Lump supplier payment → FIFO badges
-4. Bank withdrawal → Net Profit KPI
-5. Regression: no bank fees → net profit equals operating profit
-
-### When done
-From repo root:
-```bash
-npm run qa:result -- --issue <ISSUE-ID> --pass
-```
+Pass/fail each scenario above. When done: `npm run qa:result -- --issue <ID> --pass`
