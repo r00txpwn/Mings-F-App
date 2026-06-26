@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-06-25T17:59:44.765Z
+## Last Run: 2026-06-26T07:49:15.130Z
 
 | Check | Status |
 |-------|--------|
@@ -22,7 +22,7 @@
 
 [1m[46m RUN [49m[22m [36mv3.2.4 [39m[90m/home/runner/work/Mings-F-App/Mings-F-App[39m
 
- [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateRevenueVsChannels[2m > [22mreturns no issues when totals match within epsilon[32m 4[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateRevenueVsChannels[2m > [22mreturns no issues when totals match within epsilon[32m 3[2mms[22m[39m
  [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateRevenueVsChannels[2m > [22mreturns mismatch issue when totals differ beyond epsilon[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateRevenueVsChannels[2m > [22mreturns no issues when channelTotal is null/undefined[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateNetFormula[2m > [22mreturns no issues for consistent data[32m 0[2mms[22m[39m
