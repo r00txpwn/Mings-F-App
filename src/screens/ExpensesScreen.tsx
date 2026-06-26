@@ -9,6 +9,7 @@ import { ManageCategoriesTab } from './expenses/ManageCategoriesTab';
 import { PageHeader } from '../components/cockpit';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { SingleDatePicker } from '../components/SingleDatePicker';
+import { isOnCreditFromPurchase, purchaseCreditFields } from '../services/finance/purchaseCredit';
 
 interface MasterCategory {
   id: string;
@@ -49,6 +50,7 @@ interface Purchase {
   total_cost: number;
   purchase_date: string;
   payment_status: 'pending' | 'partial' | 'paid';
+  is_on_credit?: boolean;
   notes: string;
   products?: { name: string; unit: string };
   suppliers?: { name: string };
@@ -317,7 +319,7 @@ export function ExpensesScreen() {
         quantity: pur.quantity,
         unit_cost: pur.unit_cost,
         purchase_date: new Date(pur.purchase_date).toISOString().split('T')[0],
-        payment_status: pur.payment_status,
+        is_on_credit: isOnCreditFromPurchase(pur),
         notes: pur.notes || '',
       });
       setShowPurchaseForm(true);
@@ -359,7 +361,7 @@ export function ExpensesScreen() {
     quantity: 1,
     unit_cost: 0,
     purchase_date: new Date().toISOString().split('T')[0],
-    payment_status: 'pending' as 'pending' | 'partial' | 'paid',
+    is_on_credit: true,
     notes: '',
   });
 
@@ -551,8 +553,8 @@ export function ExpensesScreen() {
       unit_cost: purchaseFormData.unit_cost,
       total_cost,
       purchase_date: purchaseFormData.purchase_date,
-      payment_status: purchaseFormData.payment_status,
       notes: purchaseFormData.notes,
+      ...purchaseCreditFields(purchaseFormData.is_on_credit),
     };
 
     if (editingPurchase) {
@@ -625,7 +627,7 @@ export function ExpensesScreen() {
       quantity: 1,
       unit_cost: 0,
       purchase_date: toLocalDateInput(new Date()),
-      payment_status: 'pending',
+      is_on_credit: true,
       notes: '',
     });
     setEditingPurchase(null);
@@ -1165,16 +1167,31 @@ export function ExpensesScreen() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.paymentStatus}</label>
-                  <select
-                    value={purchaseFormData.payment_status}
-                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, payment_status: e.target.value as 'pending' | 'partial' | 'paid' }))}
-                    className="cockpit-select"
-                  >
-                    <option value="pending">{t.pending}</option>
-                    <option value="partial">{t.partial}</option>
-                    <option value="paid">{t.paid}</option>
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.purchasePaymentMode}</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseFormData((prev) => ({ ...prev, is_on_credit: true }))}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                        purchaseFormData.is_on_credit
+                          ? 'border-cockpit-500 bg-cockpit-500/20 text-white'
+                          : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {t.purchaseOnAccount}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseFormData((prev) => ({ ...prev, is_on_credit: false }))}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                        !purchaseFormData.is_on_credit
+                          ? 'border-cockpit-500 bg-cockpit-500/20 text-white'
+                          : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {t.purchasePaidNow}
+                    </button>
+                  </div>
                 </div>
               </div>
 

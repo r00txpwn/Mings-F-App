@@ -18,6 +18,8 @@ export interface ExecutiveKpis {
   opex: number;
   grossMarginPct: number;
   operatingProfit: number;
+  bankFees: number;
+  netProfit: number;
   avgOrderValue: number;
   orderCount: number;
 }
@@ -203,6 +205,7 @@ export interface PeriodSummary {
   orderCount: number;
   cogs: number;
   opex: number;
+  bankFees: number;
 }
 
 export interface PeriodSummaryParams extends DateRangeParams {

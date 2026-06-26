@@ -21,6 +21,8 @@ import { DeliveryScreen } from './screens/DeliveryScreen';
 import { OrderLocationsScreen } from './screens/OrderLocationsScreen';
 import { CombosScreen } from './screens/CombosScreen';
 import { AdminOrderSupportScreen } from './screens/AdminOrderSupportScreen';
+import { PaymentsScreen } from './screens/PaymentsScreen';
+import { CashDebtScreen } from './screens/CashDebtScreen';
 import {
   CockpitLayout,
   readCockpitScreenFromUrl,
@@ -106,6 +108,10 @@ function AppContent() {
         return <CombosScreen />;
       case 'money':
         return <MoneyScreen />;
+      case 'payments':
+        return <PaymentsScreen />;
+      case 'liabilities':
+        return <CashDebtScreen />;
       case 'reports':
         return <ReportsScreen />;
       case 'products':

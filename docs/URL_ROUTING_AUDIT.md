@@ -58,7 +58,7 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | Location | Behavior | Risk / note |
 |----------|----------|-------------|
 | `App.tsx` | Non-staff logged-in users → `StaffAccessDeniedScreen` (no auto-redirect to `/order`). | OK. |
-| `App.tsx` | On the **admin host** or at **`/spec-ops`** (default local admin path), `?screen=` selects cockpit screens. Sidebar nav is grouped (Overview / Orders / Catalog / Finance / System) and collapsible; default `?screen=home` is the executive dashboard. | **Local QA URL:** `http://127.0.0.1:4175/spec-ops?screen=home` — not root `/?screen=…` (see `getResolvedAdminPath()`). |
+| `App.tsx` | On the **admin host** or at **`/spec-ops`** (default local admin path), `?screen=` selects cockpit screens. Sidebar nav is grouped (Overview / Orders / Catalog / Finance / System) and collapsible; default `?screen=home` is the executive dashboard. Finance includes **`?screen=payments`** (online payment list + provider re-check) and **`?screen=liabilities`** (loans/other debt + bank withdrawal log). Supplier account balances (opening balance, lump-sum pay, FIFO) live on **`?screen=suppliers`**. | **Local QA URL:** `http://127.0.0.1:4175/spec-ops?screen=home` — not root `/?screen=…` (see `getResolvedAdminPath()`). Payments: `http://127.0.0.1:4175/spec-ops?screen=payments`. Cash & debt: `http://127.0.0.1:4175/spec-ops?screen=liabilities`. |
 | `OrderApp.tsx` | E-point success → external `checkoutUrl`. Done screen → `/track?token=`. | External URL must be trusted (payment provider). |
 | `PublicNotFound.tsx` | Denied/404 messaging for root + unknown paths. | No storefront auto-redirect from `/` or invalid paths. |
 | `StaffAccessDeniedScreen.tsx` | Link via `getPublicOrderUrl()` (`VITE_PUBLIC_ORDER_URL` or same-origin `/order`). | OK. |
@@ -75,6 +75,7 @@ Invoked from the browser (or webhooks):
 | `online-order-create` | `invokeEdgeFunction` POST (`OrderApp`) | Bearer: user JWT or anon key. |
 | `epoint-create-payment` | `invokeEdgeFunction` POST (`OrderApp`) | Same. |
 | `user-management` | `UsersScreen` GET `…/user-management/list`, POST `…/create`, DELETE `…/delete/:id`, PUT `…/update-role`, PUT `…/reset-password` | Bearer: staff session JWT. **Admin-only** (role `admin` in `public.users` or JWT claim). |
+| `admin-payment-recheck` | `PaymentsScreen` POST via `recheckPayment()` (`src/lib/adminApi.ts`) | Bearer: staff session JWT. **Admin/manager only**; routes to `payment-reconcile` or `united-payment-status-check` using `PAYMENT_RECONCILE_SECRET` server-side. Writes `admin_audit_log`. |
 | `epoint-webhook` | Server-to-server (E-point) | Not a browser route. |
 | `wolt-drive-*` | Backend / integrations | Not audited as SPA paths. |
 

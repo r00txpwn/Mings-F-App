@@ -24,6 +24,7 @@ import {
   getPreviousPeriodRange,
   validateAnalyticsSnapshot,
 } from '../services/analytics';
+import { fetchTotalOutstandingDebt } from '../services/finance/supplierFinanceService';
 import type {
   AnalyticsSourceFilter,
   ChannelPerformance,
@@ -96,6 +97,7 @@ export function HomeScreen() {
   const [orderMetricView, setOrderMetricView] = useState<'aov' | 'orders'>('orders');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [outstandingDebt, setOutstandingDebt] = useState<number | null>(null);
 
   const dateRange = useMemo(
     () => getDateRange(preset, customStartDate, customEndDate),
@@ -121,6 +123,7 @@ export function HomeScreen() {
       summaryRes,
       prevSummaryRes,
       operationalRes,
+      debtRes,
     ] = await Promise.all([
       fetchRevenueCostTrend({ ...params, granularity: 'day' }),
       fetchExpenseBreakdown({ startDate, endDate, scope: 'all' }),
@@ -129,6 +132,7 @@ export function HomeScreen() {
       fetchPeriodSummary(params),
       fetchPeriodSummary({ ...previousRange, source: sourceFilter }),
       fetchDashboardOperationalData(params),
+      fetchTotalOutstandingDebt(),
     ]);
 
     const firstError =
@@ -152,6 +156,7 @@ export function HomeScreen() {
     setCurrentSummary(summaryRes.data);
     setPreviousSummary(prevSummaryRes.data);
     setOperationalData(operationalRes.data);
+    setOutstandingDebt(debtRes.data ?? null);
 
     if (selectedChannels.size === 0 && channels.length > 0) {
       setSelectedChannels(new Set(channels.map((c) => c.channelId)));
@@ -175,6 +180,7 @@ export function HomeScreen() {
       refunds: summary.refunds,
       cogs: summary.cogs,
       opex: summary.opex,
+      bankFees: summary.bankFees ?? 0,
       orderCount: summary.orderCount,
     });
   }, [currentSummary, trendData]);
@@ -187,6 +193,7 @@ export function HomeScreen() {
       refunds: previousSummary.refunds,
       cogs: previousSummary.cogs,
       opex: previousSummary.opex,
+      bankFees: previousSummary.bankFees ?? 0,
       orderCount: previousSummary.orderCount,
     });
   }, [previousSummary]);
@@ -237,8 +244,24 @@ export function HomeScreen() {
         delta: deltaFor(kpis.operatingProfit, prev?.operatingProfit),
         trendOverride: kpis.operatingProfit >= 0 ? 'up' : 'down',
       },
+      {
+        label: t.netProfitLabel,
+        value: `₼${kpis.netProfit.toFixed(2)}`,
+        subtitle: t.kpiNetProfitHint.replace('{fees}', kpis.bankFees.toFixed(2)),
+        delta: deltaFor(kpis.netProfit, prev?.netProfit),
+        trendOverride: kpis.netProfit >= 0 ? 'up' : 'down',
+      },
+      ...(outstandingDebt != null
+        ? [
+            {
+              label: t.outstandingDebtLabel,
+              value: `₼${outstandingDebt.toFixed(2)}`,
+              subtitle: t.outstandingDebtHint,
+            },
+          ]
+        : []),
     ];
-  }, [comparePrevious, kpis, previousKpis, t]);
+  }, [comparePrevious, kpis, previousKpis, outstandingDebt, t]);
 
   const financeTrendSeries = useMemo(
     () => [

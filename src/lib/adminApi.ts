@@ -92,3 +92,55 @@ export async function adminUpsert<T = unknown>(
 ): Promise<AdminMutateResult<T>> {
   return adminMutate<T>({ table, operation: 'upsert', payload });
 }
+
+export type PaymentRecheckResult = {
+  ok?: boolean;
+  outcome?: string;
+  mapped?: string;
+  providerStatus?: string;
+  error?: string | { message?: string; code?: string };
+  detail?: string;
+  log_id?: string;
+  result?: unknown;
+};
+
+/** Staff bridge → provider status re-check (admin/manager only; server-side). */
+export async function recheckPayment(onlinePaymentId: string): Promise<AdminMutateResult<PaymentRecheckResult>> {
+  const token = await getAccessToken();
+  if (!token) {
+    return { ok: false, error: 'Not signed in', code: 'UNAUTHORIZED' };
+  }
+
+  const { data, error } = await supabase.functions.invoke('admin-payment-recheck', {
+    body: { online_payment_id: onlinePaymentId },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (error) {
+    let message = error.message;
+    if (error && typeof error === 'object' && 'context' in error) {
+      const ctx = (error as { context?: Response }).context;
+      if (ctx instanceof Response) {
+        try {
+          const body = await ctx.clone().json();
+          message = body?.error?.message ?? body?.error ?? message;
+        } catch {
+          // keep generic message
+        }
+      }
+    }
+    return { ok: false, error: message, code: 'EDGE_ERROR' };
+  }
+
+  const res = data as PaymentRecheckResult | null;
+  if (res?.ok === false) {
+    const err = res.error;
+    return {
+      ok: false,
+      error: typeof err === 'object' && err != null ? err.message ?? 'Recheck failed' : String(err ?? 'Recheck failed'),
+      code: typeof err === 'object' && err != null ? err.code : undefined,
+    };
+  }
+
+  return { ok: true, data: res ?? null };
+}

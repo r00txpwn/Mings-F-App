@@ -508,7 +508,7 @@ export async function fetchPeriodSummary(
 
   salesQuery = applyAnalyticsSourceFilter(salesQuery, params.source);
 
-  const [salesRes, opexRes, purchasesRes] = await Promise.all([
+  const [salesRes, opexRes, purchasesRes, withdrawalsRes] = await Promise.all([
     salesQuery,
     supabase
       .from('operational_expenses')
@@ -520,6 +520,11 @@ export async function fetchPeriodSummary(
       .select('total_cost')
       .gte('purchase_date', params.startDate)
       .lte('purchase_date', params.endDate),
+    supabase
+      .from('bank_withdrawals')
+      .select('fee_amount')
+      .gte('withdrawal_date', params.startDate)
+      .lte('withdrawal_date', params.endDate),
   ]);
 
   const firstError = salesRes.error ?? opexRes.error ?? purchasesRes.error;
@@ -548,6 +553,13 @@ export async function fetchPeriodSummary(
     (sum, row) => sum + safeNumber(row.total_cost),
     0,
   );
+  const bankFees =
+    withdrawalsRes.error || !withdrawalsRes.data
+      ? 0
+      : (withdrawalsRes.data as { fee_amount: number | string | null }[]).reduce(
+          (sum, row) => sum + safeNumber(row.fee_amount),
+          0,
+        );
 
   return {
     data: {
@@ -558,6 +570,7 @@ export async function fetchPeriodSummary(
       orderCount: orderIds.size > 0 ? orderIds.size : sales.length,
       cogs,
       opex,
+      bankFees,
     },
     error: null,
   };

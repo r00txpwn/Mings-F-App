@@ -8,6 +8,8 @@ export type CockpitScreen =
   | 'menu-builder'
   | 'combos'
   | 'money'
+  | 'payments'
+  | 'liabilities'
   | 'reports'
   | 'products'
   | 'suppliers'
@@ -29,6 +31,8 @@ export const ALL_COCKPIT_SCREENS: CockpitScreen[] = [
   'menu-builder',
   'combos',
   'money',
+  'payments',
+  'liabilities',
   'reports',
   'products',
   'suppliers',
@@ -57,6 +61,8 @@ export interface CockpitNavItem {
     | 'expenses'
     | 'payouts'
     | 'money'
+    | 'payments'
+    | 'cashDebt'
     | 'reports'
     | 'users'
     | 'settings';
@@ -74,6 +80,8 @@ export const COCKPIT_NAV_ITEMS: CockpitNavItem[] = [
   { id: 'products', section: 'catalog', labelKey: 'products' },
   { id: 'suppliers', section: 'catalog', labelKey: 'suppliers' },
   { id: 'sales', section: 'finance', labelKey: 'sales' },
+  { id: 'payments', section: 'finance', labelKey: 'payments' },
+  { id: 'liabilities', section: 'finance', labelKey: 'cashDebt' },
   { id: 'money', section: 'finance', labelKey: 'money' },
   { id: 'expenses', section: 'finance', labelKey: 'expenses' },
   { id: 'payouts', section: 'finance', labelKey: 'payouts' },

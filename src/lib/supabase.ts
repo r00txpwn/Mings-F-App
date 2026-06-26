@@ -118,6 +118,23 @@ export interface SaleItem {
   prepared_at?: string | null;
 }
 
+export interface OnlinePayment {
+  id: string;
+  sale_id: string;
+  provider: string | null;
+  status: string | null;
+  amount: number | null;
+  currency: string | null;
+  external_id: string | null;
+  epoint_transaction: string | null;
+  epoint_status: string | null;
+  raw_payload: Record<string, unknown> | null;
+  paid_at: string | null;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
 export interface Sale {
   id: string;
   product_id: string | null;
@@ -177,8 +194,59 @@ export interface Supplier {
   address: string;
   notes: string;
   is_active: boolean;
+  opening_balance?: number;
+  opening_balance_date?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface SupplierAccountPayment {
+  id: string;
+  supplier_id: string;
+  amount: number;
+  paid_date: string;
+  payment_method: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface Liability {
+  id: string;
+  type: 'loan' | 'other';
+  counterparty: string;
+  principal_amount: number;
+  currency: string;
+  incurred_date: string;
+  due_date: string | null;
+  notes: string;
+  status: 'open' | 'partially_paid' | 'settled';
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LiabilityPayment {
+  id: string;
+  liability_id: string;
+  amount: number;
+  paid_date: string;
+  payment_method: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface BankWithdrawal {
+  id: string;
+  amount: number;
+  method: 'cashier' | 'abb_atm';
+  fee_rate: number;
+  fee_amount: number;
+  withdrawal_date: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface Product {

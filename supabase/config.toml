@@ -34,6 +34,10 @@ verify_jwt = false
 [functions."admin-api"]
 verify_jwt = false
 
+# Staff payment re-check bridge — JWT validated inside function (admin/manager).
+[functions."admin-payment-recheck"]
+verify_jwt = false
+
 # KDS status updates — gated by x-kds-secret (KDS_SECRET env) when set.
 [functions."kds-order-status-update"]
 verify_jwt = false

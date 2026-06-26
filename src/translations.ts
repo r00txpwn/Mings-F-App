@@ -82,6 +82,7 @@ export interface Translations {
   kpiNetRevenueHint: string;
   /** KPI card helper line under Operating Profit */
   kpiOperatingProfitHint: string;
+  kpiNetProfitHint: string;
   comparePreviousPeriod: string;
   netProfitLabel: string;
   sourceFilter: string;
@@ -1136,6 +1137,74 @@ export interface Translations {
   orderSupportOrderActions: string;
   orderSupportPrepareQuick: string;
   orderSupportScheduledHint: string;
+  payments: string;
+  paymentsScreenTitle: string;
+  paymentsScreenDescription: string;
+  paymentsFilterAll: string;
+  paymentsFilterPending: string;
+  paymentsFilterSuccess: string;
+  paymentsFilterFailed: string;
+  paymentsProviderAll: string;
+  paymentsSearch: string;
+  paymentsFound: string;
+  paymentsNoRows: string;
+  paymentsColTime: string;
+  paymentsColOrder: string;
+  paymentsColCustomer: string;
+  paymentsColAmount: string;
+  paymentsColProvider: string;
+  paymentsColPaymentStatus: string;
+  paymentsColSaleStatus: string;
+  paymentsColMismatch: string;
+  paymentsMismatchYes: string;
+  paymentsDetailProvider: string;
+  paymentsDetailClientOrderId: string;
+  paymentsDetailTransactionId: string;
+  paymentsDetailProviderStatus: string;
+  paymentsDetailPaidAt: string;
+  paymentsDetailError: string;
+  paymentsDetailRawPayload: string;
+  paymentsRecheckButton: string;
+  paymentsRechecking: string;
+  paymentsRecheckSuccess: string;
+  paymentsRecheckFailed: string;
+  paymentsRecheckForbidden: string;
+  paymentsStatusPending: string;
+  paymentsStatusSuccess: string;
+  paymentsStatusFailed: string;
+  paymentsProviderEpoint: string;
+  paymentsProviderUnited: string;
+  paymentsProviderOther: string;
+  cashDebt: string;
+  cashDebtScreenTitle: string;
+  cashDebtScreenDescription: string;
+  cashDebtTabLoans: string;
+  cashDebtTabWithdrawals: string;
+  outstandingDebtLabel: string;
+  outstandingDebtHint: string;
+  supplierOutstanding: string;
+  supplierPayButton: string;
+  supplierOpeningBalance: string;
+  supplierOpeningBalanceDate: string;
+  supplierAccountView: string;
+  supplierRecentPayments: string;
+  purchaseOnAccount: string;
+  purchasePaidNow: string;
+  purchasePaymentMode: string;
+  liabilityAdd: string;
+  liabilityRecordPayment: string;
+  liabilityTypeLoan: string;
+  liabilityTypeOther: string;
+  liabilityCounterparty: string;
+  liabilityEmpty: string;
+  withdrawalLog: string;
+  withdrawalMethodCashier: string;
+  withdrawalMethodAbbAtm: string;
+  withdrawalFeePreview: string;
+  withdrawalFeesPeriodTotal: string;
+  withdrawalEmpty: string;
+  withdrawalMethod: string;
+  withdrawalFee: string;
   deliveryScreenTitle: string;
   orderLocations: string;
   orderLocationsTitle: string;
@@ -1323,6 +1392,7 @@ export const translations: Record<Language, Translations> = {
     aov: 'AOV',
     kpiNetRevenueHint: 'After COGS',
     kpiOperatingProfitHint: 'After COGS & OPEX',
+    kpiNetProfitHint: 'After bank fees (₼{fees})',
     comparePreviousPeriod: 'Compare vs prior period',
     netProfitLabel: 'Net profit',
     sourceFilter: 'Source',
@@ -2348,6 +2418,74 @@ export const translations: Record<Language, Translations> = {
     orderSupportPrepareQuick: 'Prepare (15 min)',
     orderSupportScheduledHint:
       'This order is scheduled. Reminder timing is safest from Order Manager; you can still view details here.',
+    payments: 'Payments',
+    paymentsScreenTitle: 'Payments',
+    paymentsScreenDescription: 'View online payment records, detect mismatches, and re-check status with the provider',
+    paymentsFilterAll: 'All',
+    paymentsFilterPending: 'Pending',
+    paymentsFilterSuccess: 'Paid',
+    paymentsFilterFailed: 'Failed',
+    paymentsProviderAll: 'All providers',
+    paymentsSearch: 'Search by order #, customer, phone, transaction id',
+    paymentsFound: 'payments found',
+    paymentsNoRows: 'No payments found for this filter',
+    paymentsColTime: 'Time',
+    paymentsColOrder: 'Order',
+    paymentsColCustomer: 'Customer',
+    paymentsColAmount: 'Amount',
+    paymentsColProvider: 'Provider',
+    paymentsColPaymentStatus: 'Payment',
+    paymentsColSaleStatus: 'Sale',
+    paymentsColMismatch: 'Mismatch',
+    paymentsMismatchYes: 'Mismatch',
+    paymentsDetailProvider: 'Provider',
+    paymentsDetailClientOrderId: 'Client order id',
+    paymentsDetailTransactionId: 'Transaction id',
+    paymentsDetailProviderStatus: 'Provider status',
+    paymentsDetailPaidAt: 'Paid at',
+    paymentsDetailError: 'Error',
+    paymentsDetailRawPayload: 'Raw payload',
+    paymentsRecheckButton: 'Re-check status with provider',
+    paymentsRechecking: 'Re-checking…',
+    paymentsRecheckSuccess: 'Provider status re-checked. List refreshed.',
+    paymentsRecheckFailed: 'Re-check failed',
+    paymentsRecheckForbidden: 'Only managers and admins can re-check payment status',
+    paymentsStatusPending: 'Pending',
+    paymentsStatusSuccess: 'Paid',
+    paymentsStatusFailed: 'Failed',
+    paymentsProviderEpoint: 'Epoint',
+    paymentsProviderUnited: 'United Payment',
+    paymentsProviderOther: 'Other',
+    cashDebt: 'Cash & Debt',
+    cashDebtScreenTitle: 'Cash & Debt',
+    cashDebtScreenDescription: 'Loans, other liabilities, and bank withdrawal fees.',
+    cashDebtTabLoans: 'Loans & other',
+    cashDebtTabWithdrawals: 'Bank withdrawals',
+    outstandingDebtLabel: 'Outstanding debt',
+    outstandingDebtHint: 'Supplier accounts + loans (balance sheet)',
+    supplierOutstanding: 'Owed',
+    supplierPayButton: 'Pay supplier',
+    supplierOpeningBalance: 'Opening balance',
+    supplierOpeningBalanceDate: 'Balance as of',
+    supplierAccountView: 'Account',
+    supplierRecentPayments: 'Recent payments',
+    purchaseOnAccount: 'On account',
+    purchasePaidNow: 'Paid now',
+    purchasePaymentMode: 'Payment',
+    liabilityAdd: 'Add liability',
+    liabilityRecordPayment: 'Record payment',
+    liabilityTypeLoan: 'Loan',
+    liabilityTypeOther: 'Other',
+    liabilityCounterparty: 'Counterparty',
+    liabilityEmpty: 'No loans or other liabilities yet.',
+    withdrawalLog: 'Log withdrawal',
+    withdrawalMethodCashier: 'Cashier (0.5%)',
+    withdrawalMethodAbbAtm: 'ABB ATM (1%, min ₼1)',
+    withdrawalFeePreview: 'Bank fee',
+    withdrawalFeesPeriodTotal: 'Fees in list',
+    withdrawalEmpty: 'No withdrawals logged yet.',
+    withdrawalMethod: 'Method',
+    withdrawalFee: 'Fee',
     deliveryScreenTitle: 'Delivery',
     orderLocations: 'Order map',
     orderLocationsTitle: 'Delivery order map',
@@ -2536,6 +2674,7 @@ export const translations: Record<Language, Translations> = {
     aov: 'Orta Sifariş',
     kpiNetRevenueHint: 'COGS-dan sonra',
     kpiOperatingProfitHint: 'COGS və OPEX-dan sonra',
+    kpiNetProfitHint: 'Bank haqlarından sonra (₼{fees})',
     comparePreviousPeriod: 'Əvvəlki periodla müqayisə',
     netProfitLabel: 'Xalis mənfəət',
     sourceFilter: 'Mənbə',
@@ -3563,6 +3702,74 @@ export const translations: Record<Language, Translations> = {
     orderSupportPrepareQuick: 'Hazırlığa başla (15 dəq)',
     orderSupportScheduledHint:
       'Bu sifariş planlıdır. Xatırlatma üçün Sifariş Meneceri daha təhlükəsizdir; detalları burada görə bilərsiniz.',
+    payments: 'Ödənişlər',
+    paymentsScreenTitle: 'Ödənişlər',
+    paymentsScreenDescription: 'Onlayn ödəniş qeydlərinə baxın, uyğunsuzluqları görün və provayderdə statusu yenidən yoxlayın',
+    paymentsFilterAll: 'Hamısı',
+    paymentsFilterPending: 'Gözləyir',
+    paymentsFilterSuccess: 'Ödənilib',
+    paymentsFilterFailed: 'Uğursuz',
+    paymentsProviderAll: 'Bütün provayderlər',
+    paymentsSearch: 'Sifariş #, müştəri, telefon, tranzaksiya id ilə axtar',
+    paymentsFound: 'ödəniş tapıldı',
+    paymentsNoRows: 'Bu filtr üçün ödəniş tapılmadı',
+    paymentsColTime: 'Vaxt',
+    paymentsColOrder: 'Sifariş',
+    paymentsColCustomer: 'Müştəri',
+    paymentsColAmount: 'Məbləğ',
+    paymentsColProvider: 'Provayder',
+    paymentsColPaymentStatus: 'Ödəniş',
+    paymentsColSaleStatus: 'Satış',
+    paymentsColMismatch: 'Uyğunsuzluq',
+    paymentsMismatchYes: 'Uyğunsuzluq',
+    paymentsDetailProvider: 'Provayder',
+    paymentsDetailClientOrderId: 'Müştəri sifariş id',
+    paymentsDetailTransactionId: 'Tranzaksiya id',
+    paymentsDetailProviderStatus: 'Provayder statusu',
+    paymentsDetailPaidAt: 'Ödənilmə vaxtı',
+    paymentsDetailError: 'Xəta',
+    paymentsDetailRawPayload: 'Xam payload',
+    paymentsRecheckButton: 'Provayderdə statusu yenidən yoxla',
+    paymentsRechecking: 'Yenidən yoxlanılır…',
+    paymentsRecheckSuccess: 'Provayder statusu yenidən yoxlandı. Siyahı yeniləndi.',
+    paymentsRecheckFailed: 'Yenidən yoxlama uğursuz oldu',
+    paymentsRecheckForbidden: 'Yalnız menecer və admin ödəniş statusunu yenidən yoxlaya bilər',
+    paymentsStatusPending: 'Gözləyir',
+    paymentsStatusSuccess: 'Ödənilib',
+    paymentsStatusFailed: 'Uğursuz',
+    paymentsProviderEpoint: 'Epoint',
+    paymentsProviderUnited: 'United Payment',
+    paymentsProviderOther: 'Digər',
+    cashDebt: 'Nağd və borc',
+    cashDebtScreenTitle: 'Nağd və borc',
+    cashDebtScreenDescription: 'Kreditlər, digər öhdəliklər və bank çıxarış haqları.',
+    cashDebtTabLoans: 'Kreditlər və digər',
+    cashDebtTabWithdrawals: 'Bank çıxarışları',
+    outstandingDebtLabel: 'Ödənilməmiş borc',
+    outstandingDebtHint: 'Təchizatçı hesabları + kreditlər (balans)',
+    supplierOutstanding: 'Borc',
+    supplierPayButton: 'Təchizatçıya ödə',
+    supplierOpeningBalance: 'Açılış balansı',
+    supplierOpeningBalanceDate: 'Balans tarixi',
+    supplierAccountView: 'Hesab',
+    supplierRecentPayments: 'Son ödənişlər',
+    purchaseOnAccount: 'Hesabdan',
+    purchasePaidNow: 'İndi ödənilib',
+    purchasePaymentMode: 'Ödəniş',
+    liabilityAdd: 'Öhdəlik əlavə et',
+    liabilityRecordPayment: 'Ödəniş qeyd et',
+    liabilityTypeLoan: 'Kredit',
+    liabilityTypeOther: 'Digər',
+    liabilityCounterparty: 'Kontragent',
+    liabilityEmpty: 'Hələ kredit və ya digər öhdəlik yoxdur.',
+    withdrawalLog: 'Çıxarış qeyd et',
+    withdrawalMethodCashier: 'Kassir (0.5%)',
+    withdrawalMethodAbbAtm: 'ABB ATM (1%, min ₼1)',
+    withdrawalFeePreview: 'Bank haqqı',
+    withdrawalFeesPeriodTotal: 'Siyahıdakı haqlar',
+    withdrawalEmpty: 'Hələ çıxarış qeyd olunmayıb.',
+    withdrawalMethod: 'Üsul',
+    withdrawalFee: 'Haqq',
     deliveryScreenTitle: 'Çatdırılma',
     orderLocations: 'Sifariş xəritəsi',
     orderLocationsTitle: 'Çatdırılma sifariş xəritəsi',
@@ -3752,6 +3959,7 @@ export const translations: Record<Language, Translations> = {
     aov: 'Ср. чек',
     kpiNetRevenueHint: 'После COGS',
     kpiOperatingProfitHint: 'После COGS и OPEX',
+    kpiNetProfitHint: 'После банковских комиссий (₼{fees})',
     comparePreviousPeriod: 'Сравнить с прошлым периодом',
     netProfitLabel: 'Чистая прибыль',
     sourceFilter: 'Источник',
@@ -4779,6 +4987,74 @@ export const translations: Record<Language, Translations> = {
     orderSupportPrepareQuick: 'Начать готовку (15 мин)',
     orderSupportScheduledHint:
       'Заказ по расписанию. Настройку напоминаний лучше делать в менеджере заказов; здесь можно просмотреть детали.',
+    payments: 'Платежи',
+    paymentsScreenTitle: 'Платежи',
+    paymentsScreenDescription: 'Просмотр онлайн-платежей, несоответствий и повторная проверка статуса у провайдера',
+    paymentsFilterAll: 'Все',
+    paymentsFilterPending: 'Ожидание',
+    paymentsFilterSuccess: 'Оплачено',
+    paymentsFilterFailed: 'Ошибка',
+    paymentsProviderAll: 'Все провайдеры',
+    paymentsSearch: 'Поиск по заказу #, клиенту, телефону, id транзакции',
+    paymentsFound: 'платежей найдено',
+    paymentsNoRows: 'Для этого фильтра платежи не найдены',
+    paymentsColTime: 'Время',
+    paymentsColOrder: 'Заказ',
+    paymentsColCustomer: 'Клиент',
+    paymentsColAmount: 'Сумма',
+    paymentsColProvider: 'Провайдер',
+    paymentsColPaymentStatus: 'Платёж',
+    paymentsColSaleStatus: 'Продажа',
+    paymentsColMismatch: 'Расхождение',
+    paymentsMismatchYes: 'Расхождение',
+    paymentsDetailProvider: 'Провайдер',
+    paymentsDetailClientOrderId: 'Client order id',
+    paymentsDetailTransactionId: 'Id транзакции',
+    paymentsDetailProviderStatus: 'Статус провайдера',
+    paymentsDetailPaidAt: 'Оплачено в',
+    paymentsDetailError: 'Ошибка',
+    paymentsDetailRawPayload: 'Сырой payload',
+    paymentsRecheckButton: 'Повторно проверить статус у провайдера',
+    paymentsRechecking: 'Проверка…',
+    paymentsRecheckSuccess: 'Статус провайдера обновлён. Список обновлён.',
+    paymentsRecheckFailed: 'Повторная проверка не удалась',
+    paymentsRecheckForbidden: 'Только менеджеры и админы могут повторно проверять статус платежа',
+    paymentsStatusPending: 'Ожидание',
+    paymentsStatusSuccess: 'Оплачено',
+    paymentsStatusFailed: 'Ошибка',
+    paymentsProviderEpoint: 'Epoint',
+    paymentsProviderUnited: 'United Payment',
+    paymentsProviderOther: 'Другое',
+    cashDebt: 'Касса и долги',
+    cashDebtScreenTitle: 'Касса и долги',
+    cashDebtScreenDescription: 'Кредиты, прочие обязательства и комиссии за снятие с банка.',
+    cashDebtTabLoans: 'Кредиты и прочее',
+    cashDebtTabWithdrawals: 'Снятия с банка',
+    outstandingDebtLabel: 'Непогашенный долг',
+    outstandingDebtHint: 'Счета поставщиков + кредиты (баланс)',
+    supplierOutstanding: 'Долг',
+    supplierPayButton: 'Оплатить поставщику',
+    supplierOpeningBalance: 'Начальный остаток',
+    supplierOpeningBalanceDate: 'Остаток на дату',
+    supplierAccountView: 'Счёт',
+    supplierRecentPayments: 'Недавние платежи',
+    purchaseOnAccount: 'В долг',
+    purchasePaidNow: 'Оплачено сразу',
+    purchasePaymentMode: 'Оплата',
+    liabilityAdd: 'Добавить обязательство',
+    liabilityRecordPayment: 'Записать платёж',
+    liabilityTypeLoan: 'Кредит',
+    liabilityTypeOther: 'Прочее',
+    liabilityCounterparty: 'Контрагент',
+    liabilityEmpty: 'Кредитов и прочих обязательств пока нет.',
+    withdrawalLog: 'Записать снятие',
+    withdrawalMethodCashier: 'Касса (0.5%)',
+    withdrawalMethodAbbAtm: 'ABB ATM (1%, мин. ₼1)',
+    withdrawalFeePreview: 'Банковская комиссия',
+    withdrawalFeesPeriodTotal: 'Комиссии в списке',
+    withdrawalEmpty: 'Снятий пока не записано.',
+    withdrawalMethod: 'Способ',
+    withdrawalFee: 'Комиссия',
     deliveryScreenTitle: 'Доставка',
     orderLocations: 'Карта заказов',
     orderLocationsTitle: 'Карта заказов доставки',

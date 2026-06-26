@@ -16,6 +16,8 @@ export function computeExecutiveKpis(input: ComputeExecutiveKpisInput): Executiv
   const netRevenue = input.grossSales - discounts - refunds;
   const grossProfit = netRevenue - input.cogs;
   const operatingProfit = grossProfit - input.opex;
+  const bankFees = input.bankFees ?? 0;
+  const netProfit = operatingProfit - bankFees;
 
   return {
     grossSales: input.grossSales,
@@ -24,6 +26,8 @@ export function computeExecutiveKpis(input: ComputeExecutiveKpisInput): Executiv
     opex: input.opex,
     grossMarginPct: safePct(grossProfit, netRevenue),
     operatingProfit,
+    bankFees,
+    netProfit,
     avgOrderValue: input.orderCount > 0 ? netRevenue / input.orderCount : 0,
     orderCount: input.orderCount,
   };

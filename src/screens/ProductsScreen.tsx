@@ -7,6 +7,7 @@ import { PageHeader } from '../components/cockpit';
 import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
 import { IconActionButton } from '../components/ui/IconActionButton';
 import { SingleDatePicker } from '../components/SingleDatePicker';
+import { isOnCreditFromPurchase, purchaseCreditFields } from '../services/finance/purchaseCredit';
 
 interface Category {
   id: string;
@@ -23,6 +24,7 @@ interface Purchase {
   total_cost: number;
   purchase_date: string;
   payment_status: 'pending' | 'partial' | 'paid';
+  is_on_credit?: boolean;
   notes: string;
   suppliers?: { name: string };
   categories?: {
@@ -37,7 +39,7 @@ interface PurchaseFormData {
   quantity: string;
   unit_cost: string;
   purchase_date: string;
-  payment_status: 'pending' | 'partial' | 'paid';
+  is_on_credit: boolean;
   notes: string;
 }
 
@@ -83,7 +85,7 @@ export function ProductsScreen() {
     quantity: '',
     unit_cost: '',
     purchase_date: new Date().toISOString().split('T')[0],
-    payment_status: 'pending',
+    is_on_credit: true,
     notes: ''
   });
 
@@ -213,8 +215,8 @@ export function ProductsScreen() {
       unit_cost: unitCost,
       total_cost: quantity * unitCost,
       purchase_date: purchaseFormData.purchase_date,
-      payment_status: purchaseFormData.payment_status,
-      notes: purchaseFormData.notes
+      notes: purchaseFormData.notes,
+      ...purchaseCreditFields(purchaseFormData.is_on_credit),
     };
 
     if (editingPurchase) {
@@ -325,7 +327,7 @@ export function ProductsScreen() {
       quantity: '',
       unit_cost: '',
       purchase_date: new Date().toISOString().split('T')[0],
-      payment_status: 'pending',
+      is_on_credit: true,
       notes: ''
     });
     setEditingPurchase(null);
@@ -374,7 +376,7 @@ export function ProductsScreen() {
       quantity: purchase.quantity.toString(),
       unit_cost: purchase.unit_cost.toString(),
       purchase_date: purchase.purchase_date.split('T')[0],
-      payment_status: purchase.payment_status,
+      is_on_credit: isOnCreditFromPurchase(purchase),
       notes: purchase.notes
     });
     setShowPurchaseForm(true);
@@ -833,17 +835,32 @@ export function ProductsScreen() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                    Payment Status *
+                    {t.purchasePaymentMode}
                   </label>
-                  <select
-                    value={purchaseFormData.payment_status}
-                    onChange={(e) => setPurchaseFormData({ ...purchaseFormData, payment_status: e.target.value as 'pending' | 'partial' | 'paid' })}
-                    className="cockpit-select"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="partial">Partial</option>
-                    <option value="paid">Paid</option>
-                  </select>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseFormData({ ...purchaseFormData, is_on_credit: true })}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                        purchaseFormData.is_on_credit
+                          ? 'border-cockpit-500 bg-cockpit-500/20 text-white'
+                          : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {t.purchaseOnAccount}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseFormData({ ...purchaseFormData, is_on_credit: false })}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                        !purchaseFormData.is_on_credit
+                          ? 'border-cockpit-500 bg-cockpit-500/20 text-white'
+                          : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {t.purchasePaidNow}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="sm:col-span-2">

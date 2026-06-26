@@ -1,9 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Truck, Plus, Edit2, Trash2, Save, X, Package } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Truck, Plus, Edit2, Trash2, Save, X, Package, ChevronDown, ChevronRight, Wallet, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, Supplier } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
+import { SingleDatePicker } from '../components/SingleDatePicker';
+import {
+  fetchSupplierAccounts,
+  type SupplierAccountSummary,
+} from '../services/finance/supplierFinanceService';
 
 export function SuppliersScreen() {
   const { t } = useLanguage();
@@ -18,13 +23,39 @@ export function SuppliersScreen() {
     phone: '',
     address: '',
     notes: '',
+    opening_balance: '',
+    opening_balance_date: '',
   });
   const [productCounts, setProductCounts] = useState<Record<string, number>>({});
+  const [accounts, setAccounts] = useState<SupplierAccountSummary[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(true);
+  const [expandedAccountId, setExpandedAccountId] = useState<string | null>(null);
+  const [payingSupplierId, setPayingSupplierId] = useState<string | null>(null);
+  const [payForm, setPayForm] = useState({
+    amount: '',
+    paid_date: new Date().toISOString().split('T')[0],
+    payment_method: '',
+    notes: '',
+  });
+  const [paySaving, setPaySaving] = useState(false);
+
+  const accountBySupplierId = useMemo(
+    () => new Map(accounts.map((a) => [a.supplierId, a])),
+    [accounts],
+  );
 
   useEffect(() => {
     loadSuppliers();
     loadProductCounts();
+    void loadAccounts();
   }, []);
+
+  const loadAccounts = async () => {
+    setAccountsLoading(true);
+    const res = await fetchSupplierAccounts();
+    if (res.data) setAccounts(res.data);
+    setAccountsLoading(false);
+  };
 
   const loadSuppliers = async () => {
     const { data } = await supabase
@@ -63,6 +94,8 @@ export function SuppliersScreen() {
       phone: '',
       address: '',
       notes: '',
+      opening_balance: '',
+      opening_balance_date: '',
     });
   };
 
@@ -76,6 +109,10 @@ export function SuppliersScreen() {
       phone: supplier.phone,
       address: supplier.address,
       notes: supplier.notes,
+      opening_balance: supplier.opening_balance != null ? String(supplier.opening_balance) : '',
+      opening_balance_date: supplier.opening_balance_date
+        ? String(supplier.opening_balance_date).slice(0, 10)
+        : '',
     });
   };
 
@@ -89,34 +126,57 @@ export function SuppliersScreen() {
       phone: '',
       address: '',
       notes: '',
+      opening_balance: '',
+      opening_balance_date: '',
     });
   };
+
+  const supplierPayload = () => ({
+    name: formData.name,
+    contact_person: formData.contact_person,
+    email: formData.email,
+    phone: formData.phone,
+    address: formData.address,
+    notes: formData.notes,
+    opening_balance: Number(formData.opening_balance) || 0,
+    opening_balance_date: formData.opening_balance_date || null,
+  });
 
   const handleSave = async () => {
     if (!formData.name.trim()) return;
 
     if (isAdding) {
-      await adminInsert('suppliers', {
-        name: formData.name,
-        contact_person: formData.contact_person,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        notes: formData.notes,
-      });
+      await adminInsert('suppliers', supplierPayload());
     } else if (editingId) {
-      await adminUpdate('suppliers', editingId, {
-        name: formData.name,
-        contact_person: formData.contact_person,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        notes: formData.notes,
-      });
+      await adminUpdate('suppliers', editingId, supplierPayload());
     }
 
     handleCancel();
     loadSuppliers();
+    void loadAccounts();
+  };
+
+  const handlePaySupplier = async (supplierId: string) => {
+    const amount = Number(payForm.amount);
+    if (amount <= 0) return;
+    setPaySaving(true);
+    const result = await adminInsert('supplier_account_payments', {
+      supplier_id: supplierId,
+      amount,
+      paid_date: payForm.paid_date,
+      payment_method: payForm.payment_method,
+      notes: payForm.notes,
+    });
+    setPaySaving(false);
+    if (!result.ok) return;
+    setPayingSupplierId(null);
+    setPayForm({
+      amount: '',
+      paid_date: new Date().toISOString().split('T')[0],
+      payment_method: '',
+      notes: '',
+    });
+    void loadAccounts();
   };
 
   const handleDelete = async (id: string) => {
@@ -220,6 +280,27 @@ export function SuppliersScreen() {
                 rows={3}
               />
             </div>
+
+            <div>
+              <label className="cockpit-label mb-2">{t.supplierOpeningBalance}</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.opening_balance}
+                onChange={(e) => setFormData({ ...formData, opening_balance: e.target.value })}
+                className="cockpit-input"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label className="cockpit-label mb-2">{t.supplierOpeningBalanceDate}</label>
+              <SingleDatePicker
+                value={formData.opening_balance_date}
+                onChange={(date) => setFormData({ ...formData, opening_balance_date: date })}
+                placeholder={t.date}
+              />
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -243,6 +324,9 @@ export function SuppliersScreen() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {suppliers.map((supplier) => {
           const isDeleting = deleteConfirm === supplier.id;
+          const account = accountBySupplierId.get(supplier.id);
+          const isExpanded = expandedAccountId === supplier.id;
+          const isPaying = payingSupplierId === supplier.id;
 
           return (
           <div
@@ -326,22 +410,133 @@ export function SuppliersScreen() {
             </div>
 
             <div className="flex items-center justify-between border-t border-white/10 pt-3 dark:border-white/5">
-              <div className="flex items-center gap-1.5 font-mono text-xs text-slate-500 dark:text-slate-400">
-                <Package className="h-3.5 w-3.5" />
-                <span>{productCounts[supplier.id] || 0} products</span>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1.5 font-mono text-xs text-slate-500 dark:text-slate-400">
+                  <Package className="h-3.5 w-3.5" />
+                  <span>{productCounts[supplier.id] || 0} products</span>
+                </div>
+                {accountsLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin text-slate-500" />
+                ) : account ? (
+                  <p
+                    className={`font-mono text-xs font-bold ${
+                      account.outstanding > 0 ? 'text-amber-400' : 'text-emerald-400'
+                    }`}
+                  >
+                    {t.supplierOutstanding}: ₼{account.outstanding.toFixed(2)}
+                  </p>
+                ) : null}
               </div>
-              <button
-                type="button"
-                onClick={() => handleToggleActive(supplier)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
-                  supplier.is_active
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                }`}
-              >
-                {supplier.is_active ? t.active : t.inactive}
-              </button>
+              <div className="flex items-center gap-2">
+                {account && account.outstanding > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setPayingSupplierId(isPaying ? null : supplier.id)}
+                    className="rounded-lg bg-cockpit-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-cockpit-500"
+                  >
+                    <Wallet className="mr-1 inline h-3 w-3" />
+                    {t.supplierPayButton}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setExpandedAccountId(isExpanded ? null : supplier.id)}
+                  className="rounded-lg p-1 text-slate-500 hover:text-cockpit-400"
+                  aria-label={t.supplierAccountView}
+                >
+                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleActive(supplier)}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                    supplier.is_active
+                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  {supplier.is_active ? t.active : t.inactive}
+                </button>
+              </div>
             </div>
+
+            {isPaying ? (
+              <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="cockpit-input w-full text-sm"
+                  placeholder={t.amount}
+                  value={payForm.amount}
+                  onChange={(e) => setPayForm((p) => ({ ...p, amount: e.target.value }))}
+                />
+                <SingleDatePicker
+                  value={payForm.paid_date}
+                  onChange={(date) => setPayForm((p) => ({ ...p, paid_date: date }))}
+                  placeholder={t.date}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={paySaving}
+                    onClick={() => void handlePaySupplier(supplier.id)}
+                    className="cockpit-btn-primary flex-1 text-xs"
+                  >
+                    {paySaving ? <Loader2 className="h-3 w-3 animate-spin" /> : t.supplierPayButton}
+                  </button>
+                  <button type="button" onClick={() => setPayingSupplierId(null)} className="cockpit-btn-ghost text-xs">
+                    {t.cancel}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {isExpanded && account ? (
+              <div className="mt-3 space-y-2 border-t border-white/10 pt-3 text-xs">
+                {account.openingBalance > 0 ? (
+                  <p className="text-slate-400">
+                    {t.supplierOpeningBalance}: ₼{account.openingBalance.toFixed(2)}
+                    {account.openingBalanceDate ? ` (${account.openingBalanceDate})` : ''}
+                    {account.openingRemaining > 0 ? ` · ${t.pending} ₼${account.openingRemaining.toFixed(2)}` : ''}
+                  </p>
+                ) : null}
+                {account.purchases.length > 0 ? (
+                  <div className="space-y-1">
+                    {account.purchases.slice(0, 8).map((p) => (
+                      <div key={p.id} className="flex justify-between text-slate-300">
+                        <span>{p.purchaseDate}</span>
+                        <span>
+                          ₼{p.total.toFixed(2)}{' '}
+                          <span
+                            className={
+                              p.status === 'paid'
+                                ? 'text-emerald-400'
+                                : p.status === 'partial'
+                                  ? 'text-amber-400'
+                                  : 'text-slate-500'
+                            }
+                          >
+                            {p.status === 'paid' ? t.paid : p.status === 'partial' ? t.partial : t.pending}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {account.payments.length > 0 ? (
+                  <div>
+                    <p className="mb-1 font-semibold text-slate-500">{t.supplierRecentPayments}</p>
+                    {account.payments.slice(0, 5).map((p) => (
+                      <div key={p.id} className="flex justify-between text-slate-400">
+                        <span>{p.paidDate}</span>
+                        <span className="text-emerald-400">−₼{p.amount.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             </>
             )}
           </div>

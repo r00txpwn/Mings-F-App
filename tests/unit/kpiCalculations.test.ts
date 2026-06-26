@@ -39,6 +39,8 @@ describe('computeExecutiveKpis', () => {
     expect(result.cogs).toBe(3000);
     expect(result.opex).toBe(2000);
     expect(result.operatingProfit).toBe(4300);  // 9300 - 3000 - 2000
+    expect(result.bankFees).toBe(0);
+    expect(result.netProfit).toBe(4300);
     expect(result.avgOrderValue).toBe(186);     // 9300 / 50
     expect(result.orderCount).toBe(50);
     expect(result.grossMarginPct).toBeCloseTo(safePct(9300 - 3000, 9300), 5);
@@ -64,6 +66,18 @@ describe('computeExecutiveKpis', () => {
     expect(result.avgOrderValue).toBe(0);
   });
 
+  it('deducts bank fees for net profit only', () => {
+    const result = computeExecutiveKpis({
+      grossSales: 10000,
+      cogs: 3000,
+      opex: 2000,
+      bankFees: 50,
+      orderCount: 10,
+    });
+    expect(result.operatingProfit).toBe(5000);
+    expect(result.netProfit).toBe(4950);
+  });
+
   it('handles negative operating profit (loss scenario)', () => {
     const result = computeExecutiveKpis({
       grossSales: 1000,
@@ -72,6 +86,7 @@ describe('computeExecutiveKpis', () => {
       orderCount: 5,
     });
     expect(result.operatingProfit).toBe(-200);
+    expect(result.netProfit).toBe(-200);
   });
 });
 

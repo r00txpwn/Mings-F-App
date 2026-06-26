@@ -43,6 +43,8 @@ sequenceDiagram
 | `united-payment-webhook` | Async callback; decodes payload, **re-confirms status** (does not trust body alone) |
 | `united-payment-status-check` | Internal reconcile (`Bearer PAYMENT_RECONCILE_SECRET`) |
 
+**Staff cockpit:** `PaymentsScreen` at `/spec-ops?screen=payments` calls **`admin-payment-recheck`** (staff JWT, admin/manager) which bridges to `united-payment-status-check` for United Payment rows (provider `united_payment` / `upay`).
+
 Shared logic: [`supabase/functions/_shared/unitedPayment.ts`](../supabase/functions/_shared/unitedPayment.ts), parser: [`unitedPaymentReturnParse.ts`](../supabase/functions/_shared/unitedPaymentReturnParse.ts).
 
 ## Redirect / webhook payload
