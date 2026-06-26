@@ -13,16 +13,22 @@ import { fileURLToPath } from 'node:url';
 const fnName = process.argv[2];
 const out = process.argv[3];
 
-const allowed = new Set(['admin-api', 'kds-order-status-update']);
+const allowed = new Set(['admin-api', 'kds-order-status-update', 'user-management']);
 if (!fnName || !allowed.has(fnName)) {
-  console.error('Usage: node scripts/mcp-bundle-admin-functions.mjs <admin-api|kds-order-status-update> [out.json]');
+  console.error('Usage: node scripts/mcp-bundle-admin-functions.mjs <admin-api|kds-order-status-update|user-management> [out.json]');
   process.exit(1);
 }
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const fnDir = path.join(root, 'supabase', 'functions');
 
-const shared = ['_shared/staffAuth.ts'];
+const sharedByFunction = {
+  'admin-api': ['_shared/staffAuth.ts'],
+  'kds-order-status-update': ['_shared/staffAuth.ts'],
+  'user-management': [],
+};
+
+const shared = sharedByFunction[fnName] ?? [];
 
 function read(rel, name) {
   return {

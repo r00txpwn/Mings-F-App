@@ -39,6 +39,11 @@ export default defineConfig(({ mode, command }) => {
       strictPort: true,
       host: '127.0.0.1',
     },
+    server: {
+      port: isStorefront ? 5174 : 5173,
+      strictPort: true,
+      host: '127.0.0.1',
+    },
     // Dev server always uses root index.html → main.tsx (mode selects staff vs storefront).
     ...(command === 'serve' ? { appType: 'spa' as const } : {}),
   };

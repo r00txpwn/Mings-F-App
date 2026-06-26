@@ -9,9 +9,10 @@ Production uses **two static bundles** (see [DEPLOY.md](../DEPLOY.md)):
 | Domain | Build | Surfaces in bundle |
 |--------|-------|-------------------|
 | `order.mings.az` | `dist-storefront/` | `/`, `/order`, `/track` only |
-| `sp.mings.az` | `dist-staff/` | cockpit, `/order-manager`, `/kds`, `/kiosk` |
+| `sp.mings.az` | `dist-staff/` | cockpit, `/order-manager`, `/kds`, `/kiosk`, `/pos` |
+| `pos.mings.az` | `dist-staff/` | `PosApp` at `/` (same artifact as staff) |
 
-Local dev: `npm run dev:staff` (port 5173, `/spec-ops`) or `npm run dev:storefront` (port 5173, `/order`). Auth storage keys differ (`mings-staff-auth` vs `mings-storefront-auth`).
+Local dev: `npm run dev:staff` (**127.0.0.1:5173**, `/spec-ops`) or `npm run dev:storefront` (**127.0.0.1:5174**, `/order`). Local preview: `npm run deploy:local` (**4175**) / `deploy:local:storefront` (**4176**). Each command kills the fixed port first; no auto-fallback. Auth storage keys differ (`mings-staff-auth` vs `mings-storefront-auth`).
 
 ## 1. SPA entry (`src/main-staff.tsx` / `src/main-storefront.tsx`)
 
@@ -19,12 +20,14 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 
 | Host match (env) | Path | App |
 |------------------|------|-----|
-| `VITE_SURFACE_ADMIN_HOSTS` | any | `App` (cockpit) |
+| `VITE_SURFACE_ADMIN_HOSTS` | `/kiosk` or `/kds` | `KioskApp` / `KitchenDisplay` (path wins over admin host) |
+| `VITE_SURFACE_ADMIN_HOSTS` | other | `App` (cockpit) |
 | `VITE_SURFACE_ORDER_HOSTS` | `/order-manager` or `/order-management` | `OrderManagerApp` |
 | `VITE_SURFACE_ORDER_HOSTS` | not `/track` and not order-manager paths | `OrderApp` |
 | `VITE_SURFACE_ORDER_HOSTS` | `/track` | `TrackingApp` |
 | `VITE_SURFACE_KIOSK_HOSTS` | any | `KioskApp` |
 | `VITE_SURFACE_KDS_HOSTS` | any | `KitchenDisplay` |
+| `VITE_SURFACE_POS_HOSTS` | any | `PosApp` |
 | `VITE_SURFACE_TRACK_HOSTS` | any | `TrackingApp` |
 
 **Path fallback** (no host match — localhost, `*.vercel.app`, etc.):
@@ -33,7 +36,8 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 |-----------------|-----|--------|
 | `/` | `PublicNotFound` | Admin-denied root surface; no redirect to `/order`. |
 | `/kiosk` | `KioskApp` | Uses `pathNorm` (trailing slash OK). |
-| `/kds` | `KitchenDisplay` | Uses `pathNorm` (fixed: was `pathname`, so `/kds/` was broken). |
+| `/kds` | `KitchenDisplay` | Uses `pathNorm` (trailing slash OK). |
+| `/pos` | `PosApp` | Counter/phone POS (auth-gated). Tabs: Active, History, New Order, Settings. |
 | `/order` | `OrderApp` | Public ordering. |
 | `/order-manager` | `OrderManagerApp` | Staff workflow (auth-gated). Top of main: **Kitchen status** strip (pause 30m / 1h / until next open / indefinite + Open now) updating `online_settings`. Bottom nav: Active + Past for every staff user; **Menu Editor** tab only when `public.users.role` is `admin` or `manager` (hidden for `staff`). The shell re-reads `users.role` after auth so the tab list matches the same Supabase row QA inspects on `/rest/v1/users`. |
 | `/order-management` | `OrderManagerApp` | Alias to `/order-manager`. Same tab rules as `/order-manager`. |
@@ -54,7 +58,7 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | Location | Behavior | Risk / note |
 |----------|----------|-------------|
 | `App.tsx` | Non-staff logged-in users → `StaffAccessDeniedScreen` (no auto-redirect to `/order`). | OK. |
-| `App.tsx` | On the **admin host** or at **`/spec-ops`** (default local admin path), `?screen=order-support` (and nav) → `AdminOrderSupportScreen`: order list + side drawer with line items, customer/delivery, and workflow actions on `sales`. | **Local QA URL:** `http://127.0.0.1:4175/spec-ops?screen=order-support` — not root `/?screen=…` (see `getResolvedAdminPath()`). |
+| `App.tsx` | On the **admin host** or at **`/spec-ops`** (default local admin path), `?screen=` selects cockpit screens. Sidebar nav is grouped (Overview / Orders / Catalog / Finance / System) and collapsible; default `?screen=home` is the executive dashboard. | **Local QA URL:** `http://127.0.0.1:4175/spec-ops?screen=home` — not root `/?screen=…` (see `getResolvedAdminPath()`). |
 | `OrderApp.tsx` | E-point success → external `checkoutUrl`. Done screen → `/track?token=`. | External URL must be trusted (payment provider). |
 | `PublicNotFound.tsx` | Denied/404 messaging for root + unknown paths. | No storefront auto-redirect from `/` or invalid paths. |
 | `StaffAccessDeniedScreen.tsx` | Link via `getPublicOrderUrl()` (`VITE_PUBLIC_ORDER_URL` or same-origin `/order`). | OK. |
@@ -89,8 +93,27 @@ Token validation uses a user-scoped Supabase client (`SUPABASE_ANON_KEY` + `Auth
 
 ## 4. Kiosk / KDS gates (`SecretGate.tsx`)
 
-- If `VITE_KIOSK_SECRET` / `VITE_KDS_SECRET` is **empty**, gate **allows** access (documented for local dev).
-- **Production**: set secrets and always use `?key=` (or accept open kiosk — business risk).
+- If `VITE_KIOSK_SECRET` is **empty**, kiosk gate **allows** access (documented for local dev).
+- **`/kds`** uses **staff Supabase Auth** (login screen) — not `SecretGate` or URL secrets.
+- **Production kiosk**: set `VITE_KIOSK_SECRET` and use `?key=` (or accept open kiosk — business risk).
+
+### Kiosk UX (in-store, `/kiosk`)
+
+- **Light Ming theme** (cream `#f5f0e8`, coral `#d65745`): scoped via `.kiosk-light` on `KioskLayout` — staff cockpit dark mode is unaffected.
+- **Flow:** `idle` (Eat In / Take Out) → `categories` (photo grid) → `menu` (horizontal category rail + 3-col product grid) → `cart` → `checkout` → `confirmation`.
+- **Sticky footer** on categories + menu: Restart Menu, live total, Order Now (`KioskStickyFooter`).
+- **i18n:** `kioskWelcomeTitle`, `kioskEatIn`, `kioskTakeOut`, `kioskExploreMenu`, etc. in `src/translations.ts`.
+- **E2E:** `tests/e2e/kiosk-smoke.spec.ts` (Playwright project `kiosk`, staff preview port 4175).
+
+### KDS data access (staff auth)
+
+- **`/kds`** on `sp.mings.az` requires **staff Supabase login** (same as `/pos` and `/order-manager`). Uses the staff auth session (`mings-staff-auth`) and `Staff can read all sales` RLS — not the anon role.
+- **`/pos`** and **`pos.mings.az`** use staff auth. New orders call Edge Function **`pos-order-create`**; labels print via local **`apps/pos-print-agent`** (HTTP on port 9310, LAN only).
+- Migration **`20260621120000_kds_staff_auth_drop_anon_policies.sql`** removes anon kitchen-queue read/write policies (previously added for unauthenticated KDS).
+- **Chowbus-style board** (`src/kds/`): `KitchenDisplay` → `KdsHeader` (filters/search) → `KdsBoard` → `KdsColumn` + `KdsOrderCard` + `KdsLineItem`; `KdsUndoToast`, `KdsHistoryDrawer`; pure logic in `kdsBoardUtils.ts`.
+- Status updates: **`kds-order-status-update`** (staff JWT via `requireStaffAuth`). Item prep toggles: **`kds-item-prep-toggle`**. Unpaid **card** orders are rejected server-side when moving to `preparing`.
+- Migrations **`20260619120000_kds_item_prep_and_anon_update.sql`** (`sale_items.prepared_at`) and **`20260619130000_kds_anon_read_completed_today.sql`** (history drawer; reads now via staff RLS).
+- **Split deploy:** both Vercel projects must use the **same** `VITE_SUPABASE_URL` / anon key. **`VITE_KDS_SECRET` is no longer used** — remove from env after deploy.
 
 ---
 
@@ -106,7 +129,7 @@ Token validation uses a user-scoped Supabase client (`SUPABASE_ANON_KEY` + `Auth
 
 1. **Optional React Router** for future: query params, nested admin routes, `basename` for subfolder deploys.
 2. **`robots.txt`**: optionally disallow `/` redirect target patterns if SEO matters (usually N/A for apps behind login).
-3. **E2E tests**: smoke tests for `/order`, admin path, `/kiosk`, `/kds`.
+3. **E2E tests**: smoke tests for `/order`, admin path, `/kiosk`, `/kds`, `/pos` — see `tests/e2e/kds-smoke.spec.ts`, `tests/e2e/kiosk-smoke.spec.ts`, and `tests/e2e/pos-smoke.spec.ts` (local staff preview on port 4175).
 
 ---
 

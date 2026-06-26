@@ -35,7 +35,7 @@ export function FilterBar({
   const showCustomInputs = selectedPreset === 'custom' && onStartDateChange && onEndDateChange;
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm backdrop-blur-sm dark:border-violet-400/20 dark:bg-slate-900/60 dark:shadow-neon-soft">
+    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <div className="mb-1 flex items-center gap-2 px-1">
         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-cockpit-600 dark:text-cockpit-400">
           {t.period}
@@ -52,8 +52,8 @@ export function FilterBar({
                 onClick={() => onPresetChange(preset.value)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   isActive
-                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-neon-soft ring-1 ring-violet-300/40'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700'
+                    ? 'bg-cockpit-600 text-white shadow-sm dark:bg-cockpit-500'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                 }`}
               >
                 {preset.label}

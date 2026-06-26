@@ -178,15 +178,13 @@ if (staffToken) {
 
 const kds = await kdsWithoutSecret();
 results.push({
-  check: 'KDS status without x-kds-secret',
+  check: 'KDS status without staff JWT',
   pass:
     kds.status === 401 ||
     kds.status === 403 ||
-    kds.status === 500 ||
+    kds.body.includes('UNAUTHORIZED') ||
     kds.body.includes('FORBIDDEN') ||
-    kds.body.includes('Invalid KDS') ||
-    kds.body.includes('invalid_device_secret') ||
-    kds.body.includes('KDS_ORDER_STATUS_SECRET'),
+    kds.body.includes('Staff access'),
   status: kds.status,
   detail: kds.body,
 });

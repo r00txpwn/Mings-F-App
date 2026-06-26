@@ -8,8 +8,8 @@ import { formatMoney } from '../lib/money';
 /** Baku — default map center. */
 const DEFAULT_CENTER = { lat: 40.4093, lng: 49.8671 };
 
-/** Cockpit teal (matches tailwind `cockpit-500`). */
-const ZONE_ACTIVE_COLOR = '#14b8a6';
+/** Cockpit gold (matches tailwind `cockpit-400`). */
+const ZONE_ACTIVE_COLOR = '#fbbf24';
 /** Slate-400 — muted. */
 const ZONE_IDLE_COLOR = '#94a3b8';
 

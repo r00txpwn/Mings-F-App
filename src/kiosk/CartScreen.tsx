@@ -77,7 +77,7 @@ export function CartScreen({
           {t.viewCart}
         </h2>
         <p className="text-sm mb-4" style={{ color: 'var(--kiosk-smoke)' }}>
-          {cart.length} {cart.length === 1 ? 'item' : 'items'}
+          {cart.length} {t.items}
         </p>
       </div>
 
@@ -98,7 +98,7 @@ export function CartScreen({
                 {/* Image */}
                 <div
                   className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-                  style={{ backgroundColor: '#383838' }}
+                  style={{ backgroundColor: 'var(--kiosk-bg)' }}
                 >
                   {item.product.image_url ? (
                     <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
@@ -135,7 +135,7 @@ export function CartScreen({
                 <div className="flex items-center gap-2">
                   <div
                     className="flex items-center rounded-xl p-1"
-                    style={{ backgroundColor: '#383838' }}
+                    style={{ backgroundColor: 'var(--kiosk-bg)' }}
                   >
                     <button
                       onClick={() => onUpdateQuantity(item.cartItemKey, -1)}

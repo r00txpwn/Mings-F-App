@@ -3,6 +3,7 @@ import { ShoppingCart, Check, ChevronDown, ChevronRight, Edit2, Trash2, X, Loade
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, SalesChannel, Sale } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
+import { isPartnerManualSaleChannel } from '../lib/partnerSalesChannels';
 import { useAuth } from '../contexts/AuthContext';
 import { PageHeader } from '../components/cockpit';
 import { SingleDatePicker } from '../components/SingleDatePicker';
@@ -16,11 +17,8 @@ interface GroupedSale {
 }
 
 /** Partner channels allowed for manual Add Sale (kiosk / online are created by the app). */
-const MANUAL_SALE_CHANNEL_NAMES = new Set(['wolt', 'bolt', 'choiceqr']);
-
 function isManualSaleChannel(ch: SalesChannel): boolean {
-  const n = (ch.name ?? '').trim().toLowerCase();
-  return MANUAL_SALE_CHANNEL_NAMES.has(n);
+  return isPartnerManualSaleChannel(ch);
 }
 
 export function SalesScreen() {
@@ -75,6 +73,7 @@ export function SalesScreen() {
       .from('sales_channels')
       .select('*')
       .eq('is_active', true)
+      .eq('is_deleted', false)
       .order('name', { ascending: true });
 
     if (err) {

@@ -809,6 +809,7 @@ function OrderContent() {
         SCHEDULE_TIME_REQUIRED: t.orderErrScheduleRequired,
         SCHEDULE_TIME_INVALID: t.orderErrScheduleInvalid,
         SCHEDULE_TIME_TOO_SOON: t.orderErrScheduleTooSoon,
+        KITCHEN_CLOSED: t.orderErrKitchenClosed,
       };
       return (code && byCode[code]) || fallback || t.orderErrGeneric;
     },

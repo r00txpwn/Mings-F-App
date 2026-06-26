@@ -8,7 +8,15 @@ Mings-F-App
 npm run deploy:local
 ```
 
-Serves **`dist-staff/`** on **http://127.0.0.1:4175/** — cockpit at **`/spec-ops`**.
+Serves **`dist-staff/`** on **http://127.0.0.1:4175/** — cockpit at **`/spec-ops`**. Stops any process already on port **4175** first (`--strictPort`; no fallback port).
+
+**Dev (hot reload):**
+
+```bash
+npm run dev:staff
+```
+
+**http://127.0.0.1:5173/spec-ops** — also kills port **5173** before start.
 
 **Storefront bundle (customer order + track):**
 
@@ -16,7 +24,9 @@ Serves **`dist-staff/`** on **http://127.0.0.1:4175/** — cockpit at **`/spec-o
 npm run deploy:local:storefront
 ```
 
-Serves **`dist-storefront/`** on **http://127.0.0.1:4176/** — menu at **`/order`** or **`/`** on order host.
+Serves **`dist-storefront/`** on **http://127.0.0.1:4176/** — menu at **`/order`** or **`/`** on order host. Stops any process on **4176** first.
+
+**Dev:** `npm run dev:storefront` → **http://127.0.0.1:5174/order**
 
 Each build writes **`build-meta.json`** with `gitSha` and `buildTarget`. Confirm SHA before QA.
 
@@ -40,6 +50,10 @@ See **[DEPLOY.md](DEPLOY.md)** for the **two-project** Vercel split (`order.ming
 - Checkout includes promo code, tip, order notes, consent checkbox, and retry button on submit errors.
 - PWA basics enabled (`/manifest.webmanifest` + service worker registration) for installability and offline fallback.
 - Delivery Control Center settings include editable kitchen coordinates, used by staff/order-tracking distance and ETA calculations.
+
+## Architecture
+
+- **Technical spec & architecture:** **[docs/TECHNICAL_SPEC_AND_ARCHITECTURE.md](docs/TECHNICAL_SPEC_AND_ARCHITECTURE.md)** — surfaces, data model, Edge Functions, deploy topology, security
 
 ## Feature docs
 

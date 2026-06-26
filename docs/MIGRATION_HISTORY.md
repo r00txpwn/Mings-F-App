@@ -8,6 +8,26 @@ npm run supabase:push
 npm run supabase:deploy:web
 ```
 
+On Windows: `npm run supabase:repair:remote:ps` instead of `supabase:repair:remote`.
+
+If `supabase:push` says **insert before the last migration** / suggests **`--include-all`**:
+
+```powershell
+npm run supabase:mark:history-gaps:ps
+npm run supabase:push
+```
+
+**Do not run `db push --include-all`.** That re-runs old local SQL (including destructive migrations) against production.
+
+If CLI fails with **TCP timeout** / **wsarecv** / **lock timeout** (port 5432 blocked from your network):
+
+1. Open **Supabase Dashboard → SQL Editor** on the linked project (uses HTTPS, not direct Postgres from your PC).
+2. Run [`scripts/supabase-mark-history-gaps-dashboard.sql`](../scripts/supabase-mark-history-gaps-dashboard.sql).
+3. For KDS tonight only, run [`scripts/supabase-kds-policy-dashboard.sql`](../scripts/supabase-kds-policy-dashboard.sql).
+4. Retry `npm run supabase:push` later from a network that can reach Postgres (or apply remaining migration SQL files manually in Dashboard).
+
+Alternative CLI path when 5432 is blocked: use **Session pooler** URL from Dashboard → Database → Connect → `db push --db-url "postgresql://..."` (port **6543**).
+
 If `supabase:push` errors with **relation already exists** / duplicate objects:
 
 ```bash
@@ -15,7 +35,7 @@ npm run supabase:mark:applied
 npm run supabase:push
 ```
 
-On Windows **without Git Bash**, use: `npm run supabase:repair:remote:ps` and `npm run supabase:mark:applied:ps`.
+On Windows for mark-all: `npm run supabase:mark:applied:ps`.
 
 ---
 
@@ -36,8 +56,10 @@ From repo root (PowerShell):
 Or manually:
 
 ```bash
-npx supabase@latest migration repair --status reverted 20260109092518 20260109114111 20260109115610 20260109125611 20260109125652 20260109130841 20260109130857 20260109135107 20260109140037 20260111090552 20260129132659 20260129140936 20260131131918 20260131133116 20260131144024 20260214150336 20260214150414 20260214152949 20260226085127 20260226085137 20260226094917 20260226101729 20260307134418 20260307134421 20260307134713
+npx supabase@latest migration repair --status reverted 20260109092518 20260214150414 20260307134418 20260307134421 20260426185945 20260427165528 20260428113335 20260428113345 20260428113354 20260428113407 20260428113416 20260428141858 20260428142121 20260428193000 20260428200000 20260615111226
 ```
+
+Only revert versions **with no file** in `supabase/migrations/`. Never revert local migration IDs — use `npm run supabase:mark:history-gaps:ps` if history gaps appear.
 
 This **does not** drop tables; it only fixes `supabase_migrations` rows that point at missing files.
 
@@ -91,5 +113,15 @@ npm run supabase:deploy:web
 - `20260422194244_ensure_rpc_request_phone_otp.sql` — idempotent **`otp_requests`** + **`rpc_request_phone_otp`** + `GRANT EXECUTE` (fixes **PGRST202** when `20260421174000_*` never ran on a host). Version matches Supabase MCP `apply_migration` record on the linked project.
 - `20260423120000_online_settings_kitchen_pause.sql` — `online_settings.offline_until`, `closing_soon_minutes` (default 0), and **`Staff can manage online settings`** RLS extended to include **`manager`**.
 - `20260423180000_expire_online_kitchen_pause_rpc.sql` — **`expire_online_kitchen_pause_if_due()`** (SECURITY DEFINER): when a timed pause has ended, sets `is_open=true` and clears `offline_until`; keeps indefinite close unchanged. Granted to **`anon`**, **`authenticated`**, **`service_role`** so Order App and edge can run it before reads.
+- `20260621150000_sales_channels_soft_delete.sql` — adds **`sales_channels.is_deleted`** (soft delete; keeps FK integrity with **`sales`** / **`platform_payouts`**).
+- `20260621160000_grant_users_service_role.sql` — restores **`GRANT`** on **`public.users`** for **`service_role`** (and **`authenticated` SELECT**) so **`user-management`** list/create/update no longer fail with *permission denied for table users*.
+- `20260621170000_ensure_partner_sales_channels.sql` — re-activates **Wolt / Bolt / ChoiceQR** (`is_deleted = false`, `is_active = true`) and upserts canonical partner rows for manual **Sales** entry.
+- `20260621180000_grant_admin_api_service_role.sql` — **`GRANT`** on **`sales_channels`**, **`admin_audit_log`**, and other **`admin-api`** tables for **`service_role`** (fixes Settings channel delete/toggle **400** from *permission denied*).
+- `20260621190000_grant_combo_tables_and_staff_rls.sql` — **`GRANT`** on **`combo_deals`** / **`combo_groups`** / **`combo_group_items`** for **`authenticated`** (+ anon **SELECT**); staff RLS uses **`is_staff_user()`** (fixes Combos screen **403**).
+- `20260621200000_sales_delivery_location_columns.sql` — adds **`sales.delivery_lat`**, **`delivery_lng`**, **`delivery_address`**, **`delivery_fee`**, **`delivery_zone_id`**, and related checkout fields (fixes Order map **column does not exist**).
+- `20260622140000_ensure_system_sales_channels.sql` — restores **Wolt / Bolt / Kiosk / Online / POS** (`is_deleted = false`, `is_active = true`); upserts canonical **POS** row for Settings and **`pos-order-create`**.
+- `20260622150000_protect_system_sales_channels_trigger.sql` — **DB trigger** blocks soft-delete, deactivation, and rename of required system channels (by canonical id or name); heals rows deleted before the trigger existed.
+- `20260622160000_deduplicate_system_sales_channels.sql` — merges duplicate **POS / Kiosk / Online / Wolt / Bolt** rows onto canonical ids; reassigns `sales` and `platform_payouts`, then soft-deletes legacy duplicates (fixes two identical POS entries in Settings).
+- `20260623180000_grant_suppliers_staff_read.sql` — **`GRANT SELECT`** on **`public.suppliers`** for **`authenticated`** + staff-only SELECT RLS (fixes Money / Expenses **permission denied for table suppliers** on purchase joins).
 - `20260424155422_payment_reconciliation_log.sql` — **`payment_reconciliation_log`**: append-only audit columns for future payment reconciliation (`sale_id`, `provider`, `reconcile_trigger`, `candidate_reason`, `action`, `before_snapshot` / `after_snapshot`, `provider_response`, `error_message`); RLS on, no anon policies yet (service role / future RPC).
 - `20260427102000_customer_auth_address_ux_mvp.sql` — adds customer checkout/legal metadata on `customer_profiles` (`first_name`, `last_name`, `phone_verified_at`, `terms_accepted_at`, version fields) and Wolt-style address detail columns on `customer_addresses` (`address_type`, access/courier/building/entry-point fields), all idempotent.

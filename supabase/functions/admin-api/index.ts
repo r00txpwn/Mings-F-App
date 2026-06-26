@@ -5,6 +5,7 @@ import {
   writeAdminAudit,
   type StaffRole,
 } from '../_shared/staffAuth.ts';
+import { assertSalesChannelMutationAllowed } from '../_shared/salesChannelPolicy.ts';
 
 type MutationOp = 'insert' | 'update' | 'delete' | 'upsert';
 
@@ -24,14 +25,14 @@ const TABLE_MIN_ROLE: Record<string, StaffRole[]> = {
   master_categories: ['admin', 'manager'],
   expense_items: ['admin', 'manager'],
   suppliers: ['admin', 'manager'],
-  sales_channels: ['admin'],
+  sales_channels: ['admin', 'manager', 'staff'],
   platform_payouts: ['admin', 'manager'],
   delivery_zones: ['admin', 'manager'],
   online_settings: ['admin', 'manager'],
   sales: ['admin', 'manager', 'staff'],
-  combo_deals: ['admin', 'manager'],
-  combo_groups: ['admin', 'manager'],
-  combo_group_items: ['admin', 'manager'],
+  combo_deals: ['admin', 'manager', 'staff'],
+  combo_groups: ['admin', 'manager', 'staff'],
+  combo_group_items: ['admin', 'manager', 'staff'],
   product_modifier_groups: ['admin', 'manager'],
   modifier_groups: ['admin', 'manager'],
   modifier_options: ['admin', 'manager'],
@@ -75,8 +76,48 @@ Deno.serve(async (req: Request) => {
   const { user, role, supabaseAdmin } = auth;
   const q = supabaseAdmin.from(table);
 
+  async function loadSalesChannel(channelId: string): Promise<{ id: string; name: string } | null> {
+    const { data } = await supabaseAdmin
+      .from('sales_channels')
+      .select('id, name')
+      .eq('id', channelId)
+      .maybeSingle();
+    if (!data || typeof data.id !== 'string' || typeof data.name !== 'string') return null;
+    return { id: data.id, name: data.name };
+  }
+
   let result;
   let resourceId: string | null = id ?? null;
+
+  if (table === 'sales_channels') {
+    if (operation === 'insert' || operation === 'upsert') {
+      const payloadObj = payload && !Array.isArray(payload) ? payload : null;
+      const guard = assertSalesChannelMutationAllowed(operation, null, payloadObj);
+      if (!guard.ok) {
+        return jsonResponse(
+          { ok: false, error: { code: 'SYSTEM_CHANNEL_PROTECTED', message: guard.message } },
+          403
+        );
+      }
+    } else if (operation === 'update' || operation === 'delete') {
+      const targetId = id ?? (typeof match?.id === 'string' ? match.id : null);
+      if (!targetId) {
+        return jsonResponse(
+          { ok: false, error: { code: 'BAD_REQUEST', message: `${operation} requires id for sales_channels` } },
+          400
+        );
+      }
+      const existingChannel = await loadSalesChannel(targetId);
+      const payloadObj = payload && !Array.isArray(payload) ? payload : null;
+      const guard = assertSalesChannelMutationAllowed(operation, existingChannel, payloadObj);
+      if (!guard.ok) {
+        return jsonResponse(
+          { ok: false, error: { code: 'SYSTEM_CHANNEL_PROTECTED', message: guard.message } },
+          403
+        );
+      }
+    }
+  }
 
   switch (operation) {
     case 'insert': {

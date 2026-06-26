@@ -80,5 +80,5 @@ Key files:
 
 Key files:
 
-- `src/kds/OrderCard.tsx`
+- `src/kds/KdsOrderCard.tsx`
 - `src/order/TrackingApp.tsx`

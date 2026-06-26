@@ -6,6 +6,8 @@ interface ModalProps {
   titleId: string;
   children: React.ReactNode;
   widthClassName?: string;
+  /** When false, backdrop click and Escape do not call onClose. Default true. */
+  allowClose?: boolean;
 }
 
 const FOCUSABLE =
@@ -17,7 +19,11 @@ export function Modal({
   titleId,
   children,
   widthClassName = 'max-w-lg',
+  allowClose = true,
 }: ModalProps) {
+  const handleClose = () => {
+    if (allowClose) onClose();
+  };
   const rootRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
 
@@ -34,7 +40,7 @@ export function Modal({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        if (allowClose) onClose();
         return;
       }
       if (event.key !== 'Tab' || !root) return;
@@ -63,7 +69,7 @@ export function Modal({
       document.body.style.overflow = '';
       restoreRef.current?.focus();
     };
-  }, [onClose, open]);
+  }, [allowClose, onClose, open]);
 
   if (!open) return null;
 
@@ -73,7 +79,7 @@ export function Modal({
         type="button"
         className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
         aria-label="Close dialog"
-        onClick={onClose}
+        onClick={handleClose}
       />
       <div
         ref={rootRef}

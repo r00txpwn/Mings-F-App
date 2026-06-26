@@ -64,6 +64,110 @@ export default defineConfig({
 
     },
 
+    {
+
+      name: 'kds',
+
+      testMatch: '**/kds-smoke.spec.ts',
+
+      use: {
+
+        ...devices['Desktop Chrome'],
+
+        baseURL: staffBase,
+
+      },
+
+    },
+
+    {
+
+      name: 'kiosk',
+
+      testMatch: '**/kiosk-smoke.spec.ts',
+
+      use: {
+
+        ...devices['Desktop Chrome'],
+
+        baseURL: staffBase,
+
+      },
+
+    },
+
+    {
+
+      name: 'pos',
+
+      testMatch: '**/pos-smoke.spec.ts',
+
+      use: {
+
+        ...devices['Desktop Chrome'],
+
+        baseURL: staffBase,
+
+      },
+
+    },
+
+    {
+
+      name: 'staff-auth-setup',
+
+      testMatch: '**/staff-auth.setup.ts',
+
+      use: {
+
+        ...devices['Desktop Chrome'],
+
+        baseURL: staffBase,
+
+      },
+
+    },
+
+    {
+
+      name: 'staff-functional',
+
+      testMatch: '**/staff-functional-qa.spec.ts',
+
+      dependencies: ['staff-auth-setup'],
+
+      use: {
+
+        ...devices['Desktop Chrome'],
+
+        baseURL: staffBase,
+
+        storageState: 'test-results/staff-auth-state.json',
+
+      },
+
+    },
+
+    {
+
+      name: 'expenses-crud',
+
+      testMatch: '**/expenses-crud.spec.ts',
+
+      dependencies: ['staff-auth-setup'],
+
+      use: {
+
+        ...devices['Desktop Chrome'],
+
+        baseURL: staffBase,
+
+        storageState: 'test-results/staff-auth-state.json',
+
+      },
+
+    },
+
   ],
 
   webServer: process.env.CI

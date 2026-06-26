@@ -4,6 +4,8 @@
 
 Mings Financial Automation is a business management system for small to medium-sized businesses. It provides a unified **cockpit-style** dashboard to track sales, expenses, inventory, suppliers, and financial performance across multiple sales channels, plus **kiosk** self-service ordering and **kitchen display** (KDS) surfaces.
 
+**Full technical specification:** [docs/TECHNICAL_SPEC_AND_ARCHITECTURE.md](docs/TECHNICAL_SPEC_AND_ARCHITECTURE.md)
+
 ---
 
 ## Tech Stack
@@ -12,7 +14,7 @@ Mings Financial Automation is a business management system for small to medium-s
 |-------------|------------|
 | Framework   | React 18 + TypeScript |
 | Build tool  | Vite 5 |
-| Styling     | Tailwind CSS 3 (`cockpit-*` design tokens, dark-first UI) |
+| Styling     | Tailwind CSS 3 (`cockpit-*` / `neon-*` Clean Ops tokens, light-first staff UI) |
 | Icons       | Lucide React |
 | Drag & drop | @dnd-kit/core (Kiosk orders Kanban) |
 | Backend     | Supabase (PostgreSQL + Auth + Realtime + Edge Functions) |
@@ -45,13 +47,14 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 | `/spec-ops` | Staff cockpit ([`App.tsx`](src/App.tsx)) — default URL (`/spec-ops/` works). Override with `VITE_ADMIN_APP_PATH` in `.env` if needed. |
 | `/kiosk`  | [`KioskApp`](src/kiosk/KioskApp.tsx) — customer kiosk |
 | `/kds`    | [`KitchenDisplay`](src/kds/KitchenDisplay.tsx) — kitchen screen |
+| `/pos`    | [`PosApp`](src/pos/PosApp.tsx) — staff POS (counter/phone orders, label printing) |
 | `/order`  | [`OrderApp`](src/order/OrderApp.tsx) — public online ordering (no `SecretGate`). Delivery checkout uses a premium **Google Maps** address flow (Places API (New) autocomplete + draggable pin + reverse-geocode + zone polygons) when `VITE_GOOGLE_MAPS_API_KEY` is set — see [`src/order/AddressAutocomplete.tsx`](src/order/AddressAutocomplete.tsx), [`src/order/OrderAddressMap.tsx`](src/order/OrderAddressMap.tsx), [`src/order/googleMapsLoader.ts`](src/order/googleMapsLoader.ts), `.env.example`, and [`DEPLOY.md`](DEPLOY.md#google-maps-setup-required-for-the-customer-delivery-flow) for the APIs to enable. |
 | `/order-manager` | [`OrderManagerApp`](src/order-manager/OrderManagerApp.tsx) — dedicated staff order workflow surface (separate from `App.tsx`) |
 | `/order-management` | [`OrderManagerApp`](src/order-manager/OrderManagerApp.tsx) — alias route |
 | `/track`  | [`TrackingApp`](src/order/TrackingApp.tsx) — public order status via `track_token` |
 | *other*   | [`PublicNotFound`](src/PublicNotFound.tsx) — generic denied/404 (no admin hint, no `/order` push). |
 
-**Secret gates:** [`SecretGate`](src/components/SecretGate.tsx) wraps `/kiosk` and `/kds`. If `VITE_KIOSK_SECRET` / `VITE_KDS_SECRET` is **unset or empty**, that surface is **open** (no `?key=` required — useful for local dev). If set, `?key=` must match exactly. **`/order` and `/track` are always public** (still wrapped with [`ConfigCheck`](src/ConfigCheck.tsx) so missing Supabase env fails fast).
+**Secret gates:** [`SecretGate`](src/components/SecretGate.tsx) wraps `/kiosk` only. If `VITE_KIOSK_SECRET` is **unset or empty**, that surface is **open** (no `?key=` required — useful for local dev). If set, `?key=` must match exactly. **`/kds` requires staff login** (same as `/pos`). **`/order` and `/track` are always public** (still wrapped with [`ConfigCheck`](src/ConfigCheck.tsx) so missing Supabase env fails fast).
 
 **Staff URL:** Default **`/spec-ops/`** — not linked from customer flows. Optional `VITE_ADMIN_APP_PATH` overrides it.
 
@@ -80,7 +83,7 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 │
 ├── /src
 │   ├── main.tsx                  # Path-based entry (App vs Kiosk vs KDS)
-│   ├── App.tsx                   # Sidebar navigation shell (“Command Center”)
+│   ├── App.tsx                   # Auth gate + screen router (delegates shell to CockpitLayout)
 │   ├── index.css                 # Tailwind + cockpit utilities
 │   ├── translations.ts           # i18n (en, az, ru)
 │   ├── ConfigCheck.tsx           # Blocks app if Supabase env missing
@@ -107,7 +110,9 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 │   │
 │   ├── /components
 │   │   ├── /analytics            # KpiCard, FilterBar, ChartCard, InsightPanel
-│   │   ├── /cockpit              # PageHeader, shared layout primitives
+│   │   ├── /cockpit              # CockpitLayout, CockpitSidebar, PageHeader, cockpitNav
+│   │   ├── /ui                   # Button, Card, StatCard, Table, Input, Tabs, Badge
+│   │   ├── /home                 # SourceFilterChips, OperationalStrip, HomeDetailsSection
 │   │   ├── /kiosk
 │   │   │   ├── KioskOrdersBoard.tsx   # Kanban + @dnd-kit
 │   │   │   └── index.ts
@@ -123,7 +128,7 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 │   │
 │   ├── /screens
 │   │   ├── LoginScreen.tsx
-│   │   ├── HomeScreen.tsx        # Executive KPIs, FilterBar, charts, channel drilldowns
+│   │   ├── HomeScreen.tsx        # Executive KPIs (5-card hero + period deltas), operational strip, 2 charts, insights row, collapsible finance details
 │   │   ├── SalesScreen.tsx
 │   │   ├── ProductsScreen.tsx
 │   │   ├── SuppliersScreen.tsx
@@ -134,6 +139,7 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 │   │   ├── MenuScreen.tsx        # Kiosk menu builder, modifiers
 │   │   ├── KioskOrdersScreen.tsx # Kanban board for kiosk fulfillment
 │   │   ├── DeliveryScreen.tsx    # Delivery Control Center shell (Zones / Settings / Dispatch tabs)
+│   │   ├── OrderLocationsScreen.tsx  # Baku delivery order dot map (website + POS delivery coords)
 │   │   ├── SettingsScreen.tsx
 │   │   └── UsersScreen.tsx
 │   │
@@ -161,7 +167,14 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 │   └── /kds                      # Kitchen display
 │       ├── KitchenDisplay.tsx
 │       ├── KdsHeader.tsx
-│       └── OrderCard.tsx
+│       ├── KdsBoard.tsx
+│       ├── KdsColumn.tsx
+│       ├── KdsOrderCard.tsx
+│       ├── KdsLineItem.tsx
+│       ├── KdsHeader.tsx
+│       ├── KdsUndoToast.tsx
+│       ├── KdsHistoryDrawer.tsx
+│       └── kdsBoardUtils.ts
 │   │
 │   └── /order                    # Public web ordering + tracking
 │       ├── OrderApp.tsx
@@ -191,7 +204,7 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 | Screen | Purpose |
 |--------|---------|
 | LoginScreen | Email/password via Supabase Auth |
-| HomeScreen | KPI cards, date presets, revenue vs costs, channel performance, validation hints |
+| HomeScreen | Hero KPIs (net revenue, orders, AOV, margin, operating profit) with prior-period deltas; source filter; operational strip (source mix, prep SLA, payments, payout commission); revenue/cost + orders charts; top products / channels / peak hours; collapsible expense + payout details |
 | SalesScreen | Record/edit sales by channel |
 | ProductsScreen | Inventory, pricing, categories, stock reconciliation hooks |
 | SuppliersScreen | Supplier directory |
@@ -202,6 +215,7 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 | MenuScreen | Kiosk menu categories & products, modifiers |
 | CombosScreen | Combo deals, group/item setup, upsell mapping |
 | KioskOrdersScreen | **Kanban** for kiosk + online (`source` in kiosk / online_delivery / online_takeaway); realtime + `delivery_orders` |
+| OrderLocationsScreen | Dot map of delivery coordinates in Baku (website + POS delivery; `?screen=order-locations`) |
 | SettingsScreen | Language, theme, sales channels |
 | UsersScreen | Admin user list/create/delete via Edge Function |
 
@@ -226,7 +240,7 @@ Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
 | Area | Purpose |
 |------|---------|
 | **analytics/** | KpiCard, FilterBar, ChartCard, InsightPanel — shared dashboard/reports |
-| **cockpit/** | PageHeader, design-aligned panels and tables |
+| **cockpit/** | CockpitLayout, CockpitSidebar (grouped nav: Overview / Orders / Catalog / Finance / System), PageHeader, `cockpitNav` helpers |
 | **kiosk/KioskOrdersBoard** | Drag-and-drop columns (`@dnd-kit/core`) |
 | SecretGate | Optional URL key when env secret is set |
 | LineChart / PieChart | SVG charts |
@@ -334,7 +348,7 @@ SPA routes `/`, `/kiosk`, `/kds`, `/order`, `/track`, and admin path `/spec-ops`
 
 - **State:** React Context (no Redux).
 - **Data:** Supabase client in screens/services; `services/analytics` for shared KPI/finance queries.
-- **Navigation:** Screen state in `App.tsx` (no React Router).
+- **Navigation:** Screen state in `App.tsx` via `?screen=` (no React Router). Sidebar is grouped and collapsible (`CockpitSidebar`).
 - **Charts:** Custom SVG (`LineChart`, `PieChart`).
 - **Styling:** Tailwind + cockpit component classes.
 - **Kiosk orders UI:** `@dnd-kit` drag-and-drop between status columns.

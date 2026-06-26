@@ -5,6 +5,17 @@ import type { NormalisedPolygon } from './validateZoneGeoJson';
 
 const DEFAULT_CENTER = { lat: 40.4093, lng: 49.8671 };
 
+const POLYGON_STYLE = {
+  fillColor: '#fbbf24',
+  strokeColor: '#d97706',
+  fillOpacity: 0.18,
+  strokeOpacity: 0.9,
+  strokeWeight: 2,
+} as const;
+
+/** ~11 m at Baku latitude — snap close polygon when clicking near the first vertex. */
+const CLOSE_VERTEX_THRESHOLD_DEG = 0.0001;
+
 interface ZoneDrawingMapProps {
   apiKey: string | undefined;
   polygon: NormalisedPolygon | null;
@@ -49,6 +60,13 @@ function fitPolygonBounds(map: google.maps.Map, polygon: NormalisedPolygon) {
   if (!bounds.isEmpty()) map.fitBounds(bounds, 24);
 }
 
+function isNearLatLng(a: google.maps.LatLng, b: google.maps.LatLng): boolean {
+  return (
+    Math.abs(a.lat() - b.lat()) < CLOSE_VERTEX_THRESHOLD_DEG &&
+    Math.abs(a.lng() - b.lng()) < CLOSE_VERTEX_THRESHOLD_DEG
+  );
+}
+
 export function ZoneDrawingMap({
   apiKey,
   polygon,
@@ -60,19 +78,22 @@ export function ZoneDrawingMap({
 }: ZoneDrawingMapProps) {
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const drawingRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const polygonRef = useRef<google.maps.Polygon | null>(null);
-  const listenersRef = useRef<google.maps.MapsEventListener[]>([]);
+  const pathListenersRef = useRef<google.maps.MapsEventListener[]>([]);
+  const drawClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const drawDblClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const draftPolygonRef = useRef<google.maps.Polygon | null>(null);
+  const isDrawingRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastAppliedRef = useRef<string>('null');
 
   const removePathListeners = () => {
-    for (const listener of listenersRef.current) {
+    for (const listener of pathListenersRef.current) {
       listener.remove();
     }
-    listenersRef.current = [];
+    pathListenersRef.current = [];
   };
 
   const emitPolygon = () => {
@@ -85,8 +106,77 @@ export function ZoneDrawingMap({
     }
   };
 
+  const stopDrawingListeners = () => {
+    drawClickListenerRef.current?.remove();
+    drawClickListenerRef.current = null;
+    drawDblClickListenerRef.current?.remove();
+    drawDblClickListenerRef.current = null;
+    isDrawingRef.current = false;
+  };
+
+  const clearDraftPolygon = () => {
+    draftPolygonRef.current?.setMap(null);
+    draftPolygonRef.current = null;
+  };
+
+  const finishDraftPolygon = () => {
+    const draft = draftPolygonRef.current;
+    if (!draft) return;
+    const next = toPolygonShape(draft);
+    if (!next) return;
+
+    stopDrawingListeners();
+    clearDraftPolygon();
+    attachEditablePolygon(draft);
+    const serial = JSON.stringify(next);
+    lastAppliedRef.current = serial;
+    onPolygonChange(next);
+    if (mapRef.current) fitPolygonBounds(mapRef.current, next);
+  };
+
+  const startDrawing = (map: google.maps.Map) => {
+    stopDrawingListeners();
+    clearDraftPolygon();
+    removePathListeners();
+    polygonRef.current?.setMap(null);
+    polygonRef.current = null;
+
+    isDrawingRef.current = true;
+    const path = new google.maps.MVCArray<google.maps.LatLng>();
+    const draft = new google.maps.Polygon({
+      paths: path,
+      ...POLYGON_STYLE,
+      editable: false,
+      clickable: false,
+    });
+    draft.setMap(map);
+    draftPolygonRef.current = draft;
+
+    drawClickListenerRef.current = map.addListener('click', (event: google.maps.MapMouseEvent) => {
+      const latLng = event.latLng;
+      if (!latLng || !isDrawingRef.current || !draftPolygonRef.current) return;
+
+      if (path.getLength() >= 3) {
+        const first = path.getAt(0);
+        if (isNearLatLng(first, latLng)) {
+          finishDraftPolygon();
+          return;
+        }
+      }
+
+      path.push(latLng);
+    });
+
+    drawDblClickListenerRef.current = map.addListener('dblclick', (event: google.maps.MapMouseEvent) => {
+      event.stop();
+      if (path.getLength() >= 3) finishDraftPolygon();
+    });
+  };
+
   const attachEditablePolygon = (poly: google.maps.Polygon) => {
     removePathListeners();
+    stopDrawingListeners();
+    clearDraftPolygon();
     polygonRef.current?.setMap(null);
     polygonRef.current = poly;
     poly.setEditable(true);
@@ -94,7 +184,7 @@ export function ZoneDrawingMap({
     if (mapRef.current) poly.setMap(mapRef.current);
 
     const path = poly.getPath();
-    listenersRef.current = [
+    pathListenersRef.current = [
       path.addListener('insert_at', emitPolygon),
       path.addListener('remove_at', emitPolygon),
       path.addListener('set_at', emitPolygon),
@@ -123,40 +213,13 @@ export function ZoneDrawingMap({
           fullscreenControl: false,
           clickableIcons: false,
           gestureHandling: 'greedy',
+          disableDoubleClickZoom: true,
         });
         mapRef.current = map;
 
-        const drawing = new google.maps.drawing.DrawingManager({
-          drawingMode: polygon ? null : google.maps.drawing.OverlayType.POLYGON,
-          drawingControl: true,
-          drawingControlOptions: {
-            position: google.maps.ControlPosition.TOP_CENTER,
-            drawingModes: [google.maps.drawing.OverlayType.POLYGON],
-          },
-          polygonOptions: {
-            fillColor: '#14b8a6',
-            strokeColor: '#14b8a6',
-            fillOpacity: 0.18,
-            strokeOpacity: 0.9,
-            strokeWeight: 2,
-            editable: true,
-            clickable: true,
-          },
-        });
-        drawing.setMap(map);
-        drawingRef.current = drawing;
-
-        drawing.addListener('overlaycomplete', (event: google.maps.drawing.OverlayCompleteEvent) => {
-          if (event.type !== google.maps.drawing.OverlayType.POLYGON) return;
-          const drawn = event.overlay as google.maps.Polygon;
-          attachEditablePolygon(drawn);
-          drawing.setDrawingMode(null);
-          const next = toPolygonShape(drawn);
-          const serial = JSON.stringify(next);
-          lastAppliedRef.current = serial;
-          onPolygonChange(next);
-          if (next && mapRef.current) fitPolygonBounds(mapRef.current, next);
-        });
+        if (!polygon) {
+          startDrawing(map);
+        }
 
         setReady(true);
       } catch (err) {
@@ -169,10 +232,10 @@ export function ZoneDrawingMap({
     return () => {
       cancelled = true;
       removePathListeners();
+      stopDrawingListeners();
+      clearDraftPolygon();
       polygonRef.current?.setMap(null);
       polygonRef.current = null;
-      drawingRef.current?.setMap(null);
-      drawingRef.current = null;
       mapRef.current = null;
       setReady(false);
     };
@@ -190,7 +253,7 @@ export function ZoneDrawingMap({
       removePathListeners();
       polygonRef.current?.setMap(null);
       polygonRef.current = null;
-      drawingRef.current?.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+      startDrawing(map);
       map.panTo(DEFAULT_CENTER);
       map.setZoom(12);
       return;
@@ -199,21 +262,19 @@ export function ZoneDrawingMap({
     const path = (polygon.coordinates[0] ?? []).map(([lng, lat]) => ({ lat, lng }));
     if (path.length < 3) return;
 
+    stopDrawingListeners();
+    clearDraftPolygon();
+
     if (polygonRef.current) {
       polygonRef.current.setPath(path);
       polygonRef.current.setMap(map);
     } else {
       const poly = new google.maps.Polygon({
         paths: path,
-        fillColor: '#14b8a6',
-        strokeColor: '#14b8a6',
-        fillOpacity: 0.18,
-        strokeOpacity: 0.9,
-        strokeWeight: 2,
+        ...POLYGON_STYLE,
       });
       attachEditablePolygon(poly);
     }
-    drawingRef.current?.setDrawingMode(null);
     fitPolygonBounds(map, polygon);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, polygon]);

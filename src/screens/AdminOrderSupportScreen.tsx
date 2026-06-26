@@ -426,7 +426,7 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
                             <button
                               type="button"
                               onClick={() => void acceptWithPrep(prepMinutes)}
-                              className="flex-1 rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-teal-500"
+                              className="flex-1 rounded-lg bg-cockpit-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-cockpit-500"
                             >
                               {t.omAccept}
                             </button>
@@ -528,7 +528,7 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
                             dispatched_at: new Date().toISOString(),
                           })
                         }
-                        className="w-full rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-teal-500"
+                        className="w-full rounded-lg bg-cockpit-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-cockpit-500"
                       >
                         {t.omConfirmSelfDispatch}
                       </button>
@@ -541,7 +541,7 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
                             completed_at: new Date().toISOString(),
                           })
                         }
-                        className="w-full rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-teal-500"
+                        className="w-full rounded-lg bg-cockpit-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-cockpit-500"
                       >
                         {t.omPickedUp}
                       </button>

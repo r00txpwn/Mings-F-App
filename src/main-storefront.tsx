@@ -13,6 +13,7 @@ const STAFF_ONLY_PATHS = new Set([
   '/order-management',
   '/kiosk',
   '/kds',
+  '/pos',
 ]);
 
 void renderStorefrontApp();

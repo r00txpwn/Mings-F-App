@@ -13,6 +13,29 @@
   --kiosk-white: #eeeeee;
   --kiosk-smoke: #676767;
   --kiosk-border: #595959;
+  --kiosk-text: #eeeeee;
+  --kiosk-muted: #676767;
+}
+
+/* Light Ming theme — scoped to in-store kiosk shell only */
+.kiosk-light {
+  --kiosk-bg: #f5f0e8;
+  --kiosk-card: #ffffff;
+  --kiosk-primary: #d65745;
+  --kiosk-teal: #37bc9d;
+  --kiosk-text: #1a1a1a;
+  --kiosk-white: #1a1a1a;
+  --kiosk-smoke: #6b6560;
+  --kiosk-muted: #6b6560;
+  --kiosk-border: #e5ddd3;
+}
+
+.kiosk-light.kiosk-shell * {
+  scrollbar-color: var(--kiosk-primary) #e5ddd3;
+}
+
+.kiosk-light.kiosk-shell *::-webkit-scrollbar-track {
+  background: #e5ddd3;
 }
 
 @layer utilities {
@@ -171,7 +194,7 @@
     background-color: #020617;
     background-image: radial-gradient(
         ellipse 120% 80% at 50% -30%,
-        rgba(20, 184, 166, 0.12),
+        rgba(251, 191, 36, 0.12),
         transparent 50%
       ),
       linear-gradient(to right, rgba(51, 65, 85, 0.35) 1px, transparent 1px),
@@ -184,7 +207,7 @@
     background-color: #f8fafc;
     background-image: radial-gradient(
       ellipse 80% 60% at 50% -20%,
-      rgba(148, 163, 184, 0.14),
+      rgba(251, 191, 36, 0.1),
       transparent 55%
     );
   }
@@ -207,20 +230,25 @@
     outline: 2px solid rgba(225, 29, 72, 0.95);
     outline-offset: 2px;
   }
+
+  .cockpit-app :focus-visible {
+    outline: 2px solid rgba(251, 191, 36, 0.95);
+    outline-offset: 2px;
+  }
 }
 
 /* Shared “bold data cockpit” surfaces — use with dark: variants via parent .dark */
 @layer components {
   .cockpit-panel {
-    @apply rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm backdrop-blur-sm dark:border-violet-500/20 dark:bg-slate-900/60 dark:shadow-neon;
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900;
   }
 
   .cockpit-panel-solid {
-    @apply rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/80;
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900;
   }
 
   .cockpit-inset {
-    @apply rounded-xl border border-slate-200/60 bg-slate-50/80 dark:border-violet-500/15 dark:bg-slate-950/55;
+    @apply rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/80;
   }
 
   .cockpit-label {
@@ -228,15 +256,15 @@
   }
 
   .cockpit-input {
-    @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:border-neon-500/60 focus:outline-none focus:ring-2 focus:ring-neon-500/30 dark:border-violet-400/20 dark:bg-slate-950/65 dark:text-white dark:placeholder:text-slate-500;
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:border-cockpit-500 focus:outline-none focus:ring-2 focus:ring-cockpit-500/20 dark:border-slate-600 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500;
   }
 
   .cockpit-input-lg {
-    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-mono tabular-nums text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-neon-500/60 focus:outline-none focus:ring-2 focus:ring-neon-500/30 dark:border-violet-400/20 dark:bg-slate-950/65 dark:text-white dark:placeholder:text-slate-500;
+    @apply w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base font-mono tabular-nums text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-cockpit-500 focus:outline-none focus:ring-2 focus:ring-cockpit-500/20 dark:border-slate-600 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500;
   }
 
   .cockpit-select {
-    @apply w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-10 text-sm text-slate-900 shadow-sm transition-colors focus:border-neon-500/60 focus:outline-none focus:ring-2 focus:ring-neon-500/30 dark:border-violet-400/20 dark:bg-slate-950/65 dark:text-white;
+    @apply w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-10 text-sm text-slate-900 shadow-sm transition-colors focus:border-cockpit-500 focus:outline-none focus:ring-2 focus:ring-cockpit-500/20 dark:border-slate-600 dark:bg-slate-950 dark:text-white;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364758B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
@@ -244,7 +272,7 @@
   }
 
   .cockpit-select-compact {
-    @apply appearance-none rounded-lg border border-slate-300 bg-white px-2 py-1.5 pr-8 text-xs font-medium text-slate-800 transition-colors focus:border-neon-500/60 focus:outline-none focus:ring-2 focus:ring-neon-500/30 dark:border-violet-400/25 dark:bg-slate-900 dark:text-slate-100;
+    @apply appearance-none rounded-lg border border-slate-300 bg-white px-2 py-1.5 pr-8 text-xs font-medium text-slate-800 transition-colors focus:border-cockpit-500 focus:outline-none focus:ring-2 focus:ring-cockpit-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364758B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
@@ -265,31 +293,31 @@
 
   .neon-shell {
     @apply min-h-screen bg-slate-950 text-slate-100;
-    background-image:
-      radial-gradient(1200px 500px at 10% -10%, rgba(139, 92, 246, 0.26), transparent 60%),
-      radial-gradient(900px 450px at 90% -20%, rgba(6, 182, 212, 0.18), transparent 58%),
-      linear-gradient(to bottom, #020617, #020617);
+    background-image: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(251, 191, 36, 0.08),
+      transparent 55%
+    );
   }
 
   .neon-topbar {
-    @apply border-b border-violet-500/20 bg-slate-950/80 backdrop-blur-xl;
+    @apply border-b border-slate-700 bg-slate-950/90 backdrop-blur-xl;
   }
 
   .neon-card {
-    @apply rounded-2xl border border-slate-200/90 bg-white/95 shadow-sm backdrop-blur-sm dark:border-violet-500/20 dark:bg-slate-900/70 dark:shadow-neon-soft;
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900;
   }
 
   .neon-badge {
-    @apply inline-flex items-center rounded-full border border-violet-400/25 bg-violet-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-200;
+    @apply inline-flex items-center rounded-full border border-cockpit-200 bg-cockpit-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-700 dark:border-cockpit-800 dark:bg-cockpit-950 dark:text-cockpit-300;
   }
 
   .neon-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white shadow-neon transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 dark:shadow-neon;
-    box-shadow: 0 8px 20px -12px rgba(124, 58, 237, 0.45);
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-cockpit-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-cockpit-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-cockpit-500 dark:hover:bg-cockpit-400;
   }
 
   .neon-btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-violet-400/25 dark:bg-slate-900/70 dark:text-slate-100 dark:hover:bg-slate-800;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800;
   }
 
   .cockpit-eyebrow {

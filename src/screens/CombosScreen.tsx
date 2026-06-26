@@ -70,6 +70,18 @@ export function CombosScreen() {
         .select('id, name, online_visible, combo_upsell_eligible, upsell_combo_id')
         .order('name'),
     ]);
+
+    if (comboRes.error) {
+      setLoading(false);
+      console.error('[CombosScreen] load combo_deals:', comboRes.error.message);
+      return;
+    }
+    if (productRes.error) {
+      setLoading(false);
+      console.error('[CombosScreen] load products:', productRes.error.message);
+      return;
+    }
+
     const combos = ((comboRes.data ?? []) as Array<Record<string, unknown>>).map((combo) => ({
       id: String(combo.id),
       name: String(combo.name ?? ''),
@@ -120,12 +132,16 @@ export function CombosScreen() {
   const createCombo = async () => {
     const p = Number(price);
     if (!name.trim() || Number.isNaN(p) || p < 0) return;
-    await adminInsert('combo_deals', {
+    const result = await adminInsert('combo_deals', {
       name: name.trim(),
       base_price: p,
       is_active: true,
       sort_order: rows.length,
     });
+    if (!result.ok) {
+      alert(`${t.errorOccurred}: ${result.error ?? 'Failed to create combo'}`);
+      return;
+    }
     setName('');
     setPrice('');
     await load();

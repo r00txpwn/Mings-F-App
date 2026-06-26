@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BarChart3, Loader2 } from 'lucide-react';
+import { applyAnalyticsSourceFilter } from '../lib/analyticsSourceFilter';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import {
@@ -9,6 +10,7 @@ import {
   KpiCard,
   type DatePreset,
 } from '../components/analytics';
+import { SourceFilterChips } from '../components/home/SourceFilterChips';
 import {
   fetchChannelPerformance,
   fetchExpenseBreakdown,
@@ -112,9 +114,7 @@ export function ReportsScreen() {
       .lte('sale_date', `${endDate}T23:59:59`)
       .order('sale_date', { ascending: false })
       .limit(50);
-    if (sourceFilter !== 'all') {
-      salesQuery = salesQuery.eq('source', sourceFilter);
-    }
+    salesQuery = applyAnalyticsSourceFilter(salesQuery, sourceFilter);
 
     const activityPromise = Promise.all([
       salesQuery,
@@ -317,29 +317,8 @@ export function ReportsScreen() {
             setDateRange((prev) => ({ ...prev, endDate: value }));
           }}
         />
-        <div className="cockpit-panel-solid flex flex-wrap items-center gap-2 p-3">
-          {(['all', 'manual', 'kiosk', 'online_delivery', 'online_takeaway'] as const).map((src) => (
-            <button
-              key={src}
-              type="button"
-              onClick={() => setSourceFilter(src)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                sourceFilter === src
-                  ? 'bg-slate-900 text-white dark:bg-slate-700'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-              }`}
-            >
-              {src === 'all'
-                ? t.allStatuses
-                : src === 'manual'
-                  ? t.manual
-                  : src === 'kiosk'
-                    ? t.kiosk
-                    : src === 'online_delivery'
-                      ? t.onlineDelivery
-                      : t.onlineTakeaway}
-            </button>
-          ))}
+        <div className="cockpit-panel-solid p-3">
+          <SourceFilterChips value={sourceFilter} onChange={setSourceFilter} />
         </div>
       </div>
 

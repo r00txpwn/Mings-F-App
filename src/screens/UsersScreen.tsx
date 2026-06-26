@@ -57,6 +57,12 @@ export function UsersScreen() {
     return refreshed.session?.access_token ?? null;
   };
 
+  const userManagementHeaders = (accessToken: string) => ({
+    Authorization: `Bearer ${accessToken}`,
+    apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json',
+  });
+
   const loadUsers = async (hasRetried = false) => {
     const accessToken = await getAccessToken();
     if (!accessToken) {
@@ -69,10 +75,7 @@ export function UsersScreen() {
     try {
       const response = await fetch(apiUrl, {
         cache: 'no-store',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: userManagementHeaders(accessToken),
       });
 
       const raw = await response.text();
@@ -142,10 +145,7 @@ export function UsersScreen() {
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/create`;
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
+      headers: userManagementHeaders(accessToken),
       body: JSON.stringify({ email, password, role }),
     });
 
@@ -193,10 +193,7 @@ export function UsersScreen() {
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/delete/${userId}`;
     const response = await fetch(apiUrl, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
+      headers: userManagementHeaders(accessToken),
     });
 
     const result = await response.json();
@@ -233,10 +230,7 @@ export function UsersScreen() {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/update-role`;
       const response = await fetch(apiUrl, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: userManagementHeaders(accessToken),
         body: JSON.stringify({ userId, role: nextRole }),
       });
 
@@ -309,10 +303,7 @@ export function UsersScreen() {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/reset-password`;
       const response = await fetch(apiUrl, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: userManagementHeaders(accessToken),
         body: JSON.stringify({ userId: targetUserId, newPassword: newPasswordInput }),
       });
 

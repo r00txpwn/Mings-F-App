@@ -37,3 +37,14 @@ verify_jwt = false
 # KDS status updates — gated by x-kds-secret (KDS_SECRET env) when set.
 [functions."kds-order-status-update"]
 verify_jwt = false
+
+[functions."kds-item-prep-toggle"]
+verify_jwt = false
+
+# POS counter order creation — staff JWT validated inside function.
+[functions."pos-order-create"]
+verify_jwt = false
+
+# Admin-only user CRUD — JWT validated inside function (admin role).
+[functions."user-management"]
+verify_jwt = false

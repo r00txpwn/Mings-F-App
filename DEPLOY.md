@@ -2,11 +2,13 @@
 
 ## What runs locally
 
-- `npm run build:staff` → `dist-staff/` (sp.mings.az — cockpit, order-manager, KDS, kiosk)
+- `npm run build:staff` → `dist-staff/` (sp.mings.az, pos.mings.az — cockpit, order-manager, KDS, kiosk, POS)
 - `npm run build:storefront` → `dist-storefront/` (order.mings.az — menu + tracking)
 - `npm run build:all` → both artifacts
-- `npm run deploy:local` → staff preview on **http://127.0.0.1:4175/**
-- `npm run deploy:local:storefront` → storefront preview on **http://127.0.0.1:4176/**
+- `npm run deploy:local` → staff preview on **http://127.0.0.1:4175/** (kills port 4175 first, `--strictPort`)
+- `npm run deploy:local:storefront` → storefront preview on **http://127.0.0.1:4176/** (kills port 4176 first)
+- `npm run dev:staff` → **http://127.0.0.1:5173/** (kills port 5173 first)
+- `npm run dev:storefront` → **http://127.0.0.1:5174/** (kills port 5174 first)
 
 ## 1. Frontend (two Vercel projects — recommended)
 
@@ -30,7 +32,7 @@ In each Vercel project **Settings → General**:
 - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 - `VITE_SURFACE_ADMIN_HOSTS=sp.mings.az`
 - `VITE_PUBLIC_ORDER_URL=https://order.mings.az`
-- **`VITE_KDS_SECRET`**, **`VITE_KIOSK_SECRET`** (staff only — do not set on storefront project)
+- **`VITE_KIOSK_SECRET`** (staff only — do not set on storefront project)
 - Optional: `VITE_PUBLIC_KIOSK_URL=https://sp.mings.az/kiosk`
 
 ### Storefront project env (`order.mings.az`)
@@ -38,7 +40,7 @@ In each Vercel project **Settings → General**:
 - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 - `VITE_SURFACE_ORDER_HOSTS=order.mings.az`
 - `VITE_GOOGLE_MAPS_API_KEY` (delivery map)
-- **Do not** set `VITE_KDS_SECRET` / `VITE_KIOSK_SECRET` here
+- **Do not** set `VITE_KIOSK_SECRET` here
 
 Auth sessions use separate storage keys (`mings-staff-auth` vs `mings-storefront-auth`) so staff and customer logins do not bleed across origins.
 
@@ -54,7 +56,7 @@ The root [`vercel.json`](vercel.json) remains for backward compatibility but shi
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - Optional: `VITE_GOOGLE_MAPS_API_KEY` (delivery map on `/order`), `VITE_KIOSK_SECRET`
-   - **Production KDS:** set `VITE_KDS_SECRET` to a long random value in **production** env (and staging separately if you gate staging KDS). Leave unset **only** for local dev if you want `/kds` open. After setting or changing it, **redeploy** so the bundle picks it up. Open KDS as `/kds?key=<secret>` (bookmark on kitchen devices). Do not commit the secret.
+   - **Production KDS:** `/kds` requires **staff login** (same as `/pos`). Bookmark `https://sp.mings.az/kds` on kitchen tablets; sign in once per device. `VITE_KDS_SECRET` is no longer used.
    - Optional subdomain split: `VITE_SURFACE_ADMIN_HOSTS`, `VITE_SURFACE_ORDER_HOSTS`, `VITE_SURFACE_KIOSK_HOSTS`, `VITE_SURFACE_KDS_HOSTS`, `VITE_SURFACE_TRACK_HOSTS` (comma-separated exact hostnames; see [.env.example](.env.example)).
    - Optional public links from staff: `VITE_PUBLIC_ORDER_URL`, `VITE_PUBLIC_KIOSK_URL` (full URLs).
 
@@ -199,14 +201,29 @@ supabase functions deploy wolt-dispatch-book-lock
 supabase functions deploy user-management
 supabase functions deploy admin-api
 supabase functions deploy kds-order-status-update
+supabase functions deploy pos-order-create
 ```
 
-**Staff security layer:** after migration `20260610120000_harden_staff_only_rls.sql`, cockpit **mutations** go through **`admin-api`** (audited service-role writes). KDS status buttons call **`kds-order-status-update`** (set Edge secret **`KDS_SECRET`** to match staff `VITE_KDS_SECRET`). Deploy:
+**POS (`pos.mings.az`):** apply migration **`20260620120000_pos_order_sources.sql`** (extends `M###` pool + KDS anon policies for `pos_*` sources), then deploy **`pos-order-create`**:
+
+```bash
+npm run supabase:push
+npm run supabase:deploy:pos-order
+```
+
+Add **`pos.mings.az`** to the **staff** Vercel project domains (same `dist-staff/` as `sp.mings.az`). Set `VITE_SURFACE_POS_HOSTS=pos.mings.az`. Add `https://pos.mings.az` to Supabase Auth redirect URLs.
+
+**Local label printing:** run **`apps/pos-print-agent`** on the counter Windows PC (`npm start` in that folder; default `http://127.0.0.1:9310`). Optional Electron shell: **`apps/pos-desktop`** (`npm run dist` for `.exe` installer). See each app's `README.md`.
+
+**Staff security layer:** after migration `20260610120000_harden_staff_only_rls.sql`, cockpit **mutations** go through **`admin-api`** (audited service-role writes). KDS status buttons call **`kds-order-status-update`** and **`kds-item-prep-toggle`** with the **staff session JWT** (`requireStaffAuth`). Deploy:
 
 ```bash
 npm run supabase:deploy:admin-api
 npm run supabase:deploy:kds-status
+npm run supabase:deploy:kds-item-prep
 ```
+
+**KDS Chowbus board (2026-06):** three-column kanban, item prep checkoffs, filters/search, undo toast, history drawer. Apply migrations **`20260619120000_kds_item_prep_and_anon_update.sql`** and **`20260619130000_kds_anon_read_completed_today.sql`**, then deploy **`kds-item-prep-toggle`** (item checkoffs) alongside **`kds-order-status-update`** (resets `prepared_at` when starting prep).
 
 **Numbering rollout dependency:** deploy the `20260425173000_direct_order_number_allocator.sql` migration before deploying storefront/kiosk builds that call `allocate_direct_display_number()`. The migration keeps compatibility wrappers (`generate_daily_order_number*`) for staggered rollout safety, but direct callers should move to the shared allocator RPC.
 
@@ -215,6 +232,8 @@ npm run supabase:deploy:kds-status
 ```bash
 npm run supabase:deploy:web
 ```
+
+**No Docker Desktop?** `npm run supabase:deploy:*` scripts pass **`--use-api`** so the Supabase CLI bundles on their servers instead of locally. If you run raw `supabase functions deploy`, add `--use-api` yourself (otherwise Docker is required).
 
 **Schema + both functions in one go (after `supabase login` + `supabase link`):**
 
@@ -226,7 +245,18 @@ npm run supabase:sync
 
 Set at least: `APP_BASE_URL` (your live site URL). Add United Payment / E-point / Wolt secrets when you enable them — see `.env.example` and **[docs/UNITED_PAYMENT_INTEGRATION.md](docs/UNITED_PAYMENT_INTEGRATION.md)**.
 
-**Staff isolation:** set **`KDS_SECRET`** (Edge) to match staff **`VITE_KDS_SECRET`** (frontend). Deploy **`admin-api`** and **`kds-order-status-update`** after migration `20260610120000_harden_staff_only_rls.sql`.
+**KDS auth:** `/kds` uses staff Supabase login. Deploy **`admin-api`**, **`kds-order-status-update`**, and **`kds-item-prep-toggle`** after migrations `20260610120000_harden_staff_only_rls.sql`, `20260619120000_kds_item_prep_and_anon_update.sql`, and `20260621120000_kds_staff_auth_drop_anon_policies.sql`.
+
+### Storefront ↔ KDS (split deploy smoke test)
+
+After **`20260618140000_kds_anon_read_kitchen_queue.sql`** and redeploying `online-order-create` + `kds-order-status-update`:
+
+1. Confirm **both** Vercel projects use the same Supabase URL/anon key.
+2. `order.mings.az` — place a **cash takeaway** test order → ticket on `sp.mings.az/kds?key=…` within ~5s.
+3. Place a **card** test order → ticket visible on KDS but **Start preparing** blocked until `payment_status = paid`.
+4. Pause kitchen in Order Manager → new storefront orders return **`KITCHEN_CLOSED`** (localized error).
+
+Apply migration before relying on online orders on KDS: `npm run supabase:push`.
 
 ### United Payment (card payments on `/order` — current provider)
 

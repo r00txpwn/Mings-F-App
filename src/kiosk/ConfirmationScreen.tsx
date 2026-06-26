@@ -26,33 +26,30 @@ export function ConfirmationScreen({ displayNumber, onDone }: ConfirmationScreen
 
   return (
     <div
-      className="flex flex-col min-h-full p-8 select-none font-montserrat"
+      className="flex min-h-0 flex-1 flex-col p-8 select-none"
       style={{ backgroundColor: 'var(--kiosk-bg)' }}
     >
-      {/* Top content — centered */}
-      <div className="flex-1 flex flex-col items-center justify-center text-center">
-        {/* "Order added" heading */}
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
         <h1
-          className="font-bold mb-3 leading-tight"
-          style={{ color: 'var(--kiosk-white)', fontSize: '2.2rem' }}
+          className="mb-3 text-4xl font-bold leading-tight"
+          style={{ color: 'var(--kiosk-text)' }}
         >
           {t.orderConfirmed}
         </h1>
-        <p className="text-lg mb-10" style={{ color: 'var(--kiosk-smoke)' }}>
+        <p className="mb-10 text-lg" style={{ color: 'var(--kiosk-muted)' }}>
           {t.payAtCounter}
         </p>
 
-        {/* Order number card */}
         <div
-          className="rounded-[22px] px-12 py-8 mb-10"
+          className="mb-10 rounded-[22px] border-2 px-12 py-8 shadow-sm"
           style={{
             backgroundColor: 'var(--kiosk-card)',
-            border: '2.5px solid var(--kiosk-primary)',
+            borderColor: 'var(--kiosk-primary)',
           }}
         >
           <p
-            className="text-sm font-semibold uppercase tracking-widest mb-3"
-            style={{ color: 'var(--kiosk-smoke)' }}
+            className="mb-3 text-sm font-semibold uppercase tracking-widest"
+            style={{ color: 'var(--kiosk-muted)' }}
           >
             {t.yourOrderNumber}
           </p>
@@ -64,42 +61,32 @@ export function ConfirmationScreen({ displayNumber, onDone }: ConfirmationScreen
           </p>
         </div>
 
-        {/* Decorative circle */}
         <div
-          className="w-16 h-16 rounded-full opacity-20 mb-8"
+          className="mb-8 h-16 w-16 rounded-full opacity-20"
           style={{ backgroundColor: 'var(--kiosk-primary)' }}
         />
       </div>
 
-      {/* Footer buttons (qomander style: two side-by-side) */}
-      <div className="flex gap-4 max-w-md mx-auto w-full">
+      <div className="mx-auto flex w-full max-w-md gap-4">
         <button
+          type="button"
           onClick={onDone}
-          className="font-bold rounded-[18px] transition-all active:scale-95 min-h-[70px]"
+          className="min-h-[70px] flex-[0_0_47%] rounded-[18px] border text-lg font-bold transition-all active:scale-95"
           style={{
-            flex: '0 0 47%',
-            border: '1px solid var(--kiosk-border)',
-            color: 'var(--kiosk-white)',
+            borderColor: 'var(--kiosk-border)',
+            color: 'var(--kiosk-text)',
             backgroundColor: 'transparent',
-            fontSize: '1.05rem',
           }}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--kiosk-primary)')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--kiosk-border)')}
         >
-          Done ({countdown}s)
+          {t.kioskDoneCountdown.replace('{seconds}', String(countdown))}
         </button>
         <button
+          type="button"
           onClick={onDone}
-          className="text-white font-bold rounded-[18px] transition-all active:scale-95 min-h-[70px]"
-          style={{
-            flex: '0 0 47%',
-            backgroundColor: 'var(--kiosk-primary)',
-            fontSize: '1.05rem',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
-          onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
+          className="min-h-[70px] flex-[0_0_47%] rounded-[18px] text-lg font-bold text-white transition-all active:scale-95"
+          style={{ backgroundColor: 'var(--kiosk-primary)' }}
         >
-          Order More
+          {t.kioskOrderMore}
         </button>
       </div>
     </div>

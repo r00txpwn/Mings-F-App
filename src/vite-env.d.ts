@@ -12,6 +12,7 @@ interface ImportMetaEnv {
   readonly VITE_SURFACE_KIOSK_HOSTS?: string;
   readonly VITE_SURFACE_KDS_HOSTS?: string;
   readonly VITE_SURFACE_TRACK_HOSTS?: string;
+  readonly VITE_SURFACE_POS_HOSTS?: string;
   /** Public storefront URL for links from admin (path or subdomain). */
   readonly VITE_PUBLIC_ORDER_URL?: string;
   readonly VITE_PUBLIC_KIOSK_URL?: string;

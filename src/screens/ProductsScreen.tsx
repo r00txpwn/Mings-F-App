@@ -460,7 +460,7 @@ export function ProductsScreen() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
@@ -469,7 +469,7 @@ export function ProductsScreen() {
                     type="text"
                     value={formData.barcode}
                     onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
@@ -480,7 +480,7 @@ export function ProductsScreen() {
                     step="0.01"
                     value={formData.cost_price}
                     onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
@@ -490,7 +490,7 @@ export function ProductsScreen() {
                     step="0.01"
                     value={formData.selling_price}
                     onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                     placeholder="0.00"
                   />
                 </div>
@@ -518,7 +518,7 @@ export function ProductsScreen() {
                     step="0.01"
                     value={formData.quantity}
                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
@@ -528,7 +528,7 @@ export function ProductsScreen() {
                     step="0.01"
                     value={formData.min_stock_level}
                     onChange={(e) => setFormData({ ...formData, min_stock_level: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
@@ -568,7 +568,7 @@ export function ProductsScreen() {
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
               <div>
@@ -578,7 +578,7 @@ export function ProductsScreen() {
                   value={formData.image_url}
                   onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
                   placeholder="https://..."
-                  className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
               <div className="flex items-center gap-3">
@@ -589,7 +589,7 @@ export function ProductsScreen() {
                     onChange={(e) => setFormData({ ...formData, kiosk_visible: e.target.checked })}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-cockpit-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cockpit-600"></div>
                 </label>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.kioskVisible}</span>
               </div>
@@ -615,7 +615,7 @@ export function ProductsScreen() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-medium transition-colors"
+                  className="flex-1 px-4 py-3 bg-cockpit-600 hover:bg-cockpit-700 text-white rounded-xl font-medium transition-colors"
                 >
                   {editingProduct ? t.update : t.add} {t.product}
                 </button>

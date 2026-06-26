@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ClipboardList, Monitor, RefreshCw, ExternalLink, Search } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { ALL_KITCHEN_SOURCES } from '../pos/posSources';
 import { supabase } from '../lib/supabase';
 import { adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
@@ -13,7 +14,9 @@ export function KioskOrdersScreen() {
   const { t } = useLanguage();
   const [orders, setOrders] = useState<KioskOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sourceFilter, setSourceFilter] = useState<'all' | 'kiosk' | 'online_delivery' | 'online_takeaway'>('all');
+  const [sourceFilter, setSourceFilter] = useState<
+    'all' | 'kiosk' | 'online_delivery' | 'online_takeaway' | 'pos_eat_in' | 'pos_takeaway' | 'pos_delivery'
+  >('all');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'unpaid' | 'paid'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState(() => {
@@ -26,7 +29,7 @@ export function KioskOrdersScreen() {
     const { data } = await supabase
       .from('sales')
       .select('*, sale_items(*, sale_item_modifiers(*))')
-      .in('source', ['kiosk', 'online_delivery', 'online_takeaway'])
+      .in('source', [...ALL_KITCHEN_SOURCES])
       .gte('sale_date', dateRange.start)
       .lte('sale_date', `${dateRange.end}T23:59:59`)
       .order('created_at', { ascending: false });

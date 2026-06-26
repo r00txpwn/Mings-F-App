@@ -57,25 +57,27 @@ You only have to watch **three** things. Everything else is noise.
 
 ---
 
-## Risk 3 — Payments getting stuck (EPoint)
+## Risk 3 — Payments getting stuck (United Payment / legacy EPoint)
 
-**Where to look:** `sp.mings.az` → **Order Support** screen → filter by `payment_status = pending` or `order_status = awaiting_payment`.
+**Where to look:** `sp.mings.az` → **Order Support** screen → filter by `payment_status = pending` with `order_status = pending`.
 
 **What to check (takes 30 seconds):**
 
-1. Any order stuck on `awaiting_payment` for more than **15 minutes**?
-2. Any order with `payment_status = pending` but the customer says they already paid?
-3. Any order with `payment_status = paid` but `order_status = awaiting_payment`? (This one is the worst — money in, ticket never reaches kitchen.)
+1. Any **card** order with `payment_status = pending` for more than **15 minutes** after the customer says they paid?
+2. Any order with `payment_status = paid` but KDS still shows **authorizing**? (Hard refresh `/kds`; check webhook logs.)
+3. **Cash** orders should have `payment_status = unpaid` and KDS should allow prep immediately.
 
 **Red flags:**
-- EPoint confirmation came in (you'll see it in the payment provider dashboard) but the order is still `awaiting_payment`.
-- Customer shows you a bank SMS for a charge that has no matching order on our side.
-- Multiple stuck orders from the same 10-minute window → EPoint webhook probably failed.
+- Payment provider dashboard shows success but our row is still `payment_status = pending` → webhook/return failure.
+- Customer charged but no matching order → checkout abandoned before `online-order-create` completed.
+- Multiple stuck card orders in the same window → provider webhook or return URL misconfigured.
 
 **If something is wrong:**
 - Do **not** manually flip `payment_status` in the database. You'll lose the audit trail.
 - On the **Order Support** screen, use the "Retry payment reconciliation" action if present.
-- Otherwise: screenshot the order + the EPoint dashboard entry + timestamp. Send to the agent: *"Stuck payment on `O###`. Customer charged at HH:MM. Reconcile."*
+- Otherwise: screenshot the order + provider dashboard entry + timestamp. Send to the agent: *"Stuck payment on `O###`. Customer charged at HH:MM. Reconcile."*
+
+**Note:** New online orders use `order_status = pending` at create (not `awaiting_payment`). Kitchen visibility on KDS depends on RLS policy **"Anon can read kitchen queue sales"** (migration `20260618140000`).
 
 ---
 

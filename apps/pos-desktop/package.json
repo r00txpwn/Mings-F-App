@@ -1,0 +1,32 @@
+{
+  "name": "pos-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Electron shell for pos.mings.az with bundled print agent",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^34.0.2",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "az.mings.pos",
+    "productName": "Ming's POS",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "extraResources": [
+      {
+        "from": "../pos-print-agent",
+        "to": "pos-print-agent",
+        "filter": ["**/*", "!node_modules/**", "!queue.db"]
+      }
+    ]
+  }
+}

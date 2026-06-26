@@ -82,7 +82,7 @@ export function ReadyCard({ order, kitchenLocation, onPickedUp, onDispatched, on
         <button
           type="button"
           onClick={onPickedUp}
-          className="mt-3 w-full rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-500"
+          className="mt-3 w-full rounded-lg bg-cockpit-600 px-3 py-2 text-sm font-semibold text-white hover:bg-cockpit-500"
         >
           {t.omPickedUp}
         </button>
@@ -182,7 +182,7 @@ export function ReadyCard({ order, kitchenLocation, onPickedUp, onDispatched, on
                   <button
                     type="button"
                     onClick={onPickedUp}
-                    className="w-full rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-500"
+                    className="w-full rounded-lg bg-cockpit-600 px-3 py-2 text-sm font-semibold text-white hover:bg-cockpit-500"
                   >
                     {t.omPickedUp}
                   </button>

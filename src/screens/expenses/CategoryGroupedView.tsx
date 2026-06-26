@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Edit2, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { DangerConfirmRow } from '../../components/ui/DangerConfirmRow';
 import { IconActionButton } from '../../components/ui/IconActionButton';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -30,15 +30,30 @@ interface CategoryGroupedViewProps {
   groups: CategoryGroup[];
   type: 'operational' | 'cogs';
   onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<void>;
+  deletingId?: string | null;
   currency?: string;
 }
 
-export function CategoryGroupedView({ groups, type, onEdit, onDelete, currency = '₼' }: CategoryGroupedViewProps) {
+export function CategoryGroupedView({ groups, type, onEdit, onDelete, deletingId = null, currency = '₼' }: CategoryGroupedViewProps) {
   const { t } = useLanguage();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(groups[0] ? [groups[0].categoryId] : []));
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const grandTotal = groups.reduce((sum, group) => sum + group.total, 0);
+
+  const handleConfirmDelete = async (id: string) => {
+    if (pendingDeleteId || deletingId) return;
+    setPendingDeleteId(id);
+    try {
+      await onDelete(id);
+      setDeleteConfirm(null);
+    } finally {
+      setPendingDeleteId(null);
+    }
+  };
+
+  const isDeleting = (id: string) => deletingId === id || pendingDeleteId === id;
 
   const toggleCategory = (catId: string) => {
     setExpandedCategories(prev => {
@@ -139,8 +154,11 @@ export function CategoryGroupedView({ groups, type, onEdit, onDelete, currency =
                             <td colSpan={type === 'cogs' ? 7 : 6} className="px-5 py-3">
                               <DangerConfirmRow
                                 message={`${t.delete} ${t.item}?`}
-                                onConfirm={() => { onDelete(item.id); setDeleteConfirm(null); }}
-                                onCancel={() => setDeleteConfirm(null)}
+                                onConfirm={() => void handleConfirmDelete(item.id)}
+                                onCancel={() => { if (!isDeleting(item.id)) setDeleteConfirm(null); }}
+                                confirmDisabled={isDeleting(item.id)}
+                                confirmLabel={isDeleting(item.id) ? t.saving : t.delete}
+                                cancelLabel={t.cancel}
                               />
                             </td>
                           </tr>
@@ -184,13 +202,15 @@ export function CategoryGroupedView({ groups, type, onEdit, onDelete, currency =
                                 tone="edit"
                                 label={t.edit}
                                 className="h-8 w-8"
+                                disabled={Boolean(deletingId)}
                               />
                               <IconActionButton
                                 onClick={() => setDeleteConfirm(item.id)}
-                                icon={<Trash2 className="h-3.5 w-3.5" />}
+                                icon={isDeleting(item.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                                 tone="danger"
                                 label={t.delete}
                                 className="h-8 w-8"
+                                disabled={Boolean(deletingId)}
                               />
                             </div>
                           </td>

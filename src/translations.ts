@@ -11,6 +11,13 @@ export interface Translations {
   more: string;
   commandCenter: string;
   signedIn: string;
+  navOverview: string;
+  navOrders: string;
+  navCatalog: string;
+  navFinance: string;
+  navSystem: string;
+  collapseSidebar: string;
+  expandSidebar: string;
   system: string;
   inventory: string;
   procurement: string;
@@ -75,6 +82,33 @@ export interface Translations {
   kpiNetRevenueHint: string;
   /** KPI card helper line under Operating Profit */
   kpiOperatingProfitHint: string;
+  comparePreviousPeriod: string;
+  netProfitLabel: string;
+  sourceFilter: string;
+  orderSourceMix: string;
+  avgPrepTime: string;
+  kitchenSla: string;
+  paymentHealth: string;
+  payoutCommission: string;
+  topProducts: string;
+  peakHours: string;
+  operationalInsights: string;
+  paidOrders: string;
+  unpaidOrders: string;
+  cardPayments: string;
+  codPayments: string;
+  matchedPayouts: string;
+  mismatchedPayouts: string;
+  pendingPayouts: string;
+  expandDetails: string;
+  collapseDetails: string;
+  viewFullReport: string;
+  viewPayouts: string;
+  revenueShare: string;
+  dashboardOrdersHint: string;
+  dashboardAovHint: string;
+  dataConsistencyWarning: string;
+  pos: string;
 
   // Sales
   addSale: string;
@@ -126,6 +160,13 @@ export interface Translations {
 
   // Settings
   settings: string;
+  deleteChannelConfirmTitle: string;
+  deleteChannelConfirmMessage: string;
+  deleteChannelError: string;
+  channelRemovedSuccess: string;
+  systemSalesChannel: string;
+  salesChannelProtectedError: string;
+  dismiss: string;
   language: string;
   categories: string;
   manageCategories: string;
@@ -294,6 +335,8 @@ export interface Translations {
   savedSuccessfully: string;
   deletedSuccessfully: string;
   errorOccurred: string;
+  amountMustBePositive: string;
+  quantityMustBePositive: string;
   foodCost: string;
   cogs: string;
   share: string;
@@ -360,6 +403,16 @@ export interface Translations {
 
   // Kiosk
   tapToOrder: string;
+  kioskWelcomeTitle: string;
+  kioskEatIn: string;
+  kioskTakeOut: string;
+  kioskExploreMenu: string;
+  kioskRestartMenu: string;
+  kioskOrderNow: string;
+  kioskOrderMore: string;
+  kioskDoneCountdown: string;
+  kioskNoCategories: string;
+  kioskNoProducts: string;
   addToCart: string;
   viewCart: string;
   placeOrder: string;
@@ -400,6 +453,29 @@ export interface Translations {
   kdsPrepTimeLabel: string;
   kdsBusyKitchenHint: string;
   kdsCourierNoteLabel: string;
+  kdsStatusUpdating: string;
+  kdsChannelDelivery: string;
+  kdsChannelTakeaway: string;
+  kdsChannelKiosk: string;
+  kdsChannelPosEatIn: string;
+  kdsChannelPosTakeaway: string;
+  kdsChannelPosDelivery: string;
+  kdsFilterAll: string;
+  kdsSearchPlaceholder: string;
+  kdsHistoryTitle: string;
+  kdsHistoryEmpty: string;
+  kdsUndoComplete: string;
+  kdsUndoSeconds: string;
+  kdsUndoButton: string;
+  kdsAllItemsPrepared: string;
+  kdsMarkItemPrepared: string;
+  kdsMarkItemUnprepared: string;
+  kdsEmptyQueueTitle: string;
+  kdsEmptyQueueHint: string;
+  kdsEmptyColumn: string;
+  kdsEmptyFiltered: string;
+  kdsEmptyFilteredHint: string;
+  kdsHistorySubtitle: string;
 
   // Kiosk Admin
   orderManagerTitle: string;
@@ -964,6 +1040,51 @@ export interface Translations {
   omSourceTakeaway: string;
   omSourceDelivery: string;
   omTitle: string;
+  posTitle: string;
+  posTabActive: string;
+  posTabHistory: string;
+  posTabNewOrder: string;
+  posTabSettings: string;
+  posSettingsTitle: string;
+  posPrintAgentUrl: string;
+  posPrinterProfile: string;
+  posProfileEscpos80: string;
+  posProfileZpl58: string;
+  posProfileZpl40x30: string;
+  posTestConnection: string;
+  posTestPrint: string;
+  posAgentConnected: string;
+  posAgentUnreachable: string;
+  posTestPrintSent: string;
+  posTestPrintFailed: string;
+  posFulfillmentEatIn: string;
+  posFulfillmentTakeaway: string;
+  posFulfillmentDelivery: string;
+  posSourceEatIn: string;
+  posSourceTakeaway: string;
+  posSourceDelivery: string;
+  posCustomerPanelTitle: string;
+  posCustomerName: string;
+  posCustomerPhone: string;
+  posOrderNotes: string;
+  posDeliveryPanelTitle: string;
+  posCartTitle: string;
+  posCartEmpty: string;
+  posSubmitOrder: string;
+  posSubmitFailed: string;
+  posOrderCreated: string;
+  posViewActiveOrders: string;
+  posNewOrderTitle: string;
+  posOutsideZone: string;
+  posDeliveryRequired: string;
+  posReprintLabels: string;
+  posPrintSent: string;
+  posPrintPending: string;
+  posPrintFailed: string;
+  posPrintPendingCount: string;
+  posMapSearch: string;
+  posMapPinHint: string;
+  posMapsUnavailable: string;
   omKitchenStatusTitle: string;
   omKitchenStatusOnline: string;
   omKitchenStatusPausedUntil: string;
@@ -1016,6 +1137,18 @@ export interface Translations {
   orderSupportPrepareQuick: string;
   orderSupportScheduledHint: string;
   deliveryScreenTitle: string;
+  orderLocations: string;
+  orderLocationsTitle: string;
+  orderLocationsSubtitle: string;
+  orderLocationsEmpty: string;
+  orderLocationsLoading: string;
+  orderLocationsUnavailable: string;
+  orderLocationsMapHint: string;
+  orderLocationsTotalOrders: string;
+  orderLocationsSourceAll: string;
+  orderLocationsSourceOnline: string;
+  orderLocationsSourcePos: string;
+  orderLocationsOrderLabel: string;
   deliveryScreenDescription: string;
   deliveryRefresh: string;
   deliveryTabZones: string;
@@ -1123,6 +1256,13 @@ export const translations: Record<Language, Translations> = {
     more: 'More',
     commandCenter: 'Command Center',
     signedIn: 'Signed in',
+    navOverview: 'Overview',
+    navOrders: 'Orders',
+    navCatalog: 'Catalog',
+    navFinance: 'Finance',
+    navSystem: 'System',
+    collapseSidebar: 'Collapse sidebar',
+    expandSidebar: 'Expand sidebar',
     system: 'System',
     inventory: 'Inventory',
     procurement: 'Procurement',
@@ -1183,6 +1323,33 @@ export const translations: Record<Language, Translations> = {
     aov: 'AOV',
     kpiNetRevenueHint: 'After COGS',
     kpiOperatingProfitHint: 'After COGS & OPEX',
+    comparePreviousPeriod: 'Compare vs prior period',
+    netProfitLabel: 'Net profit',
+    sourceFilter: 'Source',
+    orderSourceMix: 'Order source mix',
+    avgPrepTime: 'Avg prep time',
+    kitchenSla: 'Kitchen SLA met',
+    paymentHealth: 'Payment health',
+    payoutCommission: 'Payout commission',
+    topProducts: 'Top products',
+    peakHours: 'Peak hours',
+    operationalInsights: 'Operational insights',
+    paidOrders: 'paid',
+    unpaidOrders: 'unpaid',
+    cardPayments: 'card',
+    codPayments: 'COD',
+    matchedPayouts: 'Matched',
+    mismatchedPayouts: 'Mismatch',
+    pendingPayouts: 'Pending',
+    expandDetails: 'Show expense & payout details',
+    collapseDetails: 'Hide expense & payout details',
+    viewFullReport: 'View full report',
+    viewPayouts: 'View payouts',
+    revenueShare: 'share',
+    dashboardOrdersHint: 'Distinct orders in period',
+    dashboardAovHint: 'Net revenue per order',
+    dataConsistencyWarning: 'Detected {count} consistency issue(s) in aggregated KPI data.',
+    pos: 'POS',
 
     addSale: 'Add Sale',
     saleAmount: 'Sale Amount',
@@ -1231,6 +1398,13 @@ export const translations: Record<Language, Translations> = {
     type: 'Type',
 
     settings: 'Settings',
+    deleteChannelConfirmTitle: 'Remove sales channel?',
+    deleteChannelConfirmMessage: 'Remove "{name}" from active channels? Past sales and payouts stay linked in reports.',
+    deleteChannelError: 'Could not remove this channel. Try again or contact an admin.',
+    channelRemovedSuccess: 'Channel removed.',
+    systemSalesChannel: 'System',
+    salesChannelProtectedError: 'This channel is required by the app and cannot be removed or deactivated.',
+    dismiss: 'Dismiss',
     language: 'Language',
     categories: 'Categories',
     manageCategories: 'Manage Categories',
@@ -1394,6 +1568,8 @@ export const translations: Record<Language, Translations> = {
     savedSuccessfully: 'Saved successfully!',
     deletedSuccessfully: 'Deleted successfully!',
     errorOccurred: 'An error occurred',
+    amountMustBePositive: 'Amount must be greater than zero',
+    quantityMustBePositive: 'Quantity must be greater than zero',
     foodCost: 'Food Cost %',
     cogs: 'COGS',
     share: '% share',
@@ -1456,6 +1632,16 @@ export const translations: Record<Language, Translations> = {
     payment: 'Payment',
 
     tapToOrder: 'Tap to Order',
+    kioskWelcomeTitle: 'Where will you be eating today?',
+    kioskEatIn: 'Eat In',
+    kioskTakeOut: 'Take Out',
+    kioskExploreMenu: 'Explore our Menu',
+    kioskRestartMenu: 'Restart Menu',
+    kioskOrderNow: 'Order Now',
+    kioskOrderMore: 'Order More',
+    kioskDoneCountdown: 'Done ({seconds}s)',
+    kioskNoCategories: 'No menu categories available',
+    kioskNoProducts: 'No products available',
     addToCart: 'Add to Cart',
     viewCart: 'View Cart',
     placeOrder: 'Place Order',
@@ -1493,6 +1679,29 @@ export const translations: Record<Language, Translations> = {
     kdsPrepTimeLabel: 'Prep time (minutes)',
     kdsBusyKitchenHint: 'Busy kitchen? 20 min is suggested.',
     kdsCourierNoteLabel: 'Courier',
+    kdsStatusUpdating: 'Updating…',
+    kdsChannelDelivery: 'Delivery',
+    kdsChannelTakeaway: 'Takeaway',
+    kdsChannelKiosk: 'Kiosk',
+    kdsChannelPosEatIn: 'POS · Eat In',
+    kdsChannelPosTakeaway: 'POS · Takeaway',
+    kdsChannelPosDelivery: 'POS · Delivery',
+    kdsFilterAll: 'All',
+    kdsSearchPlaceholder: 'Search #…',
+    kdsHistoryTitle: 'History',
+    kdsHistoryEmpty: 'No completed orders today',
+    kdsUndoComplete: 'Order {number} complete',
+    kdsUndoSeconds: 'Undo',
+    kdsUndoButton: 'Undo',
+    kdsAllItemsPrepared: 'All items prepared',
+    kdsMarkItemPrepared: 'Mark item prepared',
+    kdsMarkItemUnprepared: 'Mark item not prepared',
+    kdsEmptyQueueTitle: 'No active orders',
+    kdsEmptyQueueHint: 'New tickets from kiosk and online ordering appear here automatically.',
+    kdsEmptyColumn: 'Nothing here yet',
+    kdsEmptyFiltered: 'No orders match your filters',
+    kdsEmptyFilteredHint: 'Try a different channel or clear the search.',
+    kdsHistorySubtitle: 'Completed today',
 
     orderManagerTitle: 'Order Manager',
     orderManagerDescription: 'Monitor and act on kiosk and online orders in one queue',
@@ -2042,6 +2251,51 @@ export const translations: Record<Language, Translations> = {
     omSourceTakeaway: 'Online · Takeaway',
     omSourceDelivery: 'Online · Delivery',
     omTitle: 'Order Manager',
+    posTitle: 'Point of Sale',
+    posTabActive: 'Active',
+    posTabHistory: 'History',
+    posTabNewOrder: 'New Order',
+    posTabSettings: 'Settings',
+    posSettingsTitle: 'Print settings',
+    posPrintAgentUrl: 'Print agent URL',
+    posPrinterProfile: 'Printer profile',
+    posProfileEscpos80: 'ESC/POS · 80mm thermal',
+    posProfileZpl58: 'ZPL · 58mm label',
+    posProfileZpl40x30: 'ZPL · 40×30mm label',
+    posTestConnection: 'Test connection',
+    posTestPrint: 'Test print',
+    posAgentConnected: 'Print agent is reachable',
+    posAgentUnreachable: 'Cannot reach print agent',
+    posTestPrintSent: 'Test label sent to printer',
+    posTestPrintFailed: 'Test print failed',
+    posFulfillmentEatIn: 'Eat In',
+    posFulfillmentTakeaway: 'Takeaway',
+    posFulfillmentDelivery: 'Delivery',
+    posSourceEatIn: 'POS · Eat In',
+    posSourceTakeaway: 'POS · Takeaway',
+    posSourceDelivery: 'POS · Delivery',
+    posCustomerPanelTitle: 'Customer',
+    posCustomerName: 'Name (optional)',
+    posCustomerPhone: 'Phone (optional)',
+    posOrderNotes: 'Order notes',
+    posDeliveryPanelTitle: 'Delivery address',
+    posCartTitle: 'Cart',
+    posCartEmpty: 'Cart is empty',
+    posSubmitOrder: 'Create order',
+    posSubmitFailed: 'Could not create order',
+    posOrderCreated: 'Order created',
+    posViewActiveOrders: 'View active orders',
+    posNewOrderTitle: 'New order',
+    posOutsideZone: 'Address is outside delivery zones',
+    posDeliveryRequired: 'Set delivery pin and address',
+    posReprintLabels: 'Reprint labels',
+    posPrintSent: 'Labels sent to printer',
+    posPrintPending: 'Print queued — agent offline',
+    posPrintFailed: 'Print failed',
+    posPrintPendingCount: '{count} label job(s) waiting for print agent',
+    posMapSearch: 'Search address in Baku',
+    posMapPinHint: 'Drag pin or tap map to set location',
+    posMapsUnavailable: 'Maps unavailable',
     omKitchenStatusTitle: 'Online kitchen',
     omKitchenStatusOnline: 'Accepting orders',
     omKitchenStatusPausedUntil: 'Paused until {time}',
@@ -2095,6 +2349,18 @@ export const translations: Record<Language, Translations> = {
     orderSupportScheduledHint:
       'This order is scheduled. Reminder timing is safest from Order Manager; you can still view details here.',
     deliveryScreenTitle: 'Delivery',
+    orderLocations: 'Order map',
+    orderLocationsTitle: 'Delivery order map',
+    orderLocationsSubtitle: 'See where delivery orders come from in Baku — one dot per order location.',
+    orderLocationsEmpty: 'No delivery locations in this period. Try a wider date range or another source filter.',
+    orderLocationsLoading: 'Loading map…',
+    orderLocationsUnavailable: 'Add VITE_GOOGLE_MAPS_API_KEY to show the order map.',
+    orderLocationsMapHint: 'Click a dot for order details. Map is limited to Baku.',
+    orderLocationsTotalOrders: 'Orders with location',
+    orderLocationsSourceAll: 'All delivery',
+    orderLocationsSourceOnline: 'Website delivery',
+    orderLocationsSourcePos: 'POS delivery',
+    orderLocationsOrderLabel: 'Order',
     deliveryScreenDescription: 'Manage zones, kitchen rules, and manual dispatch',
     deliveryRefresh: 'Refresh delivery data',
     deliveryTabZones: 'Zones',
@@ -2120,7 +2386,7 @@ export const translations: Record<Language, Translations> = {
     deliveryZoneFieldSortOrder: 'Sort order',
     deliveryZoneFieldActive: 'Active',
     deliveryZoneFieldPolygon: 'Zone polygon',
-    deliveryZonePolygonHint: 'Draw at least 3 points on the map to define the zone.',
+    deliveryZonePolygonHint: 'Click the map to add points (min. 3). Double-click or click the first point to finish.',
     deliveryZoneClearShape: 'Clear shape',
     deliveryZonePolygonRequired: 'Polygon is required',
     deliveryZonePreview: 'Zone preview',
@@ -2203,6 +2469,13 @@ export const translations: Record<Language, Translations> = {
     more: 'Daha çox',
     commandCenter: 'Komanda Mərkəzi',
     signedIn: 'Daxil olub',
+    navOverview: 'İcmal',
+    navOrders: 'Sifarişlər',
+    navCatalog: 'Kataloq',
+    navFinance: 'Maliyyə',
+    navSystem: 'Sistem',
+    collapseSidebar: 'Yan paneli yığ',
+    expandSidebar: 'Yan paneli aç',
     system: 'Sistem',
     inventory: 'Anbar',
     procurement: 'Təchizat',
@@ -2263,6 +2536,33 @@ export const translations: Record<Language, Translations> = {
     aov: 'Orta Sifariş',
     kpiNetRevenueHint: 'COGS-dan sonra',
     kpiOperatingProfitHint: 'COGS və OPEX-dan sonra',
+    comparePreviousPeriod: 'Əvvəlki periodla müqayisə',
+    netProfitLabel: 'Xalis mənfəət',
+    sourceFilter: 'Mənbə',
+    orderSourceMix: 'Sifariş mənbəyi',
+    avgPrepTime: 'Orta hazırlanma',
+    kitchenSla: 'Mətbəx SLA',
+    paymentHealth: 'Ödəniş vəziyyəti',
+    payoutCommission: 'Platforma komissiyası',
+    topProducts: 'Top məhsullar',
+    peakHours: 'Pik saatlar',
+    operationalInsights: 'Əməliyyat statistikası',
+    paidOrders: 'ödənilib',
+    unpaidOrders: 'ödənilməyib',
+    cardPayments: 'kart',
+    codPayments: 'COD',
+    matchedPayouts: 'Uyğun',
+    mismatchedPayouts: 'Uyğunsuz',
+    pendingPayouts: 'Gözləyir',
+    expandDetails: 'Xərc və payout detallarını göstər',
+    collapseDetails: 'Xərc və payout detallarını gizlət',
+    viewFullReport: 'Tam hesabat',
+    viewPayouts: 'Payout-lara bax',
+    revenueShare: 'pay',
+    dashboardOrdersHint: 'Period üzrə unikal sifarişlər',
+    dashboardAovHint: 'Sifariş başına xalis gəlir',
+    dataConsistencyWarning: 'Agregat KPI məlumatında {count} uyğunsuzluq aşkarlandı.',
+    pos: 'POS',
 
     addSale: 'Satış əlavə et',
     saleAmount: 'Satış məbləği',
@@ -2311,6 +2611,13 @@ export const translations: Record<Language, Translations> = {
     type: 'Növ',
 
     settings: 'Tənzimləmələr',
+    deleteChannelConfirmTitle: 'Satış kanalını silmək?',
+    deleteChannelConfirmMessage: '"{name}" aktiv kanallardan silinsin? Keçmiş satış və payout-lar hesabatlarda qalır.',
+    deleteChannelError: 'Kanal silinmədi. Yenidən cəhd edin və ya adminə müraciət edin.',
+    channelRemovedSuccess: 'Kanal silindi.',
+    systemSalesChannel: 'Sistem',
+    salesChannelProtectedError: 'Bu kanal tətbiq üçün vacibdir — silinə və ya deaktiv edilə bilməz.',
+    dismiss: 'Bağla',
     language: 'Dil',
     categories: 'Kateqoriyalar',
     manageCategories: 'Kateqoriyaları İdarə Et',
@@ -2474,6 +2781,8 @@ export const translations: Record<Language, Translations> = {
     savedSuccessfully: 'Uğurla yadda saxlanıldı!',
     deletedSuccessfully: 'Uğurla silindi!',
     errorOccurred: 'Xəta baş verdi',
+    amountMustBePositive: 'Məbləğ sıfırdan böyük olmalıdır',
+    quantityMustBePositive: 'Miqdar sıfırdan böyük olmalıdır',
     foodCost: 'Ərzaq Dəyəri %',
     cogs: 'Maya Dəyəri',
     share: '% pay',
@@ -2536,6 +2845,16 @@ export const translations: Record<Language, Translations> = {
     payment: 'Ödəniş',
 
     tapToOrder: 'Sifariş üçün toxunun',
+    kioskWelcomeTitle: 'Bu gün harada yemək yeyəcəksiniz?',
+    kioskEatIn: 'Burada yemək',
+    kioskTakeOut: 'Paket',
+    kioskExploreMenu: 'Menyumuzu kəşf edin',
+    kioskRestartMenu: 'Menyunu yenidən başlat',
+    kioskOrderNow: 'Sifariş ver',
+    kioskOrderMore: 'Daha çox sifariş',
+    kioskDoneCountdown: 'Bitdi ({seconds}s)',
+    kioskNoCategories: 'Menyu kateqoriyası yoxdur',
+    kioskNoProducts: 'Məhsul mövcud deyil',
     addToCart: 'Səbətə əlavə et',
     viewCart: 'Səbətə bax',
     placeOrder: 'Sifariş ver',
@@ -2573,6 +2892,29 @@ export const translations: Record<Language, Translations> = {
     kdsPrepTimeLabel: 'Hazırlıq müddəti (dəqiqə)',
     kdsBusyKitchenHint: 'Mətbəx yüklüdür? 20 dəq tövsiyə olunur.',
     kdsCourierNoteLabel: 'Kuryer',
+    kdsStatusUpdating: 'Yenilənir…',
+    kdsChannelDelivery: 'Çatdırılma',
+    kdsChannelTakeaway: 'Götürmə',
+    kdsChannelKiosk: 'Kiosk',
+    kdsChannelPosEatIn: 'POS · Yerdə',
+    kdsChannelPosTakeaway: 'POS · Götürmə',
+    kdsChannelPosDelivery: 'POS · Çatdırılma',
+    kdsFilterAll: 'Hamısı',
+    kdsSearchPlaceholder: '# axtar…',
+    kdsHistoryTitle: 'Tarixçə',
+    kdsHistoryEmpty: 'Bu gün tamamlanmış sifariş yoxdur',
+    kdsUndoComplete: 'Sifariş {number} tamamlandı',
+    kdsUndoSeconds: 'Geri al',
+    kdsUndoButton: 'Geri al',
+    kdsAllItemsPrepared: 'Bütün məhsullar hazırdır',
+    kdsMarkItemPrepared: 'Məhsulu hazır kimi işarələ',
+    kdsMarkItemUnprepared: 'Məhsulu hazır deyil kimi işarələ',
+    kdsEmptyQueueTitle: 'Aktiv sifariş yoxdur',
+    kdsEmptyQueueHint: 'Kiosk və onlayn sifarişlər avtomatik burada görünəcək.',
+    kdsEmptyColumn: 'Hələ boşdur',
+    kdsEmptyFiltered: 'Filtrə uyğun sifariş yoxdur',
+    kdsEmptyFilteredHint: 'Başqa kanal seçin və ya axtarışı təmizləyin.',
+    kdsHistorySubtitle: 'Bu gün tamamlananlar',
 
     orderManagerTitle: 'Sifariş Meneceri',
     orderManagerDescription: 'Kiosk və onlayn sifarişləri bir növbədə izləyin və idarə edin',
@@ -3124,6 +3466,51 @@ export const translations: Record<Language, Translations> = {
     omSourceTakeaway: 'Onlayn · Əlavə',
     omSourceDelivery: 'Onlayn · Çatdırılma',
     omTitle: 'Sifariş meneceri',
+    posTitle: 'Satış nöqtəsi',
+    posTabActive: 'Aktiv',
+    posTabHistory: 'Tarixçə',
+    posTabNewOrder: 'Yeni sifariş',
+    posTabSettings: 'Parametrlər',
+    posSettingsTitle: 'Çap parametrləri',
+    posPrintAgentUrl: 'Çap agenti URL',
+    posPrinterProfile: 'Printer profili',
+    posProfileEscpos80: 'ESC/POS · 80mm termal',
+    posProfileZpl58: 'ZPL · 58mm etiket',
+    posProfileZpl40x30: 'ZPL · 40×30mm etiket',
+    posTestConnection: 'Bağlantını yoxla',
+    posTestPrint: 'Test çapı',
+    posAgentConnected: 'Çap agentinə çatmaq mümkündür',
+    posAgentUnreachable: 'Çap agentinə çatmaq mümkün deyil',
+    posTestPrintSent: 'Test etiketi printerə göndərildi',
+    posTestPrintFailed: 'Test çapı uğursuz oldu',
+    posFulfillmentEatIn: 'Yerdə',
+    posFulfillmentTakeaway: 'Götürmə',
+    posFulfillmentDelivery: 'Çatdırılma',
+    posSourceEatIn: 'POS · Yerdə',
+    posSourceTakeaway: 'POS · Götürmə',
+    posSourceDelivery: 'POS · Çatdırılma',
+    posCustomerPanelTitle: 'Müştəri',
+    posCustomerName: 'Ad (istəyə bağlı)',
+    posCustomerPhone: 'Telefon (istəyə bağlı)',
+    posOrderNotes: 'Sifariş qeydləri',
+    posDeliveryPanelTitle: 'Çatdırılma ünvanı',
+    posCartTitle: 'Səbət',
+    posCartEmpty: 'Səbət boşdur',
+    posSubmitOrder: 'Sifariş yarat',
+    posSubmitFailed: 'Sifariş yaradıla bilmədi',
+    posOrderCreated: 'Sifariş yaradıldı',
+    posViewActiveOrders: 'Aktiv sifarişlərə bax',
+    posNewOrderTitle: 'Yeni sifariş',
+    posOutsideZone: 'Ünvan çatdırılma zonasından kənardadır',
+    posDeliveryRequired: 'Çatdırılma ünvanı və pin təyin edin',
+    posReprintLabels: 'Etiketləri yenidən çap et',
+    posPrintSent: 'Etiketlər printerə göndərildi',
+    posPrintPending: 'Çap növbədə — agent offline',
+    posPrintFailed: 'Çap uğursuz oldu',
+    posPrintPendingCount: '{count} çap işi agent gözləyir',
+    posMapSearch: 'Bakıda ünvan axtar',
+    posMapPinHint: 'Pin sürüşdürün və ya xəritəyə toxunun',
+    posMapsUnavailable: 'Xəritə əlçatan deyil',
     omKitchenStatusTitle: 'Onlayn mətbəx',
     omKitchenStatusOnline: 'Sifariş qəbul edilir',
     omKitchenStatusPausedUntil: '{time}-ə qədər dayanır',
@@ -3177,6 +3564,18 @@ export const translations: Record<Language, Translations> = {
     orderSupportScheduledHint:
       'Bu sifariş planlıdır. Xatırlatma üçün Sifariş Meneceri daha təhlükəsizdir; detalları burada görə bilərsiniz.',
     deliveryScreenTitle: 'Çatdırılma',
+    orderLocations: 'Sifariş xəritəsi',
+    orderLocationsTitle: 'Çatdırılma sifariş xəritəsi',
+    orderLocationsSubtitle: 'Bakıda çatdırılma sifarişlərinin haradan gəldiyini görün — hər nöqtə bir sifarişdir.',
+    orderLocationsEmpty: 'Bu periodda çatdırılma ünvanı yoxdur. Tarix aralığını və ya mənbə filtrini dəyişin.',
+    orderLocationsLoading: 'Xəritə yüklənir…',
+    orderLocationsUnavailable: 'Sifariş xəritəsi üçün VITE_GOOGLE_MAPS_API_KEY əlavə edin.',
+    orderLocationsMapHint: 'Sifariş detalları üçün nöqtəyə klik edin. Xəritə Bakı ilə məhdudlaşır.',
+    orderLocationsTotalOrders: 'Ünvanı olan sifarişlər',
+    orderLocationsSourceAll: 'Bütün çatdırılma',
+    orderLocationsSourceOnline: 'Sayt çatdırılması',
+    orderLocationsSourcePos: 'POS çatdırılması',
+    orderLocationsOrderLabel: 'Sifariş',
     deliveryScreenDescription: 'Zonaları, mətbəx qaydalarını və əl ilə yola salmanı idarə edin',
     deliveryRefresh: 'Çatdırılma məlumatını yenilə',
     deliveryTabZones: 'Zonalar',
@@ -3202,7 +3601,7 @@ export const translations: Record<Language, Translations> = {
     deliveryZoneFieldSortOrder: 'Sıralama',
     deliveryZoneFieldActive: 'Aktiv',
     deliveryZoneFieldPolygon: 'Zona poliqonu',
-    deliveryZonePolygonHint: 'Zonanı təyin etmək üçün xəritədə ən azı 3 nöqtə qeyd edin.',
+    deliveryZonePolygonHint: 'Zonanı çəkmək üçün xəritəyə klik edin (min. 3). Bitirmək üçün iki dəfə klik edin və ya birinci nöqtəyə klik edin.',
     deliveryZoneClearShape: 'Formanı təmizlə',
     deliveryZonePolygonRequired: 'Poliqon tələb olunur',
     deliveryZonePreview: 'Zona önizləməsi',
@@ -3286,6 +3685,13 @@ export const translations: Record<Language, Translations> = {
     more: 'Ещё',
     commandCenter: 'Командный Центр',
     signedIn: 'Выполнен вход',
+    navOverview: 'Обзор',
+    navOrders: 'Заказы',
+    navCatalog: 'Каталог',
+    navFinance: 'Финансы',
+    navSystem: 'Система',
+    collapseSidebar: 'Свернуть панель',
+    expandSidebar: 'Развернуть панель',
     system: 'Система',
     inventory: 'Инвентарь',
     procurement: 'Снабжение',
@@ -3346,6 +3752,33 @@ export const translations: Record<Language, Translations> = {
     aov: 'Ср. чек',
     kpiNetRevenueHint: 'После COGS',
     kpiOperatingProfitHint: 'После COGS и OPEX',
+    comparePreviousPeriod: 'Сравнить с прошлым периодом',
+    netProfitLabel: 'Чистая прибыль',
+    sourceFilter: 'Источник',
+    orderSourceMix: 'Источники заказов',
+    avgPrepTime: 'Среднее время готовки',
+    kitchenSla: 'SLA кухни',
+    paymentHealth: 'Статус оплат',
+    payoutCommission: 'Комиссия платформ',
+    topProducts: 'Топ продукты',
+    peakHours: 'Пиковые часы',
+    operationalInsights: 'Операционная аналитика',
+    paidOrders: 'оплачено',
+    unpaidOrders: 'не оплачено',
+    cardPayments: 'карта',
+    codPayments: 'наличные',
+    matchedPayouts: 'Совпало',
+    mismatchedPayouts: 'Расхождение',
+    pendingPayouts: 'Ожидает',
+    expandDetails: 'Показать расходы и выплаты',
+    collapseDetails: 'Скрыть расходы и выплаты',
+    viewFullReport: 'Полный отчёт',
+    viewPayouts: 'Выплаты',
+    revenueShare: 'доля',
+    dashboardOrdersHint: 'Уникальные заказы за период',
+    dashboardAovHint: 'Чистая выручка на заказ',
+    dataConsistencyWarning: 'Обнаружено {count} несоответствий в агрегированных KPI.',
+    pos: 'POS',
 
     addSale: 'Добавить продажу',
     saleAmount: 'Сумма продажи',
@@ -3394,6 +3827,13 @@ export const translations: Record<Language, Translations> = {
     type: 'Тип',
 
     settings: 'Настройки',
+    deleteChannelConfirmTitle: 'Удалить канал продаж?',
+    deleteChannelConfirmMessage: 'Убрать «{name}» из активных каналов? Прошлые продажи и выплаты останутся в отчётах.',
+    deleteChannelError: 'Не удалось удалить канал. Попробуйте снова или обратитесь к администратору.',
+    channelRemovedSuccess: 'Канал удалён.',
+    systemSalesChannel: 'Системный',
+    salesChannelProtectedError: 'Этот канал обязателен для приложения — его нельзя удалить или отключить.',
+    dismiss: 'Закрыть',
     language: 'Язык',
     categories: 'Категории',
     manageCategories: 'Управление Категориями',
@@ -3557,6 +3997,8 @@ export const translations: Record<Language, Translations> = {
     savedSuccessfully: 'Успешно сохранено!',
     deletedSuccessfully: 'Успешно удалено!',
     errorOccurred: 'Произошла ошибка',
+    amountMustBePositive: 'Сумма должна быть больше нуля',
+    quantityMustBePositive: 'Количество должно быть больше нуля',
     foodCost: 'Себестоимость Еды %',
     cogs: 'Себестоимость',
     share: '% доля',
@@ -3619,6 +4061,16 @@ export const translations: Record<Language, Translations> = {
     payment: 'Оплата',
 
     tapToOrder: 'Нажмите для заказа',
+    kioskWelcomeTitle: 'Где вы будете есть сегодня?',
+    kioskEatIn: 'В зале',
+    kioskTakeOut: 'С собой',
+    kioskExploreMenu: 'Изучите наше меню',
+    kioskRestartMenu: 'Начать заново',
+    kioskOrderNow: 'Заказать',
+    kioskOrderMore: 'Ещё заказ',
+    kioskDoneCountdown: 'Готово ({seconds}с)',
+    kioskNoCategories: 'Нет категорий меню',
+    kioskNoProducts: 'Нет доступных блюд',
     addToCart: 'В корзину',
     viewCart: 'Корзина',
     placeOrder: 'Оформить заказ',
@@ -3656,6 +4108,29 @@ export const translations: Record<Language, Translations> = {
     kdsPrepTimeLabel: 'Время приготовления (мин)',
     kdsBusyKitchenHint: 'Загруженная кухня? Рекомендуем 20 мин.',
     kdsCourierNoteLabel: 'Курьер',
+    kdsStatusUpdating: 'Обновление…',
+    kdsChannelDelivery: 'Доставка',
+    kdsChannelTakeaway: 'Самовывоз',
+    kdsChannelKiosk: 'Киоск',
+    kdsChannelPosEatIn: 'POS · В зале',
+    kdsChannelPosTakeaway: 'POS · С собой',
+    kdsChannelPosDelivery: 'POS · Доставка',
+    kdsFilterAll: 'Все',
+    kdsSearchPlaceholder: 'Поиск #…',
+    kdsHistoryTitle: 'История',
+    kdsHistoryEmpty: 'Сегодня нет завершённых заказов',
+    kdsUndoComplete: 'Заказ {number} завершён',
+    kdsUndoSeconds: 'Отменить',
+    kdsUndoButton: 'Отменить',
+    kdsAllItemsPrepared: 'Все позиции готовы',
+    kdsMarkItemPrepared: 'Отметить позицию готовой',
+    kdsMarkItemUnprepared: 'Снять отметку готовности',
+    kdsEmptyQueueTitle: 'Нет активных заказов',
+    kdsEmptyQueueHint: 'Заказы с киоска и сайта появятся здесь автоматически.',
+    kdsEmptyColumn: 'Пока пусто',
+    kdsEmptyFiltered: 'Нет заказов по фильтру',
+    kdsEmptyFilteredHint: 'Смените канал или очистите поиск.',
+    kdsHistorySubtitle: 'Завершённые сегодня',
 
     orderManagerTitle: 'Менеджер заказов',
     orderManagerDescription: 'Отслеживайте и обрабатывайте киоск и онлайн-заказы в единой очереди',
@@ -4207,6 +4682,51 @@ export const translations: Record<Language, Translations> = {
     omSourceTakeaway: 'Онлайн · Самовывоз',
     omSourceDelivery: 'Онлайн · Доставка',
     omTitle: 'Менеджер заказов',
+    posTitle: 'Касса',
+    posTabActive: 'Активные',
+    posTabHistory: 'История',
+    posTabNewOrder: 'Новый заказ',
+    posTabSettings: 'Настройки',
+    posSettingsTitle: 'Печать',
+    posPrintAgentUrl: 'URL агента печати',
+    posPrinterProfile: 'Профиль принтера',
+    posProfileEscpos80: 'ESC/POS · 80mm',
+    posProfileZpl58: 'ZPL · 58mm',
+    posProfileZpl40x30: 'ZPL · 40×30mm',
+    posTestConnection: 'Проверить связь',
+    posTestPrint: 'Тестовая печать',
+    posAgentConnected: 'Агент печати доступен',
+    posAgentUnreachable: 'Агент печати недоступен',
+    posTestPrintSent: 'Тестовая этикетка отправлена',
+    posTestPrintFailed: 'Тестовая печать не удалась',
+    posFulfillmentEatIn: 'В зале',
+    posFulfillmentTakeaway: 'С собой',
+    posFulfillmentDelivery: 'Доставка',
+    posSourceEatIn: 'POS · В зале',
+    posSourceTakeaway: 'POS · С собой',
+    posSourceDelivery: 'POS · Доставка',
+    posCustomerPanelTitle: 'Клиент',
+    posCustomerName: 'Имя (необяз.)',
+    posCustomerPhone: 'Телефон (необяз.)',
+    posOrderNotes: 'Заметки к заказу',
+    posDeliveryPanelTitle: 'Адрес доставки',
+    posCartTitle: 'Корзина',
+    posCartEmpty: 'Корзина пуста',
+    posSubmitOrder: 'Создать заказ',
+    posSubmitFailed: 'Не удалось создать заказ',
+    posOrderCreated: 'Заказ создан',
+    posViewActiveOrders: 'К активным заказам',
+    posNewOrderTitle: 'Новый заказ',
+    posOutsideZone: 'Адрес вне зоны доставки',
+    posDeliveryRequired: 'Укажите адрес и метку на карте',
+    posReprintLabels: 'Перепечатать этикетки',
+    posPrintSent: 'Этикетки отправлены на печать',
+    posPrintPending: 'В очереди — агент offline',
+    posPrintFailed: 'Печать не удалась',
+    posPrintPendingCount: '{count} заданий ждут агента печати',
+    posMapSearch: 'Поиск адреса в Баку',
+    posMapPinHint: 'Перетащите метку или нажмите на карту',
+    posMapsUnavailable: 'Карта недоступна',
     omKitchenStatusTitle: 'Онлайн-кухня',
     omKitchenStatusOnline: 'Принимаем заказы',
     omKitchenStatusPausedUntil: 'Пауза до {time}',
@@ -4260,6 +4780,18 @@ export const translations: Record<Language, Translations> = {
     orderSupportScheduledHint:
       'Заказ по расписанию. Настройку напоминаний лучше делать в менеджере заказов; здесь можно просмотреть детали.',
     deliveryScreenTitle: 'Доставка',
+    orderLocations: 'Карта заказов',
+    orderLocationsTitle: 'Карта заказов доставки',
+    orderLocationsSubtitle: 'Смотрите, откуда приходят заказы на доставку в Баку — одна точка на заказ.',
+    orderLocationsEmpty: 'За этот период нет адресов доставки. Расширьте диапазон дат или смените фильтр источника.',
+    orderLocationsLoading: 'Загрузка карты…',
+    orderLocationsUnavailable: 'Добавьте VITE_GOOGLE_MAPS_API_KEY для карты заказов.',
+    orderLocationsMapHint: 'Нажмите на точку для деталей заказа. Карта ограничена Баку.',
+    orderLocationsTotalOrders: 'Заказы с адресом',
+    orderLocationsSourceAll: 'Вся доставка',
+    orderLocationsSourceOnline: 'Доставка с сайта',
+    orderLocationsSourcePos: 'Доставка POS',
+    orderLocationsOrderLabel: 'Заказ',
     deliveryScreenDescription: 'Управляйте зонами, правилами кухни и ручной отправкой',
     deliveryRefresh: 'Обновить данные доставки',
     deliveryTabZones: 'Зоны',
@@ -4285,7 +4817,7 @@ export const translations: Record<Language, Translations> = {
     deliveryZoneFieldSortOrder: 'Порядок сортировки',
     deliveryZoneFieldActive: 'Активно',
     deliveryZoneFieldPolygon: 'Полигон зоны',
-    deliveryZonePolygonHint: 'Нарисуйте на карте минимум 3 точки для определения зоны.',
+    deliveryZonePolygonHint: 'Кликайте по карте, чтобы добавить точки (мин. 3). Дважды кликните или нажмите первую точку, чтобы завершить.',
     deliveryZoneClearShape: 'Очистить форму',
     deliveryZonePolygonRequired: 'Полигон обязателен',
     deliveryZonePreview: 'Предпросмотр зоны',

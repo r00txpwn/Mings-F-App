@@ -72,7 +72,7 @@ async function applyPaymentStatus(
       .from('sales')
       .update({ order_status: 'pending' })
       .eq('id', payment.sale_id)
-      .eq('order_status', 'awaiting_payment');
+      .in('order_status', ['awaiting_payment', 'pending']);
   } else if (mapped === 'failed') {
     await supabase.from('sales').update({ payment_status: 'failed' }).eq('id', payment.sale_id);
   }

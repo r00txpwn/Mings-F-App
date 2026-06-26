@@ -36,3 +36,8 @@ pw-*.png
 test-results/
 .cursor/skills/
 **/__pycache__/
+.env*.local
+payments.md
+# Playwright stored auth state (session tokens) — never commit
+**/.auth/
+docs/qa-screenshots/.auth/

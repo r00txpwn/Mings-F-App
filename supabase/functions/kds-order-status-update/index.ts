@@ -1,5 +1,5 @@
-import { createClient } from 'npm:@supabase/supabase-js@2';
-import { corsHeaders, jsonResponse, writeAdminAudit } from '../_shared/staffAuth.ts';
+import { paymentConfirmedForKdsPrep } from '../_shared/onlinePaymentMethod.ts';
+import { corsHeaders, jsonResponse, requireStaffAuth, writeAdminAudit } from '../_shared/staffAuth.ts';
 
 interface StatusBody {
   saleId: string;
@@ -8,21 +8,6 @@ interface StatusBody {
 }
 
 const ALLOWED_STATUSES = new Set(['preparing', 'ready', 'dispatched', 'completed', 'cancelled']);
-
-function getServiceClient() {
-  return createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-}
-
-function isKdsAuthorized(req: Request): boolean {
-  const configured = (Deno.env.get('KDS_SECRET') ?? Deno.env.get('VITE_KDS_SECRET') ?? '').trim();
-  if (!configured) return true;
-  const provided = (req.headers.get('x-kds-secret') ?? '').trim();
-  return provided === configured;
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -33,9 +18,9 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ ok: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'POST only' } }, 405);
   }
 
-  if (!isKdsAuthorized(req)) {
-    return jsonResponse({ ok: false, error: { code: 'FORBIDDEN', message: 'Invalid KDS secret' } }, 403);
-  }
+  const auth = await requireStaffAuth(req);
+  if (auth instanceof Response) return auth;
+  const { user, role, supabaseAdmin } = auth;
 
   let body: StatusBody;
   try {
@@ -49,6 +34,47 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ ok: false, error: { code: 'BAD_REQUEST', message: 'Invalid saleId or nextStatus' } }, 400);
   }
 
+  if (nextStatus === 'preparing') {
+    const { data: sale, error: loadErr } = await supabaseAdmin
+      .from('sales')
+      .select('id, source, online_payment_method, payment_status, order_status')
+      .eq('id', saleId)
+      .maybeSingle();
+    if (loadErr || !sale) {
+      return jsonResponse({ ok: false, error: { code: 'NOT_FOUND', message: 'Sale not found' } }, 404);
+    }
+    const row = sale as {
+      source: string | null;
+      online_payment_method: string | null;
+      payment_status: string | null;
+      order_status: string | null;
+    };
+    if (row.order_status !== 'pending') {
+      return jsonResponse(
+        { ok: false, error: { code: 'INVALID_STATE', message: 'Only pending orders can start preparing' } },
+        400
+      );
+    }
+    if (
+      !paymentConfirmedForKdsPrep({
+        source: row.source,
+        onlinePaymentMethod: row.online_payment_method,
+        paymentStatus: row.payment_status,
+      })
+    ) {
+      return jsonResponse(
+        {
+          ok: false,
+          error: {
+            code: 'PAYMENT_NOT_CONFIRMED',
+            message: 'Card payment must be confirmed before preparing',
+          },
+        },
+        409
+      );
+    }
+  }
+
   const updates: Record<string, unknown> = { order_status: nextStatus };
   if (nextStatus === 'preparing') {
     updates.prep_started_at = new Date().toISOString();
@@ -60,7 +86,6 @@ Deno.serve(async (req: Request) => {
     updates.ready_at = new Date().toISOString();
   }
 
-  const supabaseAdmin = getServiceClient();
   const { data, error } = await supabaseAdmin
     .from('sales')
     .update(updates)
@@ -72,9 +97,16 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ ok: false, error: { code: 'DB_ERROR', message: error.message } }, 400);
   }
 
+  if (nextStatus === 'preparing') {
+    await supabaseAdmin
+      .from('sale_items')
+      .update({ prepared_at: null })
+      .eq('sale_id', saleId);
+  }
+
   await writeAdminAudit(supabaseAdmin, {
-    actorId: null,
-    actorRole: 'kds',
+    actorId: user.id,
+    actorRole: role,
     action: 'kds_status_update',
     resourceTable: 'sales',
     resourceId: saleId,

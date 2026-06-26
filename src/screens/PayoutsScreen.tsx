@@ -61,6 +61,7 @@ export function PayoutsScreen() {
       .from('sales_channels')
       .select('*')
       .eq('is_active', true)
+      .eq('is_deleted', false)
       .in('name', PLATFORM_NAMES)
       .order('name');
     if (data) setChannels(data);

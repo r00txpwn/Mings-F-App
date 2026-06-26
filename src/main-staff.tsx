@@ -19,13 +19,8 @@ async function renderStaffApp() {
   }
 
   const hostSurface = resolveHostedSurface(window.location.hostname);
-  const isStaffEntrypoint = isAdminPath(pathNorm);
 
-  if (isStaffEntrypoint || hostSurface === 'admin') {
-    renderShell(<App />);
-    return;
-  }
-
+  // Path /kiosk and /kds must win on the staff host (e.g. sp.mings.az/kds) before hostSurface === 'admin'.
   if (hostSurface === 'kiosk' || pathNorm === '/kiosk') {
     const { KioskApp } = await import('./kiosk/KioskApp');
     renderShell(<KioskApp />);
@@ -35,6 +30,19 @@ async function renderStaffApp() {
   if (hostSurface === 'kds' || pathNorm === '/kds') {
     const { KitchenDisplay } = await import('./kds/KitchenDisplay');
     renderShell(<KitchenDisplay />);
+    return;
+  }
+
+  if (hostSurface === 'pos' || pathNorm === '/pos') {
+    const { PosApp } = await import('./pos/PosApp');
+    renderShell(<PosApp />);
+    return;
+  }
+
+  const isStaffEntrypoint = isAdminPath(pathNorm);
+
+  if (isStaffEntrypoint || hostSurface === 'admin') {
+    renderShell(<App />);
     return;
   }
 

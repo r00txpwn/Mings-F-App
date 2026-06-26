@@ -1,19 +1,21 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SecretGate } from '../components/SecretGate';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider } from '../contexts/LanguageContext';
 import { supabase, Product, Category, CartItem, SelectedModifiers } from '../lib/supabase';
 import { IdleScreen } from './IdleScreen';
+import { CategoryScreen } from './CategoryScreen';
 import { MenuScreen } from './MenuScreen';
 import { CartScreen } from './CartScreen';
 import { CheckoutScreen } from './CheckoutScreen';
 import { ConfirmationScreen } from './ConfirmationScreen';
 import { UpsellModal } from './UpsellModal';
 import { KioskLayout } from './KioskLayout';
+import { KioskStickyFooter } from './KioskStickyFooter';
 import { ProductDetailModal } from './ProductDetailModal';
 
-type KioskFlow = 'idle' | 'menu' | 'cart' | 'checkout' | 'confirmation';
+type KioskFlow = 'idle' | 'categories' | 'menu' | 'cart' | 'checkout' | 'confirmation';
 
 function generateCartItemKey(productId: string, modifiers: SelectedModifiers): string {
   const modKey = Object.entries(modifiers)
@@ -33,10 +35,10 @@ function KioskContent() {
   const [showUpsell, setShowUpsell] = useState(false);
   const [lastAddedCategoryId, setLastAddedCategoryId] = useState<string | null>(null);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    document.documentElement.classList.add('dark');
     document.body.style.overflow = 'hidden';
     loadData();
     return () => {
@@ -52,6 +54,7 @@ function KioskContent() {
         setCart([]);
         setShowUpsell(false);
         setDetailProduct(null);
+        setSelectedCategoryId(null);
       }, 60000);
     }
   }, [flow]);
@@ -181,12 +184,26 @@ function KioskContent() {
 
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const handleRestart = () => {
+    setFlow('idle');
+    setCart([]);
+    setShowUpsell(false);
+    setDetailProduct(null);
+    setSelectedCategoryId(null);
+  };
+
   const handleBack = () => {
-    if (flow === 'menu') setFlow('idle');
+    if (flow === 'categories') setFlow('idle');
+    else if (flow === 'menu') setFlow('categories');
     else if (flow === 'cart') setFlow('menu');
     else if (flow === 'checkout') setFlow('cart');
     else setFlow('idle');
   };
+
+  const heroImageUrl = useMemo(() => {
+    const withImage = products.find((p) => p.image_url);
+    return withImage?.image_url ?? null;
+  }, [products]);
 
   const upsellProducts = products
     .filter(p =>
@@ -195,16 +212,29 @@ function KioskContent() {
     )
     .slice(0, 3);
 
+  const showFooter = flow === 'categories' || flow === 'menu';
+
   const renderScreen = () => {
     switch (flow) {
       case 'idle':
-        return <IdleScreen onStart={() => setFlow('menu')} />;
+        return <IdleScreen onStart={() => setFlow('categories')} heroImageUrl={heroImageUrl} />;
+      case 'categories':
+        return (
+          <CategoryScreen
+            categories={categories}
+            products={products}
+            onSelect={(category) => {
+              setSelectedCategoryId(category.id);
+              setFlow('menu');
+            }}
+          />
+        );
       case 'menu':
         return (
           <MenuScreen
             products={products}
             categories={categories}
-            cart={cart}
+            initialCategoryId={selectedCategoryId}
             onAddToCart={handleProductTap}
             onUpdateQuantity={(productId, delta) => {
               const items = cart.filter(item => item.product.id === productId);
@@ -216,8 +246,6 @@ function KioskContent() {
                 updateCartQuantity(items[items.length - 1].cartItemKey, delta);
               }
             }}
-            onViewCart={() => setFlow('cart')}
-            cartItemCount={cartItemCount}
             getCartQtyForProduct={getCartQtyForProduct}
           />
         );
@@ -253,6 +281,7 @@ function KioskContent() {
               setFlow('idle');
               setCart([]);
               setConfirmedOrder(null);
+              setSelectedCategoryId(null);
             }}
           />
         );
@@ -266,6 +295,15 @@ function KioskContent() {
       flow={flow}
       onBack={handleBack}
       showBack={flow !== 'idle' && flow !== 'confirmation'}
+      showFooter={showFooter}
+      footer={
+        <KioskStickyFooter
+          cartTotal={cartTotal}
+          cartItemCount={cartItemCount}
+          onRestart={handleRestart}
+          onOrderNow={() => setFlow('cart')}
+        />
+      }
     >
       {renderScreen()}
       {showUpsell && flow === 'menu' && upsellProducts.length > 0 && (

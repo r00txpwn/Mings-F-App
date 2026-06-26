@@ -187,7 +187,7 @@ export async function createCheckout(params: UnitedPaymentCheckoutParams): Promi
   const url = checkoutUrl();
   if (!url) throw new Error('United Payment checkout URL is not configured');
 
-  const currency = params.currency ?? env('UNITED_PAYMENT_CURRENCY') || '944';
+  const currency = params.currency ?? (env('UNITED_PAYMENT_CURRENCY') || '944');
 
   const payload: Record<string, unknown> = {
     clientOrderId: params.clientOrderId,

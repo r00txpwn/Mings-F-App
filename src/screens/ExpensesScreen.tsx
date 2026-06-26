@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Settings2, Loader2 } from 'lucide-react';
+import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Settings2, Loader2, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -101,6 +101,27 @@ export function ExpensesScreen() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState(() => getCurrentMonthRange());
+
+  const [savingExpense, setSavingExpense] = useState(false);
+  const [savingPurchase, setSavingPurchase] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [expenseFormError, setExpenseFormError] = useState<string | null>(null);
+  const [purchaseFormError, setPurchaseFormError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const flashSuccess = (message: string) => {
+    setSuccessMessage(message);
+    setActionError(null);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 2000);
+  };
+
+  const flashError = (message: string) => {
+    setActionError(message);
+    setShowSuccess(false);
+  };
 
   useEffect(() => {
     loadAllData(true);
@@ -253,12 +274,13 @@ export function ExpensesScreen() {
   const handleEditExpense = (id: string) => {
     const exp = expenses.find(e => e.id === id);
     if (exp) {
+      setExpenseFormError(null);
       setEditingExpense(exp);
       setExpenseFormData({
         master_category_id: exp.master_category_id || '',
         expense_item_id: exp.expense_item_id || '',
         amount: exp.amount,
-        expense_date: exp.expense_date,
+        expense_date: exp.expense_date.split('T')[0],
         payment_method: exp.payment_method || '',
         description: exp.description || '',
       });
@@ -267,13 +289,26 @@ export function ExpensesScreen() {
   };
 
   const handleDeleteExpense = async (id: string) => {
-    await adminDelete('operational_expenses', id);
+    if (deletingId) return;
+    setDeletingId(id);
+    setActionError(null);
+
+    const result = await adminDelete('operational_expenses', id);
+    setDeletingId(null);
+
+    if (!result.ok) {
+      flashError(result.error ?? t.errorOccurred);
+      return;
+    }
+
     await loadAllData();
+    flashSuccess(t.deletedSuccessfully);
   };
 
   const handleEditPurchase = (id: string) => {
     const pur = purchases.find(p => p.id === id);
     if (pur) {
+      setPurchaseFormError(null);
       setEditingPurchase(pur);
       setPurchaseFormData({
         expense_item_id: pur.expense_item_id || '',
@@ -290,10 +325,22 @@ export function ExpensesScreen() {
   };
 
   const handleDeletePurchase = async (id: string) => {
+    if (deletingId) return;
     const purchase = purchases.find(p => p.id === id);
-    await adminDelete('purchases', id);
+    setDeletingId(id);
+    setActionError(null);
+
+    const result = await adminDelete('purchases', id);
+    if (!result.ok) {
+      setDeletingId(null);
+      flashError(result.error ?? t.errorOccurred);
+      return;
+    }
+
     await reconcileProductStock(purchase?.product_id, -(Number(purchase?.quantity) || 0));
+    setDeletingId(null);
     await loadAllData();
+    flashSuccess(t.deletedSuccessfully);
   };
 
   const [expenseFormData, setExpenseFormData] = useState({
@@ -424,6 +471,16 @@ export function ExpensesScreen() {
 
   const handleSubmitExpense = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingExpense) return;
+
+    if (Number(expenseFormData.amount) <= 0) {
+      setExpenseFormError(t.amountMustBePositive);
+      return;
+    }
+
+    setSavingExpense(true);
+    setExpenseFormError(null);
+
     const payload = {
       master_category_id: expenseFormData.master_category_id || null,
       expense_item_id: expenseFormData.expense_item_id || null,
@@ -433,14 +490,20 @@ export function ExpensesScreen() {
       description: expenseFormData.description,
     };
 
-    if (editingExpense) {
-      await adminUpdate('operational_expenses', editingExpense.id, payload);
-    } else {
-      await adminInsert('operational_expenses', payload);
+    const result = editingExpense
+      ? await adminUpdate('operational_expenses', editingExpense.id, payload)
+      : await adminInsert('operational_expenses', payload);
+
+    setSavingExpense(false);
+
+    if (!result.ok) {
+      setExpenseFormError(result.error ?? t.errorOccurred);
+      return;
     }
 
     resetExpenseForm();
     await loadAllData();
+    flashSuccess(t.savedSuccessfully);
   };
 
   const reconcileProductStock = async (productId: string | null | undefined, deltaQuantity: number) => {
@@ -461,6 +524,24 @@ export function ExpensesScreen() {
 
   const handleSubmitPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingPurchase) return;
+
+    if (!purchaseFormData.expense_item_id) {
+      setPurchaseFormError(t.selectExpenseItem);
+      return;
+    }
+    if (Number(purchaseFormData.quantity) <= 0) {
+      setPurchaseFormError(t.quantityMustBePositive);
+      return;
+    }
+    if (Number(purchaseFormData.unit_cost) < 0) {
+      setPurchaseFormError(t.amountMustBePositive);
+      return;
+    }
+
+    setSavingPurchase(true);
+    setPurchaseFormError(null);
+
     const total_cost = purchaseFormData.quantity * purchaseFormData.unit_cost;
     const payload = {
       expense_item_id: purchaseFormData.expense_item_id || null,
@@ -481,20 +562,46 @@ export function ExpensesScreen() {
 
       const result = await adminUpdate('purchases', editingPurchase.id, payload);
       if (!result.ok) {
-        console.error('Failed to update purchase:', result.error);
+        setSavingPurchase(false);
+        setPurchaseFormError(result.error ?? t.errorOccurred);
         return;
       }
       await reconcileProductStock(oldProductId, newQuantity - oldQuantity);
     } else {
       const result = await adminInsert('purchases', payload);
       if (!result.ok) {
-        console.error('Failed to create purchase:', result.error);
+        setSavingPurchase(false);
+        setPurchaseFormError(result.error ?? t.errorOccurred);
         return;
       }
     }
 
+    setSavingPurchase(false);
     resetPurchaseForm();
     await loadAllData();
+    flashSuccess(t.savedSuccessfully);
+  };
+
+  const openExpenseForm = () => {
+    setExpenseFormError(null);
+    resetExpenseForm();
+    setShowExpenseForm(true);
+  };
+
+  const openPurchaseForm = () => {
+    setPurchaseFormError(null);
+    resetPurchaseForm();
+    setShowPurchaseForm(true);
+  };
+
+  const closeExpenseForm = () => {
+    if (savingExpense) return;
+    resetExpenseForm();
+  };
+
+  const closePurchaseForm = () => {
+    if (savingPurchase) return;
+    resetPurchaseForm();
   };
 
   const resetExpenseForm = () => {
@@ -550,8 +657,9 @@ export function ExpensesScreen() {
           <>
             {activeTab === 'operational' && (
               <button
-                onClick={() => { resetExpenseForm(); setShowExpenseForm(true); }}
-                className="neon-btn-primary"
+                onClick={openExpenseForm}
+                disabled={savingExpense}
+                className="neon-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Plus className="h-4 w-4" />
                 {t.newExpense}
@@ -559,8 +667,9 @@ export function ExpensesScreen() {
             )}
             {activeTab === 'cogs' && (
               <button
-                onClick={() => { resetPurchaseForm(); setShowPurchaseForm(true); }}
-                className="neon-btn-primary"
+                onClick={openPurchaseForm}
+                disabled={savingPurchase}
+                className="neon-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Plus className="h-4 w-4" />
                 {t.newPurchase}
@@ -569,6 +678,17 @@ export function ExpensesScreen() {
           </>
         }
       />
+
+      {actionError ? (
+        <div className="cockpit-alert-error mb-4">{actionError}</div>
+      ) : null}
+
+      {showSuccess ? (
+        <div className="cockpit-alert-success mb-4 animate-scaleIn">
+          <Check className="h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-200" />
+          <span>{successMessage}</span>
+        </div>
+      ) : null}
 
       <div className="cockpit-panel-solid mb-6 flex gap-1 rounded-xl p-1">
         {tabs.map((tab) => {
@@ -632,7 +752,7 @@ export function ExpensesScreen() {
               <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-1">{t.noExpenses}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t.startTrackingExpenses}</p>
               <button
-                onClick={() => setShowExpenseForm(true)}
+                onClick={openExpenseForm}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />
@@ -645,6 +765,7 @@ export function ExpensesScreen() {
               type="operational"
               onEdit={handleEditExpense}
               onDelete={handleDeleteExpense}
+              deletingId={deletingId}
             />
           )}
         </>
@@ -663,7 +784,7 @@ export function ExpensesScreen() {
               <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-1">{t.noPurchasesYet}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t.startTracking}</p>
               <button
-                onClick={() => setShowPurchaseForm(true)}
+                onClick={openPurchaseForm}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />
@@ -676,6 +797,7 @@ export function ExpensesScreen() {
               type="cogs"
               onEdit={handleEditPurchase}
               onDelete={handleDeletePurchase}
+              deletingId={deletingId}
             />
           )}
         </>
@@ -696,11 +818,14 @@ export function ExpensesScreen() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {editingExpense ? t.editExpense : t.newExpense}
               </h2>
-              <button onClick={resetExpenseForm} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <button onClick={closeExpenseForm} disabled={savingExpense} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmitExpense} className="p-5 space-y-4 overflow-y-auto max-h-[calc(90vh-130px)]">
+              {expenseFormError ? (
+                <div className="cockpit-alert-error text-sm">{expenseFormError}</div>
+              ) : null}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.expenseItem}</label>
                 <div className="relative" ref={itemDropdownRef}>
@@ -837,14 +962,16 @@ export function ExpensesScreen() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  disabled={savingExpense}
+                  className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {editingExpense ? t.updateExpense : t.createExpense}
+                  {savingExpense ? t.saving : editingExpense ? t.updateExpense : t.createExpense}
                 </button>
                 <button
                   type="button"
-                  onClick={resetExpenseForm}
-                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  onClick={closeExpenseForm}
+                  disabled={savingExpense}
+                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {t.cancel}
                 </button>
@@ -861,11 +988,14 @@ export function ExpensesScreen() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {editingPurchase ? t.editPurchase : t.newPurchase}
               </h2>
-              <button onClick={resetPurchaseForm} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <button onClick={closePurchaseForm} disabled={savingPurchase} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmitPurchase} className="p-5 space-y-4 overflow-y-auto max-h-[calc(90vh-130px)]">
+              {purchaseFormError ? (
+                <div className="cockpit-alert-error text-sm">{purchaseFormError}</div>
+              ) : null}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.expenseItem} *</label>
                 <div className="relative" ref={cogsItemDropdownRef}>
@@ -1062,14 +1192,16 @@ export function ExpensesScreen() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  disabled={savingPurchase}
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {editingPurchase ? t.updatePurchase : t.createPurchase}
+                  {savingPurchase ? t.saving : editingPurchase ? t.updatePurchase : t.createPurchase}
                 </button>
                 <button
                   type="button"
-                  onClick={resetPurchaseForm}
-                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  onClick={closePurchaseForm}
+                  disabled={savingPurchase}
+                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {t.cancel}
                 </button>

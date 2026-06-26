@@ -128,7 +128,7 @@ export async function applyEpointWebhookPaymentRowAndSale(
       .from('sales')
       .update({ order_status: 'pending' })
       .eq('id', saleId)
-      .eq('order_status', 'awaiting_payment');
+      .in('order_status', ['awaiting_payment', 'pending']);
     if (upOrder.error) {
       return { ok: false, step: 'sales_order_status_pending', message: upOrder.error.message };
     }

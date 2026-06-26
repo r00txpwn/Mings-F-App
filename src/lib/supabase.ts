@@ -39,6 +39,7 @@ export interface SalesChannel {
   logo_url?: string | null;
   display_order?: number;
   is_active: boolean;
+  is_deleted?: boolean;
   created_at: string;
 }
 
@@ -114,6 +115,7 @@ export interface SaleItem {
   combo_id?: string | null;
   combo_selections?: Record<string, unknown> | null;
   sale_item_modifiers?: SaleItemModifier[];
+  prepared_at?: string | null;
 }
 
 export interface Sale {
@@ -151,6 +153,10 @@ export interface Sale {
   delivery_zone_id?: string | null;
   track_token?: string | null;
   customer_user_id?: string | null;
+  discount_amount?: number | null;
+  tip_amount?: number | null;
+  promo_code?: string | null;
+  cancellation_reason?: string | null;
   sales_channels?: SalesChannel;
   sale_items?: SaleItem[];
 }

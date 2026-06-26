@@ -3,7 +3,7 @@
  * When no env match, callers fall back to pathname routing (localhost, *.vercel.app).
  */
 
-export type HostedSurface = 'admin' | 'order' | 'kiosk' | 'kds' | 'track';
+export type HostedSurface = 'admin' | 'order' | 'kiosk' | 'kds' | 'track' | 'pos';
 
 function parseHostList(raw: string | undefined): string[] {
   return (raw ?? '')
@@ -29,6 +29,7 @@ export function resolveHostedSurface(hostname: string): HostedSurface | null {
   if (hostnameInList(h, parseHostList(import.meta.env.VITE_SURFACE_KIOSK_HOSTS))) return 'kiosk';
   if (hostnameInList(h, parseHostList(import.meta.env.VITE_SURFACE_KDS_HOSTS))) return 'kds';
   if (hostnameInList(h, parseHostList(import.meta.env.VITE_SURFACE_TRACK_HOSTS))) return 'track';
+  if (hostnameInList(h, parseHostList(import.meta.env.VITE_SURFACE_POS_HOSTS))) return 'pos';
 
   return null;
 }
