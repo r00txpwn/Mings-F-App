@@ -15,7 +15,7 @@ Supplier debt as a running account (opening balance + on-credit purchases − lu
 **Commit**
 
 - Branch: `session/2026-06-26-finance-supplier-debt`
-- SHA: `<run git rev-parse HEAD after commit>`
+- SHA: `9cecd0becc4a748f47e8a931388adba0fb25a6fb`
 
 **Surfaces / URLs to test (local preview)**
 
