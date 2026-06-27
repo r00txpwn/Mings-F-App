@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { ALL_KITCHEN_SOURCES } from '../pos/posSources';
 import { supabase } from '../lib/supabase';
 import { adminUpdate } from '../lib/adminApi';
+import { buildMarkPaidPatch } from '../lib/cashPayment';
 import { PageHeader } from '../components/cockpit';
 import { KioskOrdersBoard, type KioskOrder, type KioskOrderStatus } from '../components/kiosk';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -84,7 +85,8 @@ export function KioskOrdersScreen() {
   };
 
   const handleConfirmPayment = async (orderId: string) => {
-    await adminUpdate('sales', orderId, { payment_status: 'paid' });
+    const order = orders.find((o) => o.id === orderId);
+    await adminUpdate('sales', orderId, buildMarkPaidPatch(order ?? {}));
     await loadOrders();
   };
 

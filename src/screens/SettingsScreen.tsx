@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Globe, Trash2, Plus, Check, Moon, Sun, Store } from 'lucide-react';
+import { Globe, Trash2, Plus, Check, Moon, Sun, Store, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Language } from '../translations';
 import { supabase } from '../lib/supabase';
@@ -28,12 +29,12 @@ interface SalesChannel {
 
 export function SettingsScreen() {
   const { t, language, setLanguage } = useLanguage();
+  const toast = useToast();
   const { theme, toggleTheme } = useTheme();
   const [salesChannels, setSalesChannels] = useState<SalesChannel[]>([]);
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelDescription, setNewChannelDescription] = useState('');
-  const [showChannelSuccess, setShowChannelSuccess] = useState(false);
-  const [channelSuccessMessage, setChannelSuccessMessage] = useState('');
+  const [addingChannel, setAddingChannel] = useState(false);
   const [deleteChannelConfirm, setDeleteChannelConfirm] = useState<SalesChannel | null>(null);
   const [deleteChannelError, setDeleteChannelError] = useState<string | null>(null);
   const [deleteChannelLoading, setDeleteChannelLoading] = useState(false);
@@ -115,37 +116,37 @@ export function SettingsScreen() {
   };
 
   const handleAddSalesChannel = async () => {
-    if (!newChannelName.trim()) return;
+    if (!newChannelName.trim() || addingChannel) return;
 
     if (isProtectedSalesChannelName(newChannelName.trim())) {
-      alert(t.salesChannelProtectedError);
+      toast.error(t.salesChannelProtectedError);
       return;
     }
 
+    setAddingChannel(true);
     const result = await adminInsert('sales_channels', {
       name: newChannelName.trim(),
       description: newChannelDescription.trim() || 'Sales channel',
       is_active: true,
       is_deleted: false,
     });
+    setAddingChannel(false);
 
     if (!result.ok) {
       console.error('Error adding sales channel:', result.error);
-      alert(`${t.errorOccurred}: ${result.error}`);
+      toast.error(result.error ?? t.errorOccurred);
       return;
     }
 
     setNewChannelName('');
     setNewChannelDescription('');
-    setChannelSuccessMessage(t.savedSuccessfully);
-    setShowChannelSuccess(true);
-    setTimeout(() => setShowChannelSuccess(false), 3000);
+    toast.success(t.savedSuccessfully);
     void fetchSalesChannels();
   };
 
   const handleToggleSalesChannel = async (channel: SalesChannel) => {
     if (!canToggleSalesChannelActive(channel)) {
-      alert(t.salesChannelProtectedError);
+      toast.error(t.salesChannelProtectedError);
       return;
     }
 
@@ -154,7 +155,7 @@ export function SettingsScreen() {
     if (result.ok) {
       void fetchSalesChannels();
     } else {
-      alert(`${t.errorOccurred}: ${result.error}`);
+      toast.error(result.error ?? t.errorOccurred);
     }
   };
 
@@ -182,9 +183,7 @@ export function SettingsScreen() {
 
     if (result.ok) {
       setDeleteChannelConfirm(null);
-      setChannelSuccessMessage(t.channelRemovedSuccess);
-      setShowChannelSuccess(true);
-      setTimeout(() => setShowChannelSuccess(false), 3000);
+      toast.success(t.channelRemovedSuccess);
       void fetchSalesChannels();
       return;
     }
@@ -278,13 +277,6 @@ export function SettingsScreen() {
             {t.salesChannels}
           </h2>
 
-          {showChannelSuccess ? (
-            <div className="cockpit-alert-success mb-5 animate-scaleIn">
-              <Check className="h-5 w-5 shrink-0 text-emerald-800 dark:text-emerald-100" />
-              <span>{channelSuccessMessage}</span>
-            </div>
-          ) : null}
-
           <div className="mb-5 space-y-3">
             <input
               type="text"
@@ -305,10 +297,10 @@ export function SettingsScreen() {
             <button
               type="button"
               onClick={() => void handleAddSalesChannel()}
-              disabled={!newChannelName.trim()}
+              disabled={!newChannelName.trim() || addingChannel}
               className="cockpit-btn-primary w-full justify-center disabled:opacity-40"
             >
-              <Plus className="h-5 w-5" />
+              {addingChannel ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
               {t.addChannel}
             </button>
           </div>

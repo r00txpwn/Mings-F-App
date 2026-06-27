@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flame, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
@@ -33,6 +34,7 @@ type ComboRow = {
 
 export function CombosScreen() {
   const { t } = useLanguage();
+  const toast = useToast();
   const [rows, setRows] = useState<ComboRow[]>([]);
   const [products, setProducts] = useState<
     Array<{
@@ -131,17 +133,20 @@ export function CombosScreen() {
 
   const createCombo = async () => {
     const p = Number(price);
-    if (!name.trim() || Number.isNaN(p) || p < 0) return;
+    if (!name.trim() || Number.isNaN(p) || p < 0 || busy) return;
+    setBusy(true);
     const result = await adminInsert('combo_deals', {
       name: name.trim(),
       base_price: p,
       is_active: true,
       sort_order: rows.length,
     });
+    setBusy(false);
     if (!result.ok) {
-      alert(`${t.errorOccurred}: ${result.error ?? 'Failed to create combo'}`);
+      toast.error(result.error ?? t.errorOccurred);
       return;
     }
+    toast.success(t.savedSuccessfully);
     setName('');
     setPrice('');
     await load();
@@ -153,7 +158,11 @@ export function CombosScreen() {
   );
 
   const toggle = async (id: string, is_active: boolean) => {
-    await adminUpdate('combo_deals', id, { is_active: !is_active });
+    const result = await adminUpdate('combo_deals', id, { is_active: !is_active });
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
     await load();
   };
 
@@ -165,23 +174,36 @@ export function CombosScreen() {
   };
 
   const remove = async (id: string) => {
-    await adminDelete('combo_deals', id);
+    if (busy) return;
+    setBusy(true);
+    const result = await adminDelete('combo_deals', id);
+    setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
     if (selectedComboId === id) setSelectedComboId(null);
     await load();
   };
 
   const addGroup = async () => {
-    if (!selectedComboId || !newGroupName.trim()) return;
+    if (!selectedComboId || !newGroupName.trim() || busy) return;
     setBusy(true);
-    await adminInsert('combo_groups', {
+    const result = await adminInsert('combo_groups', {
       combo_id: selectedComboId,
       name: newGroupName.trim(),
       required: true,
       selection_type: 'single',
       sort_order: selectedCombo?.combo_groups.length ?? 0,
     });
-    setNewGroupName('');
     setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.savedSuccessfully);
+    setNewGroupName('');
     await load();
   };
 
@@ -193,23 +215,34 @@ export function CombosScreen() {
   };
 
   const removeGroup = async (groupId: string) => {
+    if (busy) return;
     setBusy(true);
-    await adminDelete('combo_groups', groupId);
+    const result = await adminDelete('combo_groups', groupId);
     setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
     await load();
   };
 
   const addGroupItem = async (groupId: string) => {
     const productId = newItemByGroup[groupId];
-    if (!productId) return;
+    if (!productId || busy) return;
     setBusy(true);
-    await adminInsert('combo_group_items', {
+    const result = await adminInsert('combo_group_items', {
       group_id: groupId,
       menu_item_id: productId,
       price_adjustment: 0,
     });
-    setNewItemByGroup((prev) => ({ ...prev, [groupId]: '' }));
     setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.savedSuccessfully);
+    setNewItemByGroup((prev) => ({ ...prev, [groupId]: '' }));
     await load();
   };
 
@@ -221,9 +254,15 @@ export function CombosScreen() {
   };
 
   const removeGroupItem = async (groupItemId: string) => {
+    if (busy) return;
     setBusy(true);
-    await adminDelete('combo_group_items', groupItemId);
+    const result = await adminDelete('combo_group_items', groupItemId);
     setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
     await load();
   };
 
@@ -265,8 +304,8 @@ export function CombosScreen() {
               placeholder="0"
             />
           </div>
-          <button type="button" className="cockpit-btn-primary inline-flex items-center gap-2" onClick={() => void createCombo()}>
-            <Plus className="h-4 w-4" />
+          <button type="button" className="cockpit-btn-primary inline-flex items-center gap-2 disabled:opacity-40" disabled={busy} onClick={() => void createCombo()}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             {t.create}
           </button>
         </div>

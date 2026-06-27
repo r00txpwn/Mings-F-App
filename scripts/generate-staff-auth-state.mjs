@@ -32,12 +32,14 @@ const env = {
 
 const url = env.VITE_SUPABASE_URL;
 const anonKey = env.VITE_SUPABASE_ANON_KEY;
-const email = env.STAFF_EMAIL?.trim() || 'staff@mings.az';
-const password = env.STAFF_PASSWORD?.trim();
+const email = env.STAFF_EMAIL?.trim() || env.ADMIN_EMAIL?.trim() || 'staff@mings.az';
+const password = env.STAFF_PASSWORD?.trim() || env.ADMIN_PASSWORD?.trim();
 const origin = env.PLAYWRIGHT_STAFF_URL?.trim() || 'http://127.0.0.1:4175';
 
 if (!url || !anonKey || !password) {
-  console.error('Need VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, STAFF_PASSWORD in .env.local');
+  console.error(
+    'Need VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and STAFF_PASSWORD or ADMIN_PASSWORD in .env.local',
+  );
   process.exit(1);
 }
 

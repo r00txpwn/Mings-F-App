@@ -30,6 +30,7 @@ const TABLE_MIN_ROLE: Record<string, StaffRole[]> = {
   liabilities: ['admin', 'manager'],
   liability_payments: ['admin', 'manager'],
   bank_withdrawals: ['admin', 'manager'],
+  cash_movements: ['admin', 'manager'],
   sales_channels: ['admin', 'manager', 'staff'],
   platform_payouts: ['admin', 'manager'],
   delivery_zones: ['admin', 'manager'],

@@ -18,6 +18,7 @@ interface CartLine {
 interface Body {
   fulfillmentType: FulfillmentType;
   cart: CartLine[];
+  paymentMethod?: string;
   customerName?: string;
   customerPhone?: string;
   orderNotes?: string;
@@ -126,6 +127,7 @@ Deno.serve(async (req: Request) => {
     const {
       fulfillmentType,
       cart,
+      paymentMethod,
       customerName,
       customerPhone,
       orderNotes,
@@ -136,6 +138,12 @@ Deno.serve(async (req: Request) => {
       deliveryFloor,
       deliveryNotes,
     } = body;
+
+    // POS orders are created unpaid; cash is only counted toward the drawer
+    // once staff confirms "mark paid". We still record the chosen method so
+    // reconciliation knows it was a cash sale.
+    const normalizedPaymentMethod =
+      String(paymentMethod ?? 'cash').trim().toLowerCase() === 'card' ? 'card' : 'cash';
 
     if (!fulfillmentType || !['eat_in', 'takeaway', 'delivery'].includes(fulfillmentType)) {
       return jsonResponse({ error: 'Invalid fulfillment type' }, 400);
@@ -332,6 +340,7 @@ Deno.serve(async (req: Request) => {
       notes: [orderNotes?.trim(), courierNote ? `Courier: ${courierNote}` : ''].filter(Boolean).join(' | ') || null,
       delivery_notes: courierNote || null,
       online_payment_method: null,
+      payment_method: normalizedPaymentMethod,
       customer_name: customerName?.trim() || null,
       customer_phone: normalizedPhone,
       delivery_address: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,

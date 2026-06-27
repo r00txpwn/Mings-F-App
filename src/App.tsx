@@ -3,6 +3,7 @@ import { Activity } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { HomeScreen } from './screens/HomeScreen';
 import { SalesScreen } from './screens/SalesScreen';
 import { MoneyScreen } from './screens/MoneyScreen';
@@ -149,7 +150,9 @@ function App() {
     <ThemeProvider>
       <LanguageProvider>
         <AuthProvider>
-          <AppContent />
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>

@@ -2,12 +2,19 @@ import { expect, test as setup } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const STAFF_EMAIL = process.env.STAFF_EMAIL?.trim() || 'staff@mings.az';
+const STAFF_EMAIL =
+  process.env.STAFF_EMAIL?.trim() ||
+  process.env.ADMIN_EMAIL?.trim() ||
+  'staff@mings.az';
 const AUTH_STATE = path.join('test-results', 'staff-auth-state.json');
 
 function staffPassword(): string {
-  const value = process.env.STAFF_PASSWORD?.trim();
-  if (!value) throw new Error('STAFF_PASSWORD required (set in .env.local)');
+  const value = process.env.STAFF_PASSWORD?.trim() || process.env.ADMIN_PASSWORD?.trim();
+  if (!value) {
+    throw new Error(
+      'STAFF_PASSWORD or ADMIN_PASSWORD required (set in .env.local — see .env.example)',
+    );
+  }
   return value;
 }
 

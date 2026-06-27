@@ -25,6 +25,7 @@ import {
   validateAnalyticsSnapshot,
 } from '../services/analytics';
 import { fetchTotalOutstandingDebt } from '../services/finance/supplierFinanceService';
+import { fetchCashOnHand } from '../services/finance/cashDrawerService';
 import type {
   AnalyticsSourceFilter,
   ChannelPerformance,
@@ -98,6 +99,7 @@ export function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [outstandingDebt, setOutstandingDebt] = useState<number | null>(null);
+  const [cashOnHand, setCashOnHand] = useState<number | null>(null);
 
   const dateRange = useMemo(
     () => getDateRange(preset, customStartDate, customEndDate),
@@ -124,6 +126,7 @@ export function HomeScreen() {
       prevSummaryRes,
       operationalRes,
       debtRes,
+      cashRes,
     ] = await Promise.all([
       fetchRevenueCostTrend({ ...params, granularity: 'day' }),
       fetchExpenseBreakdown({ startDate, endDate, scope: 'all' }),
@@ -133,6 +136,7 @@ export function HomeScreen() {
       fetchPeriodSummary({ ...previousRange, source: sourceFilter }),
       fetchDashboardOperationalData(params),
       fetchTotalOutstandingDebt(),
+      fetchCashOnHand(),
     ]);
 
     const firstError =
@@ -157,6 +161,7 @@ export function HomeScreen() {
     setPreviousSummary(prevSummaryRes.data);
     setOperationalData(operationalRes.data);
     setOutstandingDebt(debtRes.data ?? null);
+    setCashOnHand(cashRes.data ?? null);
 
     if (selectedChannels.size === 0 && channels.length > 0) {
       setSelectedChannels(new Set(channels.map((c) => c.channelId)));
@@ -251,6 +256,15 @@ export function HomeScreen() {
         delta: deltaFor(kpis.netProfit, prev?.netProfit),
         trendOverride: kpis.netProfit >= 0 ? 'up' : 'down',
       },
+      ...(cashOnHand != null
+        ? [
+            {
+              label: t.cashOnHand,
+              value: `₼${cashOnHand.toFixed(2)}`,
+              subtitle: t.cashOnHandHint,
+            },
+          ]
+        : []),
       ...(outstandingDebt != null
         ? [
             {
@@ -261,7 +275,7 @@ export function HomeScreen() {
           ]
         : []),
     ];
-  }, [comparePrevious, kpis, previousKpis, outstandingDebt, t]);
+  }, [comparePrevious, kpis, previousKpis, outstandingDebt, cashOnHand, t]);
 
   const financeTrendSeries = useMemo(
     () => [

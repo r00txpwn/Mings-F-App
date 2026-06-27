@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Settings2, Loader2, Check } from 'lucide-react';
+import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Settings2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { ExpensesSummaryBar } from './expenses/ExpensesSummaryBar';
 import { CategoryGroupedView } from './expenses/CategoryGroupedView';
 import { ManageCategoriesTab } from './expenses/ManageCategoriesTab';
@@ -109,20 +110,14 @@ export function ExpensesScreen() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expenseFormError, setExpenseFormError] = useState<string | null>(null);
   const [purchaseFormError, setPurchaseFormError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const toast = useToast();
 
   const flashSuccess = (message: string) => {
-    setSuccessMessage(message);
-    setActionError(null);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 2000);
+    toast.success(message);
   };
 
   const flashError = (message: string) => {
-    setActionError(message);
-    setShowSuccess(false);
+    toast.error(message);
   };
 
   useEffect(() => {
@@ -293,7 +288,6 @@ export function ExpensesScreen() {
   const handleDeleteExpense = async (id: string) => {
     if (deletingId) return;
     setDeletingId(id);
-    setActionError(null);
 
     const result = await adminDelete('operational_expenses', id);
     setDeletingId(null);
@@ -330,7 +324,6 @@ export function ExpensesScreen() {
     if (deletingId) return;
     const purchase = purchases.find(p => p.id === id);
     setDeletingId(id);
-    setActionError(null);
 
     const result = await adminDelete('purchases', id);
     if (!result.ok) {
@@ -680,17 +673,6 @@ export function ExpensesScreen() {
           </>
         }
       />
-
-      {actionError ? (
-        <div className="cockpit-alert-error mb-4">{actionError}</div>
-      ) : null}
-
-      {showSuccess ? (
-        <div className="cockpit-alert-success mb-4 animate-scaleIn">
-          <Check className="h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-200" />
-          <span>{successMessage}</span>
-        </div>
-      ) : null}
 
       <div className="cockpit-panel-solid mb-6 flex gap-1 rounded-xl p-1">
         {tabs.map((tab) => {

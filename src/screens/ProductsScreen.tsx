@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Package, Plus, Edit2, Trash2, Search, AlertCircle, Truck, ShoppingCart, History, X } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, Search, AlertCircle, Truck, ShoppingCart, History, X, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { supabase, Product, Supplier } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
@@ -45,6 +46,7 @@ interface PurchaseFormData {
 
 export function ProductsScreen() {
   const { t } = useLanguage();
+  const toast = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -52,6 +54,10 @@ export function ProductsScreen() {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [savingPurchase, setSavingPurchase] = useState(false);
+  const [savingInline, setSavingInline] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
@@ -135,10 +141,10 @@ export function ProductsScreen() {
 
   const loadCategories = async () => {
     const { data } = await supabase
-      .from('categories')
+      .from('master_categories')
       .select('id, name')
-      .eq('type', 'purchase')
-      .order('name');
+      .order('display_order', { ascending: true })
+      .order('name', { ascending: true });
 
     if (data) {
       setCategories(data);
@@ -175,6 +181,7 @@ export function ProductsScreen() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingProduct) return;
 
     const productData = {
       name: formData.name,
@@ -184,7 +191,7 @@ export function ProductsScreen() {
       barcode: formData.barcode || null,
       quantity: Number(formData.quantity) || 0,
       min_stock_level: Number(formData.min_stock_level) || 10,
-      category_id: formData.category_id || null,
+      master_category_id: formData.category_id || null,
       supplier_id: formData.supplier_id || null,
       unit: formData.unit,
       kiosk_visible: formData.kiosk_visible,
@@ -192,18 +199,25 @@ export function ProductsScreen() {
       image_url: formData.image_url || null,
     };
 
-    if (editingProduct) {
-      await adminUpdate('products', editingProduct.id, productData);
-    } else {
-      await adminInsert('products', productData);
+    setSavingProduct(true);
+    const result = editingProduct
+      ? await adminUpdate('products', editingProduct.id, productData)
+      : await adminInsert('products', productData);
+    setSavingProduct(false);
+
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
     }
 
+    toast.success(editingProduct ? t.updatedSuccessfully : t.savedSuccessfully);
     resetForm();
     loadProducts();
   };
 
   const handlePurchaseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingPurchase) return;
 
     const quantity = Number(purchaseFormData.quantity) || 0;
     const unitCost = Number(purchaseFormData.unit_cost) || 0;
@@ -219,25 +233,38 @@ export function ProductsScreen() {
       ...purchaseCreditFields(purchaseFormData.is_on_credit),
     };
 
+    setSavingPurchase(true);
+    let result;
     if (editingPurchase) {
       const oldProductId = editingPurchase.product_id || null;
       const oldQuantity = Number(editingPurchase.quantity) || 0;
       const newProductId = purchaseData.product_id || null;
       const newQuantity = quantity;
 
-      await adminUpdate('purchases', editingPurchase.id, purchaseData);
+      result = await adminUpdate('purchases', editingPurchase.id, purchaseData);
 
-      if (oldProductId && newProductId && oldProductId === newProductId) {
-        await reconcileProductStock(newProductId, newQuantity - oldQuantity);
-      } else {
-        await reconcileProductStock(oldProductId, -oldQuantity);
-        await reconcileProductStock(newProductId, newQuantity);
+      if (result.ok) {
+        if (oldProductId && newProductId && oldProductId === newProductId) {
+          await reconcileProductStock(newProductId, newQuantity - oldQuantity);
+        } else {
+          await reconcileProductStock(oldProductId, -oldQuantity);
+          await reconcileProductStock(newProductId, newQuantity);
+        }
       }
     } else {
-      await adminInsert('purchases', purchaseData);
-      await reconcileProductStock(purchaseData.product_id, quantity);
+      result = await adminInsert('purchases', purchaseData);
+      if (result.ok) {
+        await reconcileProductStock(purchaseData.product_id, quantity);
+      }
+    }
+    setSavingPurchase(false);
+
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
     }
 
+    toast.success(editingPurchase ? t.updatedSuccessfully : t.savedSuccessfully);
     if (viewingProduct) {
       loadPurchases(viewingProduct.id);
     }
@@ -247,10 +274,12 @@ export function ProductsScreen() {
 
   const handleCreateInlineProduct = async () => {
     if (!inlineProductData.name) {
-      alert('Please enter product name');
+      toast.error(t.errorOccurred);
       return;
     }
+    if (savingInline) return;
 
+    setSavingInline(true);
     const result = await adminInsert<{ id: string }>('products', {
       name: inlineProductData.name,
       description: inlineProductData.description,
@@ -261,16 +290,17 @@ export function ProductsScreen() {
       quantity: 0,
       min_stock_level: 10,
     });
+    setSavingInline(false);
 
     if (!result.ok) {
-      console.error('Error creating product:', result.error);
-      alert(`Error creating product: ${result.error}`);
+      toast.error(result.error ?? t.errorOccurred);
       return;
     }
 
     const data = result.data;
 
     if (data) {
+      toast.success(t.savedSuccessfully);
       await loadProducts();
       setPurchaseFormData({ ...purchaseFormData, product_id: data.id });
       setInlineProductData({ name: '', description: '', cost_price: '', unit: 'pcs', supplier_id: '' });
@@ -279,8 +309,9 @@ export function ProductsScreen() {
   };
 
   const handleCreateInlineSupplier = async () => {
-    if (!inlineSupplierData.name) return;
+    if (!inlineSupplierData.name || savingInline) return;
 
+    setSavingInline(true);
     const result = await adminInsert<{ id: string }>('suppliers', {
       name: inlineSupplierData.name,
       contact_person: inlineSupplierData.contact_person,
@@ -288,10 +319,17 @@ export function ProductsScreen() {
       email: inlineSupplierData.email,
       is_active: true,
     });
+    setSavingInline(false);
+
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
 
     const data = result.data;
 
     if (data) {
+      toast.success(t.savedSuccessfully);
       await loadSuppliers();
       setPurchaseFormData({ ...purchaseFormData, supplier_id: data.id });
       setInlineSupplierData({ name: '', contact_person: '', phone: '', email: '' });
@@ -345,7 +383,7 @@ export function ProductsScreen() {
       barcode: product.barcode || '',
       quantity: product.quantity?.toString() || '',
       min_stock_level: product.min_stock_level?.toString() || '10',
-      category_id: product.category_id || '',
+      category_id: product.master_category_id || product.category_id || '',
       supplier_id: product.supplier_id || '',
       unit: (product as Product & { unit?: string }).unit || 'pcs',
       kiosk_visible: product.kiosk_visible !== false,
@@ -356,8 +394,16 @@ export function ProductsScreen() {
   };
 
   const handleDelete = async (id: string) => {
-    await adminDelete('products', id);
+    if (deletingId) return;
+    setDeletingId(id);
+    const result = await adminDelete('products', id);
+    setDeletingId(null);
     setDeleteConfirm(null);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
     loadProducts();
   };
 
@@ -383,9 +429,18 @@ export function ProductsScreen() {
   };
 
   const handleDeletePurchase = async (id: string) => {
+    if (deletingId) return;
     const purchase = purchases.find(p => p.id === id);
-    await adminDelete('purchases', id);
+    setDeletingId(id);
+    const result = await adminDelete('purchases', id);
+    if (!result.ok) {
+      setDeletingId(null);
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
     await reconcileProductStock(purchase?.product_id, -(Number(purchase?.quantity) || 0));
+    setDeletingId(null);
+    toast.success(t.deletedSuccessfully);
     if (viewingProduct) {
       loadPurchases(viewingProduct.id);
     }
@@ -617,8 +672,10 @@ export function ProductsScreen() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-3 bg-cockpit-600 hover:bg-cockpit-700 text-white rounded-xl font-medium transition-colors"
+                  disabled={savingProduct}
+                  className="flex flex-1 items-center justify-center gap-2 px-4 py-3 bg-cockpit-600 hover:bg-cockpit-700 text-white rounded-xl font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                  {savingProduct ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {editingProduct ? t.update : t.add} {t.product}
                 </button>
               </div>
@@ -693,8 +750,10 @@ export function ProductsScreen() {
                       <button
                         type="button"
                         onClick={handleCreateInlineProduct}
-                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+                        disabled={savingInline}
+                        className="flex w-full items-center justify-center gap-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
                       >
+                        {savingInline ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                         Create & Select
                       </button>
                     </div>
@@ -766,8 +825,10 @@ export function ProductsScreen() {
                       <button
                         type="button"
                         onClick={handleCreateInlineSupplier}
-                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+                        disabled={savingInline}
+                        className="flex w-full items-center justify-center gap-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
                       >
+                        {savingInline ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                         Create & Select
                       </button>
                     </div>
@@ -896,8 +957,10 @@ export function ProductsScreen() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                  disabled={savingPurchase}
+                  className="flex flex-1 items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                  {savingPurchase ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {editingPurchase ? 'Update' : 'Add'} Purchase
                 </button>
               </div>
@@ -1074,8 +1137,8 @@ export function ProductsScreen() {
             </div>
 
             <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-              {product.category_id && (() => {
-                const category = categories.find(c => c.id === product.category_id);
+              {product.master_category_id && (() => {
+                const category = categories.find(c => c.id === product.master_category_id);
                 return category ? (
                   <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
                     <Package className="w-3.5 h-3.5" />

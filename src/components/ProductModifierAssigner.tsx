@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, Check, Sliders } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { supabase, Product, ModifierGroup } from '../lib/supabase';
+import { adminInsert, adminMutate } from '../lib/adminApi';
 
 interface ProductModifierAssignerProps {
   product: Product;
@@ -10,6 +12,7 @@ interface ProductModifierAssignerProps {
 
 export function ProductModifierAssigner({ product, onClose }: ProductModifierAssignerProps) {
   const { t } = useLanguage();
+  const toast = useToast();
   const [allGroups, setAllGroups] = useState<ModifierGroup[]>([]);
   const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -39,15 +42,21 @@ export function ProductModifierAssigner({ product, onClose }: ProductModifierAss
   };
 
   const handleToggle = async (groupId: string) => {
+    if (saving) return;
     setSaving(true);
     const isAssigned = assignedIds.has(groupId);
 
     if (isAssigned) {
-      await supabase
-        .from('product_modifier_groups')
-        .delete()
-        .eq('product_id', product.id)
-        .eq('modifier_group_id', groupId);
+      const result = await adminMutate({
+        table: 'product_modifier_groups',
+        operation: 'delete',
+        match: { product_id: product.id, modifier_group_id: groupId },
+      });
+      if (!result.ok) {
+        toast.error(result.error ?? t.errorOccurred);
+        setSaving(false);
+        return;
+      }
       setAssignedIds(prev => {
         const next = new Set(prev);
         next.delete(groupId);
@@ -55,13 +64,16 @@ export function ProductModifierAssigner({ product, onClose }: ProductModifierAss
       });
     } else {
       const maxOrder = assignedIds.size;
-      await supabase
-        .from('product_modifier_groups')
-        .insert({
-          product_id: product.id,
-          modifier_group_id: groupId,
-          display_order: maxOrder,
-        });
+      const result = await adminInsert('product_modifier_groups', {
+        product_id: product.id,
+        modifier_group_id: groupId,
+        display_order: maxOrder,
+      });
+      if (!result.ok) {
+        toast.error(result.error ?? t.errorOccurred);
+        setSaving(false);
+        return;
+      }
       setAssignedIds(prev => new Set(prev).add(groupId));
     }
     setSaving(false);
@@ -107,7 +119,7 @@ export function ProductModifierAssigner({ product, onClose }: ProductModifierAss
                 return (
                   <button
                     key={group.id}
-                    onClick={() => handleToggle(group.id)}
+                    onClick={() => void handleToggle(group.id)}
                     disabled={saving}
                     className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
                       isAssigned

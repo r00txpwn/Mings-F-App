@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Banknote, Plus, Check, Edit2, Trash2, X, Loader2, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, SalesChannel, PlatformPayout } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
@@ -19,6 +20,7 @@ interface PayoutWithCalc extends PlatformPayout {
 
 export function PayoutsScreen() {
   const { t } = useLanguage();
+  const toast = useToast();
   const { user } = useAuth();
 
   const [channels, setChannels] = useState<SalesChannel[]>([]);
@@ -26,7 +28,7 @@ export function PayoutsScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingPayout, setEditingPayout] = useState<PlatformPayout | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -155,6 +157,7 @@ export function PayoutsScreen() {
   };
 
   const handleSave = async () => {
+    if (saving) return;
     if (!channelId || !periodStart || !periodEnd || !payoutAmount || Number(payoutAmount) <= 0) return;
 
     setSaving(true);
@@ -186,13 +189,13 @@ export function PayoutsScreen() {
 
     if (err) {
       setError(err);
+      toast.error(err);
       return;
     }
 
-    setShowSuccess(true);
+    toast.success(editingPayout ? t.updatedSuccessfully : t.savedSuccessfully);
     resetForm();
     loadPayouts();
-    setTimeout(() => setShowSuccess(false), 2000);
   };
 
   const handleEdit = (p: PayoutWithCalc) => {
@@ -207,11 +210,16 @@ export function PayoutsScreen() {
   };
 
   const handleDelete = async (id: string) => {
+    if (deletingId) return;
+    setDeletingId(id);
     const res = await adminDelete('platform_payouts', id);
+    setDeletingId(null);
     if (res.error) {
       setError(res.error);
+      toast.error(res.error);
       return;
     }
+    toast.success(t.deletedSuccessfully);
     setDeleteConfirm(null);
     loadPayouts();
   };
@@ -246,13 +254,6 @@ export function PayoutsScreen() {
 
       {error ? (
         <div className="cockpit-alert-error mb-6">{error}</div>
-      ) : null}
-
-      {showSuccess ? (
-        <div className="cockpit-alert-success mb-6 animate-scaleIn">
-          <Check className="h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-200" />
-          <span>{t.savedSuccessfully}</span>
-        </div>
       ) : null}
 
       {payouts.length > 0 && (

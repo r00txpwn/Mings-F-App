@@ -1,6 +1,7 @@
 import { Fragment, useState, useEffect } from 'react';
-import { Users, Plus, Mail, Shield, Trash2, AlertCircle, Loader2, Check, Lock, KeyRound } from 'lucide-react';
+import { Users, Plus, Mail, Trash2, AlertCircle, Loader2, Check, Lock, KeyRound } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
@@ -23,6 +24,7 @@ interface UserManagementUser {
 
 export function UsersScreen() {
   const { t } = useLanguage();
+  const toast = useToast();
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -31,7 +33,7 @@ export function UsersScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'staff' | 'manager' | 'admin'>('staff');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [roleSavingByUserId, setRoleSavingByUserId] = useState<Record<string, boolean>>({});
   const [roleSuccessByUserId, setRoleSuccessByUserId] = useState<Record<string, boolean>>({});
@@ -116,7 +118,6 @@ export function UsersScreen() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
     if (!email || !password) {
       setError(t.fillAllFields);
@@ -165,7 +166,7 @@ export function UsersScreen() {
         };
         setUsers((prev) => [createdUser, ...prev.filter((u) => u.id !== createdUser.id)]);
       }
-      setSuccess(t.userCreated);
+      toast.success(t.userCreated);
       setEmail('');
       setPassword('');
       setConfirmPassword('');
@@ -173,23 +174,24 @@ export function UsersScreen() {
       setShowForm(false);
       loadUsers();
       setTimeout(() => {
-        setSuccess('');
         loadUsers();
       }, 2000);
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
+    if (deletingUserId) return;
     if (!confirm(t.deleteUserConfirm)) {
       return;
     }
 
     const accessToken = await getAccessToken();
     if (!accessToken) {
-      setError(t.notAuthenticated);
+      toast.error(t.notAuthenticated);
       return;
     }
 
+    setDeletingUserId(userId);
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/delete/${userId}`;
     const response = await fetch(apiUrl, {
       method: 'DELETE',
@@ -197,13 +199,13 @@ export function UsersScreen() {
     });
 
     const result = await response.json();
+    setDeletingUserId(null);
 
     if (result.error) {
-      setError(result.error);
+      toast.error(result.error);
     } else {
-      setSuccess(t.userDeleted);
+      toast.success(t.userDeleted);
       loadUsers();
-      setTimeout(() => setSuccess(''), 2000);
     }
   };
 
@@ -343,13 +345,6 @@ export function UsersScreen() {
         <div className="cockpit-alert-error mb-6 flex items-start gap-3">
           <AlertCircle className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-300" />
           <p>{error}</p>
-        </div>
-      ) : null}
-
-      {success ? (
-        <div className="cockpit-alert-success mb-6">
-          <Shield className="h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-200" />
-          <p>{success}</p>
         </div>
       ) : null}
 
@@ -518,10 +513,15 @@ export function UsersScreen() {
                             <button
                               type="button"
                               onClick={() => handleDeleteUser(user.id)}
-                              className="rounded-lg p-2 text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
+                              disabled={deletingUserId === user.id}
+                              className="rounded-lg p-2 text-rose-600 transition-colors hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:text-rose-400"
                               title={`${t.delete} ${t.user}`}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {deletingUserId === user.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
                             </button>
                           </div>
                         </td>

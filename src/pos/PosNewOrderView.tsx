@@ -7,6 +7,7 @@ import { invokeEdgeFunction } from '../order/invokeEdge';
 import { ProductDetailModal } from '../kiosk/ProductDetailModal';
 import { findZoneForPoint } from '../services/deliveryZones';
 import type { DeliveryZoneRow } from '../types/online';
+import { CASH_PAYMENT_METHOD } from '../lib/cashPayment';
 import { fulfillmentToPosSource } from './posSources';
 import { buildPrintLabelsFromCreateResponse } from './posLabelPayload';
 import { sendLabelsToPrintAgent } from './posPrintClient';
@@ -51,6 +52,7 @@ export function PosNewOrderView({ onSubmitted }: PosNewOrderViewProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string>(CASH_PAYMENT_METHOD);
 
   useEffect(() => {
     void (async () => {
@@ -209,6 +211,7 @@ export function PosNewOrderView({ onSubmitted }: PosNewOrderViewProps) {
         {
           fulfillmentType: PosFulfillmentType;
           cart: typeof cartPayload;
+          paymentMethod?: string;
           customerName?: string;
           customerPhone?: string;
           orderNotes?: string;
@@ -240,6 +243,7 @@ export function PosNewOrderView({ onSubmitted }: PosNewOrderViewProps) {
         {
           fulfillmentType: fulfillment,
           cart: cartPayload,
+          paymentMethod,
           customerName: customerName.trim() || undefined,
           customerPhone: customerPhone.trim() || undefined,
           orderNotes: orderNotes.trim() || undefined,
@@ -362,6 +366,8 @@ export function PosNewOrderView({ onSubmitted }: PosNewOrderViewProps) {
           total={cartTotal}
           deliveryFee={deliveryFee}
           submitting={submitting}
+          paymentMethod={paymentMethod}
+          onPaymentMethodChange={setPaymentMethod}
           onUpdateQty={updateCartQuantity}
           onRemove={removeFromCart}
           onSubmit={() => void handleSubmit()}

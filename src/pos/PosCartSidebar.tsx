@@ -1,13 +1,16 @@
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import { Banknote, CreditCard, Minus, Plus, Trash2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import type { CartItem } from '../lib/supabase';
 import { formatMoneyWithSymbol } from '../lib/money';
+import { CARD_PAYMENT_METHOD, CASH_PAYMENT_METHOD } from '../lib/cashPayment';
 
 interface PosCartSidebarProps {
   cart: CartItem[];
   total: number;
   deliveryFee: number;
   submitting: boolean;
+  paymentMethod: string;
+  onPaymentMethodChange: (method: string) => void;
   onUpdateQty: (cartItemKey: string, delta: number) => void;
   onRemove: (cartItemKey: string) => void;
   onSubmit: () => void;
@@ -18,11 +21,14 @@ export function PosCartSidebar({
   total,
   deliveryFee,
   submitting,
+  paymentMethod,
+  onPaymentMethodChange,
   onUpdateQty,
   onRemove,
   onSubmit,
 }: PosCartSidebarProps) {
   const { t } = useLanguage();
+  const isCash = paymentMethod !== CARD_PAYMENT_METHOD;
 
   return (
     <aside className="flex h-full flex-col rounded-xl border border-white/10 bg-slate-950/80 p-3">
@@ -89,6 +95,35 @@ export function PosCartSidebar({
         <div className="flex justify-between font-semibold text-slate-100">
           <span>{t.total}</span>
           <span>{formatMoneyWithSymbol(total)}</span>
+        </div>
+      </div>
+      <div className="mt-3">
+        <p className="mb-1.5 text-xs font-semibold text-slate-400">{t.posPaymentMethod}</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onPaymentMethodChange(CASH_PAYMENT_METHOD)}
+            className={`flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-semibold transition ${
+              isCash
+                ? 'border-cockpit-400 bg-cockpit-500/20 text-white'
+                : 'border-white/10 text-slate-300 hover:bg-white/5'
+            }`}
+          >
+            <Banknote className="h-4 w-4" />
+            {t.posPayCash}
+          </button>
+          <button
+            type="button"
+            onClick={() => onPaymentMethodChange(CARD_PAYMENT_METHOD)}
+            className={`flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-semibold transition ${
+              !isCash
+                ? 'border-cockpit-400 bg-cockpit-500/20 text-white'
+                : 'border-white/10 text-slate-300 hover:bg-white/5'
+            }`}
+          >
+            <CreditCard className="h-4 w-4" />
+            {t.posPayCard}
+          </button>
         </div>
       </div>
       <button

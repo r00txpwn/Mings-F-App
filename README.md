@@ -62,6 +62,30 @@ See **[DEPLOY.md](DEPLOY.md)** for the **two-project** Vercel split (`order.ming
 - United Payment (card checkout): **[docs/UNITED_PAYMENT_INTEGRATION.md](docs/UNITED_PAYMENT_INTEGRATION.md)**
 - Kitchen hours / pause / soft-close: **[docs/KITCHEN_HOURS.md](docs/KITCHEN_HOURS.md)**
 - Reliability / manual QA focus: **[docs/RELIABILITY_QA_PRIORITIES.md](docs/RELIABILITY_QA_PRIORITIES.md)**
+- Automated test plan (living spec): **[docs/TEST_PLAN.md](docs/TEST_PLAN.md)** — gaps diffed by `npm run qa:plan` and included in `npm run qa` reports
+
+## Testing workflow
+
+**PR gate (required):** GitHub Actions [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request and push to `main`:
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build:staff`
+- `npm test`
+
+**On demand (full QA + report):**
+
+```bash
+npm run qa          # gates + test-plan diff → docs/QA_STATUS.md
+npm run qa:plan     # advisory: diff TEST_PLAN.md vs repo only
+npm run test:e2e    # Playwright smoke (local preview on 4175/4176)
+```
+
+**Scheduled:** [`.github/workflows/qa-agent.yml`](.github/workflows/qa-agent.yml) runs twice daily — full build, E2E, AI analysis, updates `docs/QA_STATUS.md`.
+
+**Cursor:** say **"test initiate"** for desktop + mobile smoke per `.cursor/rules/test-initiate-web-desktop-mobile.mdc`.
+
+Edit **[docs/TEST_PLAN.md](docs/TEST_PLAN.md)** when adding scope; check boxes only after real tests land. Do not edit **[docs/QA_STATUS.md](docs/QA_STATUS.md)** by hand.
 
 ## Issue loop tooling
 

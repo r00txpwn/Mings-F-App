@@ -149,11 +149,15 @@ export interface Sale {
   source?: string;
   order_status?: string;
   payment_status?: string;
+  payment_method?: string | null;
+  paid_at?: string | null;
   daily_order_number?: number | null;
   display_number?: string | null;
   prep_started_at?: string | null;
   ready_at?: string | null;
   estimated_ready_at?: string | null;
+  dispatched_at?: string | null;
+  completed_at?: string | null;
   scheduled_for?: string | null;
   is_scheduled?: boolean | null;
   reminder_at?: string | null;
@@ -254,6 +258,17 @@ export interface BankWithdrawal {
   fee_rate: number;
   fee_amount: number;
   withdrawal_date: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CashMovement {
+  id: string;
+  direction: 'in' | 'out';
+  category: 'opening_float' | 'bank_deposit' | 'adjustment' | 'other';
+  amount: number;
+  movement_date: string;
   notes: string;
   created_by: string | null;
   created_at: string;

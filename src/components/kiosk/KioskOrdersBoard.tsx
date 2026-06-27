@@ -55,6 +55,21 @@ function resolveDropStatus(orders: KioskOrder[], overId: string): KioskOrderStat
   return COLUMN_ORDER.includes(s as KioskOrderStatus) ? (s as KioskOrderStatus) : null;
 }
 
+function isPosSource(source: string | null | undefined): boolean {
+  return source === 'pos_eat_in' || source === 'pos_takeaway' || source === 'pos_delivery';
+}
+
+function orderSourceLabel(
+  source: string | null | undefined,
+  t: { omSourceDelivery: string; omSourceTakeaway: string; omSourceKiosk: string; omSourcePos: string },
+): string {
+  if (source === 'online_delivery') return t.omSourceDelivery;
+  if (source === 'online_takeaway') return t.omSourceTakeaway;
+  if (source === 'kiosk') return t.omSourceKiosk;
+  if (isPosSource(source)) return t.omSourcePos;
+  return t.omSourceKiosk;
+}
+
 function isPaymentConfirmedForPrep(order: KioskOrder): boolean {
   const p = order.payment_status || 'paid';
   if (p === 'paid' || p === 'completed') return true;
@@ -215,11 +230,7 @@ function OrderCard({
 
           <div className="mt-2 flex flex-wrap gap-1.5">
             <span className="rounded-md bg-slate-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-              {order.source === 'online_delivery'
-                ? 'Online · Delivery'
-                : order.source === 'online_takeaway'
-                  ? 'Online · Takeaway'
-                  : 'Kiosk'}
+              {orderSourceLabel(order.source, t)}
             </span>
             {online && isCardOnlinePaymentMethod(method) && payStatus !== 'paid' && (
               <span className="rounded-md border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300">

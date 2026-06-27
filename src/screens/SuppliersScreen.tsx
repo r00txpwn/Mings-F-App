@@ -13,6 +13,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { supabase, Supplier } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
@@ -24,7 +25,9 @@ import {
 
 export function SuppliersScreen() {
   const { t } = useLanguage();
+  const toast = useToast();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [savingSupplier, setSavingSupplier] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -137,12 +140,19 @@ export function SuppliersScreen() {
   });
 
   const handleSave = async () => {
-    if (!formData.name.trim()) return;
-    if (isAdding) {
-      await adminInsert('suppliers', supplierPayload());
-    } else if (editingId) {
-      await adminUpdate('suppliers', editingId, supplierPayload());
+    if (!formData.name.trim() || savingSupplier) return;
+    setSavingSupplier(true);
+    const result = isAdding
+      ? await adminInsert('suppliers', supplierPayload())
+      : editingId
+        ? await adminUpdate('suppliers', editingId, supplierPayload())
+        : { ok: true };
+    setSavingSupplier(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
     }
+    toast.success(isAdding ? t.savedSuccessfully : t.updatedSuccessfully);
     handleCancel();
     loadSuppliers();
     void loadAccounts();
@@ -150,7 +160,7 @@ export function SuppliersScreen() {
 
   const handlePaySupplier = async (supplierId: string) => {
     const amount = Number(payForm.amount);
-    if (amount <= 0) return;
+    if (amount <= 0 || paySaving) return;
     setPaySaving(true);
     const result = await adminInsert('supplier_account_payments', {
       supplier_id: supplierId,
@@ -160,7 +170,11 @@ export function SuppliersScreen() {
       notes: payForm.notes,
     });
     setPaySaving(false);
-    if (!result.ok) return;
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.savedSuccessfully);
     setPayingSupplierId(null);
     setPayForm({
       amount: '',
@@ -172,7 +186,12 @@ export function SuppliersScreen() {
   };
 
   const handleDeletePayment = async (paymentId: string) => {
-    await adminDelete('supplier_account_payments', paymentId);
+    const result = await adminDelete('supplier_account_payments', paymentId);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
     void loadAccounts();
   };
 
@@ -203,7 +222,7 @@ export function SuppliersScreen() {
 
   const handleSaveDebt = async (supplierId: string) => {
     const amount = Number(debtForm.amount);
-    if (amount <= 0) return;
+    if (amount <= 0 || debtSaving) return;
     setDebtSaving(true);
     const payload = {
       supplier_id: supplierId,
@@ -211,11 +230,16 @@ export function SuppliersScreen() {
       debt_date: debtForm.debt_date,
       notes: debtForm.notes,
     };
+    const wasEditing = Boolean(editingDebtId);
     const result = editingDebtId
       ? await adminUpdate('supplier_debts', editingDebtId, payload)
       : await adminInsert('supplier_debts', payload);
     setDebtSaving(false);
-    if (!result.ok) return;
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(wasEditing ? t.updatedSuccessfully : t.savedSuccessfully);
     setAddingDebtSupplierId(null);
     setEditingDebtId(null);
     setDebtForm({ amount: '', debt_date: new Date().toISOString().split('T')[0], notes: '' });
@@ -223,19 +247,34 @@ export function SuppliersScreen() {
   };
 
   const handleDeleteDebt = async (debtId: string) => {
-    await adminDelete('supplier_debts', debtId);
+    const result = await adminDelete('supplier_debts', debtId);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
     void loadAccounts();
   };
 
   const handleDelete = async (id: string) => {
-    await adminDelete('suppliers', id);
+    const result = await adminDelete('suppliers', id);
     setDeleteConfirm(null);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
     loadSuppliers();
     loadProductCounts();
+    void loadAccounts();
   };
 
   const handleToggleActive = async (supplier: Supplier) => {
-    await adminUpdate('suppliers', supplier.id, { is_active: !supplier.is_active });
+    const result = await adminUpdate('suppliers', supplier.id, { is_active: !supplier.is_active });
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
     loadSuppliers();
   };
 
@@ -339,10 +378,14 @@ export function SuppliersScreen() {
             <button
               type="button"
               onClick={handleSave}
-              disabled={!formData.name.trim()}
+              disabled={!formData.name.trim() || savingSupplier}
               className="cockpit-btn-primary disabled:opacity-40"
             >
-              <Save className="h-4 w-4" />
+              {savingSupplier ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
               {t.save}
             </button>
             <button type="button" onClick={handleCancel} className="cockpit-btn-ghost">

@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { Loader2 } from 'lucide-react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -6,6 +7,8 @@ type ButtonSize = 'sm' | 'md' | 'lg';
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  /** When true, shows a spinner and disables the button (prevents double submit). */
+  loading?: boolean;
   children: ReactNode;
 }
 
@@ -27,13 +30,22 @@ export function Button({
   variant = 'primary',
   size = 'md',
   className = '',
+  loading = false,
+  disabled,
   children,
   type = 'button',
   ...props
 }: ButtonProps) {
   const sizeOverride = size !== 'md' ? sizeClass[size] : '';
   return (
-    <button type={type} className={`${variantClass[variant]} ${sizeOverride} ${className}`.trim()} {...props}>
+    <button
+      type={type}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={`${variantClass[variant]} ${sizeOverride} ${className}`.trim()}
+      {...props}
+    >
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
       {children}
     </button>
   );

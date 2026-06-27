@@ -3,6 +3,7 @@ import { RefreshCw, WifiOff } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { adminUpdate } from '../lib/adminApi';
+import { buildMarkPaidPatch } from '../lib/cashPayment';
 import { InDeliveryCard } from './InDeliveryCard';
 import { InProgressCard } from './InProgressCard';
 import { NewOrderCard } from './NewOrderCard';
@@ -382,7 +383,7 @@ export function ActiveOrdersTab({ accessToken, showReprint = false }: ActiveOrde
                     <NewOrderCard
                       order={order}
                       disabled={busyOrderId === order.id}
-                      onMarkPaid={() => void updateSale(order.id, { payment_status: 'paid' })}
+                      onMarkPaid={() => void updateSale(order.id, buildMarkPaidPatch(order))}
                       onAccept={(minutes) => void acceptNew(order.id, minutes)}
                       onReject={(reason, note) => void rejectOrder(order.id, reason, note)}
                     />

@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { applyQaCredentialAliases, requireQaStaffPassword } from './qa-credentials.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -35,10 +36,10 @@ for (const [key, val] of Object.entries(merged)) {
   if (val !== undefined && val !== '') process.env[key] = val;
 }
 
-if (!process.env.STAFF_PASSWORD?.trim()) {
-  console.error('STAFF_PASSWORD missing in .env.local');
+if (!requireQaStaffPassword('Expenses CRUD e2e')) {
   process.exit(1);
 }
+applyQaCredentialAliases();
 
 process.env.PLAYWRIGHT_STAFF_URL = process.env.PLAYWRIGHT_STAFF_URL ?? 'http://127.0.0.1:4175';
 

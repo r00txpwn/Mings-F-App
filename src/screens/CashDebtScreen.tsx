@@ -1,19 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Landmark, Loader2, Plus, Wallet } from 'lucide-react';
+import { Banknote, Landmark, Loader2, Plus, Trash2, Wallet } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { supabase, type BankWithdrawal, type Liability } from '../lib/supabase';
-import { adminInsert, adminUpdate } from '../lib/adminApi';
+import { useToast } from '../contexts/ToastContext';
+import { supabase, type BankWithdrawal, type CashMovement, type Liability } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 import { SingleDatePicker } from '../components/SingleDatePicker';
 import { computeWithdrawalFee, type WithdrawalMethod } from '../services/finance/withdrawalFees';
 import { fetchLiabilitiesSummary } from '../services/finance/supplierFinanceService';
+import { fetchCashDrawer } from '../services/finance/cashDrawerService';
+import type { CashDrawerResult } from '../services/finance/cashDrawer';
 
-type Tab = 'loans' | 'withdrawals';
+type Tab = 'loans' | 'withdrawals' | 'cash';
+
+function startOfMonth(): string {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toLocaleDateString('en-CA');
+}
 
 type LiabilityRow = Liability & { paidAmount: number; outstanding: number };
 
 export function CashDebtScreen() {
   const { t } = useLanguage();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('loans');
   const [loading, setLoading] = useState(true);
   const [liabilities, setLiabilities] = useState<LiabilityRow[]>([]);
@@ -39,6 +48,28 @@ export function CashDebtScreen() {
     withdrawal_date: new Date().toISOString().split('T')[0],
     notes: '',
   });
+
+  const [cashStart, setCashStart] = useState(startOfMonth);
+  const [cashEnd, setCashEnd] = useState(() => new Date().toLocaleDateString('en-CA'));
+  const [drawer, setDrawer] = useState<CashDrawerResult | null>(null);
+  const [movements, setMovements] = useState<CashMovement[]>([]);
+  const [cashLoading, setCashLoading] = useState(false);
+  const [cashForm, setCashForm] = useState({
+    category: 'opening_float' as CashMovement['category'],
+    direction: 'in' as CashMovement['direction'],
+    amount: '',
+    movement_date: new Date().toISOString().split('T')[0],
+    notes: '',
+  });
+  const [deletingCashId, setDeletingCashId] = useState<string | null>(null);
+
+  const cashDirectionLocked = (category: CashMovement['category']): CashMovement['direction'] | null => {
+    if (category === 'opening_float') return 'in';
+    if (category === 'bank_deposit') return 'out';
+    return null;
+  };
+
+  const effectiveCashDirection = cashDirectionLocked(cashForm.category) ?? cashForm.direction;
 
   const withdrawPreview = useMemo(() => {
     const amount = Number(withdrawForm.amount) || 0;
@@ -97,7 +128,7 @@ export function CashDebtScreen() {
 
   const handleCreateLiability = async () => {
     const principal = Number(liabilityForm.principal_amount);
-    if (!liabilityForm.counterparty.trim() || principal <= 0) return;
+    if (!liabilityForm.counterparty.trim() || principal <= 0 || saving) return;
     setSaving(true);
     const result = await adminInsert('liabilities', {
       type: liabilityForm.type,
@@ -111,8 +142,10 @@ export function CashDebtScreen() {
     setSaving(false);
     if (!result.ok) {
       setError(result.error ?? t.errorOccurred);
+      toast.error(result.error ?? t.errorOccurred);
       return;
     }
+    toast.success(t.savedSuccessfully);
     setShowLiabilityForm(false);
     setLiabilityForm({
       type: 'loan',
@@ -128,7 +161,7 @@ export function CashDebtScreen() {
   const handlePayLiability = async () => {
     if (!payLiabilityId) return;
     const amount = Number(payForm.amount);
-    if (amount <= 0) return;
+    if (amount <= 0 || saving) return;
     setSaving(true);
     const result = await adminInsert('liability_payments', {
       liability_id: payLiabilityId,
@@ -149,8 +182,10 @@ export function CashDebtScreen() {
     setSaving(false);
     if (!result.ok) {
       setError(result.error ?? t.errorOccurred);
+      toast.error(result.error ?? t.errorOccurred);
       return;
     }
+    toast.success(t.savedSuccessfully);
     setPayLiabilityId(null);
     setPayForm({ amount: '', paid_date: new Date().toISOString().split('T')[0], payment_method: '', notes: '' });
     await loadData();
@@ -158,7 +193,7 @@ export function CashDebtScreen() {
 
   const handleLogWithdrawal = async () => {
     const amount = Number(withdrawForm.amount);
-    if (amount <= 0) return;
+    if (amount <= 0 || saving) return;
     const fee = computeWithdrawalFee(amount, withdrawForm.method);
     setSaving(true);
     const result = await adminInsert('bank_withdrawals', {
@@ -172,8 +207,10 @@ export function CashDebtScreen() {
     setSaving(false);
     if (!result.ok) {
       setError(result.error ?? t.errorOccurred);
+      toast.error(result.error ?? t.errorOccurred);
       return;
     }
+    toast.success(t.savedSuccessfully);
     setWithdrawForm({
       amount: '',
       method: 'cashier',
@@ -181,6 +218,71 @@ export function CashDebtScreen() {
       notes: '',
     });
     await loadData();
+  };
+
+  const loadCash = useCallback(async () => {
+    setCashLoading(true);
+    const [drawerRes, movementsRes] = await Promise.all([
+      fetchCashDrawer({ startDate: cashStart, endDate: cashEnd }),
+      supabase
+        .from('cash_movements')
+        .select('*')
+        .order('movement_date', { ascending: false })
+        .limit(200),
+    ]);
+    if (drawerRes.error) {
+      setError(drawerRes.error);
+    } else {
+      setDrawer(drawerRes.data);
+    }
+    if (!movementsRes.error) {
+      setMovements((movementsRes.data ?? []) as CashMovement[]);
+    }
+    setCashLoading(false);
+  }, [cashStart, cashEnd]);
+
+  useEffect(() => {
+    if (activeTab === 'cash') void loadCash();
+  }, [activeTab, loadCash]);
+
+  const handleAddCashMovement = async () => {
+    const amount = Number(cashForm.amount);
+    if (amount <= 0 || saving) return;
+    setSaving(true);
+    const result = await adminInsert('cash_movements', {
+      direction: effectiveCashDirection,
+      category: cashForm.category,
+      amount,
+      movement_date: cashForm.movement_date,
+      notes: cashForm.notes,
+    });
+    setSaving(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.cashMovementAdded);
+    setCashForm({
+      category: 'opening_float',
+      direction: 'in',
+      amount: '',
+      movement_date: new Date().toISOString().split('T')[0],
+      notes: '',
+    });
+    await loadCash();
+  };
+
+  const handleDeleteCashMovement = async (id: string) => {
+    if (deletingCashId) return;
+    setDeletingCashId(id);
+    const result = await adminDelete('cash_movements', id);
+    setDeletingCashId(null);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.cashMovementDeleted);
+    await loadCash();
   };
 
   const withdrawalFeesTotal = withdrawals.reduce((s, w) => s + Number(w.fee_amount ?? 0), 0);
@@ -218,6 +320,13 @@ export function CashDebtScreen() {
           className={`cockpit-tab flex-1 ${activeTab === 'withdrawals' ? 'cockpit-tab-active' : ''}`}
         >
           {t.cashDebtTabWithdrawals}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('cash')}
+          className={`cockpit-tab flex-1 ${activeTab === 'cash' ? 'cockpit-tab-active' : ''}`}
+        >
+          {t.cashDrawerTab}
         </button>
       </div>
 
@@ -338,7 +447,7 @@ export function CashDebtScreen() {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === 'withdrawals' ? (
         <div className="space-y-4">
           <div className="cockpit-panel space-y-3 p-5">
             <p className="text-sm font-semibold text-slate-200">{t.withdrawalLog}</p>
@@ -409,6 +518,183 @@ export function CashDebtScreen() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">{t.cashDrawerSubtitle}</p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <SingleDatePicker
+              value={cashStart}
+              onChange={setCashStart}
+              placeholder={t.cashOpeningBalance}
+            />
+            <span className="text-slate-500">—</span>
+            <SingleDatePicker value={cashEnd} onChange={setCashEnd} placeholder={t.date} />
+          </div>
+
+          {cashLoading || !drawer ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-cockpit-400" />
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="cockpit-panel p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">{t.cashOpeningBalance}</p>
+                  <p className="mt-1 font-mono text-lg font-bold text-slate-200">₼{drawer.openingBalance.toFixed(2)}</p>
+                </div>
+                <div className="cockpit-panel p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">{t.cashOnHand}</p>
+                  <p className="mt-1 font-mono text-2xl font-bold text-emerald-300">₼{drawer.closingBalance.toFixed(2)}</p>
+                  <p className="text-xs text-slate-500">{t.cashOnHandHint}</p>
+                </div>
+                <div className="cockpit-panel p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">
+                    {t.cashInTotal} / {t.cashOutTotal}
+                  </p>
+                  <p className="mt-1 font-mono text-sm font-bold text-emerald-300">+₼{drawer.cashIn.total.toFixed(2)}</p>
+                  <p className="font-mono text-sm font-bold text-rose-300">−₼{drawer.cashOut.total.toFixed(2)}</p>
+                </div>
+              </div>
+
+              <div className="cockpit-panel grid gap-2 p-4 text-sm sm:grid-cols-2">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t.cashFromOrders}</span>
+                  <span className="font-mono text-emerald-300">+₼{drawer.cashIn.orders.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t.cashFromWithdrawals}</span>
+                  <span className="font-mono text-emerald-300">+₼{drawer.cashIn.bankWithdrawals.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t.cashAdjustmentsIn}</span>
+                  <span className="font-mono text-emerald-300">+₼{drawer.cashIn.movementsIn.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t.cashToExpenses}</span>
+                  <span className="font-mono text-rose-300">−₼{drawer.cashOut.expenses.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t.cashToSuppliers}</span>
+                  <span className="font-mono text-rose-300">−₼{drawer.cashOut.supplierPayments.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t.cashToLiabilities}</span>
+                  <span className="font-mono text-rose-300">−₼{drawer.cashOut.liabilityPayments.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t.cashBankDeposits}</span>
+                  <span className="font-mono text-rose-300">−₼{drawer.cashOut.movementsOut.toFixed(2)}</span>
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="cockpit-panel space-y-3 p-5">
+            <p className="text-sm font-semibold text-slate-200">{t.cashAddMovement}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <select
+                value={cashForm.category}
+                onChange={(e) =>
+                  setCashForm((p) => ({ ...p, category: e.target.value as CashMovement['category'] }))
+                }
+                className="cockpit-select"
+              >
+                <option value="opening_float">{t.cashCategoryOpeningFloat}</option>
+                <option value="bank_deposit">{t.cashCategoryBankDeposit}</option>
+                <option value="adjustment">{t.cashCategoryAdjustment}</option>
+                <option value="other">{t.cashCategoryOther}</option>
+              </select>
+              {cashDirectionLocked(cashForm.category) === null ? (
+                <select
+                  value={cashForm.direction}
+                  onChange={(e) =>
+                    setCashForm((p) => ({ ...p, direction: e.target.value as CashMovement['direction'] }))
+                  }
+                  className="cockpit-select"
+                >
+                  <option value="in">{t.cashDirectionIn}</option>
+                  <option value="out">{t.cashDirectionOut}</option>
+                </select>
+              ) : (
+                <div className="flex items-center rounded-lg border border-white/10 px-3 text-sm text-slate-400">
+                  {effectiveCashDirection === 'in' ? t.cashDirectionIn : t.cashDirectionOut}
+                </div>
+              )}
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                className="cockpit-input"
+                placeholder={t.amount}
+                value={cashForm.amount}
+                onChange={(e) => setCashForm((p) => ({ ...p, amount: e.target.value }))}
+              />
+              <SingleDatePicker
+                value={cashForm.movement_date}
+                onChange={(date) => setCashForm((p) => ({ ...p, movement_date: date }))}
+                placeholder={t.date}
+              />
+            </div>
+            <input
+              className="cockpit-input"
+              placeholder={t.notes}
+              value={cashForm.notes}
+              onChange={(e) => setCashForm((p) => ({ ...p, notes: e.target.value }))}
+            />
+            <button type="button" disabled={saving} onClick={() => void handleAddCashMovement()} className="cockpit-btn-primary">
+              <Banknote className="h-4 w-4" />
+              {t.cashAddMovement}
+            </button>
+          </div>
+
+          <p className="text-sm font-semibold text-slate-300">{t.cashMovementLog}</p>
+          {movements.length === 0 ? (
+            <p className="text-sm text-slate-500">{t.cashMovementEmpty}</p>
+          ) : (
+            <div className="space-y-2">
+              {movements.map((m) => {
+                const categoryLabel =
+                  m.category === 'opening_float'
+                    ? t.cashCategoryOpeningFloat
+                    : m.category === 'bank_deposit'
+                      ? t.cashCategoryBankDeposit
+                      : m.category === 'adjustment'
+                        ? t.cashCategoryAdjustment
+                        : t.cashCategoryOther;
+                return (
+                  <div key={m.id} className="cockpit-panel flex items-center justify-between gap-3 p-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-200">{categoryLabel}</p>
+                      <p className="text-xs text-slate-500">
+                        {m.movement_date}
+                        {m.notes ? ` · ${m.notes}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`font-mono text-sm font-bold ${m.direction === 'in' ? 'text-emerald-300' : 'text-rose-300'}`}>
+                        {m.direction === 'in' ? '+' : '−'}₼{Number(m.amount).toFixed(2)}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={deletingCashId === m.id}
+                        onClick={() => void handleDeleteCashMovement(m.id)}
+                        className="text-slate-400 hover:text-rose-300 disabled:opacity-50"
+                        aria-label={t.delete}
+                      >
+                        {deletingCashId === m.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

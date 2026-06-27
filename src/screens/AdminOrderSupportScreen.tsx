@@ -19,6 +19,7 @@ import {
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { adminUpdate } from '../lib/adminApi';
+import { buildMarkPaidPatch } from '../lib/cashPayment';
 import type { SaleItem } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -35,7 +36,16 @@ type OrderSupportStatus =
   | 'completed'
   | 'cancelled';
 
-type OrderSource = 'kiosk' | 'online_delivery' | 'online_takeaway';
+const POS_SOURCES = ['pos_eat_in', 'pos_takeaway', 'pos_delivery'] as const;
+type PosSource = (typeof POS_SOURCES)[number];
+type OrderSource = 'kiosk' | 'online_delivery' | 'online_takeaway' | PosSource;
+
+const ORDER_SUPPORT_SOURCES: OrderSource[] = [
+  'kiosk',
+  'online_delivery',
+  'online_takeaway',
+  ...POS_SOURCES,
+];
 
 interface DeliveryOrder {
   sale_id: string;
@@ -78,7 +88,7 @@ interface AdminOrder {
 }
 
 type StatusFilter = 'all' | 'active' | 'dispatched' | 'completed' | 'cancelled';
-type SourceFilter = 'all' | OrderSource;
+type SourceFilter = 'all' | 'pos' | OrderSource;
 
 const STATUS_FILTERS: StatusFilter[] = [
   'all',
@@ -148,6 +158,9 @@ function orderStatusLabel(t: ReturnType<typeof useLanguage>['t'], status: OrderS
 function SourceIcon({ source }: { source: OrderSource }) {
   if (source === 'online_delivery') return <Truck className="h-3.5 w-3.5 text-blue-400" />;
   if (source === 'online_takeaway') return <ShoppingBag className="h-3.5 w-3.5 text-cockpit-400" />;
+  if (POS_SOURCES.includes(source as PosSource)) {
+    return <UtensilsCrossed className="h-3.5 w-3.5 text-amber-400" />;
+  }
   return <UtensilsCrossed className="h-3.5 w-3.5 text-slate-400" />;
 }
 
@@ -393,7 +406,7 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
                       {pendingPay ? (
                         <button
                           type="button"
-                          onClick={() => void runUpdate({ payment_status: 'paid' })}
+                          onClick={() => void runUpdate(buildMarkPaidPatch(order))}
                           className="w-full rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-sm font-semibold text-amber-100 hover:bg-amber-500/25"
                         >
                           {t.confirmPayment}
@@ -590,7 +603,7 @@ export function AdminOrderSupportScreen() {
     const { data } = await supabase
       .from('sales')
       .select('*, sale_items(*, sale_item_modifiers(*))')
-      .in('source', ['kiosk', 'online_delivery', 'online_takeaway'])
+      .in('source', ORDER_SUPPORT_SOURCES)
       .gte('created_at', `${dateRange.start}T00:00:00.000Z`)
       .lte('created_at', `${dateRange.end}T23:59:59.999Z`)
       .order('created_at', { ascending: false });
@@ -646,7 +659,13 @@ export function AdminOrderSupportScreen() {
         if (o.order_status !== statusFilter) return false;
       }
 
-      if (sourceFilter !== 'all' && o.source !== sourceFilter) return false;
+      if (sourceFilter !== 'all') {
+        if (sourceFilter === 'pos') {
+          if (!POS_SOURCES.includes(o.source as PosSource)) return false;
+        } else if (o.source !== sourceFilter) {
+          return false;
+        }
+      }
 
       if (search.trim()) {
         const q = search.trim().toLowerCase();
@@ -727,6 +746,7 @@ export function AdminOrderSupportScreen() {
         >
           <option value="all">{t.orderSupportSourceAll}</option>
           <option value="kiosk">{t.omSourceKiosk}</option>
+          <option value="pos">{t.omSourcePos}</option>
           <option value="online_delivery">{t.omSourceDelivery}</option>
           <option value="online_takeaway">{t.omSourceTakeaway}</option>
         </select>

@@ -334,6 +334,7 @@ export interface Translations {
 
   // Messages
   savedSuccessfully: string;
+  updatedSuccessfully: string;
   deletedSuccessfully: string;
   errorOccurred: string;
   amountMustBePositive: string;
@@ -1040,6 +1041,7 @@ export interface Translations {
   omSourceKiosk: string;
   omSourceTakeaway: string;
   omSourceDelivery: string;
+  omSourcePos: string;
   omTitle: string;
   posTitle: string;
   posTabActive: string;
@@ -1214,6 +1216,38 @@ export interface Translations {
   withdrawalEmpty: string;
   withdrawalMethod: string;
   withdrawalFee: string;
+  posPaymentMethod: string;
+  posPayCash: string;
+  posPayCard: string;
+  cashDrawerTab: string;
+  cashOnHand: string;
+  cashOnHandHint: string;
+  cashDrawerTitle: string;
+  cashDrawerSubtitle: string;
+  cashOpeningBalance: string;
+  cashClosingBalance: string;
+  cashInTotal: string;
+  cashOutTotal: string;
+  cashFromOrders: string;
+  cashFromWithdrawals: string;
+  cashAdjustmentsIn: string;
+  cashToExpenses: string;
+  cashToSuppliers: string;
+  cashToLiabilities: string;
+  cashBankDeposits: string;
+  cashMovementLog: string;
+  cashMovementEmpty: string;
+  cashAddMovement: string;
+  cashMovementCategory: string;
+  cashCategoryOpeningFloat: string;
+  cashCategoryBankDeposit: string;
+  cashCategoryAdjustment: string;
+  cashCategoryOther: string;
+  cashMovementDirection: string;
+  cashDirectionIn: string;
+  cashDirectionOut: string;
+  cashMovementAdded: string;
+  cashMovementDeleted: string;
   deliveryScreenTitle: string;
   orderLocations: string;
   orderLocationsTitle: string;
@@ -1645,6 +1679,7 @@ export const translations: Record<Language, Translations> = {
     quantity: 'Quantity',
 
     savedSuccessfully: 'Saved successfully!',
+    updatedSuccessfully: 'Updated successfully!',
     deletedSuccessfully: 'Deleted successfully!',
     errorOccurred: 'An error occurred',
     amountMustBePositive: 'Amount must be greater than zero',
@@ -2329,6 +2364,7 @@ export const translations: Record<Language, Translations> = {
     omSourceKiosk: 'Kiosk',
     omSourceTakeaway: 'Online · Takeaway',
     omSourceDelivery: 'Online · Delivery',
+    omSourcePos: 'POS',
     omTitle: 'Order Manager',
     posTitle: 'Point of Sale',
     posTabActive: 'Active',
@@ -2504,6 +2540,38 @@ export const translations: Record<Language, Translations> = {
     withdrawalEmpty: 'No withdrawals logged yet.',
     withdrawalMethod: 'Method',
     withdrawalFee: 'Fee',
+    posPaymentMethod: 'Payment method',
+    posPayCash: 'Cash',
+    posPayCard: 'Card',
+    cashDrawerTab: 'Cash drawer',
+    cashOnHand: 'Cash on hand',
+    cashOnHandHint: 'Physical cash you should have now',
+    cashDrawerTitle: 'Cash drawer',
+    cashDrawerSubtitle: 'Track physical cash to reconcile the drawer at month end.',
+    cashOpeningBalance: 'Opening balance',
+    cashClosingBalance: 'Closing balance',
+    cashInTotal: 'Cash in',
+    cashOutTotal: 'Cash out',
+    cashFromOrders: 'Cash orders collected',
+    cashFromWithdrawals: 'Bank withdrawals (net of fees)',
+    cashAdjustmentsIn: 'Float & adjustments in',
+    cashToExpenses: 'Cash expenses',
+    cashToSuppliers: 'Cash to suppliers',
+    cashToLiabilities: 'Cash to loans',
+    cashBankDeposits: 'Bank deposits & adjustments out',
+    cashMovementLog: 'Cash movements',
+    cashMovementEmpty: 'No manual cash movements yet.',
+    cashAddMovement: 'Add movement',
+    cashMovementCategory: 'Category',
+    cashCategoryOpeningFloat: 'Opening float',
+    cashCategoryBankDeposit: 'Bank deposit',
+    cashCategoryAdjustment: 'Adjustment',
+    cashCategoryOther: 'Other',
+    cashMovementDirection: 'Direction',
+    cashDirectionIn: 'Cash in',
+    cashDirectionOut: 'Cash out',
+    cashMovementAdded: 'Cash movement added',
+    cashMovementDeleted: 'Cash movement deleted',
     deliveryScreenTitle: 'Delivery',
     orderLocations: 'Order map',
     orderLocationsTitle: 'Delivery order map',
@@ -2936,6 +3004,7 @@ export const translations: Record<Language, Translations> = {
     quantity: 'Miqdar',
 
     savedSuccessfully: 'Uğurla yadda saxlanıldı!',
+    updatedSuccessfully: 'Uğurla yeniləndi!',
     deletedSuccessfully: 'Uğurla silindi!',
     errorOccurred: 'Xəta baş verdi',
     amountMustBePositive: 'Məbləğ sıfırdan böyük olmalıdır',
@@ -3622,6 +3691,7 @@ export const translations: Record<Language, Translations> = {
     omSourceKiosk: 'Kiosk',
     omSourceTakeaway: 'Onlayn · Əlavə',
     omSourceDelivery: 'Onlayn · Çatdırılma',
+    omSourcePos: 'POS',
     omTitle: 'Sifariş meneceri',
     posTitle: 'Satış nöqtəsi',
     posTabActive: 'Aktiv',
@@ -3797,6 +3867,38 @@ export const translations: Record<Language, Translations> = {
     withdrawalEmpty: 'Hələ çıxarış qeyd olunmayıb.',
     withdrawalMethod: 'Üsul',
     withdrawalFee: 'Haqq',
+    posPaymentMethod: 'Ödəniş üsulu',
+    posPayCash: 'Nağd',
+    posPayCard: 'Kart',
+    cashDrawerTab: 'Kassa',
+    cashOnHand: 'Kassada nağd',
+    cashOnHandHint: 'İndi əlinizdə olmalı olan nağd pul',
+    cashDrawerTitle: 'Kassa',
+    cashDrawerSubtitle: 'Ay sonunda kassanı tutuşdurmaq üçün nağd pulu izləyin.',
+    cashOpeningBalance: 'Açılış qalığı',
+    cashClosingBalance: 'Bağlanış qalığı',
+    cashInTotal: 'Nağd daxilolma',
+    cashOutTotal: 'Nağd çıxış',
+    cashFromOrders: 'Yığılan nağd sifarişlər',
+    cashFromWithdrawals: 'Bankdan çıxarış (xalis)',
+    cashAdjustmentsIn: 'İlkin nağd və düzəlişlər',
+    cashToExpenses: 'Nağd xərclər',
+    cashToSuppliers: 'Təchizatçılara nağd',
+    cashToLiabilities: 'Kreditlərə nağd',
+    cashBankDeposits: 'Banka köçürmə və çıxış düzəlişləri',
+    cashMovementLog: 'Nağd hərəkətləri',
+    cashMovementEmpty: 'Hələ əl ilə nağd hərəkəti yoxdur.',
+    cashAddMovement: 'Hərəkət əlavə et',
+    cashMovementCategory: 'Kateqoriya',
+    cashCategoryOpeningFloat: 'İlkin nağd',
+    cashCategoryBankDeposit: 'Banka köçürmə',
+    cashCategoryAdjustment: 'Düzəliş',
+    cashCategoryOther: 'Digər',
+    cashMovementDirection: 'İstiqamət',
+    cashDirectionIn: 'Nağd daxilolma',
+    cashDirectionOut: 'Nağd çıxış',
+    cashMovementAdded: 'Nağd hərəkəti əlavə edildi',
+    cashMovementDeleted: 'Nağd hərəkəti silindi',
     deliveryScreenTitle: 'Çatdırılma',
     orderLocations: 'Sifariş xəritəsi',
     orderLocationsTitle: 'Çatdırılma sifariş xəritəsi',
@@ -4230,6 +4332,7 @@ export const translations: Record<Language, Translations> = {
     quantity: 'Количество',
 
     savedSuccessfully: 'Успешно сохранено!',
+    updatedSuccessfully: 'Успешно обновлено!',
     deletedSuccessfully: 'Успешно удалено!',
     errorOccurred: 'Произошла ошибка',
     amountMustBePositive: 'Сумма должна быть больше нуля',
@@ -4916,6 +5019,7 @@ export const translations: Record<Language, Translations> = {
     omSourceKiosk: 'Киоск',
     omSourceTakeaway: 'Онлайн · Самовывоз',
     omSourceDelivery: 'Онлайн · Доставка',
+    omSourcePos: 'POS',
     omTitle: 'Менеджер заказов',
     posTitle: 'Касса',
     posTabActive: 'Активные',
@@ -5091,6 +5195,38 @@ export const translations: Record<Language, Translations> = {
     withdrawalEmpty: 'Снятий пока не записано.',
     withdrawalMethod: 'Способ',
     withdrawalFee: 'Комиссия',
+    posPaymentMethod: 'Способ оплаты',
+    posPayCash: 'Наличные',
+    posPayCard: 'Карта',
+    cashDrawerTab: 'Касса',
+    cashOnHand: 'Наличные в кассе',
+    cashOnHandHint: 'Сколько наличных должно быть сейчас',
+    cashDrawerTitle: 'Касса',
+    cashDrawerSubtitle: 'Учитывайте наличные, чтобы сверять кассу в конце месяца.',
+    cashOpeningBalance: 'Начальный остаток',
+    cashClosingBalance: 'Конечный остаток',
+    cashInTotal: 'Приход наличных',
+    cashOutTotal: 'Расход наличных',
+    cashFromOrders: 'Собранные наличные заказы',
+    cashFromWithdrawals: 'Снятия из банка (за вычетом комиссий)',
+    cashAdjustmentsIn: 'Начальная касса и корректировки',
+    cashToExpenses: 'Наличные расходы',
+    cashToSuppliers: 'Наличные поставщикам',
+    cashToLiabilities: 'Наличные по кредитам',
+    cashBankDeposits: 'Внесения в банк и корректировки',
+    cashMovementLog: 'Движения наличных',
+    cashMovementEmpty: 'Пока нет ручных движений наличных.',
+    cashAddMovement: 'Добавить движение',
+    cashMovementCategory: 'Категория',
+    cashCategoryOpeningFloat: 'Начальная касса',
+    cashCategoryBankDeposit: 'Внесение в банк',
+    cashCategoryAdjustment: 'Корректировка',
+    cashCategoryOther: 'Другое',
+    cashMovementDirection: 'Направление',
+    cashDirectionIn: 'Приход',
+    cashDirectionOut: 'Расход',
+    cashMovementAdded: 'Движение наличных добавлено',
+    cashMovementDeleted: 'Движение наличных удалено',
     deliveryScreenTitle: 'Доставка',
     orderLocations: 'Карта заказов',
     orderLocationsTitle: 'Карта заказов доставки',

@@ -28,6 +28,7 @@
     "test:e2e:expenses-crud": "node scripts/run-expenses-crud-e2e.mjs",
     "test:e2e:ui": "playwright test --ui",
     "qa": "node scripts/qa-orchestrator.mjs",
+    "qa:plan": "node scripts/qa-plan-coverage.mjs",
     "supabase:push": "node scripts/run-supabase-cli.mjs db push",
     "supabase:reset:business-data": "powershell -ExecutionPolicy Bypass -File scripts/run-supabase-reset-business-data.ps1",
     "supabase:deploy:order": "node scripts/run-supabase-cli.mjs functions deploy online-order-create --no-verify-jwt --use-api",
