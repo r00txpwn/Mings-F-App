@@ -212,6 +212,8 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 | ReportsScreen | Analytics filters, KPIs, activity |
 | MoneyScreen | Sales / expenses / purchases views |
 | PayoutsScreen | Third-party payouts vs expected revenue |
+| StaffScreen | Employee roster + dated salary payments (advance/partial/bonus) |
+| TaxesScreen | Sales + payroll tax liabilities, AZ rate settings, tax payment log |
 | MenuScreen | Kiosk menu categories & products, modifiers |
 | CombosScreen | Combo deals, group/item setup, upsell mapping |
 | KioskOrdersScreen | **Kanban** for kiosk + online (`source` in kiosk / online_delivery / online_takeaway); realtime + `delivery_orders` |
@@ -277,6 +279,8 @@ Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
 | master_categories | Category hierarchy |
 | operational_expenses / expense_items | Expense tracking |
 | platform_payouts | Payout reconciliation vs channels |
+| employees / salary_payments | Staff roster and salary payment ledger |
+| tax_settings / tax_payments | Configurable AZ tax rates and tax payment log |
 
 ### Other
 

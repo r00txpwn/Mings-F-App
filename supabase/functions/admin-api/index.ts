@@ -43,6 +43,10 @@ const TABLE_MIN_ROLE: Record<string, StaffRole[]> = {
   modifier_groups: ['admin', 'manager'],
   modifier_options: ['admin', 'manager'],
   transactions: ['admin', 'manager'],
+  employees: ['admin', 'manager'],
+  salary_payments: ['admin', 'manager'],
+  tax_settings: ['admin', 'manager'],
+  tax_payments: ['admin', 'manager'],
 };
 
 const ALLOWED_TABLES = new Set(Object.keys(TABLE_MIN_ROLE));

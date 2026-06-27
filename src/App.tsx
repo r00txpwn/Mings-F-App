@@ -13,6 +13,8 @@ import { ProductsScreen } from './screens/ProductsScreen';
 import { SuppliersScreen } from './screens/SuppliersScreen';
 import { UsersScreen } from './screens/UsersScreen';
 import { ExpensesScreen } from './screens/ExpensesScreen';
+import { StaffScreen } from './screens/StaffScreen';
+import { TaxesScreen } from './screens/TaxesScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { StaffAccessDeniedScreen } from './screens/StaffAccessDeniedScreen';
 import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
@@ -123,6 +125,10 @@ function AppContent() {
         return <ExpensesScreen />;
       case 'payouts':
         return <PayoutsScreen />;
+      case 'staff':
+        return <StaffScreen />;
+      case 'taxes':
+        return <TaxesScreen />;
       case 'users':
         return isAdminUser ? <UsersScreen /> : <HomeScreen />;
       case 'settings':

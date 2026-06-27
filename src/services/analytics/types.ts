@@ -5,6 +5,9 @@ export interface ComputeExecutiveKpisInput {
   cogs: number;
   opex: number;
   bankFees?: number;
+  salesTax?: number;
+  payroll?: number;
+  employerContributions?: number;
   orderCount: number;
 }
 

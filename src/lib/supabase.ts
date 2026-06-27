@@ -378,3 +378,78 @@ export interface PlatformPayout {
   updated_at: string;
   sales_channels?: SalesChannel;
 }
+
+export type SalaryPaymentType = 'salary' | 'advance' | 'bonus' | 'partial';
+
+export interface Employee {
+  id: string;
+  full_name: string;
+  designation: string;
+  total_salary: number;
+  official_salary: number;
+  is_active: boolean;
+  hired_at: string | null;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SalaryPayment {
+  id: string;
+  employee_id: string;
+  amount: number;
+  payment_date: string;
+  payment_type: SalaryPaymentType;
+  note: string;
+  created_by: string | null;
+  created_at: string;
+  employees?: Pick<Employee, 'full_name' | 'designation'>;
+}
+
+export type TaxPaymentType = 'sales' | 'payroll';
+
+export interface TaxSettings {
+  id: string;
+  sales_tax_cash_pct: number;
+  sales_tax_noncash_pct: number;
+  pit_exempt_amount: number;
+  pit_bracket1_max: number;
+  pit_bracket2_max: number;
+  pit_bracket1_pct: number;
+  pit_bracket2_pct: number;
+  pit_bracket3_pct: number;
+  pit_bracket2_fixed: number;
+  pit_bracket3_fixed: number;
+  dsmf_employee_low_pct: number;
+  dsmf_employee_high_pct: number;
+  dsmf_employee_low_cap: number;
+  dsmf_employer_low_pct: number;
+  dsmf_employer_high_pct: number;
+  dsmf_employer_low_cap: number;
+  dsmf_high_income_cap: number;
+  dsmf_employee_high_income_pct: number;
+  dsmf_employer_high_income_pct: number;
+  medical_low_cap: number;
+  medical_employee_low_pct: number;
+  medical_employer_low_pct: number;
+  medical_employee_high_pct: number;
+  medical_employer_high_pct: number;
+  unemployment_employee_pct: number;
+  unemployment_employer_pct: number;
+  updated_at: string;
+}
+
+export interface TaxPayment {
+  id: string;
+  tax_type: TaxPaymentType;
+  period_start: string;
+  period_end: string;
+  amount: number;
+  paid_date: string;
+  note: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export const TAX_SETTINGS_ID = '00000000-0000-4000-8000-000000000001';

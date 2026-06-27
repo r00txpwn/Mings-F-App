@@ -608,6 +608,99 @@ export interface Translations {
   difference: string;
   matched: string;
   mismatched: string;
+
+  // Staff / Salaries
+  staff: string;
+  staffScreenTitle: string;
+  staffScreenDescription: string;
+  staffAddEmployee: string;
+  staffEditEmployee: string;
+  staffRecordPayment: string;
+  staffEditPayment: string;
+  staffFullName: string;
+  staffDesignation: string;
+  staffTotalSalary: string;
+  staffOfficialSalary: string;
+  staffHiredAt: string;
+  staffActiveLabel: string;
+  staffActiveEmployees: string;
+  staffMonthlyPayrollTarget: string;
+  staffPaidInPeriod: string;
+  staffEmployee: string;
+  staffSelectEmployee: string;
+  staffPaymentType: string;
+  staffPaymentTypeSalary: string;
+  staffPaymentTypeAdvance: string;
+  staffPaymentTypeBonus: string;
+  staffPaymentTypePartial: string;
+  staffNameRequired: string;
+  staffInvalidSalary: string;
+  staffOfficialExceedsTotal: string;
+  staffInvalidPaymentAmount: string;
+  staffEmployeeAdded: string;
+  staffEmployeeUpdated: string;
+  staffEmployeeDeleted: string;
+  staffPaymentAdded: string;
+  staffPaymentUpdated: string;
+  staffPaymentDeleted: string;
+  staffDeleteEmployeeConfirm: string;
+  staffDeletePaymentConfirm: string;
+  staffNoEmployees: string;
+  staffNoPaymentsInPeriod: string;
+  staffInactive: string;
+  staffNoDesignation: string;
+  staffDoubleEntryWarning: string;
+  staffSalariesLabel: string;
+  staffSalariesHint: string;
+
+  // Taxes
+  taxes: string;
+  taxesScreenTitle: string;
+  taxesScreenDescription: string;
+  taxesAccountantNote: string;
+  taxesTabOverview: string;
+  taxesTabSettings: string;
+  taxesTabPayments: string;
+  taxesSalesTaxLabel: string;
+  taxesSalesTaxHint: string;
+  taxesPayrollTaxLabel: string;
+  taxesEmployerContributionsLabel: string;
+  taxesSalariesPaidLabel: string;
+  taxesBasedOnOfficialSalary: string;
+  taxesCashTurnover: string;
+  taxesNonCashTurnover: string;
+  taxesEmployeeBreakdownTitle: string;
+  taxesMonthlyEstimate: string;
+  taxesNoOfficialSalaries: string;
+  taxesIncomeTax: string;
+  taxesEmployeeWithheld: string;
+  taxesEmployerShare: string;
+  taxesTotalLiability: string;
+  taxesSettingsSaved: string;
+  taxesSalesTaxCashRate: string;
+  taxesSalesTaxNonCashRate: string;
+  taxesPitExemptAmount: string;
+  taxesPitBracket1Pct: string;
+  taxesPitBracket2Pct: string;
+  taxesPitBracket3Pct: string;
+  taxesRecordPayment: string;
+  taxesEditPayment: string;
+  taxesPaymentType: string;
+  taxesTypeSales: string;
+  taxesTypePayroll: string;
+  taxesPeriodStart: string;
+  taxesPeriodEnd: string;
+  taxesPaidDate: string;
+  taxesPeriod: string;
+  taxesInvalidAmount: string;
+  taxesInvalidPeriod: string;
+  taxesPaymentAdded: string;
+  taxesPaymentUpdated: string;
+  taxesPaymentDeleted: string;
+  taxesDeletePaymentConfirm: string;
+  taxesNoPayments: string;
+  kpiNetProfitHintExtended: string;
+
   weatherUnavailable: string;
   cached: string;
   clear: string;
@@ -1942,6 +2035,97 @@ export const translations: Record<Language, Translations> = {
     difference: 'Difference',
     matched: 'Matched',
     mismatched: 'Mismatched',
+
+    staff: 'Staff & Salaries',
+    staffScreenTitle: 'Staff & Salaries',
+    staffScreenDescription: 'Employee roster and dated salary payment ledger.',
+    staffAddEmployee: 'Add employee',
+    staffEditEmployee: 'Edit employee',
+    staffRecordPayment: 'Record payment',
+    staffEditPayment: 'Edit payment',
+    staffFullName: 'Full name',
+    staffDesignation: 'Designation',
+    staffTotalSalary: 'Total monthly salary',
+    staffOfficialSalary: 'Official declared salary',
+    staffHiredAt: 'Hired date',
+    staffActiveLabel: 'Active employee',
+    staffActiveEmployees: 'Active employees',
+    staffMonthlyPayrollTarget: 'Monthly payroll target',
+    staffPaidInPeriod: 'Paid in period',
+    staffEmployee: 'Employee',
+    staffSelectEmployee: 'Select employee',
+    staffPaymentType: 'Payment type',
+    staffPaymentTypeSalary: 'Salary',
+    staffPaymentTypeAdvance: 'Advance',
+    staffPaymentTypeBonus: 'Bonus',
+    staffPaymentTypePartial: 'Partial',
+    staffNameRequired: 'Employee name is required',
+    staffInvalidSalary: 'Enter valid salary amounts',
+    staffOfficialExceedsTotal: 'Official salary cannot exceed total salary',
+    staffInvalidPaymentAmount: 'Enter a valid payment amount',
+    staffEmployeeAdded: 'Employee added',
+    staffEmployeeUpdated: 'Employee updated',
+    staffEmployeeDeleted: 'Employee deleted',
+    staffPaymentAdded: 'Payment recorded',
+    staffPaymentUpdated: 'Payment updated',
+    staffPaymentDeleted: 'Payment deleted',
+    staffDeleteEmployeeConfirm: 'Delete this employee and all payment history?',
+    staffDeletePaymentConfirm: 'Delete this payment?',
+    staffNoEmployees: 'No employees yet. Add your first team member.',
+    staffNoPaymentsInPeriod: 'No payments in this period.',
+    staffInactive: 'Inactive',
+    staffNoDesignation: 'No designation',
+    staffDoubleEntryWarning: 'Record salaries here instead of the Expenses “Salaries” category to avoid double-counting in reports.',
+    staffSalariesLabel: 'Salaries paid',
+    staffSalariesHint: 'Employer contributions: ₼{employer}',
+
+    taxes: 'Taxes',
+    taxesScreenTitle: 'Taxes',
+    taxesScreenDescription: 'Sales tax and payroll tax liabilities for Azerbaijan.',
+    taxesAccountantNote: 'Rates follow Azerbaijan 2026 defaults and are configurable. Confirm your regime and brackets with your accountant before filing.',
+    taxesTabOverview: 'Overview',
+    taxesTabSettings: 'Rate settings',
+    taxesTabPayments: 'Tax payments',
+    taxesSalesTaxLabel: 'Sales tax',
+    taxesSalesTaxHint: 'Simplified turnover tax for the period',
+    taxesPayrollTaxLabel: 'Payroll tax liability',
+    taxesEmployerContributionsLabel: 'Employer contributions',
+    taxesSalariesPaidLabel: 'Salaries paid',
+    taxesBasedOnOfficialSalary: 'Based on official declared salaries',
+    taxesCashTurnover: 'Cash turnover',
+    taxesNonCashTurnover: 'Non-cash turnover',
+    taxesEmployeeBreakdownTitle: 'Monthly payroll tax by employee',
+    taxesMonthlyEstimate: 'Estimated monthly total liability: ₼{amount}',
+    taxesNoOfficialSalaries: 'No employees with an official declared salary.',
+    taxesIncomeTax: 'Income tax',
+    taxesEmployeeWithheld: 'Employee withheld',
+    taxesEmployerShare: 'Employer share',
+    taxesTotalLiability: 'Total liability',
+    taxesSettingsSaved: 'Tax settings saved',
+    taxesSalesTaxCashRate: 'Sales tax — cash (%)',
+    taxesSalesTaxNonCashRate: 'Sales tax — non-cash (%)',
+    taxesPitExemptAmount: 'PIT exempt amount (AZN)',
+    taxesPitBracket1Pct: 'PIT bracket 1 (%)',
+    taxesPitBracket2Pct: 'PIT bracket 2 (%)',
+    taxesPitBracket3Pct: 'PIT bracket 3 (%)',
+    taxesRecordPayment: 'Record tax payment',
+    taxesEditPayment: 'Edit tax payment',
+    taxesPaymentType: 'Tax type',
+    taxesTypeSales: 'Sales / turnover tax',
+    taxesTypePayroll: 'Payroll tax',
+    taxesPeriodStart: 'Period start',
+    taxesPeriodEnd: 'Period end',
+    taxesPaidDate: 'Paid date',
+    taxesPeriod: 'Period',
+    taxesInvalidAmount: 'Enter a valid tax amount',
+    taxesInvalidPeriod: 'Select a valid tax period',
+    taxesPaymentAdded: 'Tax payment recorded',
+    taxesPaymentUpdated: 'Tax payment updated',
+    taxesPaymentDeleted: 'Tax payment deleted',
+    taxesDeletePaymentConfirm: 'Delete this tax payment record?',
+    taxesNoPayments: 'No tax payments recorded yet.',
+    kpiNetProfitHintExtended: 'After fees ₼{fees}, sales tax ₼{tax}, salaries ₼{payroll}',
+
     weatherUnavailable: 'Weather unavailable',
     cached: 'cached',
     clear: 'Clear',
@@ -3267,6 +3451,97 @@ export const translations: Record<Language, Translations> = {
     difference: 'Fərq',
     matched: 'Uyğun',
     mismatched: 'Uyğunsuz',
+
+    staff: 'Kadr və maaşlar',
+    staffScreenTitle: 'Kadr və maaşlar',
+    staffScreenDescription: 'İşçi siyahısı və tarixli maaş ödənişləri.',
+    staffAddEmployee: 'İşçi əlavə et',
+    staffEditEmployee: 'İşçini redaktə et',
+    staffRecordPayment: 'Ödəniş qeyd et',
+    staffEditPayment: 'Ödənişi redaktə et',
+    staffFullName: 'Ad soyad',
+    staffDesignation: 'Vəzifə',
+    staffTotalSalary: 'Ümumi aylıq maaş',
+    staffOfficialSalary: 'Rəsmi bəyan edilən maaş',
+    staffHiredAt: 'İşə qəbul tarixi',
+    staffActiveLabel: 'Aktiv işçi',
+    staffActiveEmployees: 'Aktiv işçilər',
+    staffMonthlyPayrollTarget: 'Aylıq maaş hədəfi',
+    staffPaidInPeriod: 'Dövr üzrə ödənilib',
+    staffEmployee: 'İşçi',
+    staffSelectEmployee: 'İşçi seçin',
+    staffPaymentType: 'Ödəniş növü',
+    staffPaymentTypeSalary: 'Maaş',
+    staffPaymentTypeAdvance: 'Avans',
+    staffPaymentTypeBonus: 'Bonus',
+    staffPaymentTypePartial: 'Qismən',
+    staffNameRequired: 'İşçi adı tələb olunur',
+    staffInvalidSalary: 'Düzgün maaş məbləğləri daxil edin',
+    staffOfficialExceedsTotal: 'Rəsmi maaş ümumi maaşdan çox ola bilməz',
+    staffInvalidPaymentAmount: 'Düzgün ödəniş məbləği daxil edin',
+    staffEmployeeAdded: 'İşçi əlavə edildi',
+    staffEmployeeUpdated: 'İşçi yeniləndi',
+    staffEmployeeDeleted: 'İşçi silindi',
+    staffPaymentAdded: 'Ödəniş qeyd edildi',
+    staffPaymentUpdated: 'Ödəniş yeniləndi',
+    staffPaymentDeleted: 'Ödəniş silindi',
+    staffDeleteEmployeeConfirm: 'Bu işçi və bütün ödəniş tarixçəsi silinsin?',
+    staffDeletePaymentConfirm: 'Bu ödəniş silinsin?',
+    staffNoEmployees: 'Hələ işçi yoxdur. İlk komanda üzvünü əlavə edin.',
+    staffNoPaymentsInPeriod: 'Bu dövrdə ödəniş yoxdur.',
+    staffInactive: 'Qeyri-aktiv',
+    staffNoDesignation: 'Vəzifə yoxdur',
+    staffDoubleEntryWarning: 'Hesabatlarda təkrar sayılmasın deyə maaşları Xərclər “Maaşlar” kateqoriyası əvəzinə burada qeyd edin.',
+    staffSalariesLabel: 'Ödənilən maaşlar',
+    staffSalariesHint: 'İşəgötürən töhfələri: ₼{employer}',
+
+    taxes: 'Vergilər',
+    taxesScreenTitle: 'Vergilər',
+    taxesScreenDescription: 'Azərbaycan üçün satış və əmək haqqı vergi öhdəlikləri.',
+    taxesAccountantNote: 'Dərəcələr Azərbaycan 2026 standartlarına uyğundur və dəyişdirilə bilər. Bəyannamədən əvvəl rejiminizi mühasibinizlə təsdiqləyin.',
+    taxesTabOverview: 'İcmal',
+    taxesTabSettings: 'Dərəcə parametrləri',
+    taxesTabPayments: 'Vergi ödənişləri',
+    taxesSalesTaxLabel: 'Satış vergisi',
+    taxesSalesTaxHint: 'Dövr üzrə sadələşdirilmiş dövriyyə vergisi',
+    taxesPayrollTaxLabel: 'Əmək haqqı vergi öhdəliyi',
+    taxesEmployerContributionsLabel: 'İşəgötürən töhfələri',
+    taxesSalariesPaidLabel: 'Ödənilən maaşlar',
+    taxesBasedOnOfficialSalary: 'Rəsmi bəyan edilən maaşlar əsasında',
+    taxesCashTurnover: 'Nağd dövriyyə',
+    taxesNonCashTurnover: 'Nağdsız dövriyyə',
+    taxesEmployeeBreakdownTitle: 'İşçi üzrə aylıq əmək haqqı vergisi',
+    taxesMonthlyEstimate: 'Təxmini aylıq ümumi öhdəlik: ₼{amount}',
+    taxesNoOfficialSalaries: 'Rəsmi bəyan edilən maaşı olan işçi yoxdur.',
+    taxesIncomeTax: 'Gəlir vergisi',
+    taxesEmployeeWithheld: 'İşçidən tutulan',
+    taxesEmployerShare: 'İşəgötürən payı',
+    taxesTotalLiability: 'Ümumi öhdəlik',
+    taxesSettingsSaved: 'Vergi parametrləri yadda saxlanıldı',
+    taxesSalesTaxCashRate: 'Satış vergisi — nağd (%)',
+    taxesSalesTaxNonCashRate: 'Satış vergisi — nağdsız (%)',
+    taxesPitExemptAmount: 'G/V azad məbləği (AZN)',
+    taxesPitBracket1Pct: 'G/V pillə 1 (%)',
+    taxesPitBracket2Pct: 'G/V pillə 2 (%)',
+    taxesPitBracket3Pct: 'G/V pillə 3 (%)',
+    taxesRecordPayment: 'Vergi ödənişi qeyd et',
+    taxesEditPayment: 'Vergi ödənişini redaktə et',
+    taxesPaymentType: 'Vergi növü',
+    taxesTypeSales: 'Satış / dövriyyə vergisi',
+    taxesTypePayroll: 'Əmək haqqı vergisi',
+    taxesPeriodStart: 'Dövr başlanğıcı',
+    taxesPeriodEnd: 'Dövr sonu',
+    taxesPaidDate: 'Ödəniş tarixi',
+    taxesPeriod: 'Dövr',
+    taxesInvalidAmount: 'Düzgün vergi məbləği daxil edin',
+    taxesInvalidPeriod: 'Düzgün vergi dövrü seçin',
+    taxesPaymentAdded: 'Vergi ödənişi qeyd edildi',
+    taxesPaymentUpdated: 'Vergi ödənişi yeniləndi',
+    taxesPaymentDeleted: 'Vergi ödənişi silindi',
+    taxesDeletePaymentConfirm: 'Bu vergi ödənişi qeydi silinsin?',
+    taxesNoPayments: 'Hələ vergi ödənişi qeyd edilməyib.',
+    kpiNetProfitHintExtended: 'Haqlardan, satış vergisindən və maaşlardan sonra: ₼{fees} / ₼{tax} / ₼{payroll}',
+
     weatherUnavailable: 'Hava məlumatı mövcud deyil',
     cached: 'keş',
     clear: 'Açıq',
@@ -4595,6 +4870,97 @@ export const translations: Record<Language, Translations> = {
     difference: 'Разница',
     matched: 'Совпало',
     mismatched: 'Не совпало',
+
+    staff: 'Персонал и зарплаты',
+    staffScreenTitle: 'Персонал и зарплаты',
+    staffScreenDescription: 'Список сотрудников и журнал выплат с датами.',
+    staffAddEmployee: 'Добавить сотрудника',
+    staffEditEmployee: 'Редактировать сотрудника',
+    staffRecordPayment: 'Записать выплату',
+    staffEditPayment: 'Редактировать выплату',
+    staffFullName: 'ФИО',
+    staffDesignation: 'Должность',
+    staffTotalSalary: 'Полная месячная зарплата',
+    staffOfficialSalary: 'Официально заявленная зарплата',
+    staffHiredAt: 'Дата приёма',
+    staffActiveLabel: 'Активный сотрудник',
+    staffActiveEmployees: 'Активные сотрудники',
+    staffMonthlyPayrollTarget: 'Целевой месячный фонд',
+    staffPaidInPeriod: 'Выплачено за период',
+    staffEmployee: 'Сотрудник',
+    staffSelectEmployee: 'Выберите сотрудника',
+    staffPaymentType: 'Тип выплаты',
+    staffPaymentTypeSalary: 'Зарплата',
+    staffPaymentTypeAdvance: 'Аванс',
+    staffPaymentTypeBonus: 'Бонус',
+    staffPaymentTypePartial: 'Частичная',
+    staffNameRequired: 'Укажите имя сотрудника',
+    staffInvalidSalary: 'Введите корректные суммы зарплаты',
+    staffOfficialExceedsTotal: 'Официальная зарплата не может превышать полную',
+    staffInvalidPaymentAmount: 'Введите корректную сумму выплаты',
+    staffEmployeeAdded: 'Сотрудник добавлен',
+    staffEmployeeUpdated: 'Сотрудник обновлён',
+    staffEmployeeDeleted: 'Сотрудник удалён',
+    staffPaymentAdded: 'Выплата записана',
+    staffPaymentUpdated: 'Выплата обновлена',
+    staffPaymentDeleted: 'Выплата удалена',
+    staffDeleteEmployeeConfirm: 'Удалить сотрудника и всю историю выплат?',
+    staffDeletePaymentConfirm: 'Удалить эту выплату?',
+    staffNoEmployees: 'Сотрудников пока нет. Добавьте первого.',
+    staffNoPaymentsInPeriod: 'Нет выплат за этот период.',
+    staffInactive: 'Неактивен',
+    staffNoDesignation: 'Без должности',
+    staffDoubleEntryWarning: 'Записывайте зарплаты здесь, а не в категории «Зарплаты» в расходах, чтобы избежать двойного учёта.',
+    staffSalariesLabel: 'Выплаченные зарплаты',
+    staffSalariesHint: 'Взносы работодателя: ₼{employer}',
+
+    taxes: 'Налоги',
+    taxesScreenTitle: 'Налоги',
+    taxesScreenDescription: 'Налог на оборот и payroll-налоги для Азербайджана.',
+    taxesAccountantNote: 'Ставки по умолчанию соответствуют правилам AZ 2026 и настраиваются. Подтвердите режим и ставки с бухгалтером перед подачей.',
+    taxesTabOverview: 'Обзор',
+    taxesTabSettings: 'Настройки ставок',
+    taxesTabPayments: 'Налоговые платежи',
+    taxesSalesTaxLabel: 'Налог с оборота',
+    taxesSalesTaxHint: 'Упрощённый налог с оборота за период',
+    taxesPayrollTaxLabel: 'Payroll-обязательства',
+    taxesEmployerContributionsLabel: 'Взносы работодателя',
+    taxesSalariesPaidLabel: 'Выплаченные зарплаты',
+    taxesBasedOnOfficialSalary: 'На основе официально заявленных зарплат',
+    taxesCashTurnover: 'Наличный оборот',
+    taxesNonCashTurnover: 'Безналичный оборот',
+    taxesEmployeeBreakdownTitle: 'Месячный payroll-налог по сотрудникам',
+    taxesMonthlyEstimate: 'Оценка месячных обязательств: ₼{amount}',
+    taxesNoOfficialSalaries: 'Нет сотрудников с официально заявленной зарплатой.',
+    taxesIncomeTax: 'Подоходный налог',
+    taxesEmployeeWithheld: 'Удержано с сотрудника',
+    taxesEmployerShare: 'Доля работодателя',
+    taxesTotalLiability: 'Итого обязательство',
+    taxesSettingsSaved: 'Налоговые настройки сохранены',
+    taxesSalesTaxCashRate: 'Налог с оборота — наличные (%)',
+    taxesSalesTaxNonCashRate: 'Налог с оборота — безнал (%)',
+    taxesPitExemptAmount: 'Необлагаемая сумма ПН (AZN)',
+    taxesPitBracket1Pct: 'ПН ступень 1 (%)',
+    taxesPitBracket2Pct: 'ПН ступень 2 (%)',
+    taxesPitBracket3Pct: 'ПН ступень 3 (%)',
+    taxesRecordPayment: 'Записать налоговый платёж',
+    taxesEditPayment: 'Редактировать налоговый платёж',
+    taxesPaymentType: 'Тип налога',
+    taxesTypeSales: 'Налог с оборота',
+    taxesTypePayroll: 'Payroll-налог',
+    taxesPeriodStart: 'Начало периода',
+    taxesPeriodEnd: 'Конец периода',
+    taxesPaidDate: 'Дата оплаты',
+    taxesPeriod: 'Период',
+    taxesInvalidAmount: 'Введите корректную сумму налога',
+    taxesInvalidPeriod: 'Выберите корректный налоговый период',
+    taxesPaymentAdded: 'Налоговый платёж записан',
+    taxesPaymentUpdated: 'Налоговый платёж обновлён',
+    taxesPaymentDeleted: 'Налоговый платёж удалён',
+    taxesDeletePaymentConfirm: 'Удалить эту запись налогового платежа?',
+    taxesNoPayments: 'Налоговые платежи ещё не записаны.',
+    kpiNetProfitHintExtended: 'После комиссий ₼{fees}, налога ₼{tax}, зарплат ₼{payroll}',
+
     weatherUnavailable: 'Погода недоступна',
     cached: 'кэш',
     clear: 'Ясно',

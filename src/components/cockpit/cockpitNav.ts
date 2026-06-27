@@ -15,6 +15,8 @@ export type CockpitScreen =
   | 'suppliers'
   | 'expenses'
   | 'payouts'
+  | 'staff'
+  | 'taxes'
   | 'users'
   | 'settings';
 
@@ -38,6 +40,8 @@ export const ALL_COCKPIT_SCREENS: CockpitScreen[] = [
   'suppliers',
   'expenses',
   'payouts',
+  'staff',
+  'taxes',
   'users',
   'settings',
 ];
@@ -60,6 +64,8 @@ export interface CockpitNavItem {
     | 'suppliers'
     | 'expenses'
     | 'payouts'
+    | 'staff'
+    | 'taxes'
     | 'money'
     | 'payments'
     | 'cashDebt'
@@ -85,6 +91,8 @@ export const COCKPIT_NAV_ITEMS: CockpitNavItem[] = [
   { id: 'money', section: 'finance', labelKey: 'money' },
   { id: 'expenses', section: 'finance', labelKey: 'expenses' },
   { id: 'payouts', section: 'finance', labelKey: 'payouts' },
+  { id: 'staff', section: 'finance', labelKey: 'staff' },
+  { id: 'taxes', section: 'finance', labelKey: 'taxes' },
   { id: 'reports', section: 'finance', labelKey: 'reports' },
   { id: 'users', section: 'system', labelKey: 'users', adminOnly: true },
   { id: 'settings', section: 'system', labelKey: 'settings' },

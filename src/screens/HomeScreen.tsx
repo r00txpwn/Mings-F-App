@@ -186,6 +186,9 @@ export function HomeScreen() {
       cogs: summary.cogs,
       opex: summary.opex,
       bankFees: summary.bankFees ?? 0,
+      salesTax: summary.salesTax ?? 0,
+      payroll: summary.payroll ?? 0,
+      employerContributions: summary.employerContributions ?? 0,
       orderCount: summary.orderCount,
     });
   }, [currentSummary, trendData]);
@@ -199,6 +202,9 @@ export function HomeScreen() {
       cogs: previousSummary.cogs,
       opex: previousSummary.opex,
       bankFees: previousSummary.bankFees ?? 0,
+      salesTax: previousSummary.salesTax ?? 0,
+      payroll: previousSummary.payroll ?? 0,
+      employerContributions: previousSummary.employerContributions ?? 0,
       orderCount: previousSummary.orderCount,
     });
   }, [previousSummary]);
@@ -250,9 +256,26 @@ export function HomeScreen() {
         trendOverride: kpis.operatingProfit >= 0 ? 'up' : 'down',
       },
       {
+        label: t.taxesSalesTaxLabel,
+        value: `₼${kpis.salesTax.toFixed(2)}`,
+        subtitle: t.taxesSalesTaxHint,
+        delta: deltaFor(kpis.salesTax, prev?.salesTax),
+        trendOverride: 'neutral',
+      },
+      {
+        label: t.staffSalariesLabel,
+        value: `₼${kpis.payroll.toFixed(2)}`,
+        subtitle: t.staffSalariesHint.replace('{employer}', kpis.employerContributions.toFixed(2)),
+        delta: deltaFor(kpis.payroll, prev?.payroll),
+        trendOverride: 'neutral',
+      },
+      {
         label: t.netProfitLabel,
         value: `₼${kpis.netProfit.toFixed(2)}`,
-        subtitle: t.kpiNetProfitHint.replace('{fees}', kpis.bankFees.toFixed(2)),
+        subtitle: t.kpiNetProfitHintExtended
+          .replace('{fees}', kpis.bankFees.toFixed(2))
+          .replace('{tax}', kpis.salesTax.toFixed(2))
+          .replace('{payroll}', kpis.payroll.toFixed(2)),
         delta: deltaFor(kpis.netProfit, prev?.netProfit),
         trendOverride: kpis.netProfit >= 0 ? 'up' : 'down',
       },

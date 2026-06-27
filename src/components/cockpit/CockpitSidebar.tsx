@@ -22,6 +22,8 @@ import {
   Warehouse,
   CreditCard,
   Landmark,
+  Receipt,
+  UserRound,
   X,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -50,6 +52,8 @@ const NAV_ICONS: Record<CockpitScreen, ReactNode> = {
   suppliers: <Warehouse className="h-5 w-5 shrink-0" />,
   expenses: <DollarSign className="h-5 w-5 shrink-0" />,
   payouts: <Banknote className="h-5 w-5 shrink-0" />,
+  staff: <UserRound className="h-5 w-5 shrink-0" />,
+  taxes: <Receipt className="h-5 w-5 shrink-0" />,
   payments: <CreditCard className="h-5 w-5 shrink-0" />,
   liabilities: <Landmark className="h-5 w-5 shrink-0" />,
   money: <Wallet className="h-5 w-5 shrink-0" />,

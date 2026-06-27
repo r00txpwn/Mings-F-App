@@ -289,6 +289,8 @@ Ops-only Edge Function to **read** EPoint `/get-status` and align `online_paymen
 
 **Supplier ledger & cash/debt:** After migration `20260626150000_supplier_ledger_liabilities_bank_withdrawals.sql`, supplier opening balances and lump-sum payments live on **`?screen=suppliers`**; loans/other debt and bank withdrawal fees on **`?screen=liabilities`**. Redeploy **`admin-api`** so mutations on `supplier_account_payments`, `liabilities`, `liability_payments`, and `bank_withdrawals` are allowed.
 
+**Taxes & payroll:** After migration `20260627120000_taxes_and_payroll.sql`, staff roster and salary payments live on **`?screen=staff`**; sales/payroll tax liabilities and rate settings on **`?screen=taxes`**. Redeploy **`admin-api`** so mutations on `employees`, `salary_payments`, `tax_settings`, and `tax_payments` are allowed. See **[docs/TAXES_PAYROLL.md](docs/TAXES_PAYROLL.md)**.
+
 1. Set **`PAYMENT_RECONCILE_SECRET`** (strong random string) in Edge secrets.
 2. Deploy: `supabase functions deploy payment-reconcile` and `supabase functions deploy admin-payment-recheck` (see [`supabase/config.toml`](supabase/config.toml): `verify_jwt = false`; direct reconcile auth is **`Authorization: Bearer <PAYMENT_RECONCILE_SECRET>`**; cockpit bridge validates staff JWT inside the function).
 3. Body: **exactly one** of `{ "sale_id": "<uuid>" }` or `{ "online_payment_id": "<uuid>" }`. For `sale_id`, the function picks `sales.online_payment_id` when it matches the latest `online_payments` row for that sale; otherwise it always uses the **latest** `online_payments` row (`created_at` desc, `id` desc) so an older attempt is never reconciled when a newer one exists.

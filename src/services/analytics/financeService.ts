@@ -1,5 +1,6 @@
 import { applyAnalyticsSourceFilter } from '../../lib/analyticsSourceFilter';
 import { supabase } from '../../lib/supabase';
+import { computePeriodTaxSummary, DEFAULT_TAX_SETTINGS } from '../finance/taxFinanceService';
 import type {
   AnalyticsServiceResponse,
   ChannelPerformance,
@@ -502,13 +503,13 @@ export async function fetchPeriodSummary(
 ): Promise<AnalyticsServiceResponse<PeriodSummary>> {
   let salesQuery = supabase
     .from('sales')
-    .select('id, total_price, discount_amount')
+    .select('id, total_price, discount_amount, online_payment_method')
     .gte('sale_date', params.startDate)
     .lte('sale_date', `${params.endDate}T23:59:59`);
 
   salesQuery = applyAnalyticsSourceFilter(salesQuery, params.source);
 
-  const [salesRes, opexRes, purchasesRes, withdrawalsRes] = await Promise.all([
+  const [salesRes, opexRes, purchasesRes, withdrawalsRes, taxSettingsRes] = await Promise.all([
     salesQuery,
     supabase
       .from('operational_expenses')
@@ -525,6 +526,7 @@ export async function fetchPeriodSummary(
       .select('fee_amount')
       .gte('withdrawal_date', params.startDate)
       .lte('withdrawal_date', params.endDate),
+    supabase.from('tax_settings').select('*').maybeSingle(),
   ]);
 
   const firstError = salesRes.error ?? opexRes.error ?? purchasesRes.error;
@@ -561,6 +563,17 @@ export async function fetchPeriodSummary(
           0,
         );
 
+  const taxSettings = taxSettingsRes.data
+    ? (taxSettingsRes.data as typeof DEFAULT_TAX_SETTINGS)
+    : DEFAULT_TAX_SETTINGS;
+
+  const taxSummary = await computePeriodTaxSummary(
+    params.startDate,
+    params.endDate,
+    sales,
+    taxSettings,
+  );
+
   return {
     data: {
       grossSales,
@@ -571,6 +584,12 @@ export async function fetchPeriodSummary(
       cogs,
       opex,
       bankFees,
+      salesTax: taxSummary.salesTax,
+      payroll: taxSummary.payroll,
+      employerContributions: taxSummary.employerContributions,
+      payrollTaxLiability: taxSummary.payrollTaxLiability,
+      cashTurnover: taxSummary.cashTurnover,
+      nonCashTurnover: taxSummary.nonCashTurnover,
     },
     error: null,
   };

@@ -15,7 +15,9 @@ import {
   fetchChannelPerformance,
   fetchExpenseBreakdown,
   fetchPayoutReconciliation,
+  fetchPeriodSummary,
   fetchRevenueCostTrend,
+  computeExecutiveKpis,
   type AnalyticsSourceFilter,
 } from '../services/analytics';
 import { PageHeader } from '../components/cockpit';
@@ -74,6 +76,10 @@ export function ReportsScreen() {
     totalPurchases: 0,
     totalExpenses: 0,
     totalCommissions: 0,
+    salesTax: 0,
+    payroll: 0,
+    employerContributions: 0,
+    netProfit: 0,
   });
   const [channelStats, setChannelStats] = useState<Array<{ name: string; sales: number; orders: number; aov: number; share: number }>>([]);
   const [opexCategoryStats, setOpexCategoryStats] = useState<Array<{ name: string; total: number; count: number; percentage: number; color: string }>>([]);
@@ -106,6 +112,11 @@ export function ReportsScreen() {
       startDate,
       endDate,
     });
+    const summaryPromise = fetchPeriodSummary({
+      startDate,
+      endDate,
+      source: sourceFilter,
+    });
 
     let salesQuery = supabase
       .from('sales')
@@ -134,11 +145,12 @@ export function ReportsScreen() {
         .limit(50),
     ]);
 
-    const [trendRes, channelRes, expensesRes, payoutsRes, activityRes] = await Promise.all([
+    const [trendRes, channelRes, expensesRes, payoutsRes, summaryRes, activityRes] = await Promise.all([
       trendPromise,
       channelPromise,
       expensesPromise,
       payoutsPromise,
+      summaryPromise,
       activityPromise,
     ]);
 
@@ -147,6 +159,7 @@ export function ReportsScreen() {
       channelRes.error ||
       expensesRes.error ||
       payoutsRes.error ||
+      summaryRes.error ||
       activityRes[0].error?.message ||
       activityRes[1].error?.message ||
       activityRes[2].error?.message ||
@@ -160,6 +173,10 @@ export function ReportsScreen() {
         totalPurchases: 0,
         totalExpenses: 0,
         totalCommissions: 0,
+        salesTax: 0,
+        payroll: 0,
+        employerContributions: 0,
+        netProfit: 0,
       });
       setChannelStats([]);
       setOpexCategoryStats([]);
@@ -189,6 +206,21 @@ export function ReportsScreen() {
       .map(([name, commission]) => ({ name, commission }))
       .sort((a, b) => b.commission - a.commission);
     const totalCommissions = commissions.reduce((sum, item) => sum + item.commission, 0);
+    const summary = summaryRes.data;
+    const executiveKpis = summary
+      ? computeExecutiveKpis({
+          grossSales: summary.grossSales,
+          discounts: summary.discounts,
+          refunds: summary.refunds,
+          cogs: summary.cogs,
+          opex: summary.opex,
+          bankFees: summary.bankFees ?? 0,
+          salesTax: summary.salesTax ?? 0,
+          payroll: summary.payroll ?? 0,
+          employerContributions: summary.employerContributions ?? 0,
+          orderCount: summary.orderCount,
+        })
+      : null;
 
     setTotals({
       totalSales: revenue,
@@ -196,6 +228,12 @@ export function ReportsScreen() {
       totalPurchases: purchasesTotal,
       totalExpenses: operationalTotal,
       totalCommissions,
+      salesTax: summary?.salesTax ?? 0,
+      payroll: summary?.payroll ?? 0,
+      employerContributions: summary?.employerContributions ?? 0,
+      netProfit: executiveKpis
+        ? executiveKpis.netProfit - totalCommissions
+        : revenue - purchasesTotal - operationalTotal - totalCommissions,
     });
 
     const channelData = channelRes.data ?? [];
@@ -277,7 +315,7 @@ export function ReportsScreen() {
     loadReports();
   }, [loadReports]);
 
-  const netProfit = totals.totalSales - totals.totalPurchases - totals.totalExpenses - totals.totalCommissions;
+  const netProfit = totals.netProfit;
   const aov = totals.totalOrders > 0 ? totals.totalSales / totals.totalOrders : 0;
   const profitMargin = totals.totalSales > 0 ? (netProfit / totals.totalSales) * 100 : 0;
   const foodCostPercentage = totals.totalSales > 0 ? (totals.totalPurchases / totals.totalSales) * 100 : 0;
@@ -353,12 +391,18 @@ export function ReportsScreen() {
             </InsightPanel>
           ) : null}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8">
             <KpiCard label={t.totalSales} value={toCurrency(totals.totalSales)} />
             <KpiCard label={t.orders} value={totals.totalOrders} />
             <KpiCard label={t.cogs} value={toCurrency(totals.totalPurchases)} subtitle={`${foodCostPercentage.toFixed(1)}% ${t.ofSales}`} />
             <KpiCard label={t.operationalExpenses} value={toCurrency(totals.totalExpenses)} />
             <KpiCard label={t.platformCosts} value={toCurrency(totals.totalCommissions)} subtitle={`${commissionPercentage.toFixed(1)}% ${t.ofSales}`} />
+            <KpiCard label={t.taxesSalesTaxLabel} value={toCurrency(totals.salesTax)} />
+            <KpiCard
+              label={t.staffSalariesLabel}
+              value={toCurrency(totals.payroll)}
+              subtitle={t.staffSalariesHint.replace('{employer}', totals.employerContributions.toFixed(2))}
+            />
             <KpiCard
               label={t.netProfit}
               value={toCurrency(netProfit)}
