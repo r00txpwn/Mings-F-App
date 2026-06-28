@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { FilterBar, OrderLocationsMap, type DatePreset } from '../components/analytics';
 import { StatCard } from '../components/ui';
+import { Skeleton } from '../components/ui/Skeleton';
 import {
   fetchOrderDeliveryLocations,
   type OrderLocationPoint,
@@ -130,10 +130,8 @@ export function OrderLocationsScreen() {
 
       <div className="relative">
         {loading ? (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-slate-950/10 backdrop-blur-[1px] dark:bg-slate-950/30">
-            <Loader2 className="h-8 w-8 animate-spin text-cockpit-500" />
-          </div>
-        ) : null}
+          <Skeleton className="h-[28rem] w-full rounded-xl" aria-label={t.cockpitLoadingContent} />
+        ) : (
         <OrderLocationsMap
           apiKey={mapsApiKey}
           points={points}
@@ -144,6 +142,7 @@ export function OrderLocationsScreen() {
           orderLabel={t.orderLocationsOrderLabel}
           totalLabel={t.trackingTotal}
         />
+        )}
       </div>
 
       <div className="flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400">

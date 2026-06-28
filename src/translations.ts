@@ -16,6 +16,14 @@ export interface Translations {
   navCatalog: string;
   navFinance: string;
   navSystem: string;
+  cockpitLoadingContent: string;
+  cockpitResetFilters: string;
+  cockpitEmptyFilteredHint: string;
+  cockpitTestRecordLabel: string;
+  cockpitNeedsReview: string;
+  cockpitReviewHighCommission: string;
+  cockpitReviewUnusualAmount: string;
+  settingsAppearance: string;
   collapseSidebar: string;
   expandSidebar: string;
   system: string;
@@ -320,6 +328,9 @@ export interface Translations {
   adminAccessDeniedTitle: string;
   adminAccessDeniedBody: string;
   adminAccessGoToOrderManager: string;
+  adminAccessGoToPos: string;
+  adminAccessGoToKds: string;
+  adminAccessGoToKiosk: string;
   newUserRole: string;
   userRoleStaff: string;
   userRoleManager: string;
@@ -1466,6 +1477,14 @@ export const translations: Record<Language, Translations> = {
     navCatalog: 'Catalog',
     navFinance: 'Finance',
     navSystem: 'System',
+    cockpitLoadingContent: 'Loading…',
+    cockpitResetFilters: 'Reset filters',
+    cockpitEmptyFilteredHint: 'Try widening the date range or clearing filters.',
+    cockpitTestRecordLabel: 'Test record',
+    cockpitNeedsReview: 'Needs review',
+    cockpitReviewHighCommission: 'Commission rate looks unusually high — verify channel settings.',
+    cockpitReviewUnusualAmount: 'This amount is unusually large — confirm before trusting totals.',
+    settingsAppearance: 'Appearance',
     collapseSidebar: 'Collapse sidebar',
     expandSidebar: 'Expand sidebar',
     system: 'System',
@@ -1757,8 +1776,11 @@ export const translations: Record<Language, Translations> = {
     staffSignOut: 'Sign out',
     adminAccessDeniedTitle: 'Access Restricted',
     adminAccessDeniedBody:
-      'You do not have permission to access the admin panel. Please use the Order Manager instead.',
+      'The command center is for administrators. Your account works on the floor apps — open Point of Sale, the Kitchen Display, or the Kiosk below.',
     adminAccessGoToOrderManager: 'Go to Order Manager',
+    adminAccessGoToPos: 'Open Point of Sale',
+    adminAccessGoToKds: 'Open Kitchen Display',
+    adminAccessGoToKiosk: 'Open Kiosk',
     newUserRole: 'Role',
     userRoleStaff: 'Staff',
     userRoleManager: 'Manager',
@@ -2882,6 +2904,14 @@ export const translations: Record<Language, Translations> = {
     navCatalog: 'Kataloq',
     navFinance: 'Maliyyə',
     navSystem: 'Sistem',
+    cockpitLoadingContent: 'Yüklənir…',
+    cockpitResetFilters: 'Filtrləri sıfırla',
+    cockpitEmptyFilteredHint: 'Tarix aralığını genişləndirin və ya filtrləri təmizləyin.',
+    cockpitTestRecordLabel: 'Test qeydi',
+    cockpitNeedsReview: 'Yoxlama lazımdır',
+    cockpitReviewHighCommission: 'Komissiya faizi qeyri-adi yüksəkdir — kanal parametrlərini yoxlayın.',
+    cockpitReviewUnusualAmount: 'Bu məbləğ qeyri-adi böyükdür — cəmlərə etibar etməzdən əvvəl təsdiqləyin.',
+    settingsAppearance: 'Görünüş',
     collapseSidebar: 'Yan paneli yığ',
     expandSidebar: 'Yan paneli aç',
     system: 'Sistem',
@@ -3173,8 +3203,11 @@ export const translations: Record<Language, Translations> = {
     staffSignOut: 'Çıxış',
     adminAccessDeniedTitle: 'Giriş məhduddur',
     adminAccessDeniedBody:
-      'Admin panelinə giriş icazəniz yoxdur. Zəhmət olmasa Sifariş Menecerindən istifadə edin.',
+      'İdarəetmə mərkəzi administratorlar üçündür. Hesabınız zal tətbiqləri ilə işləyir — aşağıdan Satış nöqtəsini, Mətbəx ekranını və ya Kiosku açın.',
     adminAccessGoToOrderManager: 'Sifariş menecerinə keç',
+    adminAccessGoToPos: 'Satış nöqtəsini aç',
+    adminAccessGoToKds: 'Mətbəx ekranını aç',
+    adminAccessGoToKiosk: 'Kiosku aç',
     newUserRole: 'Rol',
     userRoleStaff: 'Personal',
     userRoleManager: 'Menecer',
@@ -4301,6 +4334,14 @@ export const translations: Record<Language, Translations> = {
     navCatalog: 'Каталог',
     navFinance: 'Финансы',
     navSystem: 'Система',
+    cockpitLoadingContent: 'Загрузка…',
+    cockpitResetFilters: 'Сбросить фильтры',
+    cockpitEmptyFilteredHint: 'Расширьте диапазон дат или сбросьте фильтры.',
+    cockpitTestRecordLabel: 'Тестовая запись',
+    cockpitNeedsReview: 'Требует проверки',
+    cockpitReviewHighCommission: 'Комиссия необычно высокая — проверьте настройки канала.',
+    cockpitReviewUnusualAmount: 'Сумма необычно большая — подтвердите перед использованием в отчётах.',
+    settingsAppearance: 'Оформление',
     collapseSidebar: 'Свернуть панель',
     expandSidebar: 'Развернуть панель',
     system: 'Система',
@@ -4592,8 +4633,11 @@ export const translations: Record<Language, Translations> = {
     staffSignOut: 'Выйти',
     adminAccessDeniedTitle: 'Доступ ограничен',
     adminAccessDeniedBody:
-      'У вас нет доступа к панели администратора. Пожалуйста, используйте Менеджер заказов.',
+      'Командный центр предназначен для администраторов. Ваш аккаунт работает с приложениями зала — откройте Кассу, Кухонный экран или Киоск ниже.',
     adminAccessGoToOrderManager: 'Перейти в Менеджер заказов',
+    adminAccessGoToPos: 'Открыть Кассу',
+    adminAccessGoToKds: 'Открыть Кухонный экран',
+    adminAccessGoToKiosk: 'Открыть Киоск',
     newUserRole: 'Роль',
     userRoleStaff: 'Сотрудник',
     userRoleManager: 'Менеджер',

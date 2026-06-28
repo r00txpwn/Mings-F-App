@@ -144,6 +144,63 @@
   border-radius: 32px;
 }
 
+/* ============================================================
+   Cockpit (staff admin) custom scrollbar — theme-aware.
+   Replaces the default OS/browser "stock" scrollbar everywhere
+   inside .cockpit-app so scroll areas match the amber/slate theme.
+   ============================================================ */
+.cockpit-app,
+.cockpit-app * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+}
+
+.cockpit-app::-webkit-scrollbar,
+.cockpit-app *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.cockpit-app::-webkit-scrollbar-track,
+.cockpit-app *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cockpit-app::-webkit-scrollbar-thumb,
+.cockpit-app *::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.5);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
+}
+
+.cockpit-app::-webkit-scrollbar-thumb:hover,
+.cockpit-app *::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(245, 158, 11, 0.8);
+}
+
+.cockpit-app::-webkit-scrollbar-corner,
+.cockpit-app *::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Dark cockpit — lighter idle thumb, amber on hover */
+.dark .cockpit-app,
+.dark .cockpit-app * {
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.dark .cockpit-app::-webkit-scrollbar-thumb,
+.dark .cockpit-app *::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.dark .cockpit-app::-webkit-scrollbar-thumb:hover,
+.dark .cockpit-app *::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(251, 191, 36, 0.85);
+}
+
 .font-montserrat {
   font-family: 'Montserrat', system-ui, sans-serif;
 }
@@ -194,12 +251,12 @@
     background-color: #020617;
     background-image: radial-gradient(
         ellipse 120% 80% at 50% -30%,
-        rgba(251, 191, 36, 0.12),
+        rgba(251, 191, 36, 0.06),
         transparent 50%
       ),
-      linear-gradient(to right, rgba(51, 65, 85, 0.35) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(51, 65, 85, 0.35) 1px, transparent 1px);
-    background-size: 100% 100%, 24px 24px, 24px 24px;
+      linear-gradient(to right, rgba(51, 65, 85, 0.18) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(51, 65, 85, 0.18) 1px, transparent 1px);
+    background-size: 100% 100%, 32px 32px, 32px 32px;
     background-position: center top, 0 0, 0 0;
   }
 
@@ -207,7 +264,7 @@
     background-color: #f8fafc;
     background-image: radial-gradient(
       ellipse 80% 60% at 50% -20%,
-      rgba(251, 191, 36, 0.1),
+      rgba(251, 191, 36, 0.05),
       transparent 55%
     );
   }
@@ -240,11 +297,11 @@
 /* Shared “bold data cockpit” surfaces — use with dark: variants via parent .dark */
 @layer components {
   .cockpit-panel {
-    @apply rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900;
+    @apply rounded-xl border border-slate-200/90 bg-white shadow-none dark:border-slate-700/80 dark:bg-slate-900;
   }
 
   .cockpit-panel-solid {
-    @apply rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900;
+    @apply rounded-xl border border-slate-200/90 bg-white shadow-none dark:border-slate-700/80 dark:bg-slate-900;
   }
 
   .cockpit-inset {
@@ -295,7 +352,7 @@
     @apply min-h-screen bg-slate-950 text-slate-100;
     background-image: radial-gradient(
       ellipse 80% 50% at 50% -20%,
-      rgba(251, 191, 36, 0.08),
+      rgba(251, 191, 36, 0.04),
       transparent 55%
     );
   }

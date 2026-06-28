@@ -6,6 +6,7 @@ import { supabase, type BankWithdrawal, type CashMovement, type Liability } from
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 import { SingleDatePicker } from '../components/SingleDatePicker';
+import { displayName, isTestRecord } from '../lib/displayName';
 import { computeWithdrawalFee, type WithdrawalMethod } from '../services/finance/withdrawalFees';
 import { fetchLiabilitiesSummary } from '../services/finance/supplierFinanceService';
 import { fetchCashDrawer } from '../services/finance/cashDrawerService';
@@ -396,14 +397,14 @@ export function CashDebtScreen() {
             </div>
           ) : null}
 
-          {liabilities.length === 0 ? (
+          {liabilities.filter((row) => !isTestRecord(row.counterparty)).length === 0 ? (
             <p className="text-sm text-slate-500">{t.liabilityEmpty}</p>
           ) : (
             <div className="space-y-2">
-              {liabilities.map((row) => (
+              {liabilities.filter((row) => !isTestRecord(row.counterparty)).map((row) => (
                 <div key={row.id} className="cockpit-panel flex flex-wrap items-center justify-between gap-3 p-4">
                   <div>
-                    <p className="font-semibold text-white">{row.counterparty}</p>
+                    <p className="font-semibold text-white">{displayName(row.counterparty, t.cockpitTestRecordLabel)}</p>
                     <p className="text-xs text-slate-500">
                       {row.type === 'loan' ? t.liabilityTypeLoan : t.liabilityTypeOther} · {row.incurred_date}
                     </p>

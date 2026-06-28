@@ -23,6 +23,8 @@ import { buildMarkPaidPatch } from '../lib/cashPayment';
 import type { SaleItem } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
 import { DateRangePicker } from '../components/DateRangePicker';
+import { EmptyState } from '../components/ui/EmptyState';
+import { SkeletonTable } from '../components/ui/Skeleton';
 import { getOrderAppUrl } from '../lib/surfaceRouting';
 import { OrderItemSummary } from '../order-manager/OrderItemSummary';
 import { isCardOnlinePaymentMethod } from '../lib/onlinePaymentMethod';
@@ -776,14 +778,13 @@ export function AdminOrderSupportScreen() {
       </p>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <RefreshCw className="h-6 w-6 animate-spin text-cockpit-400" />
-        </div>
+        <SkeletonTable rows={6} />
       ) : filteredOrders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/5 py-16 text-center">
-          <Package className="mb-3 h-10 w-10 text-slate-600" />
-          <p className="text-sm text-slate-500">{t.orderSupportNoOrders}</p>
-        </div>
+        <EmptyState
+          icon={Package}
+          title={t.orderSupportNoOrders}
+          description={t.cockpitEmptyFilteredHint}
+        />
       ) : (
         <div className="overflow-hidden rounded-xl border border-white/10">
           <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto_auto_auto] gap-3 border-b border-white/10 bg-white/5 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">

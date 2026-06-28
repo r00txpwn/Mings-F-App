@@ -251,7 +251,7 @@ export function SettingsScreen() {
           <div className="border-t border-slate-200 pt-5 dark:border-slate-700">
             <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-slate-100">
               {theme === 'dark' ? <Moon className="h-5 w-5 text-slate-400" /> : <Sun className="h-5 w-5 text-amber-500" />}
-              {t.theme}
+              {t.settingsAppearance}
             </h3>
             <button
               type="button"

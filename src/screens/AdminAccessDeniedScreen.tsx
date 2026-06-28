@@ -1,4 +1,4 @@
-import { LogOut, ShieldX } from 'lucide-react';
+import { ChefHat, LogOut, Monitor, ShieldX, ShoppingCart } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -18,10 +18,25 @@ export function AdminAccessDeniedScreen() {
         <p className="mt-4 text-sm leading-relaxed text-slate-400">{t.adminAccessDeniedBody}</p>
         <div className="mt-8 flex flex-col gap-3">
           <a
-            href="/order-manager"
+            href="/pos"
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cockpit-600 py-3 text-sm font-semibold text-white transition hover:bg-cockpit-500"
           >
-            {t.adminAccessGoToOrderManager}
+            <ShoppingCart className="h-4 w-4" />
+            {t.adminAccessGoToPos}
+          </a>
+          <a
+            href="/kds"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            <ChefHat className="h-4 w-4" />
+            {t.adminAccessGoToKds}
+          </a>
+          <a
+            href="/kiosk"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            <Monitor className="h-4 w-4" />
+            {t.adminAccessGoToKiosk}
           </a>
           <button
             type="button"

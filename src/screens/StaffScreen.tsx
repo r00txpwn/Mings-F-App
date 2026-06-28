@@ -20,6 +20,10 @@ import { DateRangePicker } from '../components/DateRangePicker';
 import { SingleDatePicker } from '../components/SingleDatePicker';
 import { IconActionButton } from '../components/ui/IconActionButton';
 import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ReviewBadge } from '../components/ui/ReviewBadge';
+import { SkeletonCard } from '../components/ui/Skeleton';
+import { displayName, isTestRecord } from '../lib/displayName';
 
 type PaymentWithEmployee = SalaryPayment & {
   employees?: { full_name: string; designation: string } | null;
@@ -40,6 +44,8 @@ const getCurrentMonthRange = () => {
 };
 
 const PAYMENT_TYPES: SalaryPaymentType[] = ['salary', 'advance', 'bonus', 'partial'];
+
+const UNUSUAL_AMOUNT_THRESHOLD = 10000;
 
 export function StaffScreen() {
   const { t } = useLanguage();
@@ -443,20 +449,19 @@ export function StaffScreen() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-cockpit-500" />
+        <div className="space-y-3">
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={3} />
         </div>
-      ) : employees.length === 0 ? (
-        <div className="cockpit-card flex flex-col items-center justify-center py-16 text-center">
-          <Users className="mb-3 h-10 w-10 text-slate-400" />
-          <p className="text-slate-600 dark:text-slate-300">{t.staffNoEmployees}</p>
-        </div>
+      ) : employees.filter((e) => !isTestRecord(e.full_name)).length === 0 ? (
+        <EmptyState icon={Users} title={t.staffNoEmployees} />
       ) : (
         <div className="space-y-3">
-          {employees.map((employee) => {
+          {employees.filter((e) => !isTestRecord(e.full_name)).map((employee) => {
             const employeePayments = paymentsByEmployee.get(employee.id) ?? [];
             const paidInPeriod = employeePayments.reduce((sum, p) => sum + Number(p.amount), 0);
             const expanded = expandedEmployeeId === employee.id;
+            const unusualSalary = Number(employee.total_salary) >= UNUSUAL_AMOUNT_THRESHOLD;
 
             return (
               <div key={employee.id} className="cockpit-card overflow-hidden">
@@ -470,7 +475,10 @@ export function StaffScreen() {
                   </button>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold">{employee.full_name}</p>
+                      <p className="font-semibold">{displayName(employee.full_name, t.cockpitTestRecordLabel)}</p>
+                      {unusualSalary ? (
+                        <ReviewBadge label={t.cockpitNeedsReview} reason={t.cockpitReviewUnusualAmount} />
+                      ) : null}
                       {!employee.is_active && (
                         <span className="rounded bg-slate-200 px-2 py-0.5 text-xs dark:bg-slate-700">
                           {t.staffInactive}
@@ -518,11 +526,20 @@ export function StaffScreen() {
                           </tr>
                         </thead>
                         <tbody>
-                          {employeePayments.map((payment) => (
+                          {employeePayments.map((payment) => {
+                            const unusualPayment = Number(payment.amount) >= UNUSUAL_AMOUNT_THRESHOLD;
+                            return (
                             <tr key={payment.id} className="border-b border-slate-100 dark:border-slate-800">
                               <td className="px-4 py-2">{payment.payment_date}</td>
                               <td className="px-4 py-2">{paymentTypeLabel(payment.payment_type)}</td>
-                              <td className="px-4 py-2 font-medium">₼{Number(payment.amount).toFixed(2)}</td>
+                              <td className="px-4 py-2 font-medium">
+                                <span className="inline-flex items-center gap-2">
+                                  ₼{Number(payment.amount).toFixed(2)}
+                                  {unusualPayment ? (
+                                    <ReviewBadge label={t.cockpitNeedsReview} reason={t.cockpitReviewUnusualAmount} />
+                                  ) : null}
+                                </span>
+                              </td>
                               <td className="px-4 py-2 text-slate-500">{payment.note || '—'}</td>
                               <td className="px-4 py-2">
                                 <div className="flex gap-1">
@@ -541,7 +558,8 @@ export function StaffScreen() {
                                 )}
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     )}

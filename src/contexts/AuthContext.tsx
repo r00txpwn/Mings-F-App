@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
+import { parseStaffRole, type StaffRole } from '../lib/staffRole';
 
 interface AuthContextType {
   user: User | null;
@@ -14,6 +15,8 @@ interface AuthContextType {
    * JWT `app_metadata.role === 'admin'`, else `public.users.role === 'admin'`).
    */
   isAdminUser: boolean;
+  /** Parsed `public.users.role` for the current staff user; `null` when not staff. */
+  staffRole: StaffRole | null;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   /** SMS OTP via Supabase Auth (Twilio configured in project dashboard). */
@@ -64,6 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [staffDbRole, setStaffDbRole] = useState<string | null>(null);
 
   const isAdminUser = useMemo(() => isAdminForUserManagement(user, staffDbRole), [user, staffDbRole]);
+  const staffRole = useMemo<StaffRole | null>(
+    () => (staffDbRole ? parseStaffRole(staffDbRole) : null),
+    [staffDbRole]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -208,6 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         isStaff,
         isAdminUser,
+        staffRole,
         signIn,
         signUp,
         sendPhoneOtp,

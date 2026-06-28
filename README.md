@@ -10,6 +10,42 @@ npm run deploy:local
 
 Serves **`dist-staff/`** on **http://127.0.0.1:4175/** — cockpit at **`/spec-ops`**. Stops any process already on port **4175** first (`--strictPort`; no fallback port).
 
+**Staff bundle on the LAN (access from other devices):**
+
+```bash
+npm run deploy:local:lan
+```
+
+Same single-port (**4175**), single-instance build, but binds to **`0.0.0.0`** so other devices on the same network can open it. The command prints both a **hostname URL** and the detected **IP URL**:
+
+- **Stable (recommended):** `http://<PC-NAME>:4175/` — survives router/DHCP IP changes, so it stays the same over time.
+- **By IP:** `http://<your-lan-ip>:4175/` — works but the IP can change when the DHCP lease renews.
+
+For a permanently fixed IP, set a **DHCP reservation** on your router for this PC. If a device cannot connect, allow inbound TCP **4175** in Windows Firewall (one-time):
+
+```powershell
+New-NetFirewallRule -DisplayName "Mings local preview 4175" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 4175
+```
+
+> LAN access is more reliable than a public tunnel (no third-party server to drop the connection), but both devices must be on the **same network**.
+
+**Remote access from any network (public tunnel via ngrok):**
+
+```bash
+npm run tunnel:ngrok
+```
+
+Exposes the local preview at a **fixed** public URL that never changes:
+
+- **Cockpit:** `https://putt-context-lazily.ngrok-free.dev/spec-ops?screen=home`
+
+Keep both the app (`npm run deploy:local:lan` or `deploy:local`) **and** the tunnel running. Notes:
+
+- One-time setup: install ngrok, then `ngrok config add-authtoken <token>` (token is **not** stored in the repo). Domain is set in [`scripts/tunnel-ngrok.mjs`](scripts/tunnel-ngrok.mjs) via `NGROK_DOMAIN` (default `putt-context-lazily.ngrok-free.dev`).
+- Only run **one** tunnel at a time — ngrok rejects a second connection to the same domain (`ERR_NGROK_334`), which also confirms a tunnel is already live.
+- First visit may show a one-click ngrok **“Visit Site”** page (normal; no password).
+- This replaces the old localtunnel flow (`npm run tunnel`), which cycled random URLs and is no longer the preferred path.
+
 **Dev (hot reload):**
 
 ```bash

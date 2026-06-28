@@ -18,8 +18,11 @@ interface MutateBody {
   id?: string;
 }
 
+// Cockpit is administration-only: `staff`-role users are blocked from the
+// cockpit UI and from admin CRUD here. `sales` is the deliberate exception —
+// Order Manager (a floor surface) updates order status as `staff`.
 const TABLE_MIN_ROLE: Record<string, StaffRole[]> = {
-  products: ['admin', 'manager', 'staff'],
+  products: ['admin', 'manager'],
   purchases: ['admin', 'manager'],
   operational_expenses: ['admin', 'manager'],
   master_categories: ['admin', 'manager'],
@@ -31,14 +34,14 @@ const TABLE_MIN_ROLE: Record<string, StaffRole[]> = {
   liability_payments: ['admin', 'manager'],
   bank_withdrawals: ['admin', 'manager'],
   cash_movements: ['admin', 'manager'],
-  sales_channels: ['admin', 'manager', 'staff'],
+  sales_channels: ['admin', 'manager'],
   platform_payouts: ['admin', 'manager'],
   delivery_zones: ['admin', 'manager'],
   online_settings: ['admin', 'manager'],
   sales: ['admin', 'manager', 'staff'],
-  combo_deals: ['admin', 'manager', 'staff'],
-  combo_groups: ['admin', 'manager', 'staff'],
-  combo_group_items: ['admin', 'manager', 'staff'],
+  combo_deals: ['admin', 'manager'],
+  combo_groups: ['admin', 'manager'],
+  combo_group_items: ['admin', 'manager'],
   product_modifier_groups: ['admin', 'manager'],
   modifier_groups: ['admin', 'manager'],
   modifier_options: ['admin', 'manager'],

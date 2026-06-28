@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Pencil, ChevronDown, ChevronUp, Loader2, GripVertical, Check, Package } from 'lucide-react';
+import { Plus, Trash2, Pencil, ChevronDown, ChevronUp, Loader2, GripVertical, Check, Package } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, ModifierGroup, ModifierOption } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { ConfirmDialog } from './ui/ConfirmDialog';
+import { Modal } from './ui/Modal';
+import { SkeletonTable } from './ui/Skeleton';
 
 interface ModifierLibraryProps {
   onClose: () => void;
@@ -182,28 +184,17 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div
-        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t.modifierLibrary}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              {groups.length} {t.modifierGroups.toLowerCase()}
-            </p>
-          </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6">
+    <>
+    <Modal
+      open
+      onClose={onClose}
+      titleId="modifier-library-title"
+      title={t.modifierLibrary}
+      subtitle={`${groups.length} ${t.modifierGroups.toLowerCase()}`}
+      widthClassName="max-w-2xl"
+    >
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-            </div>
+            <SkeletonTable rows={4} />
           ) : (
             <div className="space-y-4">
               {groups
@@ -425,9 +416,8 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
               )}
             </div>
           )}
-        </div>
 
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="mt-4 border-t border-slate-200 pt-4 dark:border-white/10">
           {showGroupForm ? (
             <div className="space-y-3">
               <input
@@ -497,7 +487,7 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
             </button>
           )}
         </div>
-      </div>
+    </Modal>
       <ConfirmDialog
         open={confirmDeleteGroupId !== null}
         title={t.delete}
@@ -511,6 +501,6 @@ export function ModifierLibrary({ onClose }: ModifierLibraryProps) {
           setConfirmDeleteGroupId(null);
         }}
       />
-    </div>
+    </>
   );
 }

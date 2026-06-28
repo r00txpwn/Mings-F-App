@@ -13,6 +13,8 @@ import { supabase, type OnlinePayment, type Sale } from '../lib/supabase';
 import { recheckPayment } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 import { DateRangePicker } from '../components/DateRangePicker';
+import { EmptyState } from '../components/ui/EmptyState';
+import { SkeletonTable } from '../components/ui/Skeleton';
 
 type PaymentStatusFilter = 'all' | 'pending' | 'success' | 'failed';
 type ProviderFilter = 'all' | 'epoint' | 'united_payment';
@@ -377,6 +379,15 @@ export function PaymentsScreen() {
     });
   }, [rows, statusFilter, providerFilter, search]);
 
+  const hasActiveFilters =
+    statusFilter !== 'all' || providerFilter !== 'all' || search.trim().length > 0;
+
+  const resetFilters = () => {
+    setStatusFilter('all');
+    setProviderFilter('all');
+    setSearch('');
+  };
+
   const statusFilterLabel = (f: PaymentStatusFilter): string => {
     switch (f) {
       case 'all':
@@ -453,6 +464,12 @@ export function PaymentsScreen() {
           startLabel={t.startDate}
           endLabel={t.endDate}
         />
+
+        {hasActiveFilters ? (
+          <button type="button" onClick={resetFilters} className="cockpit-btn-ghost text-xs">
+            {t.cockpitResetFilters}
+          </button>
+        ) : null}
       </div>
 
       <p className="text-sm text-slate-500">
@@ -460,14 +477,13 @@ export function PaymentsScreen() {
       </p>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <RefreshCw className="h-6 w-6 animate-spin text-cockpit-400" />
-        </div>
+        <SkeletonTable rows={6} />
       ) : filteredRows.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/5 py-16 text-center">
-          <CreditCard className="mb-3 h-10 w-10 text-slate-600" />
-          <p className="text-sm text-slate-500">{t.paymentsNoRows}</p>
-        </div>
+        <EmptyState
+          icon={CreditCard}
+          title={t.paymentsNoRows}
+          description={t.cockpitEmptyFilteredHint}
+        />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-white/10">
           <div className="grid min-w-[900px] grid-cols-[auto_1fr_1fr_auto_auto_auto_auto_auto_auto] gap-3 border-b border-white/10 bg-white/5 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">

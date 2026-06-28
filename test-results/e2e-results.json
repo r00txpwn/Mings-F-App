@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "C:\\mings-os\\playwright.config.ts",
-    "rootDir": "C:/mings-os/tests/e2e",
+    "configFile": "C:\\Users\\vinit\\Mings\\Mings-f-app\\playwright.config.ts",
+    "rootDir": "C:/Users/vinit/Mings/Mings-f-app/tests/e2e",
     "forbidOnly": false,
     "fullyParallel": false,
     "globalSetup": null,
@@ -16,7 +16,7 @@
     "preserveOutput": "always",
     "projects": [
       {
-        "outputDir": "C:/mings-os/test-results",
+        "outputDir": "C:/Users/vinit/Mings/Mings-f-app/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -24,7 +24,7 @@
         },
         "id": "staff",
         "name": "staff",
-        "testDir": "C:/mings-os/tests/e2e",
+        "testDir": "C:/Users/vinit/Mings/Mings-f-app/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/smoke.staff.spec.ts"
@@ -32,7 +32,7 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/mings-os/test-results",
+        "outputDir": "C:/Users/vinit/Mings/Mings-f-app/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -40,7 +40,7 @@
         },
         "id": "storefront",
         "name": "storefront",
-        "testDir": "C:/mings-os/tests/e2e",
+        "testDir": "C:/Users/vinit/Mings/Mings-f-app/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/smoke.storefront.spec.ts"
@@ -48,7 +48,7 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/mings-os/test-results",
+        "outputDir": "C:/Users/vinit/Mings/Mings-f-app/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -56,7 +56,7 @@
         },
         "id": "kds",
         "name": "kds",
-        "testDir": "C:/mings-os/tests/e2e",
+        "testDir": "C:/Users/vinit/Mings/Mings-f-app/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/kds-smoke.spec.ts"
@@ -64,7 +64,7 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/mings-os/test-results",
+        "outputDir": "C:/Users/vinit/Mings/Mings-f-app/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -72,7 +72,7 @@
         },
         "id": "kiosk",
         "name": "kiosk",
-        "testDir": "C:/mings-os/tests/e2e",
+        "testDir": "C:/Users/vinit/Mings/Mings-f-app/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/kiosk-smoke.spec.ts"
@@ -80,7 +80,7 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/mings-os/test-results",
+        "outputDir": "C:/Users/vinit/Mings/Mings-f-app/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -88,7 +88,7 @@
         },
         "id": "pos",
         "name": "pos",
-        "testDir": "C:/mings-os/tests/e2e",
+        "testDir": "C:/Users/vinit/Mings/Mings-f-app/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/pos-smoke.spec.ts"
@@ -96,7 +96,7 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/mings-os/test-results",
+        "outputDir": "C:/Users/vinit/Mings/Mings-f-app/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -104,7 +104,7 @@
         },
         "id": "staff-auth-setup",
         "name": "staff-auth-setup",
-        "testDir": "C:/mings-os/tests/e2e",
+        "testDir": "C:/Users/vinit/Mings/Mings-f-app/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/staff-auth.setup.ts"
@@ -112,7 +112,7 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/mings-os/test-results",
+        "outputDir": "C:/Users/vinit/Mings/Mings-f-app/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -120,7 +120,7 @@
         },
         "id": "staff-functional",
         "name": "staff-functional",
-        "testDir": "C:/mings-os/tests/e2e",
+        "testDir": "C:/Users/vinit/Mings/Mings-f-app/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/staff-functional-qa.spec.ts"
@@ -128,7 +128,7 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/mings-os/test-results",
+        "outputDir": "C:/Users/vinit/Mings/Mings-f-app/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -136,10 +136,26 @@
         },
         "id": "expenses-crud",
         "name": "expenses-crud",
-        "testDir": "C:/mings-os/tests/e2e",
+        "testDir": "C:/Users/vinit/Mings/Mings-f-app/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/expenses-crud.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/vinit/Mings/Mings-f-app/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "phase-2a-master-catalog",
+        "name": "phase-2a-master-catalog",
+        "testDir": "C:/Users/vinit/Mings/Mings-f-app/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/phase-2a-master-catalog.spec.ts"
         ],
         "timeout": 30000
       }
@@ -200,12 +216,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2625,
+                  "duration": 2059,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-06-23T18:58:33.043Z",
+                  "startTime": "2026-06-26T15:45:37.367Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -215,131 +231,237 @@
           ],
           "id": "c48c9a98bd0a301a2044-bd3cda785d9e5f70c365",
           "file": "staff-auth.setup.ts",
-          "line": 14,
+          "line": 21,
           "column": 1
         }
       ]
     },
     {
-      "title": "expenses-crud.spec.ts",
-      "file": "expenses-crud.spec.ts",
+      "title": "phase-2a-master-catalog.spec.ts",
+      "file": "phase-2a-master-catalog.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Expenses CRUD feedback",
-          "file": "expenses-crud.spec.ts",
+          "title": "Phase 2a — Group D Catalog",
+          "file": "phase-2a-master-catalog.spec.ts",
           "line": 20,
           "column": 6,
           "specs": [
             {
-              "title": "categories: rapid double create only adds one row and shows success",
-              "ok": true,
+              "title": "D-PROD-01: add product",
+              "ok": false,
               "tags": [],
               "tests": [
                 {
                   "timeout": 90000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "expenses-crud",
-                  "projectName": "expenses-crud",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
                   "results": [
                     {
                       "workerIndex": 1,
                       "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 7836,
+                      "status": "failed",
+                      "duration": 32890,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText(/saved successfully|uğurla yadda saxlan|успешно сохранено|updated successfully|yeniləndi|обновлено/i).or(getByRole('heading', { name: 'E2E-20260626-P2A-product' }))\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for getByText(/saved successfully|uğurla yadda saxlan|успешно сохранено|updated successfully|yeniləndi|обновлено/i).or(getByRole('heading', { name: 'E2E-20260626-P2A-product' }))\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText(/saved successfully|uğurla yadda saxlan|успешно сохранено|updated successfully|yeniləndi|обновлено/i).or(getByRole('heading', { name: 'E2E-20260626-P2A-product' }))\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for getByText(/saved successfully|uğurla yadda saxlan|успешно сохранено|updated successfully|yeniləndi|обновлено/i).or(getByRole('heading', { name: 'E2E-20260626-P2A-product' }))\u001b[22m\n\n    at C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts:37:7",
+                        "location": {
+                          "file": "C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts",
+                          "column": 7,
+                          "line": 37
+                        },
+                        "snippet": "  35 |     await expect(\n  36 |       page.getByText(SAVED_RE).or(page.getByRole('heading', { name: productName })),\n> 37 |     ).toBeVisible({ timeout: 30_000 });\n     |       ^\n  38 |   });\n  39 |\n  40 |   test('D-PROD-02: edit product selling price', async ({ page }) => {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts",
+                            "column": 7,
+                            "line": 37
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText(/saved successfully|uğurla yadda saxlan|успешно сохранено|updated successfully|yeniləndi|обновлено/i).or(getByRole('heading', { name: 'E2E-20260626-P2A-product' }))\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 30000ms\u001b[22m\n\u001b[2m  - waiting for getByText(/saved successfully|uğurla yadda saxlan|успешно сохранено|updated successfully|yeniləndi|обновлено/i).or(getByRole('heading', { name: 'E2E-20260626-P2A-product' }))\u001b[22m\n\n\n  35 |     await expect(\n  36 |       page.getByText(SAVED_RE).or(page.getByRole('heading', { name: productName })),\n> 37 |     ).toBeVisible({ timeout: 30_000 });\n     |       ^\n  38 |   });\n  39 |\n  40 |   test('D-PROD-02: edit product selling price', async ({ page }) => {\n    at C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts:37:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T15:45:41.191Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\vinit\\Mings\\Mings-f-app\\test-results\\phase-2a-master-catalog-Ph-4bd3e-talog-D-PROD-01-add-product-phase-2a-master-catalog\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts",
+                        "column": 7,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f0d6bb29e006ce1c7af4-ebf7cbf5568452ca5873",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 24,
+              "column": 3
+            },
+            {
+              "title": "D-PROD-02: edit product selling price",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-23T18:58:37.581Z",
+                      "startTime": "2026-06-26T15:46:14.255Z",
                       "annotations": [],
                       "attachments": []
                     }
                   ],
-                  "status": "expected"
+                  "status": "skipped"
                 }
               ],
-              "id": "3ffeab0af6849ecf82fb-675be2130a357f1f21f1",
-              "file": "expenses-crud.spec.ts",
-              "line": 21,
+              "id": "f0d6bb29e006ce1c7af4-2f8e4a5ec6198bbbb589",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 40,
               "column": 3
             },
             {
-              "title": "operational expense: zero amount shows validation error and keeps modal open",
+              "title": "D-SUPP-03: supplier active toggle",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T15:46:14.255Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "f0d6bb29e006ce1c7af4-a15cb44352abed0bcb5f",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 54,
+              "column": 3
+            },
+            {
+              "title": "D-COMB-01: create combo",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T15:46:14.255Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "f0d6bb29e006ce1c7af4-0f19a211a83b01543b6f",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 60,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Phase 2a — Group E Finance",
+          "file": "phase-2a-master-catalog.spec.ts",
+          "line": 76,
+          "column": 6,
+          "specs": [
+            {
+              "title": "E-SALE-02: edit manual sale description",
               "ok": true,
               "tags": [],
               "tests": [
                 {
                   "timeout": 60000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "expenses-crud",
-                  "projectName": "expenses-crud",
-                  "results": [
-                    {
-                      "workerIndex": 1,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2607,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-23T18:58:45.564Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "3ffeab0af6849ecf82fb-f6447c76496cdf334e13",
-              "file": "expenses-crud.spec.ts",
-              "line": 46,
-              "column": 3
-            },
-            {
-              "title": "operational expense: valid submit shows success and closes modal",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
                   "annotations": [
                     {
                       "type": "skip",
-                      "description": "No expense categories configured — add one in Categories tab first",
+                      "description": "No manual sale row to edit",
                       "location": {
-                        "file": "C:\\mings-os\\tests\\e2e\\expenses-crud.spec.ts",
-                        "line": 76,
+                        "file": "C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts",
+                        "line": 84,
                         "column": 12
                       }
                     }
                   ],
                   "expectedStatus": "skipped",
-                  "projectId": "expenses-crud",
-                  "projectName": "expenses-crud",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
                   "results": [
                     {
-                      "workerIndex": 1,
+                      "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "skipped",
-                      "duration": 2174,
+                      "duration": 566,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-23T18:58:48.193Z",
+                      "startTime": "2026-06-26T15:46:15.686Z",
                       "annotations": [
                         {
                           "type": "skip",
-                          "description": "No expense categories configured — add one in Categories tab first",
+                          "description": "No manual sale row to edit",
                           "location": {
-                            "file": "C:\\mings-os\\tests\\e2e\\expenses-crud.spec.ts",
-                            "line": 76,
+                            "file": "C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts",
+                            "line": 84,
                             "column": 12
                           }
                         }
@@ -350,9 +472,327 @@
                   "status": "skipped"
                 }
               ],
-              "id": "3ffeab0af6849ecf82fb-7566d9d1a9f75dd8b293",
-              "file": "expenses-crud.spec.ts",
-              "line": 64,
+              "id": "f0d6bb29e006ce1c7af4-2ea276fe20da60630146",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 79,
+              "column": 3
+            },
+            {
+              "title": "E-CASH-01: add liability",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 90044,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts",
+                            "column": 74,
+                            "line": 97
+                          },
+                          "message": "Error: locator.fill: Test timeout of 90000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.fixed.inset-0 form input[type=\"text\"]').first()\u001b[22m\n\n    at C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts:97:74"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T15:46:16.349Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\vinit\\Mings\\Mings-f-app\\test-results\\phase-2a-master-catalog-Ph-5f681-nce-E-CASH-01-add-liability-phase-2a-master-catalog\\error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f0d6bb29e006ce1c7af4-3d4eaf254bdb55ce25b0",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 93,
+              "column": 3
+            },
+            {
+              "title": "E-CASH-04: add cash movement",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T15:47:46.455Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "f0d6bb29e006ce1c7af4-b12b565b67770496b95e",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 104,
+              "column": 3
+            },
+            {
+              "title": "E-COGS-01: COGS purchase on expenses tab",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T15:47:46.456Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "f0d6bb29e006ce1c7af4-4cb8167c77baa4b175a0",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 116,
+              "column": 3
+            },
+            {
+              "title": "E-HOME-01 / E-RPT-01: read-only filters respond",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T15:47:46.456Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "f0d6bb29e006ce1c7af4-ad8ae662a76d176d30e8",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 133,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Phase 2a — Group F Config",
+          "file": "phase-2a-master-catalog.spec.ts",
+          "line": 148,
+          "column": 6,
+          "specs": [
+            {
+              "title": "F-SET-01: language switch EN → AZ",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "failed",
+                      "duration": 0,
+                      "error": {
+                        "message": "Error: Cannot find module 'C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts' imported from C:\\Users\\vinit\\Mings\\Mings-f-app\\node_modules\\playwright\\lib\\transform\\transform.js",
+                        "stack": "Error: Cannot find module 'C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts' imported from C:\\Users\\vinit\\Mings\\Mings-f-app\\node_modules\\playwright\\lib\\transform\\transform.js"
+                      },
+                      "errors": [
+                        {
+                          "message": "Error: Cannot find module 'C:\\Users\\vinit\\Mings\\Mings-f-app\\tests\\e2e\\phase-2a-master-catalog.spec.ts' imported from C:\\Users\\vinit\\Mings\\Mings-f-app\\node_modules\\playwright\\lib\\transform\\transform.js"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T15:47:47.740Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f0d6bb29e006ce1c7af4-bf22cb731ec61b9543fd",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 149,
+              "column": 3
+            },
+            {
+              "title": "F-DEL-04: delivery settings tab loads and save",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T15:47:47.740Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "f0d6bb29e006ce1c7af4-1c3d409512b5327ae6a1",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 160,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Phase 2a — Group H Orders",
+          "file": "phase-2a-master-catalog.spec.ts",
+          "line": 172,
+          "column": 6,
+          "specs": [
+            {
+              "title": "H-KOB-01: kiosk orders board shows M037",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T15:47:47.740Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "f0d6bb29e006ce1c7af4-b6eaf5056915ea5cc432",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 173,
+              "column": 3
+            },
+            {
+              "title": "X-BUG-03: order support source filter check",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "phase-2a-master-catalog",
+                  "projectName": "phase-2a-master-catalog",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-26T15:47:47.740Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "f0d6bb29e006ce1c7af4-852a7625c7f51966a973",
+              "file": "phase-2a-master-catalog.spec.ts",
+              "line": 179,
               "column": 3
             }
           ]
@@ -362,11 +802,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-23T18:58:20.951Z",
-    "duration": 29726.76,
-    "expected": 3,
-    "skipped": 1,
-    "unexpected": 0,
+    "startTime": "2026-06-26T15:45:35.684Z",
+    "duration": 132089.515,
+    "expected": 1,
+    "skipped": 10,
+    "unexpected": 3,
     "flaky": 0
   }
 }

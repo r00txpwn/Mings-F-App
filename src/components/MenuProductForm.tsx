@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { X, Image, Loader2 } from 'lucide-react';
+import { Image, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Product, Category } from '../lib/supabase';
 import { adminInsert, adminUpdate } from '../lib/adminApi';
+import { Modal } from './ui/Modal';
 
 interface MenuProductFormProps {
   product: Product | null;
@@ -56,21 +57,14 @@ export function MenuProductForm({ product, categories, selectedCategoryId, onSav
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div
-        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            {product ? t.editProduct : t.addProduct}
-          </h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+    <Modal
+      open
+      onClose={onClose}
+      titleId="menu-product-form-title"
+      title={product ? t.editProduct : t.addProduct}
+      widthClassName="max-w-lg"
+    >
+        <form onSubmit={handleSubmit} className="space-y-5 -m-1">
           {form.image_url && (
             <div className="w-full h-48 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden">
               <img
@@ -219,7 +213,6 @@ export function MenuProductForm({ product, categories, selectedCategoryId, onSav
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -8,6 +8,7 @@ import { ExpensesSummaryBar } from './expenses/ExpensesSummaryBar';
 import { CategoryGroupedView } from './expenses/CategoryGroupedView';
 import { ManageCategoriesTab } from './expenses/ManageCategoriesTab';
 import { PageHeader } from '../components/cockpit';
+import { displayName, isTestRecord } from '../lib/displayName';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { SingleDatePicker } from '../components/SingleDatePicker';
 import { isOnCreditFromPurchase, purchaseCreditFields } from '../services/finance/purchaseCredit';
@@ -146,6 +147,7 @@ export function ExpensesScreen() {
   const cogsCategories = categories.filter(c => c.type === 'purchase');
 
   const filteredExpenses = expenses.filter(e => {
+    if (isTestRecord(e.description) || isTestRecord(e.expense_items?.name)) return false;
     const dateOk = e.expense_date >= dateFilter.start && e.expense_date <= dateFilter.end;
     if (!dateOk) return false;
     if (!searchTerm) return true;
@@ -158,6 +160,7 @@ export function ExpensesScreen() {
   });
 
   const filteredPurchases = purchases.filter(p => {
+    if (isTestRecord(p.notes) || isTestRecord(p.products?.name) || isTestRecord(p.suppliers?.name)) return false;
     const d = p.purchase_date.split('T')[0];
     const dateOk = d >= dateFilter.start && d <= dateFilter.end;
     if (!dateOk) return false;
@@ -198,9 +201,9 @@ export function ExpensesScreen() {
       items: catExpenses.map(e => ({
         id: e.id,
         date: e.expense_date,
-        subItemName: e.expense_items?.name || '',
+        subItemName: displayName(e.expense_items?.name, t.cockpitTestRecordLabel),
         amount: Number(e.amount),
-        description: e.description,
+        description: displayName(e.description, t.cockpitTestRecordLabel),
         paymentMethod: e.payment_method,
       })),
     };
@@ -216,9 +219,9 @@ export function ExpensesScreen() {
       items: uncategorizedExpenses.map(e => ({
         id: e.id,
         date: e.expense_date,
-        subItemName: e.expense_items?.name || '',
+        subItemName: displayName(e.expense_items?.name, t.cockpitTestRecordLabel),
         amount: Number(e.amount),
-        description: e.description,
+        description: displayName(e.description, t.cockpitTestRecordLabel),
         paymentMethod: e.payment_method,
       })),
     });
@@ -234,11 +237,11 @@ export function ExpensesScreen() {
       items: catPurchases.map(p => ({
         id: p.id,
         date: p.purchase_date,
-        subItemName: p.expense_items?.name || p.products?.name || '',
+        subItemName: displayName(p.expense_items?.name || p.products?.name, t.cockpitTestRecordLabel),
         amount: Number(p.total_cost),
-        description: p.notes,
-        productName: p.products?.name,
-        supplierName: p.suppliers?.name,
+        description: displayName(p.notes, t.cockpitTestRecordLabel),
+        productName: displayName(p.products?.name, t.cockpitTestRecordLabel),
+        supplierName: displayName(p.suppliers?.name, t.cockpitTestRecordLabel),
         quantity: p.quantity,
         unitCost: p.unit_cost,
         paymentStatus: p.payment_status,
@@ -256,11 +259,11 @@ export function ExpensesScreen() {
       items: uncategorizedPurchases.map(p => ({
         id: p.id,
         date: p.purchase_date,
-        subItemName: p.expense_items?.name || p.products?.name || '',
+        subItemName: displayName(p.expense_items?.name || p.products?.name, t.cockpitTestRecordLabel),
         amount: Number(p.total_cost),
-        description: p.notes,
-        productName: p.products?.name,
-        supplierName: p.suppliers?.name,
+        description: displayName(p.notes, t.cockpitTestRecordLabel),
+        productName: displayName(p.products?.name, t.cockpitTestRecordLabel),
+        supplierName: displayName(p.suppliers?.name, t.cockpitTestRecordLabel),
         quantity: p.quantity,
         unitCost: p.unit_cost,
         paymentStatus: p.payment_status,

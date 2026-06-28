@@ -11,6 +11,10 @@ import { fetchPayoutReconciliation } from '../services/analytics';
 import { PageHeader } from '../components/cockpit';
 import { IconActionButton } from '../components/ui/IconActionButton';
 import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ReviewBadge } from '../components/ui/ReviewBadge';
+import { SkeletonTable } from '../components/ui/Skeleton';
+import { displayName, isTestRecord } from '../lib/displayName';
 
 interface PayoutWithCalc extends PlatformPayout {
   grossSales: number;
@@ -449,21 +453,23 @@ export function PayoutsScreen() {
         <h2 className="cockpit-section-title mb-4">{t.payouts}</h2>
         <div className="cockpit-panel overflow-hidden p-0">
           {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin text-cockpit-500" />
-            </div>
+            <SkeletonTable rows={4} />
           ) : payouts.length === 0 ? (
-            <div className="p-12 text-center">
-              <Banknote className="mx-auto mb-3 h-12 w-12 text-slate-400 dark:text-slate-600" />
-              <p className="font-medium text-slate-600 dark:text-slate-300">{t.noPayoutsYet}</p>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">{t.createFirstPayout}</p>
-            </div>
+            <EmptyState
+              icon={Banknote}
+              title={t.noPayoutsYet}
+              description={t.createFirstPayout}
+              className="m-4 border-0 bg-transparent"
+            />
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-white/5">
-              {payouts.map((p) => {
+              {payouts
+                .filter((p) => !isTestRecord(p.sales_channels?.name) && !isTestRecord(p.notes))
+                .map((p) => {
                 const ch = p.sales_channels;
                 const isExpanded = expandedId === p.id;
                 const isDeleting = deleteConfirm === p.id;
+                const highCommission = p.commissionPercent >= 45;
 
                 return (
                   <div key={p.id}>
@@ -481,7 +487,12 @@ export function PayoutsScreen() {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-900 dark:text-white">{ch?.name}</span>
+                          <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {displayName(ch?.name, t.cockpitTestRecordLabel)}
+                          </span>
+                          {highCommission ? (
+                            <ReviewBadge label={t.cockpitNeedsReview} reason={t.cockpitReviewHighCommission} />
+                          ) : null}
                           <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
                             {new Date(p.period_start).toLocaleDateString()} — {new Date(p.period_end).toLocaleDateString()}
                           </span>

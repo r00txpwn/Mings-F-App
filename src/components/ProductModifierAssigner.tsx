@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { X, Loader2, Check, Sliders } from 'lucide-react';
+import { Check, Loader2, Sliders } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
 import { supabase, Product, ModifierGroup } from '../lib/supabase';
 import { adminInsert, adminMutate } from '../lib/adminApi';
+import { Modal } from './ui/Modal';
+import { EmptyState } from './ui/EmptyState';
+import { Skeleton } from './ui/Skeleton';
 
 interface ProductModifierAssignerProps {
   product: Product;
@@ -85,32 +88,25 @@ export function ProductModifierAssigner({ product, onClose }: ProductModifierAss
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div
-        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t.assignModifiers}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{product.name}</p>
-          </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6">
+    <Modal
+      open
+      onClose={onClose}
+      titleId="modifier-assigner-title"
+      title={t.assignModifiers}
+      subtitle={product.name}
+      widthClassName="max-w-lg"
+      contentClassName="p-0"
+    >
+      <div className="-m-5 flex min-h-0 flex-1 flex-col">
+        <div className="flex-1 overflow-y-auto px-5 py-4">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            <div className="space-y-3" aria-busy="true" aria-label={t.cockpitLoadingContent}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
             </div>
           ) : allGroups.length === 0 ? (
-            <div className="text-center py-8">
-              <Sliders className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-500 dark:text-gray-400">{t.noModifiers}</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t.modifierLibrary}</p>
-            </div>
+            <EmptyState icon={Sliders} title={t.noModifiers} description={t.modifierLibrary} className="border-0 bg-transparent py-8" />
           ) : (
             <div className="space-y-3">
               {allGroups.map(group => {
@@ -121,51 +117,51 @@ export function ProductModifierAssigner({ product, onClose }: ProductModifierAss
                     key={group.id}
                     onClick={() => void handleToggle(group.id)}
                     disabled={saving}
-                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                    className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
                       isAssigned
                         ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
+                      <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
                         isAssigned
-                          ? 'bg-emerald-500 border-emerald-500'
-                          : 'border-gray-300 dark:border-gray-600'
+                          ? 'border-emerald-500 bg-emerald-500'
+                          : 'border-slate-300 dark:border-slate-600'
                       }`}>
-                        {isAssigned && <Check className="w-3.5 h-3.5 text-white" />}
+                        {isAssigned && <Check className="h-3.5 w-3.5 text-white" />}
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900 dark:text-white">{group.name}</span>
+                          <span className="font-semibold text-slate-900 dark:text-white">{group.name}</span>
                           {group.is_required && (
-                            <span className="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded">
+                            <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-600 dark:bg-red-900/30 dark:text-red-400">
                               {t.required}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                           {group.min_select === 1 && group.max_select === 1
                             ? t.chooseOne
                             : `${t.chooseUpTo} ${group.max_select}`}
                         </p>
                         {options.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
+                          <div className="mt-2 flex flex-wrap gap-1.5">
                             {options.slice(0, 6).map(opt => (
                               <span
                                 key={opt.id}
-                                className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full"
+                                className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                               >
                                 {opt.name}
                                 {Number(opt.price_adjustment) > 0 && (
-                                  <span className="text-emerald-600 dark:text-emerald-400 ml-1">
+                                  <span className="ml-1 text-emerald-600 dark:text-emerald-400">
                                     {formatPrice(Number(opt.price_adjustment))}
                                   </span>
                                 )}
                               </span>
                             ))}
                             {options.length > 6 && (
-                              <span className="text-xs px-2 py-0.5 text-gray-400">
+                              <span className="px-2 py-0.5 text-xs text-slate-400">
                                 +{options.length - 6}
                               </span>
                             )}
@@ -180,20 +176,20 @@ export function ProductModifierAssigner({ product, onClose }: ProductModifierAss
           )}
         </div>
 
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {assignedIds.size} {t.modifierGroups.toLowerCase()}
-            </span>
-            <button
-              onClick={onClose}
-              className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-            >
-              {t.save}
-            </button>
-          </div>
+        <div className="flex shrink-0 items-center justify-between border-t border-slate-200 px-5 py-4 dark:border-white/10">
+          <span className="text-sm text-slate-500 dark:text-slate-400">
+            {assignedIds.size} {t.modifierGroups.toLowerCase()}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="cockpit-btn-primary px-6"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {t.save}
+          </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

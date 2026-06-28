@@ -6,6 +6,8 @@ import { supabase } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { SkeletonCard } from '../components/ui/Skeleton';
+import { displayName, isTestRecord } from '../lib/displayName';
 
 type ComboGroupItemRow = {
   id: string;
@@ -274,6 +276,8 @@ export function CombosScreen() {
     await load();
   };
 
+  const visibleRows = useMemo(() => rows.filter((r) => !isTestRecord(r.name)), [rows]);
+
   return (
     <div className="animate-fadeIn">
       <PageHeader
@@ -312,13 +316,14 @@ export function CombosScreen() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="h-10 w-10 animate-spin text-cockpit-500" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <SkeletonCard lines={2} />
+          <SkeletonCard lines={4} />
         </div>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[minmax(20rem,26rem)_1fr]">
           <div className="space-y-2">
-            {rows.map((r) => (
+            {visibleRows.map((r) => (
               <button
                 key={r.id}
                 type="button"
@@ -331,7 +336,7 @@ export function CombosScreen() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">{r.name}</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{displayName(r.name, t.cockpitTestRecordLabel)}</p>
                     <p className="font-mono text-sm text-cockpit-600 dark:text-cockpit-400">₼{Number(r.base_price).toFixed(2)}</p>
                     <p className="text-xs text-slate-500">
                       {(r.combo_groups?.length ?? 0).toString()} {t.comboGroupsTitle.toLowerCase()}
@@ -357,7 +362,7 @@ export function CombosScreen() {
                 </div>
               </button>
             ))}
-            {rows.length === 0 ? <p className="text-slate-500">{t.combosEmpty}</p> : null}
+            {visibleRows.length === 0 ? <p className="text-slate-500">{t.combosEmpty}</p> : null}
           </div>
 
           <div className="space-y-4">

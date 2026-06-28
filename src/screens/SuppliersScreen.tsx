@@ -22,6 +22,7 @@ import {
   fetchSupplierAccounts,
   type SupplierAccountSummary,
 } from '../services/finance/supplierFinanceService';
+import { displayName, isTestRecord } from '../lib/displayName';
 
 export function SuppliersScreen() {
   const { t } = useLanguage();
@@ -397,7 +398,7 @@ export function SuppliersScreen() {
       )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {suppliers.map((supplier) => {
+        {suppliers.filter((s) => !isTestRecord(s.name)).map((supplier) => {
           const isDeleting = deleteConfirm === supplier.id;
           const account = accountBySupplierId.get(supplier.id);
           const isExpanded = expandedAccountId === supplier.id;
@@ -425,7 +426,7 @@ export function SuppliersScreen() {
               {isDeleting ? (
                 <div className="space-y-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-800 dark:text-rose-100">
                   <p className="font-semibold">
-                    Delete "{supplier.name}"? Associated products will be unlinked.
+                    Delete "{displayName(supplier.name, t.cockpitTestRecordLabel)}"? Associated products will be unlinked.
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -450,7 +451,7 @@ export function SuppliersScreen() {
                     <div className="flex min-w-0 items-center gap-2">
                       <Truck className="h-5 w-5 shrink-0 text-cockpit-500" />
                       <h3 className="truncate font-semibold text-slate-900 dark:text-white">
-                        {supplier.name}
+                        {displayName(supplier.name, t.cockpitTestRecordLabel)}
                       </h3>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">

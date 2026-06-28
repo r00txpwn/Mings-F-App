@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BarChart3, Loader2 } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import { applyAnalyticsSourceFilter } from '../lib/analyticsSourceFilter';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
@@ -21,6 +21,8 @@ import {
   type AnalyticsSourceFilter,
 } from '../services/analytics';
 import { PageHeader } from '../components/cockpit';
+import { EmptyState } from '../components/ui/EmptyState';
+import { SkeletonCard } from '../components/ui/Skeleton';
 
 interface ActivityItem {
   id: string;
@@ -365,8 +367,11 @@ export function ReportsScreen() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-cockpit-500" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       ) : null}
 
@@ -386,9 +391,7 @@ export function ReportsScreen() {
       {!loading && !error ? (
         <>
           {isEmpty ? (
-            <InsightPanel title="No data" severity="info">
-              <p>{t.financialInsights}</p>
-            </InsightPanel>
+            <EmptyState icon={BarChart3} title={t.noDataForPeriod} description={t.financialInsights} />
           ) : null}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8">

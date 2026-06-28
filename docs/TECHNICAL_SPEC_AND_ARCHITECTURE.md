@@ -192,7 +192,7 @@ Screens are synced to `window.history` via `pushState`. Valid screen keys are de
 | `combos` | Combo deals configuration |
 | `money` | Sales, expenses, purchases views |
 | `reports` | Analytics filters and KPIs |
-| `products` | Inventory, pricing, stock |
+| `products` | Inventory, pricing, stock (**hidden from sidebar** — use Menu Builder for sellable items; COGS in Expenses for costs; direct URL `?screen=products` when inventory is needed) |
 | `suppliers` | Supplier directory |
 | `expenses` | COGS and operational expenses |
 | `payouts` | Platform payout reconciliation |

@@ -29,7 +29,7 @@ Chrome DevTools MCP (or Playwright) smoke pass covering **every staff cockpit sc
 |---|--------|-----|---------------|
 | 2.1 | Menu Builder | `?screen=menu-builder` | Categories + products; Modifiers tab |
 | 2.2 | Combo deals | `?screen=combos` | Create combo form + upsell mapping |
-| 2.3 | Products & Services | `?screen=products` | Product cards, low-stock alert |
+| 2.3 | Products & Services | `?screen=products` | **Hidden from nav** — optional inventory screen; product cards, low-stock alert |
 | 2.4 | Suppliers | `?screen=suppliers` | Supplier cards, **Owed**, Add debt, Account |
 
 ### UC3 — Cockpit: Finance

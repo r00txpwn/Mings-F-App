@@ -97,7 +97,9 @@ export function CockpitSidebar({
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
 
-  const visibleItems = COCKPIT_NAV_ITEMS.filter((item) => !item.adminOnly || isAdminUser);
+  const visibleItems = COCKPIT_NAV_ITEMS.filter(
+    (item) => !item.hiddenFromNav && (!item.adminOnly || isAdminUser),
+  );
 
   const itemsBySection = COCKPIT_NAV_SECTIONS.reduce<Record<CockpitNavSection, CockpitNavItem[]>>(
     (acc, section) => {
@@ -111,11 +113,11 @@ export function CockpitSidebar({
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 flex min-h-screen flex-col border-r transition-all duration-200 ease-out ${sidebarWidth} ${
+      className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r transition-all duration-200 ease-out ${sidebarWidth} ${
         isDark ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-white shadow-sm'
       } ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
     >
-      <div className={`border-b px-4 py-4 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+      <div className={`shrink-0 border-b px-4 py-4 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
         <div className="flex items-center justify-between gap-2">
           <div className={`flex min-w-0 items-center ${collapsed ? 'justify-center' : ''}`}>
             <div className="flex h-10 shrink-0 items-center justify-center rounded-lg bg-black px-2 py-1 shadow-sm ring-1 ring-black/10">
@@ -135,7 +137,7 @@ export function CockpitSidebar({
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col overflow-y-auto p-2">
+      <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto p-2">
         {COCKPIT_NAV_SECTIONS.map((section) => {
           const sectionItems = itemsBySection[section];
           if (sectionItems.length === 0) return null;
@@ -155,6 +157,7 @@ export function CockpitSidebar({
                       key={item.id}
                       type="button"
                       title={collapsed ? t[item.labelKey] : undefined}
+                      aria-label={collapsed ? t[item.labelKey] : undefined}
                       onClick={() => onNavigate(item.id)}
                       className={`group relative flex w-full items-center rounded-lg text-left text-sm font-medium transition-all ${
                         collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'
@@ -168,7 +171,7 @@ export function CockpitSidebar({
                             : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                     >
-                      {active && !collapsed ? (
+                      {active ? (
                         <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-cockpit-500" />
                       ) : null}
                       <span className={active ? 'text-cockpit-600 dark:text-cockpit-400' : ''}>
@@ -182,8 +185,9 @@ export function CockpitSidebar({
             </div>
           );
         })}
+      </nav>
 
-        <div className={`mt-auto space-y-1 border-t pt-2 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
+      <div className={`shrink-0 space-y-1 border-t p-2 ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
           <button
             type="button"
             onClick={onToggleCollapsed}
@@ -201,6 +205,7 @@ export function CockpitSidebar({
             className={`flex w-full items-center rounded-lg text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900 ${
               collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'
             }`}
+            title={collapsed ? (isDark ? t.lightMode : t.darkMode) : undefined}
           >
             {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             {!collapsed ? <span>{isDark ? t.lightMode : t.darkMode}</span> : null}
@@ -228,7 +233,6 @@ export function CockpitSidebar({
             {!collapsed ? <span>{t.staffSignOut}</span> : null}
           </button>
         </div>
-      </nav>
     </aside>
   );
 }

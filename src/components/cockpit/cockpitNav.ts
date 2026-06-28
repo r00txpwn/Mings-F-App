@@ -73,6 +73,8 @@ export interface CockpitNavItem {
     | 'users'
     | 'settings';
   adminOnly?: boolean;
+  /** Screen remains routable via `?screen=` but is omitted from the sidebar. */
+  hiddenFromNav?: boolean;
 }
 
 export const COCKPIT_NAV_ITEMS: CockpitNavItem[] = [
@@ -83,7 +85,7 @@ export const COCKPIT_NAV_ITEMS: CockpitNavItem[] = [
   { id: 'order-locations', section: 'orders', labelKey: 'orderLocations' },
   { id: 'menu-builder', section: 'catalog', labelKey: 'menuBuilder' },
   { id: 'combos', section: 'catalog', labelKey: 'combosScreenTitle' },
-  { id: 'products', section: 'catalog', labelKey: 'products' },
+  { id: 'products', section: 'catalog', labelKey: 'products', hiddenFromNav: true },
   { id: 'suppliers', section: 'catalog', labelKey: 'suppliers' },
   { id: 'sales', section: 'finance', labelKey: 'sales' },
   { id: 'payments', section: 'finance', labelKey: 'payments' },

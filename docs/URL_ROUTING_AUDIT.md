@@ -42,7 +42,7 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | `/order-manager` | `OrderManagerApp` | Staff workflow (auth-gated). Top of main: **Kitchen status** strip (pause 30m / 1h / until next open / indefinite + Open now) updating `online_settings`. Bottom nav: Active + Past for every staff user; **Menu Editor** tab only when `public.users.role` is `admin` or `manager` (hidden for `staff`). The shell re-reads `users.role` after auth so the tab list matches the same Supabase row QA inspects on `/rest/v1/users`. |
 | `/order-management` | `OrderManagerApp` | Alias to `/order-manager`. Same tab rules as `/order-manager`. |
 | `/track` | `TrackingApp` | Query `?token=` for status. |
-| `/spec-ops` | `App` (cockpit) | Default admin URL. Optional `VITE_ADMIN_APP_PATH` overrides. |
+| `/spec-ops` | `App` (cockpit) | Default admin URL. Optional `VITE_ADMIN_APP_PATH` overrides. **Administration-only:** `admin` + `manager` enter; `staff`-role users get `AdminAccessDeniedScreen` (links to POS / KDS / Kiosk). See **§ Role-based access**. |
 | **Anything else** | `PublicNotFound` | No hints about admin URL. |
 
 ### Logical notes
@@ -51,6 +51,25 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 - **Subpath deployment**: Path-based links use `/order`, `/kiosk`. Staff “open storefront” uses [`getPublicOrderUrl`](src/lib/surfaceHost.ts) / `VITE_PUBLIC_ORDER_URL` when set. A Vite **`base`** other than `/` is **not** supported without refactoring links and router.
 - **Admin path**: Default `/spec-ops` is fixed in client code; override env is inlined if set — rely on Auth + RLS + passwords.
 
+### Role-based access (cockpit vs floor)
+
+`public.users.role` (`admin` | `manager` | `staff`) drives surface access. The cockpit is **administration-only**; `staff` work the floor surfaces.
+
+| Surface | `staff` | `manager` | `admin` |
+|---------|:------:|:--------:|:------:|
+| Cockpit `/spec-ops` (analytics, finance, catalog, settings) | — | ✓ | ✓ |
+| Cockpit → Users | — | — | ✓ |
+| POS `/pos` · Kiosk `/kiosk` · KDS `/kds` · Order Manager `/order-manager` | ✓ | ✓ | ✓ |
+| Order Manager → Menu Editor tab | — | ✓ | ✓ |
+
+Enforcement layers:
+
+1. **UI surface guard** — `src/App.tsx` renders `AdminAccessDeniedScreen` when `roleMayAccessCockpit(staffRole)` is false (`src/lib/staffRole.ts`). `staffRole` comes from `AuthContext`.
+2. **admin-api `TABLE_MIN_ROLE`** — cockpit-only tables require `admin`/`manager`; `staff` is excluded. `sales` is the deliberate exception (Order Manager status updates as `staff`). The Edge Function uses the service role and **bypasses RLS**, so this map is the primary write gate.
+3. **RLS defense-in-depth** — migration `20260628120000_restrict_cockpit_writes_to_admin_manager.sql` adds `public.is_admin()` / `public.is_admin_or_manager()` and sets cockpit-only tables to admin/manager INSERT/UPDATE, admin-only DELETE (SELECT unchanged). Excludes `sales`, `sale_item_modifiers`, `online_settings`.
+
+> Manager access is intentionally broad for now and will be refined in a later pass. Per-user granular entitlements are not implemented yet.
+
 ---
 
 ## 2. In-app navigation & redirects
@@ -58,6 +77,7 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | Location | Behavior | Risk / note |
 |----------|----------|-------------|
 | `App.tsx` | Non-staff logged-in users → `StaffAccessDeniedScreen` (no auto-redirect to `/order`). | OK. |
+| `App.tsx` | `staff`-role users (have a `public.users` row but role `staff`) → `AdminAccessDeniedScreen` (cockpit is admin/manager-only). Gate via `roleMayAccessCockpit(staffRole)`. | See **§ Role-based access**. |
 | `App.tsx` | On the **admin host** or at **`/spec-ops`** (default local admin path), `?screen=` selects cockpit screens. Sidebar nav is grouped (Overview / Orders / Catalog / Finance / System) and collapsible; default `?screen=home` is the executive dashboard. Finance includes **`?screen=payments`** (online payment list + provider re-check), **`?screen=liabilities`** (loans/other debt + bank withdrawal log), **`?screen=staff`** (employee roster + salary payment ledger), and **`?screen=taxes`** (sales + payroll tax liabilities, rate settings, tax payment log). Supplier account balances (opening balance, lump-sum pay, FIFO) live on **`?screen=suppliers`**. | **Local QA URL:** `http://127.0.0.1:4175/spec-ops?screen=home` — not root `/?screen=…` (see `getResolvedAdminPath()`). Payments: `http://127.0.0.1:4175/spec-ops?screen=payments`. Cash & debt: `http://127.0.0.1:4175/spec-ops?screen=liabilities`. Staff: `?screen=staff`. Taxes: `?screen=taxes`. |
 | `OrderApp.tsx` | E-point success → external `checkoutUrl`. Done screen → `/track?token=`. | External URL must be trusted (payment provider). |
 | `PublicNotFound.tsx` | Denied/404 messaging for root + unknown paths. | No storefront auto-redirect from `/` or invalid paths. |
@@ -89,6 +109,7 @@ Token validation uses a user-scoped Supabase client (`SUPABASE_ANON_KEY` + `Auth
 
 - **Managers** cannot call `user-management` (admin-only). If product needs “manager invites staff”, policy must change.
 - **Create user** must insert `public.users` after Auth create; rollback on failure (implemented in Edge Function).
+- **Cockpit-only `admin-api` tables** exclude `staff` via `TABLE_MIN_ROLE` (`products`, `sales_channels`, `combo_*`, all finance/tax/payroll, etc.). `sales` keeps `staff` for Order Manager status updates. See **§ Role-based access**.
 
 ---
 

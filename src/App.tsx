@@ -17,6 +17,8 @@ import { StaffScreen } from './screens/StaffScreen';
 import { TaxesScreen } from './screens/TaxesScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { StaffAccessDeniedScreen } from './screens/StaffAccessDeniedScreen';
+import { AdminAccessDeniedScreen } from './screens/AdminAccessDeniedScreen';
+import { roleMayAccessCockpit } from './lib/staffRole';
 import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 import { MenuScreen } from './screens/MenuScreen';
 import { PayoutsScreen } from './screens/PayoutsScreen';
@@ -36,7 +38,7 @@ import {
 function AppContent() {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const { user, loading, signOut, isStaff, isAdminUser } = useAuth();
+  const { user, loading, signOut, isStaff, isAdminUser, staffRole } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<CockpitScreen>(() => readCockpitScreenFromUrl());
   const isDark = theme === 'dark';
 
@@ -89,6 +91,12 @@ function AppContent() {
 
   if (!isStaff) {
     return <StaffAccessDeniedScreen />;
+  }
+
+  // Cockpit is administration-only. `staff`-role users work the floor surfaces
+  // (POS / Kiosk / KDS / Order Manager) and are blocked from the cockpit shell.
+  if (staffRole && !roleMayAccessCockpit(staffRole)) {
+    return <AdminAccessDeniedScreen />;
   }
 
   const renderScreen = () => {
