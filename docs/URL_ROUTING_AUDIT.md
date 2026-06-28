@@ -38,7 +38,7 @@ Hostname is checked first via [`resolveHostedSurface`](src/lib/surfaceHost.ts) (
 | `/kiosk` | `KioskApp` | Uses `pathNorm` (trailing slash OK). |
 | `/kds` | `KitchenDisplay` | Uses `pathNorm` (trailing slash OK). |
 | `/pos` | `PosApp` | Counter/phone POS (auth-gated). Tabs: Active, History, New Order, Settings. |
-| `/order` | `OrderApp` | Public ordering. |
+| `/order` | `OrderApp` | Public ordering. Honors kitchen hours + **special days** from `online_settings` (Baku). When today has a special-day customer note, shows a dismissible notice modal on load. Checkout blocked when kitchen is paused or outside effective hours. |
 | `/order-manager` | `OrderManagerApp` | Staff workflow (auth-gated). Top of main: **Kitchen status** strip (pause 30m / 1h / until next open / indefinite + Open now) updating `online_settings`. Bottom nav: Active + Past for every staff user; **Menu Editor** tab only when `public.users.role` is `admin` or `manager` (hidden for `staff`). The shell re-reads `users.role` after auth so the tab list matches the same Supabase row QA inspects on `/rest/v1/users`. |
 | `/order-management` | `OrderManagerApp` | Alias to `/order-manager`. Same tab rules as `/order-manager`. |
 | `/track` | `TrackingApp` | Query `?token=` for status. |
@@ -70,6 +70,16 @@ Enforcement layers:
 
 > Manager access is intentionally broad for now and will be refined in a later pass. Per-user granular entitlements are not implemented yet.
 
+### Audit & accountability (admin)
+
+| Store | What it captures | Who can read |
+|-------|------------------|--------------|
+| `admin_audit_log` | Edge Function mutations (`admin-api`, `user-management`, payment re-check) with actor id/role | **Admin only** |
+| `audit_logs` | Row-level INSERT/UPDATE/DELETE triggers on finance/catalog tables | **Admin only** |
+| `auth_events` | Staff `login` / `logout` with surface + device type (no IP) | **Admin only** (staff can insert own events on sign-in/out) |
+
+Cockpit viewer: **`?screen=audit-log`** (`AuditLogScreen`, admin-only nav item). Migration: `20260628130000_audit_hardening_and_auth_events.sql`.
+
 ---
 
 ## 2. In-app navigation & redirects
@@ -78,11 +88,11 @@ Enforcement layers:
 |----------|----------|-------------|
 | `App.tsx` | Non-staff logged-in users → `StaffAccessDeniedScreen` (no auto-redirect to `/order`). | OK. |
 | `App.tsx` | `staff`-role users (have a `public.users` row but role `staff`) → `AdminAccessDeniedScreen` (cockpit is admin/manager-only). Gate via `roleMayAccessCockpit(staffRole)`. | See **§ Role-based access**. |
-| `App.tsx` | On the **admin host** or at **`/spec-ops`** (default local admin path), `?screen=` selects cockpit screens. Sidebar nav is grouped (Overview / Orders / Catalog / Finance / System) and collapsible; default `?screen=home` is the executive dashboard. Finance includes **`?screen=payments`** (online payment list + provider re-check), **`?screen=liabilities`** (loans/other debt + bank withdrawal log), **`?screen=staff`** (employee roster + salary payment ledger), and **`?screen=taxes`** (sales + payroll tax liabilities, rate settings, tax payment log). Supplier account balances (opening balance, lump-sum pay, FIFO) live on **`?screen=suppliers`**. | **Local QA URL:** `http://127.0.0.1:4175/spec-ops?screen=home` — not root `/?screen=…` (see `getResolvedAdminPath()`). Payments: `http://127.0.0.1:4175/spec-ops?screen=payments`. Cash & debt: `http://127.0.0.1:4175/spec-ops?screen=liabilities`. Staff: `?screen=staff`. Taxes: `?screen=taxes`. |
+| `App.tsx` | On the **admin host** or at **`/spec-ops`** (default local admin path), `?screen=` selects cockpit screens. Sidebar nav is grouped (Overview / Orders / Catalog / Finance / System) and collapsible; default `?screen=home` is the executive dashboard. Finance includes **`?screen=payments`** (online payment list + provider re-check), **`?screen=liabilities`** (loans/other debt + bank withdrawal log), **`?screen=staff`** (employee roster + salary payment ledger), and **`?screen=taxes`** (sales + payroll tax liabilities, rate settings, tax payment log). Supplier account balances (opening balance, lump-sum pay, FIFO) live on **`?screen=suppliers`**. **Admin-only:** **`?screen=users`** (account CRUD) and **`?screen=audit-log`** (admin actions, row-level `audit_logs`, and `auth_events` sign-ins). The legacy **`?screen=kiosk-orders`** screen was removed (its orders are covered by **`?screen=order-support`**); old deep links redirect to `order-support` via `LEGACY_SCREEN_ALIASES` in `cockpitNav.ts`. | **Local QA URL:** `http://127.0.0.1:4175/spec-ops?screen=home` — not root `/?screen=…` (see `getResolvedAdminPath()`). Payments: `http://127.0.0.1:4175/spec-ops?screen=payments`. Cash & debt: `http://127.0.0.1:4175/spec-ops?screen=liabilities`. Staff: `?screen=staff`. Taxes: `?screen=taxes`. Audit log: `?screen=audit-log`. |
 | `OrderApp.tsx` | E-point success → external `checkoutUrl`. Done screen → `/track?token=`. | External URL must be trusted (payment provider). |
 | `PublicNotFound.tsx` | Denied/404 messaging for root + unknown paths. | No storefront auto-redirect from `/` or invalid paths. |
 | `StaffAccessDeniedScreen.tsx` | Link via `getPublicOrderUrl()` (`VITE_PUBLIC_ORDER_URL` or same-origin `/order`). | OK. |
-| `KioskOrdersScreen.tsx` | `getPublicOrderUrl()`, `getPublicKioskEntryUrl()` | Kiosk URL uses `VITE_PUBLIC_KIOSK_URL` or same-origin `/kiosk`; `?key=` when `VITE_KIOSK_SECRET` is set. |
+| `AdminOrderSupportScreen.tsx` | **Quick links** to floor surfaces: POS `/pos`, KDS `/kds`, Order Manager `/order-manager` (same-origin, keeps staff session), Kiosk via `getPublicKioskEntryUrl()` (`?key=` when `VITE_KIOSK_SECRET` set). | Opens each in a new tab. |
 
 ---
 
@@ -94,7 +104,7 @@ Invoked from the browser (or webhooks):
 |----------|----------------|------|
 | `online-order-create` | `invokeEdgeFunction` POST (`OrderApp`) | Bearer: user JWT or anon key. |
 | `epoint-create-payment` | `invokeEdgeFunction` POST (`OrderApp`) | Same. |
-| `user-management` | `UsersScreen` GET `…/user-management/list`, POST `…/create`, DELETE `…/delete/:id`, PUT `…/update-role`, PUT `…/reset-password` | Bearer: staff session JWT. **Admin-only** (role `admin` in `public.users` or JWT claim). |
+| `user-management` | `UsersScreen` GET `…/user-management/list`, POST `…/create`, DELETE `…/delete/:id`, PUT `…/update-role`, PUT `…/reset-password` | Bearer: staff session JWT. **Admin-only** (role `admin` in `public.users` or JWT claim). Writes `admin_audit_log` on create/delete/role-change/password-reset. |
 | `admin-payment-recheck` | `PaymentsScreen` POST via `recheckPayment()` (`src/lib/adminApi.ts`) | Bearer: staff session JWT. **Admin/manager only**; routes to `payment-reconcile` or `united-payment-status-check` using `PAYMENT_RECONCILE_SECRET` server-side. Writes `admin_audit_log`. |
 | `epoint-webhook` | Server-to-server (E-point) | Not a browser route. |
 | `wolt-drive-*` | Backend / integrations | Not audited as SPA paths. |

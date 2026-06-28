@@ -9,7 +9,21 @@ All **customer-facing** time comparisons for online ordering use **Asia/Baku** w
 | `OPEN` | Inside `hours_json`, not paused, not in soft-close window (or soft-close disabled). |
 | `CLOSING_SOON` | Inside hours, `closing_soon_minutes > 0`, and within that many minutes of the session end. Immediate orders still submit; UI shows last-call copy. **Scheduled** evaluation never returns this (treated as `OPEN`). |
 | `PAUSED` | **Immediate:** `is_open === false` always blocks until the row is opened again (or `expire_online_kitchen_pause_if_due` lifts a finished timed pause). **Scheduled:** paused while `is_open === false` and (`offline_until` is null or the slot time is before `offline_until`). |
-| `CLOSED` | Outside `hours_json` for the current Baku instant. |
+| `CLOSED` | Outside effective hours for the current Baku instant (weekly `hours_json`, or a matching **special day** marked closed). |
+
+## Special days / holidays
+
+One-off calendar dates (Baku `YYYY-MM-DD`) stored in **`online_settings.special_days_json`** override the weekly schedule for that date only:
+
+- **Closed all day** — same effect as marking a weekday closed in `hours_json`.
+- **Custom hours** — optional `open` / `close` (`HH:MM`) when not closed.
+- **Customer note** — optional `note_en`, `note_az`, `note_ru`; when today matches and any note is set, **`/order`** shows a dismissible modal on load (session-scoped dismiss per date).
+
+Shared logic: `getSpecialDayForBakuDate`, `getEffectiveDayConfig`, and `getSpecialDayCustomerNote` in `src/lib/kitchenAcceptance.ts` (mirrored in `supabase/functions/_shared/kitchenAcceptance.ts`). Scheduled slot generation and `online-order-create` both route through `getEffectiveDayConfig`.
+
+Staff manage special days in **cockpit → Delivery → Settings** (`SettingsTab.tsx`).
+
+Migration: `20260628150000_online_settings_special_days.sql`.
 
 ## Database
 
@@ -19,7 +33,7 @@ All **customer-facing** time comparisons for online ordering use **Asia/Baku** w
 ## Staff surfaces
 
 - **`/order-manager`** — `KitchenStatusPanel`: pause 30 min, 1 h, until next opening (from `hours_json`), indefinite offline, or **Open now** (sets `is_open=true`, `offline_until=null`).
-- **Staff cockpit → Delivery → Settings** — same row; per-day hours, `closing_soon_minutes`, and **Cancel pause** when `offline_until` is in the future.
+- **Staff cockpit → Delivery → Settings** — same row; per-day weekly hours, **Special days & holidays** (one-off overrides + customer notes), `closing_soon_minutes`, live open/closed summary, and **Cancel pause** when `offline_until` is in the future.
 
 ## Edge function
 

@@ -41,6 +41,17 @@ export interface DeliveryZoneRow {
 
 export type DispatchMode = 'auto' | 'manual';
 
+/** One-off Baku calendar date overriding weekly hours_json. */
+export interface SpecialDay {
+  date: string;
+  closed: boolean;
+  open?: string;
+  close?: string;
+  note_en?: string;
+  note_az?: string;
+  note_ru?: string;
+}
+
 export interface OnlineSettingsRow {
   id: string;
   takeaway_enabled: boolean;
@@ -71,6 +82,8 @@ export interface OnlineSettingsRow {
   offline_until?: string | null;
   /** Soft-close window in minutes before close; 0 = disabled. */
   closing_soon_minutes?: number | null;
+  /** One-off holidays / special hours (Baku dates); overrides hours_json per date. */
+  special_days_json?: SpecialDay[] | null;
 }
 
 export interface CustomerProfileRow {

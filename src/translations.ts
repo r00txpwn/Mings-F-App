@@ -315,6 +315,27 @@ export interface Translations {
   cannotChangeOwnRole: string;
   passwordMinLength: string;
 
+  // Audit log (admin)
+  auditLog: string;
+  auditLogTitle: string;
+  auditLogSubtitle: string;
+  auditLogTabActions: string;
+  auditLogTabChanges: string;
+  auditLogTabSignIns: string;
+  auditLogEmpty: string;
+  auditLogColWhen: string;
+  auditLogColWho: string;
+  auditLogColAction: string;
+  auditLogColResource: string;
+  auditLogColDetails: string;
+  auditLogColSurface: string;
+  auditLogColDevice: string;
+  auditLogSurfaceCockpit: string;
+  auditLogSurfacePos: string;
+  auditLogSurfaceKds: string;
+  auditLogSurfaceKiosk: string;
+  auditLogSurfaceOrderManager: string;
+
   // Login
   welcomeBack: string;
   signInToAccount: string;
@@ -504,6 +525,7 @@ export interface Translations {
   unpaidOnly: string;
   paidOnly: string;
   kioskOrders: string;
+  cockpitQuickLinks: string;
   confirmPayment: string;
   printAgain: string;
   cancelOrder: string;
@@ -1438,6 +1460,34 @@ export interface Translations {
   deliverySettingsDayFri: string;
   deliverySettingsDaySat: string;
   deliverySettingsDaySun: string;
+  deliverySettingsStatusOpenNow: string;
+  deliverySettingsStatusClosedNow: string;
+  deliverySettingsStatusPaused: string;
+  deliverySettingsTodayHours: string;
+  deliverySettingsTodayClosed: string;
+  deliverySettingsSpecialDayBadge: string;
+  deliverySettingsAcceptingOrders: string;
+  deliverySettingsStoppedOrders: string;
+  deliverySettingsAcceptingOrdersHint: string;
+  deliverySettingsStoppedOrdersHint: string;
+  deliverySettingsDayOpen: string;
+  deliverySettingsWeeklyHours: string;
+  deliverySettingsSpecialDaysTitle: string;
+  deliverySettingsSpecialDaysHint: string;
+  deliverySettingsSpecialDayAdd: string;
+  deliverySettingsSpecialDayRemove: string;
+  deliverySettingsSpecialDayDate: string;
+  deliverySettingsSpecialDayClosedAllDay: string;
+  deliverySettingsSpecialDayCustomHours: string;
+  deliverySettingsSpecialDayNote: string;
+  deliverySettingsSpecialDayNoteHint: string;
+  deliverySettingsSpecialDayNoteEn: string;
+  deliverySettingsSpecialDayNoteAz: string;
+  deliverySettingsSpecialDayNoteRu: string;
+  deliverySettingsSpecialDayDuplicateDate: string;
+  deliverySettingsSpecialDaysInvalid: string;
+  orderSpecialDayNoticeTitle: string;
+  orderSpecialDayNoticeDismiss: string;
   deliveryDispatchTitle: string;
   deliveryDispatchDescription: string;
   deliveryDispatchEmpty: string;
@@ -1764,6 +1814,26 @@ export const translations: Record<Language, Translations> = {
     cannotChangeOwnRole: 'You cannot change your own role',
     passwordMinLength: 'Password must be at least 8 characters',
 
+    auditLog: 'Audit log',
+    auditLogTitle: 'Audit log',
+    auditLogSubtitle: 'Admin actions, database changes, and staff sign-ins',
+    auditLogTabActions: 'Admin actions',
+    auditLogTabChanges: 'Row changes',
+    auditLogTabSignIns: 'Sign-ins',
+    auditLogEmpty: 'No entries yet',
+    auditLogColWhen: 'When',
+    auditLogColWho: 'Who',
+    auditLogColAction: 'Action',
+    auditLogColResource: 'Resource',
+    auditLogColDetails: 'Details',
+    auditLogColSurface: 'Surface',
+    auditLogColDevice: 'Device',
+    auditLogSurfaceCockpit: 'Command center',
+    auditLogSurfacePos: 'Point of Sale',
+    auditLogSurfaceKds: 'Kitchen Display',
+    auditLogSurfaceKiosk: 'Kiosk',
+    auditLogSurfaceOrderManager: 'Order Manager',
+
     welcomeBack: 'Welcome Back',
     signInToAccount: 'Sign in to your account',
     signIn: 'Sign In',
@@ -1945,6 +2015,7 @@ export const translations: Record<Language, Translations> = {
     unpaidOnly: 'Unpaid only',
     paidOnly: 'Paid only',
     kioskOrders: 'Kiosk Orders',
+    cockpitQuickLinks: 'Quick links',
     confirmPayment: 'Confirm Payment',
     printAgain: 'Print Again',
     cancelOrder: 'Cancel Order',
@@ -2865,6 +2936,35 @@ export const translations: Record<Language, Translations> = {
     deliverySettingsDayFri: 'Fri',
     deliverySettingsDaySat: 'Sat',
     deliverySettingsDaySun: 'Sun',
+    deliverySettingsStatusOpenNow: 'Open now — accepting orders',
+    deliverySettingsStatusClosedNow: 'Closed now — outside operating hours',
+    deliverySettingsStatusPaused: 'Paused — online orders stopped manually',
+    deliverySettingsTodayHours: "Today's hours: {hours}",
+    deliverySettingsTodayClosed: 'Closed all day today',
+    deliverySettingsSpecialDayBadge: 'Special schedule today',
+    deliverySettingsAcceptingOrders: 'Accepting online orders',
+    deliverySettingsStoppedOrders: 'All online orders stopped',
+    deliverySettingsAcceptingOrdersHint: 'Customers can place orders when inside your hours below.',
+    deliverySettingsStoppedOrdersHint: 'No new online orders until you turn this back on (overrides hours).',
+    deliverySettingsDayOpen: 'Open',
+    deliverySettingsWeeklyHours: 'Weekly schedule',
+    deliverySettingsSpecialDaysTitle: 'Special days & holidays',
+    deliverySettingsSpecialDaysHint:
+      'One-off dates that override the weekly schedule. Add a customer note to show a popup on the order website.',
+    deliverySettingsSpecialDayAdd: 'Add special day',
+    deliverySettingsSpecialDayRemove: 'Remove',
+    deliverySettingsSpecialDayDate: 'Date',
+    deliverySettingsSpecialDayClosedAllDay: 'Closed all day',
+    deliverySettingsSpecialDayCustomHours: 'Custom hours',
+    deliverySettingsSpecialDayNote: 'Customer notice (optional)',
+    deliverySettingsSpecialDayNoteHint: 'Shown as a popup on order.mings.az when this date is active.',
+    deliverySettingsSpecialDayNoteEn: 'English',
+    deliverySettingsSpecialDayNoteAz: 'Azerbaijani',
+    deliverySettingsSpecialDayNoteRu: 'Russian',
+    deliverySettingsSpecialDayDuplicateDate: 'Each special day must have a unique date.',
+    deliverySettingsSpecialDaysInvalid: 'Special days need a date and valid hours when not closed all day.',
+    orderSpecialDayNoticeTitle: 'Notice',
+    orderSpecialDayNoticeDismiss: 'Got it',
     deliveryDispatchTitle: 'Dispatch center',
     deliveryDispatchDescription: 'Manage active deliveries and dispatch actions.',
     deliveryDispatchEmpty: 'No dispatchable orders for this range.',
@@ -3191,6 +3291,26 @@ export const translations: Record<Language, Translations> = {
     cannotChangeOwnRole: 'Öz rolunuzu dəyişə bilməzsiniz',
     passwordMinLength: 'Şifrə ən az 8 simvol olmalıdır',
 
+    auditLog: 'Audit jurnalı',
+    auditLogTitle: 'Audit jurnalı',
+    auditLogSubtitle: 'Admin əməliyyatları, verilənlər bazası dəyişiklikləri və staff girişləri',
+    auditLogTabActions: 'Admin əməliyyatları',
+    auditLogTabChanges: 'Sətir dəyişiklikləri',
+    auditLogTabSignIns: 'Girişlər',
+    auditLogEmpty: 'Hələ qeyd yoxdur',
+    auditLogColWhen: 'Vaxt',
+    auditLogColWho: 'Kim',
+    auditLogColAction: 'Əməliyyat',
+    auditLogColResource: 'Resurs',
+    auditLogColDetails: 'Detallar',
+    auditLogColSurface: 'Səth',
+    auditLogColDevice: 'Cihaz',
+    auditLogSurfaceCockpit: 'İdarəetmə mərkəzi',
+    auditLogSurfacePos: 'Satış nöqtəsi',
+    auditLogSurfaceKds: 'Mətbəx ekranı',
+    auditLogSurfaceKiosk: 'Kiosk',
+    auditLogSurfaceOrderManager: 'Sifariş meneceri',
+
     welcomeBack: 'Xoş Gəlmisiniz',
     signInToAccount: 'Hesabınıza daxil olun',
     signIn: 'Daxil Ol',
@@ -3372,6 +3492,7 @@ export const translations: Record<Language, Translations> = {
     unpaidOnly: 'Yalnız ödənilməmiş',
     paidOnly: 'Yalnız ödənilmiş',
     kioskOrders: 'Kiosk Sifarişləri',
+    cockpitQuickLinks: 'Sürətli keçidlər',
     confirmPayment: 'Ödənişi təsdiq et',
     printAgain: 'Yenidən çap et',
     cancelOrder: 'Sifarişi ləğv et',
@@ -4294,6 +4415,35 @@ export const translations: Record<Language, Translations> = {
     deliverySettingsDayFri: 'C',
     deliverySettingsDaySat: 'Ş',
     deliverySettingsDaySun: 'B',
+    deliverySettingsStatusOpenNow: 'İndi açıqdır — sifariş qəbul olunur',
+    deliverySettingsStatusClosedNow: 'İndi bağlıdır — iş saatları xaricində',
+    deliverySettingsStatusPaused: 'Fasilə — onlayn sifarişlər əl ilə dayandırılıb',
+    deliverySettingsTodayHours: 'Bu günün saatları: {hours}',
+    deliverySettingsTodayClosed: 'Bu gün bütün gün bağlıdır',
+    deliverySettingsSpecialDayBadge: 'Bu gün xüsusi cədvəl',
+    deliverySettingsAcceptingOrders: 'Onlayn sifarişlər qəbul olunur',
+    deliverySettingsStoppedOrders: 'Bütün onlayn sifarişlər dayandırılıb',
+    deliverySettingsAcceptingOrdersHint: 'Aşağıdakı saatlarda müştərilər sifariş verə bilər.',
+    deliverySettingsStoppedOrdersHint: 'Bunu yenidən açana qədər yeni onlayn sifariş yoxdur (saatları ləğv edir).',
+    deliverySettingsDayOpen: 'Açıq',
+    deliverySettingsWeeklyHours: 'Həftəlik cədvəl',
+    deliverySettingsSpecialDaysTitle: 'Xüsusi günlər və bayramlar',
+    deliverySettingsSpecialDaysHint:
+      'Həftəlik cədvəli ləğv edən tək günlük tarixlər. Sifariş saytında popup göstərmək üçün müştəri qeydi əlavə edin.',
+    deliverySettingsSpecialDayAdd: 'Xüsusi gün əlavə et',
+    deliverySettingsSpecialDayRemove: 'Sil',
+    deliverySettingsSpecialDayDate: 'Tarix',
+    deliverySettingsSpecialDayClosedAllDay: 'Bütün gün bağlı',
+    deliverySettingsSpecialDayCustomHours: 'Xüsusi saatlar',
+    deliverySettingsSpecialDayNote: 'Müştəri bildirişi (istəyə bağlı)',
+    deliverySettingsSpecialDayNoteHint: 'Bu tarix aktiv olduqda order.mings.az-da popup kimi göstərilir.',
+    deliverySettingsSpecialDayNoteEn: 'İngilis',
+    deliverySettingsSpecialDayNoteAz: 'Azərbaycan',
+    deliverySettingsSpecialDayNoteRu: 'Rus',
+    deliverySettingsSpecialDayDuplicateDate: 'Hər xüsusi günün unikal tarixi olmalıdır.',
+    deliverySettingsSpecialDaysInvalid: 'Xüsusi günlər üçün tarix və bağlı deyilsə etibarlı saatlar lazımdır.',
+    orderSpecialDayNoticeTitle: 'Bildiriş',
+    orderSpecialDayNoticeDismiss: 'Başa düşdüm',
     deliveryDispatchTitle: 'Yola salma mərkəzi',
     deliveryDispatchDescription: 'Aktiv çatdırılmaları və yola salma əməliyyatlarını idarə edin.',
     deliveryDispatchEmpty: 'Bu aralıq üçün yola salınacaq sifariş yoxdur.',
@@ -4621,6 +4771,26 @@ export const translations: Record<Language, Translations> = {
     cannotChangeOwnRole: 'Нельзя изменить собственную роль',
     passwordMinLength: 'Пароль должен содержать минимум 8 символов',
 
+    auditLog: 'Журнал аудита',
+    auditLogTitle: 'Журнал аудита',
+    auditLogSubtitle: 'Действия админа, изменения в БД и входы сотрудников',
+    auditLogTabActions: 'Действия админа',
+    auditLogTabChanges: 'Изменения строк',
+    auditLogTabSignIns: 'Входы',
+    auditLogEmpty: 'Записей пока нет',
+    auditLogColWhen: 'Когда',
+    auditLogColWho: 'Кто',
+    auditLogColAction: 'Действие',
+    auditLogColResource: 'Ресурс',
+    auditLogColDetails: 'Детали',
+    auditLogColSurface: 'Поверхность',
+    auditLogColDevice: 'Устройство',
+    auditLogSurfaceCockpit: 'Командный центр',
+    auditLogSurfacePos: 'Касса',
+    auditLogSurfaceKds: 'Кухонный экран',
+    auditLogSurfaceKiosk: 'Киоск',
+    auditLogSurfaceOrderManager: 'Менеджер заказов',
+
     welcomeBack: 'С Возвращением',
     signInToAccount: 'Войдите в свою учетную запись',
     signIn: 'Войти',
@@ -4802,6 +4972,7 @@ export const translations: Record<Language, Translations> = {
     unpaidOnly: 'Только неоплаченные',
     paidOnly: 'Только оплаченные',
     kioskOrders: 'Заказы с Киоска',
+    cockpitQuickLinks: 'Быстрые ссылки',
     confirmPayment: 'Подтвердить оплату',
     printAgain: 'Печать повторно',
     cancelOrder: 'Отменить заказ',
@@ -5724,6 +5895,35 @@ export const translations: Record<Language, Translations> = {
     deliverySettingsDayFri: 'Пт',
     deliverySettingsDaySat: 'Сб',
     deliverySettingsDaySun: 'Вс',
+    deliverySettingsStatusOpenNow: 'Сейчас открыто — принимаем заказы',
+    deliverySettingsStatusClosedNow: 'Сейчас закрыто — вне рабочих часов',
+    deliverySettingsStatusPaused: 'Пауза — онлайн-заказы остановлены вручную',
+    deliverySettingsTodayHours: 'Часы сегодня: {hours}',
+    deliverySettingsTodayClosed: 'Сегодня закрыто весь день',
+    deliverySettingsSpecialDayBadge: 'Сегодня особый график',
+    deliverySettingsAcceptingOrders: 'Принимаем онлайн-заказы',
+    deliverySettingsStoppedOrders: 'Все онлайн-заказы остановлены',
+    deliverySettingsAcceptingOrdersHint: 'Клиенты могут заказывать в указанные ниже часы.',
+    deliverySettingsStoppedOrdersHint: 'Новых онлайн-заказов нет, пока вы не включите снова (отменяет часы).',
+    deliverySettingsDayOpen: 'Открыто',
+    deliverySettingsWeeklyHours: 'Еженедельный график',
+    deliverySettingsSpecialDaysTitle: 'Особые дни и праздники',
+    deliverySettingsSpecialDaysHint:
+      'Разовые даты, которые заменяют недельный график. Добавьте заметку для клиентов — она покажется на сайте заказов.',
+    deliverySettingsSpecialDayAdd: 'Добавить особый день',
+    deliverySettingsSpecialDayRemove: 'Удалить',
+    deliverySettingsSpecialDayDate: 'Дата',
+    deliverySettingsSpecialDayClosedAllDay: 'Закрыто весь день',
+    deliverySettingsSpecialDayCustomHours: 'Особые часы',
+    deliverySettingsSpecialDayNote: 'Сообщение для клиентов (необязательно)',
+    deliverySettingsSpecialDayNoteHint: 'Показывается на order.mings.az, когда эта дата активна.',
+    deliverySettingsSpecialDayNoteEn: 'Английский',
+    deliverySettingsSpecialDayNoteAz: 'Азербайджанский',
+    deliverySettingsSpecialDayNoteRu: 'Русский',
+    deliverySettingsSpecialDayDuplicateDate: 'У каждого особого дня должна быть уникальная дата.',
+    deliverySettingsSpecialDaysInvalid: 'Для особых дней нужна дата и корректные часы, если не закрыто весь день.',
+    orderSpecialDayNoticeTitle: 'Уведомление',
+    orderSpecialDayNoticeDismiss: 'Понятно',
     deliveryDispatchTitle: 'Центр отправки',
     deliveryDispatchDescription: 'Управляйте активными доставками и действиями отправки.',
     deliveryDispatchEmpty: 'Нет заказов для отправки в этом диапазоне.',
