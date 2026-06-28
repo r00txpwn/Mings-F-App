@@ -40,29 +40,26 @@ export function computeSupplierOutstanding(input: SupplierOutstandingInput): num
   return roundMoney(Math.max(0, debts + purchases - paid));
 }
 
-export function allocatePaymentsFIFO(
+export function computeSupplierCreditBalance(input: SupplierOutstandingInput): number {
+  const debts = sum(input.manualDebts);
+  const purchases = sum(input.creditPurchases);
+  const paid = sum(input.payments);
+  return roundMoney(Math.max(0, paid - debts - purchases));
+}
+
+/** FIFO allocation for manual supplier debts only (opening balances, informal IOUs). */
+export function allocateManualDebtPaymentsFIFO(
   manualDebts: ManualDebtInput[],
-  purchases: CreditPurchaseInput[],
   totalPaid: number,
-): {
-  manualDebts: AllocatedLine[];
-  purchases: AllocatedLine[];
-  totalRemaining: number;
-} {
-  const lines: LedgerLineInput[] = [
-    ...manualDebts.map((d) => ({
+): { manualDebts: AllocatedLine[]; totalRemaining: number } {
+  const lines: LedgerLineInput[] = manualDebts
+    .map((d) => ({
       id: d.id,
       total: d.total,
       lineDate: d.debtDate,
       source: 'manual' as const,
-    })),
-    ...purchases.map((p) => ({
-      id: p.id,
-      total: p.total,
-      lineDate: p.purchaseDate,
-      source: 'purchase' as const,
-    })),
-  ].sort((a, b) => a.lineDate.localeCompare(b.lineDate) || a.id.localeCompare(b.id));
+    }))
+    .sort((a, b) => a.lineDate.localeCompare(b.lineDate) || a.id.localeCompare(b.id));
 
   let remainingPayment = safeAmount(totalPaid);
   const allocated: AllocatedLine[] = [];
@@ -85,13 +82,40 @@ export function allocatePaymentsFIFO(
     });
   }
 
-  const manualAllocated = allocated.filter((l) => l.source === 'manual');
-  const purchaseAllocated = allocated.filter((l) => l.source === 'purchase');
   const totalDebt = sum(lines.map((l) => l.total));
   const totalRemaining = roundMoney(Math.max(0, totalDebt - safeAmount(totalPaid)));
 
   return {
-    manualDebts: manualAllocated,
+    manualDebts: allocated,
+    totalRemaining,
+  };
+}
+
+/** @deprecated Purchase lines use record status; FIFO applies to manual debts only. */
+export function allocatePaymentsFIFO(
+  manualDebts: ManualDebtInput[],
+  purchases: CreditPurchaseInput[],
+  totalPaid: number,
+): {
+  manualDebts: AllocatedLine[];
+  purchases: AllocatedLine[];
+  totalRemaining: number;
+} {
+  const manualResult = allocateManualDebtPaymentsFIFO(manualDebts, totalPaid);
+  const purchaseAllocated: AllocatedLine[] = purchases.map((p) => ({
+    id: p.id,
+    total: roundMoney(safeAmount(p.total)),
+    paid: 0,
+    status: 'unpaid' as const,
+    source: 'purchase' as const,
+  }));
+
+  const totalDebt =
+    sum(manualDebts.map((d) => d.total)) + sum(purchases.map((p) => p.total));
+  const totalRemaining = roundMoney(Math.max(0, totalDebt - safeAmount(totalPaid)));
+
+  return {
+    manualDebts: manualResult.manualDebts,
     purchases: purchaseAllocated,
     totalRemaining,
   };

@@ -15,6 +15,11 @@ export interface Translations {
   navOrders: string;
   navCatalog: string;
   navFinance: string;
+  navHubIncome: string;
+  navHubSpending: string;
+  navHubCashAccounts: string;
+  navHubPayroll: string;
+  navHubInsights: string;
   navSystem: string;
   cockpitLoadingContent: string;
   cockpitResetFilters: string;
@@ -420,6 +425,11 @@ export interface Translations {
   selectExpenseItem: string;
   expenseItemName: string;
   addNewExpenseItem: string;
+  createNamed: string;
+  newItem: string;
+  assignToCategory: string;
+  newCategory: string;
+  newSupplierName: string;
   noExpenseItems: string;
   createFirstExpenseItem: string;
   selectMasterCategory: string;
@@ -653,8 +663,6 @@ export interface Translations {
   staffFullName: string;
   staffDesignation: string;
   staffTotalSalary: string;
-  staffOfficialSalary: string;
-  staffHiredAt: string;
   staffActiveLabel: string;
   staffActiveEmployees: string;
   staffMonthlyPayrollTarget: string;
@@ -668,7 +676,6 @@ export interface Translations {
   staffPaymentTypePartial: string;
   staffNameRequired: string;
   staffInvalidSalary: string;
-  staffOfficialExceedsTotal: string;
   staffInvalidPaymentAmount: string;
   staffEmployeeAdded: string;
   staffEmployeeUpdated: string;
@@ -685,53 +692,6 @@ export interface Translations {
   staffDoubleEntryWarning: string;
   staffSalariesLabel: string;
   staffSalariesHint: string;
-
-  // Taxes
-  taxes: string;
-  taxesScreenTitle: string;
-  taxesScreenDescription: string;
-  taxesAccountantNote: string;
-  taxesTabOverview: string;
-  taxesTabSettings: string;
-  taxesTabPayments: string;
-  taxesSalesTaxLabel: string;
-  taxesSalesTaxHint: string;
-  taxesPayrollTaxLabel: string;
-  taxesEmployerContributionsLabel: string;
-  taxesSalariesPaidLabel: string;
-  taxesBasedOnOfficialSalary: string;
-  taxesCashTurnover: string;
-  taxesNonCashTurnover: string;
-  taxesEmployeeBreakdownTitle: string;
-  taxesMonthlyEstimate: string;
-  taxesNoOfficialSalaries: string;
-  taxesIncomeTax: string;
-  taxesEmployeeWithheld: string;
-  taxesEmployerShare: string;
-  taxesTotalLiability: string;
-  taxesSettingsSaved: string;
-  taxesSalesTaxCashRate: string;
-  taxesSalesTaxNonCashRate: string;
-  taxesPitExemptAmount: string;
-  taxesPitBracket1Pct: string;
-  taxesPitBracket2Pct: string;
-  taxesPitBracket3Pct: string;
-  taxesRecordPayment: string;
-  taxesEditPayment: string;
-  taxesPaymentType: string;
-  taxesTypeSales: string;
-  taxesTypePayroll: string;
-  taxesPeriodStart: string;
-  taxesPeriodEnd: string;
-  taxesPaidDate: string;
-  taxesPeriod: string;
-  taxesInvalidAmount: string;
-  taxesInvalidPeriod: string;
-  taxesPaymentAdded: string;
-  taxesPaymentUpdated: string;
-  taxesPaymentDeleted: string;
-  taxesDeletePaymentConfirm: string;
-  taxesNoPayments: string;
   kpiNetProfitHintExtended: string;
 
   weatherUnavailable: string;
@@ -759,6 +719,12 @@ export interface Translations {
   platformCosts: string;
   noSalesInPeriod: string;
   payoutReceived: string;
+  /** Label for choosing which account a payout landed in */
+  payoutReceivedInto: string;
+  /** Helper under the received-account selector */
+  payoutReceivedIntoHint: string;
+  /** Warning when a payout has no account chosen (won't affect balances) */
+  payoutNoAccountWarning: string;
   /** Sum of recorded sales for the payout period (channel + dates) */
   periodRevenue: string;
   /** Commission implied as revenue minus payout (same idea as platform fee) */
@@ -1317,11 +1283,26 @@ export interface Translations {
   supplierAddDebt: string;
   supplierDebtHistory: string;
   supplierDebtCleared: string;
+  supplierCreditBalance: string;
   supplierDebtFromPurchase: string;
   supplierManualDebt: string;
   supplierClearDebt: string;
   supplierAccountView: string;
   supplierRecentPayments: string;
+  supplierAccountExplainer: string;
+  supplierYouOwe: string;
+  supplierPrepaid: string;
+  supplierSettled: string;
+  supplierStatement: string;
+  supplierBalanceColumn: string;
+  supplierPaymentLabel: string;
+  supplierAddDebtHint: string;
+  supplierNoActivity: string;
+  supplierSearchPlaceholder: string;
+  supplierNoMatches: string;
+  supplierTotalSpend: string;
+  purchaseOnAccountHint: string;
+  purchasePaidNowHint: string;
   purchaseOnAccount: string;
   purchasePaidNow: string;
   purchasePaymentMode: string;
@@ -1334,12 +1315,17 @@ export interface Translations {
   liabilityLenderHelp: string;
   cashDebtLoansHelp: string;
   liabilityEmpty: string;
+  liabilityStatusOpen: string;
+  liabilityStatusPartial: string;
+  liabilityStatusSettled: string;
   withdrawalLog: string;
   withdrawalMethodCashier: string;
   withdrawalMethodAbbAtm: string;
   withdrawalFeePreview: string;
   withdrawalFeesPeriodTotal: string;
   withdrawalEmpty: string;
+  withdrawalAvailableInAccount: string;
+  withdrawalInsufficientFunds: string;
   withdrawalMethod: string;
   withdrawalFee: string;
   posPaymentMethod: string;
@@ -1348,6 +1334,39 @@ export interface Translations {
   cashDrawerTab: string;
   cashOnHand: string;
   cashOnHandHint: string;
+  accountCash: string;
+  accountBank: string;
+  accountCard: string;
+  accountBalancesTitle: string;
+  accountBankHint: string;
+  accountCardHint: string;
+  accountManage: string;
+  accountSetupTitle: string;
+  accountCurrentBalance: string;
+  accountTransferAction: string;
+  accountActivityTitle: string;
+  accountActivityEmpty: string;
+  accountActivityFilterAll: string;
+  accountLedgerOpening: string;
+  accountLedgerTransferIn: string;
+  accountLedgerTransferOut: string;
+  accountLedgerWithdrawal: string;
+  accountLedgerExpense: string;
+  accountLedgerPurchase: string;
+  accountLedgerPayout: string;
+  accountLedgerManagedElsewhere: string;
+  accountLedgerManagedPayouts: string;
+  accountTransferDeleted: string;
+  accountOpeningBalance: string;
+  accountOpeningDate: string;
+  accountOpeningBalanceSaved: string;
+  accountTransferBankToCard: string;
+  accountTransferSaved: string;
+  paymentCash: string;
+  paymentCard: string;
+  paymentBankTransfer: string;
+  selectPaymentMethod: string;
+  withdrawalMethodCardAccount: string;
   cashDrawerTitle: string;
   cashDrawerSubtitle: string;
   cashOpeningBalance: string;
@@ -1356,8 +1375,10 @@ export interface Translations {
   cashOutTotal: string;
   cashFromOrders: string;
   cashFromWithdrawals: string;
+  cashFromPayouts: string;
   cashAdjustmentsIn: string;
   cashToExpenses: string;
+  cashToPurchases: string;
   cashToSuppliers: string;
   cashToLiabilities: string;
   cashBankDeposits: string;
@@ -1526,6 +1547,11 @@ export const translations: Record<Language, Translations> = {
     navOrders: 'Orders',
     navCatalog: 'Catalog',
     navFinance: 'Finance',
+    navHubIncome: 'Income',
+    navHubSpending: 'Spending',
+    navHubCashAccounts: 'Cash & Accounts',
+    navHubPayroll: 'Payroll',
+    navHubInsights: 'Insights',
     navSystem: 'System',
     cockpitLoadingContent: 'Loading…',
     cockpitResetFilters: 'Reset filters',
@@ -1916,6 +1942,11 @@ export const translations: Record<Language, Translations> = {
     selectExpenseItem: 'Select Expense Item',
     expenseItemName: 'Expense Item Name',
     addNewExpenseItem: 'Add New Expense Item',
+    createNamed: 'Create "{name}"',
+    newItem: 'New item',
+    assignToCategory: 'Assign to category',
+    newCategory: 'New category',
+    newSupplierName: 'Supplier name',
     noExpenseItems: 'No expense items found',
     createFirstExpenseItem: 'Create your first expense item to get started',
     selectMasterCategory: 'Select Master Category',
@@ -2138,9 +2169,7 @@ export const translations: Record<Language, Translations> = {
     staffEditPayment: 'Edit payment',
     staffFullName: 'Full name',
     staffDesignation: 'Designation',
-    staffTotalSalary: 'Total monthly salary',
-    staffOfficialSalary: 'Official declared salary',
-    staffHiredAt: 'Hired date',
+    staffTotalSalary: 'Monthly salary',
     staffActiveLabel: 'Active employee',
     staffActiveEmployees: 'Active employees',
     staffMonthlyPayrollTarget: 'Monthly payroll target',
@@ -2154,7 +2183,6 @@ export const translations: Record<Language, Translations> = {
     staffPaymentTypePartial: 'Partial',
     staffNameRequired: 'Employee name is required',
     staffInvalidSalary: 'Enter valid salary amounts',
-    staffOfficialExceedsTotal: 'Official salary cannot exceed total salary',
     staffInvalidPaymentAmount: 'Enter a valid payment amount',
     staffEmployeeAdded: 'Employee added',
     staffEmployeeUpdated: 'Employee updated',
@@ -2170,54 +2198,8 @@ export const translations: Record<Language, Translations> = {
     staffNoDesignation: 'No designation',
     staffDoubleEntryWarning: 'Record salaries here instead of the Expenses “Salaries” category to avoid double-counting in reports.',
     staffSalariesLabel: 'Salaries paid',
-    staffSalariesHint: 'Employer contributions: ₼{employer}',
-
-    taxes: 'Taxes',
-    taxesScreenTitle: 'Taxes',
-    taxesScreenDescription: 'Sales tax and payroll tax liabilities for Azerbaijan.',
-    taxesAccountantNote: 'Rates follow Azerbaijan 2026 defaults and are configurable. Confirm your regime and brackets with your accountant before filing.',
-    taxesTabOverview: 'Overview',
-    taxesTabSettings: 'Rate settings',
-    taxesTabPayments: 'Tax payments',
-    taxesSalesTaxLabel: 'Sales tax',
-    taxesSalesTaxHint: 'Simplified turnover tax for the period',
-    taxesPayrollTaxLabel: 'Payroll tax liability',
-    taxesEmployerContributionsLabel: 'Employer contributions',
-    taxesSalariesPaidLabel: 'Salaries paid',
-    taxesBasedOnOfficialSalary: 'Based on official declared salaries',
-    taxesCashTurnover: 'Cash turnover',
-    taxesNonCashTurnover: 'Non-cash turnover',
-    taxesEmployeeBreakdownTitle: 'Monthly payroll tax by employee',
-    taxesMonthlyEstimate: 'Estimated monthly total liability: ₼{amount}',
-    taxesNoOfficialSalaries: 'No employees with an official declared salary.',
-    taxesIncomeTax: 'Income tax',
-    taxesEmployeeWithheld: 'Employee withheld',
-    taxesEmployerShare: 'Employer share',
-    taxesTotalLiability: 'Total liability',
-    taxesSettingsSaved: 'Tax settings saved',
-    taxesSalesTaxCashRate: 'Sales tax — cash (%)',
-    taxesSalesTaxNonCashRate: 'Sales tax — non-cash (%)',
-    taxesPitExemptAmount: 'PIT exempt amount (AZN)',
-    taxesPitBracket1Pct: 'PIT bracket 1 (%)',
-    taxesPitBracket2Pct: 'PIT bracket 2 (%)',
-    taxesPitBracket3Pct: 'PIT bracket 3 (%)',
-    taxesRecordPayment: 'Record tax payment',
-    taxesEditPayment: 'Edit tax payment',
-    taxesPaymentType: 'Tax type',
-    taxesTypeSales: 'Sales / turnover tax',
-    taxesTypePayroll: 'Payroll tax',
-    taxesPeriodStart: 'Period start',
-    taxesPeriodEnd: 'Period end',
-    taxesPaidDate: 'Paid date',
-    taxesPeriod: 'Period',
-    taxesInvalidAmount: 'Enter a valid tax amount',
-    taxesInvalidPeriod: 'Select a valid tax period',
-    taxesPaymentAdded: 'Tax payment recorded',
-    taxesPaymentUpdated: 'Tax payment updated',
-    taxesPaymentDeleted: 'Tax payment deleted',
-    taxesDeletePaymentConfirm: 'Delete this tax payment record?',
-    taxesNoPayments: 'No tax payments recorded yet.',
-    kpiNetProfitHintExtended: 'After fees ₼{fees}, sales tax ₼{tax}, salaries ₼{payroll}',
+    staffSalariesHint: 'Salary payments recorded in the Staff module',
+    kpiNetProfitHintExtended: 'After bank fees ₼{fees} and salaries ₼{payroll}',
 
     weatherUnavailable: 'Weather unavailable',
     cached: 'cached',
@@ -2244,6 +2226,9 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Platform Costs',
     noSalesInPeriod: 'No sales found for this period',
     payoutReceived: 'Payout Received',
+    payoutReceivedInto: 'Received into',
+    payoutReceivedIntoHint: 'Which account did this payout land in? The balance updates automatically.',
+    payoutNoAccountWarning: 'No account selected — this payout will not update any balance.',
     periodRevenue: 'Period revenue',
     impliedCommission: 'Commission',
     payoutPeriodsInRange: '{count} payout periods in this range',
@@ -2778,7 +2763,7 @@ export const translations: Record<Language, Translations> = {
     paymentsProviderEpoint: 'Epoint',
     paymentsProviderUnited: 'United Payment',
     paymentsProviderOther: 'Other',
-    cashDebt: 'Cash & Debt',
+    cashDebt: 'Cash & Accounts',
     cashDebtScreenTitle: 'Cash & Debt',
     cashDebtScreenDescription: 'Loans, other liabilities, and bank withdrawal fees.',
     cashDebtTabLoans: 'Loans & other',
@@ -2792,11 +2777,27 @@ export const translations: Record<Language, Translations> = {
     supplierAddDebt: 'Add debt',
     supplierDebtHistory: 'Debt history',
     supplierDebtCleared: 'Cleared',
+    supplierCreditBalance: 'Credit balance',
     supplierDebtFromPurchase: 'Purchase (on account)',
     supplierManualDebt: 'Manual debt',
     supplierClearDebt: 'Clear debt',
     supplierAccountView: 'Account',
     supplierRecentPayments: 'Recent payments',
+    supplierAccountExplainer:
+      "A supplier's balance is a running tab: on-account purchases add to it, payments reduce it. Pay it down with “Clear debt”.",
+    supplierYouOwe: 'Debt',
+    supplierPrepaid: 'Overpayment',
+    supplierSettled: 'Paid',
+    supplierStatement: 'Account statement',
+    supplierBalanceColumn: 'Balance',
+    supplierPaymentLabel: 'Payment',
+    supplierAddDebtHint: 'Only for amounts not from a recorded purchase (e.g. an opening balance you already owed).',
+    supplierNoActivity: 'No purchases or payments yet.',
+    supplierSearchPlaceholder: 'Search suppliers…',
+    supplierNoMatches: 'No suppliers match your search.',
+    supplierTotalSpend: 'Total spend',
+    purchaseOnAccountHint: 'Adds this purchase to the supplier’s balance until you pay it.',
+    purchasePaidNowHint: 'Deducts this purchase from the selected account balance now.',
     purchaseOnAccount: 'On account',
     purchasePaidNow: 'Paid now',
     purchasePaymentMode: 'Payment',
@@ -2809,12 +2810,17 @@ export const translations: Record<Language, Translations> = {
     liabilityLenderHelp: 'Who you owe — bank name, friend, etc. Supplier debt is tracked on the Suppliers screen.',
     cashDebtLoansHelp: 'Use this for bank loans and personal debt. Supplier debt belongs on Suppliers.',
     liabilityEmpty: 'No loans or other liabilities yet.',
+    liabilityStatusOpen: 'Open',
+    liabilityStatusPartial: 'Partially paid',
+    liabilityStatusSettled: 'Settled',
     withdrawalLog: 'Log withdrawal',
     withdrawalMethodCashier: 'Cashier (0.5%)',
     withdrawalMethodAbbAtm: 'ABB ATM (1%, min ₼1)',
     withdrawalFeePreview: 'Bank fee',
     withdrawalFeesPeriodTotal: 'Fees in list',
     withdrawalEmpty: 'No withdrawals logged yet.',
+    withdrawalAvailableInAccount: 'Available in {account}: {available}',
+    withdrawalInsufficientFunds: 'Not enough in {account}. Available: {available}.',
     withdrawalMethod: 'Method',
     withdrawalFee: 'Fee',
     posPaymentMethod: 'Payment method',
@@ -2823,6 +2829,39 @@ export const translations: Record<Language, Translations> = {
     cashDrawerTab: 'Cash drawer',
     cashOnHand: 'Cash on hand',
     cashOnHandHint: 'Physical cash you should have now',
+    accountCash: 'Cash on hand',
+    accountBank: 'Main (bank) account',
+    accountCard: 'Card account',
+    accountBalancesTitle: 'Account balances',
+    accountBankHint: 'Payouts land here; cheque withdrawals come from it',
+    accountCardHint: 'Funded by transfers; used for ATM withdrawals',
+    accountManage: 'Manage accounts',
+    accountSetupTitle: 'Account setup',
+    accountCurrentBalance: 'Current',
+    accountTransferAction: 'Transfer',
+    accountActivityTitle: 'Account activity',
+    accountActivityEmpty: 'No bank or card activity yet.',
+    accountActivityFilterAll: 'All accounts',
+    accountLedgerOpening: 'Opening balance',
+    accountLedgerTransferIn: 'Transfer in',
+    accountLedgerTransferOut: 'Transfer out',
+    accountLedgerWithdrawal: 'Withdrawal',
+    accountLedgerExpense: 'Expense',
+    accountLedgerPurchase: 'Purchase',
+    accountLedgerPayout: 'Payout received',
+    accountLedgerManagedElsewhere: 'Managed on the Expenses screen',
+    accountLedgerManagedPayouts: 'Managed on the Payouts screen',
+    accountTransferDeleted: 'Transfer deleted',
+    accountOpeningBalance: 'Opening balance',
+    accountOpeningDate: 'As of date',
+    accountOpeningBalanceSaved: 'Opening balance saved',
+    accountTransferBankToCard: 'Transfer main → card',
+    accountTransferSaved: 'Transfer recorded',
+    paymentCash: 'Cash',
+    paymentCard: 'Card',
+    paymentBankTransfer: 'Bank transfer',
+    selectPaymentMethod: 'Select payment method',
+    withdrawalMethodCardAccount: 'Card account (ABB ATM, 1%, min ₼1)',
     cashDrawerTitle: 'Cash drawer',
     cashDrawerSubtitle: 'Track physical cash to reconcile the drawer at month end.',
     cashOpeningBalance: 'Opening balance',
@@ -2831,8 +2870,10 @@ export const translations: Record<Language, Translations> = {
     cashOutTotal: 'Cash out',
     cashFromOrders: 'Cash orders collected',
     cashFromWithdrawals: 'Bank withdrawals (net of fees)',
+    cashFromPayouts: 'Cash payouts received',
     cashAdjustmentsIn: 'Float & adjustments in',
     cashToExpenses: 'Cash expenses',
+    cashToPurchases: 'Cash purchases',
     cashToSuppliers: 'Cash to suppliers',
     cashToLiabilities: 'Cash to loans',
     cashBankDeposits: 'Bank deposits & adjustments out',
@@ -3003,6 +3044,11 @@ export const translations: Record<Language, Translations> = {
     navOrders: 'Sifarişlər',
     navCatalog: 'Kataloq',
     navFinance: 'Maliyyə',
+    navHubIncome: 'Gəlir',
+    navHubSpending: 'Xərclər',
+    navHubCashAccounts: 'Nağd və hesablar',
+    navHubPayroll: 'Maaş',
+    navHubInsights: 'Analitika',
     navSystem: 'Sistem',
     cockpitLoadingContent: 'Yüklənir…',
     cockpitResetFilters: 'Filtrləri sıfırla',
@@ -3393,6 +3439,11 @@ export const translations: Record<Language, Translations> = {
     selectExpenseItem: 'Xərc Maddəsini Seçin',
     expenseItemName: 'Xərc Maddəsinin Adı',
     addNewExpenseItem: 'Yeni Xərc Maddəsi Əlavə Et',
+    createNamed: '"{name}" yarat',
+    newItem: 'Yeni maddə',
+    assignToCategory: 'Kateqoriyaya təyin et',
+    newCategory: 'Yeni kateqoriya',
+    newSupplierName: 'Təchizatçı adı',
     noExpenseItems: 'Xərc maddəsi tapılmadı',
     createFirstExpenseItem: 'Başlamaq üçün ilk xərc maddəsini yaradın',
     selectMasterCategory: 'Ana Kateqoriya Seçin',
@@ -3615,9 +3666,7 @@ export const translations: Record<Language, Translations> = {
     staffEditPayment: 'Ödənişi redaktə et',
     staffFullName: 'Ad soyad',
     staffDesignation: 'Vəzifə',
-    staffTotalSalary: 'Ümumi aylıq maaş',
-    staffOfficialSalary: 'Rəsmi bəyan edilən maaş',
-    staffHiredAt: 'İşə qəbul tarixi',
+    staffTotalSalary: 'Aylıq maaş',
     staffActiveLabel: 'Aktiv işçi',
     staffActiveEmployees: 'Aktiv işçilər',
     staffMonthlyPayrollTarget: 'Aylıq maaş hədəfi',
@@ -3631,7 +3680,6 @@ export const translations: Record<Language, Translations> = {
     staffPaymentTypePartial: 'Qismən',
     staffNameRequired: 'İşçi adı tələb olunur',
     staffInvalidSalary: 'Düzgün maaş məbləğləri daxil edin',
-    staffOfficialExceedsTotal: 'Rəsmi maaş ümumi maaşdan çox ola bilməz',
     staffInvalidPaymentAmount: 'Düzgün ödəniş məbləği daxil edin',
     staffEmployeeAdded: 'İşçi əlavə edildi',
     staffEmployeeUpdated: 'İşçi yeniləndi',
@@ -3647,54 +3695,8 @@ export const translations: Record<Language, Translations> = {
     staffNoDesignation: 'Vəzifə yoxdur',
     staffDoubleEntryWarning: 'Hesabatlarda təkrar sayılmasın deyə maaşları Xərclər “Maaşlar” kateqoriyası əvəzinə burada qeyd edin.',
     staffSalariesLabel: 'Ödənilən maaşlar',
-    staffSalariesHint: 'İşəgötürən töhfələri: ₼{employer}',
-
-    taxes: 'Vergilər',
-    taxesScreenTitle: 'Vergilər',
-    taxesScreenDescription: 'Azərbaycan üçün satış və əmək haqqı vergi öhdəlikləri.',
-    taxesAccountantNote: 'Dərəcələr Azərbaycan 2026 standartlarına uyğundur və dəyişdirilə bilər. Bəyannamədən əvvəl rejiminizi mühasibinizlə təsdiqləyin.',
-    taxesTabOverview: 'İcmal',
-    taxesTabSettings: 'Dərəcə parametrləri',
-    taxesTabPayments: 'Vergi ödənişləri',
-    taxesSalesTaxLabel: 'Satış vergisi',
-    taxesSalesTaxHint: 'Dövr üzrə sadələşdirilmiş dövriyyə vergisi',
-    taxesPayrollTaxLabel: 'Əmək haqqı vergi öhdəliyi',
-    taxesEmployerContributionsLabel: 'İşəgötürən töhfələri',
-    taxesSalariesPaidLabel: 'Ödənilən maaşlar',
-    taxesBasedOnOfficialSalary: 'Rəsmi bəyan edilən maaşlar əsasında',
-    taxesCashTurnover: 'Nağd dövriyyə',
-    taxesNonCashTurnover: 'Nağdsız dövriyyə',
-    taxesEmployeeBreakdownTitle: 'İşçi üzrə aylıq əmək haqqı vergisi',
-    taxesMonthlyEstimate: 'Təxmini aylıq ümumi öhdəlik: ₼{amount}',
-    taxesNoOfficialSalaries: 'Rəsmi bəyan edilən maaşı olan işçi yoxdur.',
-    taxesIncomeTax: 'Gəlir vergisi',
-    taxesEmployeeWithheld: 'İşçidən tutulan',
-    taxesEmployerShare: 'İşəgötürən payı',
-    taxesTotalLiability: 'Ümumi öhdəlik',
-    taxesSettingsSaved: 'Vergi parametrləri yadda saxlanıldı',
-    taxesSalesTaxCashRate: 'Satış vergisi — nağd (%)',
-    taxesSalesTaxNonCashRate: 'Satış vergisi — nağdsız (%)',
-    taxesPitExemptAmount: 'G/V azad məbləği (AZN)',
-    taxesPitBracket1Pct: 'G/V pillə 1 (%)',
-    taxesPitBracket2Pct: 'G/V pillə 2 (%)',
-    taxesPitBracket3Pct: 'G/V pillə 3 (%)',
-    taxesRecordPayment: 'Vergi ödənişi qeyd et',
-    taxesEditPayment: 'Vergi ödənişini redaktə et',
-    taxesPaymentType: 'Vergi növü',
-    taxesTypeSales: 'Satış / dövriyyə vergisi',
-    taxesTypePayroll: 'Əmək haqqı vergisi',
-    taxesPeriodStart: 'Dövr başlanğıcı',
-    taxesPeriodEnd: 'Dövr sonu',
-    taxesPaidDate: 'Ödəniş tarixi',
-    taxesPeriod: 'Dövr',
-    taxesInvalidAmount: 'Düzgün vergi məbləği daxil edin',
-    taxesInvalidPeriod: 'Düzgün vergi dövrü seçin',
-    taxesPaymentAdded: 'Vergi ödənişi qeyd edildi',
-    taxesPaymentUpdated: 'Vergi ödənişi yeniləndi',
-    taxesPaymentDeleted: 'Vergi ödənişi silindi',
-    taxesDeletePaymentConfirm: 'Bu vergi ödənişi qeydi silinsin?',
-    taxesNoPayments: 'Hələ vergi ödənişi qeyd edilməyib.',
-    kpiNetProfitHintExtended: 'Haqlardan, satış vergisindən və maaşlardan sonra: ₼{fees} / ₼{tax} / ₼{payroll}',
+    staffSalariesHint: 'Maaş modulunda qeyd edilən ödənişlər',
+    kpiNetProfitHintExtended: 'Bank haqları ₼{fees} və maaşlar ₼{payroll} çıxıldıqdan sonra',
 
     weatherUnavailable: 'Hava məlumatı mövcud deyil',
     cached: 'keş',
@@ -3721,6 +3723,9 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Platforma Xərcləri',
     noSalesInPeriod: 'Bu dövr üçün satış tapılmadı',
     payoutReceived: 'Alınan Ödəniş',
+    payoutReceivedInto: 'Hara daxil oldu',
+    payoutReceivedIntoHint: 'Bu ödəniş hansı hesaba düşdü? Balans avtomatik yenilənir.',
+    payoutNoAccountWarning: 'Hesab seçilməyib — bu ödəniş heç bir balansı yeniləməyəcək.',
     periodRevenue: 'Dövr üzrə gəlir',
     impliedCommission: 'Komissiya',
     payoutPeriodsInRange: 'Bu aralıqda {count} ödəniş dövrü',
@@ -4257,7 +4262,7 @@ export const translations: Record<Language, Translations> = {
     paymentsProviderEpoint: 'Epoint',
     paymentsProviderUnited: 'United Payment',
     paymentsProviderOther: 'Digər',
-    cashDebt: 'Nağd və borc',
+    cashDebt: 'Nağd və hesablar',
     cashDebtScreenTitle: 'Nağd və borc',
     cashDebtScreenDescription: 'Kreditlər, digər öhdəliklər və bank çıxarış haqları.',
     cashDebtTabLoans: 'Kreditlər və digər',
@@ -4271,11 +4276,27 @@ export const translations: Record<Language, Translations> = {
     supplierAddDebt: 'Borc əlavə et',
     supplierDebtHistory: 'Borc tarixçəsi',
     supplierDebtCleared: 'Bağlanıb',
+    supplierCreditBalance: 'Kredit balansı',
     supplierDebtFromPurchase: 'Alış (hesabdan)',
     supplierManualDebt: 'Manual borc',
     supplierClearDebt: 'Borcu bağla',
     supplierAccountView: 'Hesab',
     supplierRecentPayments: 'Son ödənişlər',
+    supplierAccountExplainer:
+      'Təchizatçının balansı davamlı hesabdır: hesabdan alışlar onu artırır, ödənişlər azaldır. “Borcu bağla” ilə ödəyin.',
+    supplierYouOwe: 'Borc',
+    supplierPrepaid: 'Artıq ödəniş',
+    supplierSettled: 'Ödənilib',
+    supplierStatement: 'Hesab çıxarışı',
+    supplierBalanceColumn: 'Balans',
+    supplierPaymentLabel: 'Ödəniş',
+    supplierAddDebtHint: 'Yalnız qeydə alınmış alışdan olmayan məbləğlər üçün (məsələn, əvvəlcədən mövcud borc).',
+    supplierNoActivity: 'Hələ alış və ya ödəniş yoxdur.',
+    supplierSearchPlaceholder: 'Təchizatçı axtar…',
+    supplierNoMatches: 'Axtarışa uyğun təchizatçı tapılmadı.',
+    supplierTotalSpend: 'Ümumi xərc',
+    purchaseOnAccountHint: 'Ödəyənə qədər bu alışı təchizatçının balansına əlavə edir.',
+    purchasePaidNowHint: 'Bu alışı indi seçilmiş hesab balansından çıxır.',
     purchaseOnAccount: 'Hesabdan',
     purchasePaidNow: 'İndi ödənilib',
     purchasePaymentMode: 'Ödəniş',
@@ -4288,12 +4309,17 @@ export const translations: Record<Language, Translations> = {
     liabilityLenderHelp: 'Kimə borclusunuz — bank, dost və s. Təchizatçı borcu Təchizatçılar ekranındadır.',
     cashDebtLoansHelp: 'Bank kreditləri və şəxsi borclar üçün. Təchizatçı borcu Təchizatçılar ekranındadır.',
     liabilityEmpty: 'Hələ kredit və ya digər öhdəlik yoxdur.',
+    liabilityStatusOpen: 'Açıq',
+    liabilityStatusPartial: 'Qismən ödənilib',
+    liabilityStatusSettled: 'Bağlanıb',
     withdrawalLog: 'Çıxarış qeyd et',
     withdrawalMethodCashier: 'Kassir (0.5%)',
     withdrawalMethodAbbAtm: 'ABB ATM (1%, min ₼1)',
     withdrawalFeePreview: 'Bank haqqı',
     withdrawalFeesPeriodTotal: 'Siyahıdakı haqlar',
     withdrawalEmpty: 'Hələ çıxarış qeyd olunmayıb.',
+    withdrawalAvailableInAccount: '{account} hesabında mövcuddur: {available}',
+    withdrawalInsufficientFunds: '{account} hesabında kifayət deyil. Mövcud: {available}.',
     withdrawalMethod: 'Üsul',
     withdrawalFee: 'Haqq',
     posPaymentMethod: 'Ödəniş üsulu',
@@ -4302,6 +4328,39 @@ export const translations: Record<Language, Translations> = {
     cashDrawerTab: 'Kassa',
     cashOnHand: 'Kassada nağd',
     cashOnHandHint: 'İndi əlinizdə olmalı olan nağd pul',
+    accountCash: 'Kassada nağd',
+    accountBank: 'Əsas (bank) hesabı',
+    accountCard: 'Kart hesabı',
+    accountBalancesTitle: 'Hesab qalıqları',
+    accountBankHint: 'Ödənişlər bura gəlir; çek üzrə çıxarışlar buradan',
+    accountCardHint: 'Köçürmələrlə doldurulur; bankomatdan çıxarışlar üçün',
+    accountManage: 'Hesabları idarə et',
+    accountSetupTitle: 'Hesab quraşdırması',
+    accountCurrentBalance: 'Cari',
+    accountTransferAction: 'Köçür',
+    accountActivityTitle: 'Hesab hərəkətləri',
+    accountActivityEmpty: 'Hələ bank və ya kart hərəkəti yoxdur.',
+    accountActivityFilterAll: 'Bütün hesablar',
+    accountLedgerOpening: 'Açılış qalığı',
+    accountLedgerTransferIn: 'Daxil olan köçürmə',
+    accountLedgerTransferOut: 'Çıxan köçürmə',
+    accountLedgerWithdrawal: 'Çıxarış',
+    accountLedgerExpense: 'Xərc',
+    accountLedgerPurchase: 'Alış',
+    accountLedgerPayout: 'Alınan ödəniş',
+    accountLedgerManagedElsewhere: 'Xərclər ekranında idarə olunur',
+    accountLedgerManagedPayouts: 'Ödənişlər ekranında idarə olunur',
+    accountTransferDeleted: 'Köçürmə silindi',
+    accountOpeningBalance: 'Açılış qalığı',
+    accountOpeningDate: 'Tarix',
+    accountOpeningBalanceSaved: 'Açılış qalığı yadda saxlanıldı',
+    accountTransferBankToCard: 'Əsas → kart köçürməsi',
+    accountTransferSaved: 'Köçürmə qeyd olundu',
+    paymentCash: 'Nağd',
+    paymentCard: 'Kart',
+    paymentBankTransfer: 'Bank köçürməsi',
+    selectPaymentMethod: 'Ödəmə üsulunu seçin',
+    withdrawalMethodCardAccount: 'Kart hesabı (ABB ATM, 1%, min ₼1)',
     cashDrawerTitle: 'Kassa',
     cashDrawerSubtitle: 'Ay sonunda kassanı tutuşdurmaq üçün nağd pulu izləyin.',
     cashOpeningBalance: 'Açılış qalığı',
@@ -4310,8 +4369,10 @@ export const translations: Record<Language, Translations> = {
     cashOutTotal: 'Nağd çıxış',
     cashFromOrders: 'Yığılan nağd sifarişlər',
     cashFromWithdrawals: 'Bankdan çıxarış (xalis)',
+    cashFromPayouts: 'Alınan nağd ödənişlər',
     cashAdjustmentsIn: 'İlkin nağd və düzəlişlər',
     cashToExpenses: 'Nağd xərclər',
+    cashToPurchases: 'Nağd alışlar',
     cashToSuppliers: 'Təchizatçılara nağd',
     cashToLiabilities: 'Kreditlərə nağd',
     cashBankDeposits: 'Banka köçürmə və çıxış düzəlişləri',
@@ -4483,6 +4544,11 @@ export const translations: Record<Language, Translations> = {
     navOrders: 'Заказы',
     navCatalog: 'Каталог',
     navFinance: 'Финансы',
+    navHubIncome: 'Доходы',
+    navHubSpending: 'Расходы',
+    navHubCashAccounts: 'Касса и счета',
+    navHubPayroll: 'Зарплата',
+    navHubInsights: 'Аналитика',
     navSystem: 'Система',
     cockpitLoadingContent: 'Загрузка…',
     cockpitResetFilters: 'Сбросить фильтры',
@@ -4873,6 +4939,11 @@ export const translations: Record<Language, Translations> = {
     selectExpenseItem: 'Выберите Статью Расходов',
     expenseItemName: 'Название Статьи Расходов',
     addNewExpenseItem: 'Добавить Новую Статью Расходов',
+    createNamed: 'Создать «{name}»',
+    newItem: 'Новый элемент',
+    assignToCategory: 'Назначить категорию',
+    newCategory: 'Новая категория',
+    newSupplierName: 'Название поставщика',
     noExpenseItems: 'Статьи расходов не найдены',
     createFirstExpenseItem: 'Создайте первую статью расходов для начала',
     selectMasterCategory: 'Выберите Главную Категорию',
@@ -5095,9 +5166,7 @@ export const translations: Record<Language, Translations> = {
     staffEditPayment: 'Редактировать выплату',
     staffFullName: 'ФИО',
     staffDesignation: 'Должность',
-    staffTotalSalary: 'Полная месячная зарплата',
-    staffOfficialSalary: 'Официально заявленная зарплата',
-    staffHiredAt: 'Дата приёма',
+    staffTotalSalary: 'Месячная зарплата',
     staffActiveLabel: 'Активный сотрудник',
     staffActiveEmployees: 'Активные сотрудники',
     staffMonthlyPayrollTarget: 'Целевой месячный фонд',
@@ -5111,7 +5180,6 @@ export const translations: Record<Language, Translations> = {
     staffPaymentTypePartial: 'Частичная',
     staffNameRequired: 'Укажите имя сотрудника',
     staffInvalidSalary: 'Введите корректные суммы зарплаты',
-    staffOfficialExceedsTotal: 'Официальная зарплата не может превышать полную',
     staffInvalidPaymentAmount: 'Введите корректную сумму выплаты',
     staffEmployeeAdded: 'Сотрудник добавлен',
     staffEmployeeUpdated: 'Сотрудник обновлён',
@@ -5127,54 +5195,8 @@ export const translations: Record<Language, Translations> = {
     staffNoDesignation: 'Без должности',
     staffDoubleEntryWarning: 'Записывайте зарплаты здесь, а не в категории «Зарплаты» в расходах, чтобы избежать двойного учёта.',
     staffSalariesLabel: 'Выплаченные зарплаты',
-    staffSalariesHint: 'Взносы работодателя: ₼{employer}',
-
-    taxes: 'Налоги',
-    taxesScreenTitle: 'Налоги',
-    taxesScreenDescription: 'Налог на оборот и payroll-налоги для Азербайджана.',
-    taxesAccountantNote: 'Ставки по умолчанию соответствуют правилам AZ 2026 и настраиваются. Подтвердите режим и ставки с бухгалтером перед подачей.',
-    taxesTabOverview: 'Обзор',
-    taxesTabSettings: 'Настройки ставок',
-    taxesTabPayments: 'Налоговые платежи',
-    taxesSalesTaxLabel: 'Налог с оборота',
-    taxesSalesTaxHint: 'Упрощённый налог с оборота за период',
-    taxesPayrollTaxLabel: 'Payroll-обязательства',
-    taxesEmployerContributionsLabel: 'Взносы работодателя',
-    taxesSalariesPaidLabel: 'Выплаченные зарплаты',
-    taxesBasedOnOfficialSalary: 'На основе официально заявленных зарплат',
-    taxesCashTurnover: 'Наличный оборот',
-    taxesNonCashTurnover: 'Безналичный оборот',
-    taxesEmployeeBreakdownTitle: 'Месячный payroll-налог по сотрудникам',
-    taxesMonthlyEstimate: 'Оценка месячных обязательств: ₼{amount}',
-    taxesNoOfficialSalaries: 'Нет сотрудников с официально заявленной зарплатой.',
-    taxesIncomeTax: 'Подоходный налог',
-    taxesEmployeeWithheld: 'Удержано с сотрудника',
-    taxesEmployerShare: 'Доля работодателя',
-    taxesTotalLiability: 'Итого обязательство',
-    taxesSettingsSaved: 'Налоговые настройки сохранены',
-    taxesSalesTaxCashRate: 'Налог с оборота — наличные (%)',
-    taxesSalesTaxNonCashRate: 'Налог с оборота — безнал (%)',
-    taxesPitExemptAmount: 'Необлагаемая сумма ПН (AZN)',
-    taxesPitBracket1Pct: 'ПН ступень 1 (%)',
-    taxesPitBracket2Pct: 'ПН ступень 2 (%)',
-    taxesPitBracket3Pct: 'ПН ступень 3 (%)',
-    taxesRecordPayment: 'Записать налоговый платёж',
-    taxesEditPayment: 'Редактировать налоговый платёж',
-    taxesPaymentType: 'Тип налога',
-    taxesTypeSales: 'Налог с оборота',
-    taxesTypePayroll: 'Payroll-налог',
-    taxesPeriodStart: 'Начало периода',
-    taxesPeriodEnd: 'Конец периода',
-    taxesPaidDate: 'Дата оплаты',
-    taxesPeriod: 'Период',
-    taxesInvalidAmount: 'Введите корректную сумму налога',
-    taxesInvalidPeriod: 'Выберите корректный налоговый период',
-    taxesPaymentAdded: 'Налоговый платёж записан',
-    taxesPaymentUpdated: 'Налоговый платёж обновлён',
-    taxesPaymentDeleted: 'Налоговый платёж удалён',
-    taxesDeletePaymentConfirm: 'Удалить эту запись налогового платежа?',
-    taxesNoPayments: 'Налоговые платежи ещё не записаны.',
-    kpiNetProfitHintExtended: 'После комиссий ₼{fees}, налога ₼{tax}, зарплат ₼{payroll}',
+    staffSalariesHint: 'Выплаты, записанные в модуле «Персонал»',
+    kpiNetProfitHintExtended: 'После комиссий ₼{fees} и зарплат ₼{payroll}',
 
     weatherUnavailable: 'Погода недоступна',
     cached: 'кэш',
@@ -5201,6 +5223,9 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Расходы на Платформы',
     noSalesInPeriod: 'Продаж за этот период не найдено',
     payoutReceived: 'Получено от Платформы',
+    payoutReceivedInto: 'Зачислено на',
+    payoutReceivedIntoHint: 'На какой счёт поступила эта выплата? Баланс обновится автоматически.',
+    payoutNoAccountWarning: 'Счёт не выбран — эта выплата не обновит баланс.',
     periodRevenue: 'Выручка за период',
     impliedCommission: 'Комиссия',
     payoutPeriodsInRange: 'В этом диапазоне периодов выплат: {count}',
@@ -5737,7 +5762,7 @@ export const translations: Record<Language, Translations> = {
     paymentsProviderEpoint: 'Epoint',
     paymentsProviderUnited: 'United Payment',
     paymentsProviderOther: 'Другое',
-    cashDebt: 'Касса и долги',
+    cashDebt: 'Касса и счета',
     cashDebtScreenTitle: 'Касса и долги',
     cashDebtScreenDescription: 'Кредиты, прочие обязательства и комиссии за снятие с банка.',
     cashDebtTabLoans: 'Кредиты и прочее',
@@ -5751,11 +5776,27 @@ export const translations: Record<Language, Translations> = {
     supplierAddDebt: 'Добавить долг',
     supplierDebtHistory: 'История долга',
     supplierDebtCleared: 'Погашено',
+    supplierCreditBalance: 'Кредитный баланс',
     supplierDebtFromPurchase: 'Закупка (в долг)',
     supplierManualDebt: 'Ручной долг',
     supplierClearDebt: 'Погасить долг',
     supplierAccountView: 'Счёт',
     supplierRecentPayments: 'Недавние платежи',
+    supplierAccountExplainer:
+      'Баланс поставщика — это текущий счёт: закупки в долг увеличивают его, платежи уменьшают. Гасите через «Погасить долг».',
+    supplierYouOwe: 'Долг',
+    supplierPrepaid: 'Переплата',
+    supplierSettled: 'Оплачено',
+    supplierStatement: 'Выписка по счёту',
+    supplierBalanceColumn: 'Баланс',
+    supplierPaymentLabel: 'Платёж',
+    supplierAddDebtHint: 'Только для сумм не из учтённой закупки (например, начальный долг, который уже был).',
+    supplierNoActivity: 'Пока нет закупок или платежей.',
+    supplierSearchPlaceholder: 'Поиск поставщиков…',
+    supplierNoMatches: 'Нет поставщиков по вашему запросу.',
+    supplierTotalSpend: 'Всего потрачено',
+    purchaseOnAccountHint: 'Добавляет эту закупку к балансу поставщика, пока вы её не оплатите.',
+    purchasePaidNowHint: 'Списывает эту закупку с выбранного счёта сразу.',
     purchaseOnAccount: 'В долг',
     purchasePaidNow: 'Оплачено сразу',
     purchasePaymentMode: 'Оплата',
@@ -5768,12 +5809,17 @@ export const translations: Record<Language, Translations> = {
     liabilityLenderHelp: 'Кому вы должны — банк, друг и т.д. Долг поставщикам — на экране Поставщики.',
     cashDebtLoansHelp: 'Для банковских кредитов и личных долгов. Долг поставщикам — на экране Поставщики.',
     liabilityEmpty: 'Кредитов и прочих обязательств пока нет.',
+    liabilityStatusOpen: 'Открыто',
+    liabilityStatusPartial: 'Частично оплачено',
+    liabilityStatusSettled: 'Закрыто',
     withdrawalLog: 'Записать снятие',
     withdrawalMethodCashier: 'Касса (0.5%)',
     withdrawalMethodAbbAtm: 'ABB ATM (1%, мин. ₼1)',
     withdrawalFeePreview: 'Банковская комиссия',
     withdrawalFeesPeriodTotal: 'Комиссии в списке',
     withdrawalEmpty: 'Снятий пока не записано.',
+    withdrawalAvailableInAccount: 'Доступно на счёте {account}: {available}',
+    withdrawalInsufficientFunds: 'Недостаточно средств на счёте {account}. Доступно: {available}.',
     withdrawalMethod: 'Способ',
     withdrawalFee: 'Комиссия',
     posPaymentMethod: 'Способ оплаты',
@@ -5782,6 +5828,39 @@ export const translations: Record<Language, Translations> = {
     cashDrawerTab: 'Касса',
     cashOnHand: 'Наличные в кассе',
     cashOnHandHint: 'Сколько наличных должно быть сейчас',
+    accountCash: 'Наличные в кассе',
+    accountBank: 'Основной (банковский) счёт',
+    accountCard: 'Карточный счёт',
+    accountBalancesTitle: 'Остатки по счетам',
+    accountBankHint: 'Сюда поступают выплаты; чековые снятия отсюда',
+    accountCardHint: 'Пополняется переводами; для снятий в банкомате',
+    accountManage: 'Управление счетами',
+    accountSetupTitle: 'Настройка счетов',
+    accountCurrentBalance: 'Текущий',
+    accountTransferAction: 'Перевести',
+    accountActivityTitle: 'Движение по счетам',
+    accountActivityEmpty: 'Пока нет движений по банку или карте.',
+    accountActivityFilterAll: 'Все счета',
+    accountLedgerOpening: 'Начальный остаток',
+    accountLedgerTransferIn: 'Перевод (приход)',
+    accountLedgerTransferOut: 'Перевод (расход)',
+    accountLedgerWithdrawal: 'Снятие',
+    accountLedgerExpense: 'Расход',
+    accountLedgerPurchase: 'Закупка',
+    accountLedgerPayout: 'Полученная выплата',
+    accountLedgerManagedElsewhere: 'Управляется на экране «Расходы»',
+    accountLedgerManagedPayouts: 'Управляется на экране «Выплаты»',
+    accountTransferDeleted: 'Перевод удалён',
+    accountOpeningBalance: 'Начальный остаток',
+    accountOpeningDate: 'На дату',
+    accountOpeningBalanceSaved: 'Начальный остаток сохранён',
+    accountTransferBankToCard: 'Перевод основной → карта',
+    accountTransferSaved: 'Перевод записан',
+    paymentCash: 'Наличные',
+    paymentCard: 'Карта',
+    paymentBankTransfer: 'Банковский перевод',
+    selectPaymentMethod: 'Выберите способ оплаты',
+    withdrawalMethodCardAccount: 'Карточный счёт (ABB ATM, 1%, мин. ₼1)',
     cashDrawerTitle: 'Касса',
     cashDrawerSubtitle: 'Учитывайте наличные, чтобы сверять кассу в конце месяца.',
     cashOpeningBalance: 'Начальный остаток',
@@ -5790,8 +5869,10 @@ export const translations: Record<Language, Translations> = {
     cashOutTotal: 'Расход наличных',
     cashFromOrders: 'Собранные наличные заказы',
     cashFromWithdrawals: 'Снятия из банка (за вычетом комиссий)',
+    cashFromPayouts: 'Полученные наличные выплаты',
     cashAdjustmentsIn: 'Начальная касса и корректировки',
     cashToExpenses: 'Наличные расходы',
+    cashToPurchases: 'Наличные закупки',
     cashToSuppliers: 'Наличные поставщикам',
     cashToLiabilities: 'Наличные по кредитам',
     cashBankDeposits: 'Внесения в банк и корректировки',

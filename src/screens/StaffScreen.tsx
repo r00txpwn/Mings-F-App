@@ -71,10 +71,7 @@ export function StaffScreen() {
   const [fullName, setFullName] = useState('');
   const [designation, setDesignation] = useState('');
   const [totalSalary, setTotalSalary] = useState('');
-  const [officialSalary, setOfficialSalary] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [hiredAt, setHiredAt] = useState('');
-  const [employeeNotes, setEmployeeNotes] = useState('');
 
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(toLocalDateInput(new Date()));
@@ -113,10 +110,7 @@ export function StaffScreen() {
     setFullName('');
     setDesignation('');
     setTotalSalary('');
-    setOfficialSalary('');
     setIsActive(true);
-    setHiredAt('');
-    setEmployeeNotes('');
     setEditingEmployee(null);
     setShowEmployeeForm(false);
   };
@@ -136,10 +130,7 @@ export function StaffScreen() {
     setFullName(employee.full_name);
     setDesignation(employee.designation);
     setTotalSalary(String(employee.total_salary));
-    setOfficialSalary(String(employee.official_salary));
     setIsActive(employee.is_active);
-    setHiredAt(employee.hired_at ?? '');
-    setEmployeeNotes(employee.notes);
     setShowEmployeeForm(true);
   };
 
@@ -161,17 +152,12 @@ export function StaffScreen() {
 
   const handleSaveEmployee = async () => {
     const total = Number(totalSalary);
-    const official = Number(officialSalary);
     if (!fullName.trim()) {
       toast.error(t.staffNameRequired);
       return;
     }
-    if (!Number.isFinite(total) || total < 0 || !Number.isFinite(official) || official < 0) {
+    if (!Number.isFinite(total) || total < 0) {
       toast.error(t.staffInvalidSalary);
-      return;
-    }
-    if (official > total) {
-      toast.error(t.staffOfficialExceedsTotal);
       return;
     }
 
@@ -180,10 +166,10 @@ export function StaffScreen() {
       full_name: fullName.trim(),
       designation: designation.trim(),
       total_salary: total,
-      official_salary: official,
+      // official_salary is retained in the DB only to satisfy the legacy
+      // official <= total constraint; the field is no longer surfaced.
+      official_salary: total,
       is_active: isActive,
-      hired_at: hiredAt || null,
-      notes: employeeNotes.trim(),
       updated_at: new Date().toISOString(),
     };
 
@@ -362,21 +348,9 @@ export function StaffScreen() {
               <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffTotalSalary}</span>
               <input className="cockpit-input mt-1 w-full" type="number" min="0" step="0.01" value={totalSalary} onChange={(e) => setTotalSalary(e.target.value)} />
             </label>
-            <label className="block">
-              <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffOfficialSalary}</span>
-              <input className="cockpit-input mt-1 w-full" type="number" min="0" step="0.01" value={officialSalary} onChange={(e) => setOfficialSalary(e.target.value)} />
-            </label>
-            <label className="block">
-              <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffHiredAt}</span>
-              <SingleDatePicker value={hiredAt} onChange={setHiredAt} />
-            </label>
             <label className="flex items-center gap-2 pt-6">
               <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
               <span className="text-sm">{t.staffActiveLabel}</span>
-            </label>
-            <label className="block md:col-span-2">
-              <span className="text-sm text-slate-600 dark:text-slate-300">{t.notes}</span>
-              <input className="cockpit-input mt-1 w-full" value={employeeNotes} onChange={(e) => setEmployeeNotes(e.target.value)} />
             </label>
           </div>
           <div className="mt-4 flex gap-2">
@@ -488,7 +462,6 @@ export function StaffScreen() {
                     <p className="text-sm text-slate-500">{employee.designation || t.staffNoDesignation}</p>
                     <p className="mt-1 text-sm">
                       {t.staffTotalSalary}: ₼{Number(employee.total_salary).toFixed(2)} ·{' '}
-                      {t.staffOfficialSalary}: ₼{Number(employee.official_salary).toFixed(2)} ·{' '}
                       {t.staffPaidInPeriod}: ₼{paidInPeriod.toFixed(2)}
                     </p>
                   </div>

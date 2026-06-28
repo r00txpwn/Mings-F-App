@@ -3,7 +3,6 @@ import { expect, test } from '@playwright/test';
 const COCKPIT_SCREENS = [
   'home',
   'order-support',
-  'kiosk-orders',
   'delivery',
   'order-locations',
   'menu-builder',
@@ -11,9 +10,12 @@ const COCKPIT_SCREENS = [
   'products',
   'suppliers',
   'sales',
+  'payments',
+  'liabilities',
   'money',
   'expenses',
   'payouts',
+  'staff',
   'reports',
   'settings',
 ] as const;

@@ -29,6 +29,53 @@ export function isCashPaymentMethod(method: string | null | undefined): boolean 
 export const CASH_PAYMENT_METHOD = 'cash';
 /** Canonical value to persist for an in-person card sale. */
 export const CARD_PAYMENT_METHOD = 'card';
+/** Canonical value for bank-transfer expenses / payments. */
+export const BANK_TRANSFER_PAYMENT_METHOD = 'bank_transfer';
+
+export type FinanceAccountKey = 'cash' | 'bank' | 'card';
+
+const BANK_TRANSFER_TOKENS = [
+  'bank_transfer',
+  'bank transfer',
+  'bank-transfer',
+  'wire',
+  'transfer',
+  'köçürmə', // az
+  'kocurme',
+  'перевод', // ru
+  'банковский',
+];
+
+const CARD_TOKENS = [
+  'card',
+  'card_online',
+  'epoint',
+  'debit',
+  'credit',
+  'kart', // az
+  'карт', // ru
+];
+
+function normalizePaymentMethod(method: string | null | undefined): string {
+  return String(method ?? '').trim().toLowerCase();
+}
+
+/** Maps a persisted or legacy payment_method string to a finance account key. */
+export function accountForPaymentMethod(method: string | null | undefined): FinanceAccountKey | null {
+  const v = normalizePaymentMethod(method);
+  if (!v) return null;
+  if (isCashPaymentMethod(v)) return 'cash';
+  if (v === CARD_PAYMENT_METHOD || CARD_TOKENS.some((token) => v === token || v.includes(token))) {
+    return 'card';
+  }
+  if (
+    v === BANK_TRANSFER_PAYMENT_METHOD ||
+    BANK_TRANSFER_TOKENS.some((token) => v === token || v.includes(token))
+  ) {
+    return 'bank';
+  }
+  return null;
+}
 
 /**
  * Builds the sale patch for a manual "mark paid" action. Stamps payment_status

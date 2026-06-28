@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
+  allocateManualDebtPaymentsFIFO,
   allocatePaymentsFIFO,
   allocatePaymentsFIFOFromOpening,
+  computeSupplierCreditBalance,
   computeSupplierOutstanding,
 } from '../../src/services/finance/supplierLedger';
+import { derivePurchaseLedgerStatus } from '../../src/services/finance/purchaseCredit';
 
 describe('computeSupplierOutstanding', () => {
   it('sums manual debts + purchases - payments', () => {
@@ -15,6 +18,76 @@ describe('computeSupplierOutstanding', () => {
       }),
     ).toBe(1200);
   });
+
+  it('never returns negative outstanding', () => {
+    expect(
+      computeSupplierOutstanding({
+        manualDebts: [250],
+        creditPurchases: [],
+        payments: [750],
+      }),
+    ).toBe(0);
+  });
+});
+
+describe('computeSupplierCreditBalance', () => {
+  it('returns surplus when payments exceed debt', () => {
+    expect(
+      computeSupplierCreditBalance({
+        manualDebts: [],
+        creditPurchases: [250],
+        payments: [750],
+      }),
+    ).toBe(500);
+  });
+
+  it('returns zero when debt exceeds payments', () => {
+    expect(
+      computeSupplierCreditBalance({
+        manualDebts: [100],
+        creditPurchases: [250],
+        payments: [200],
+      }),
+    ).toBe(0);
+  });
+});
+
+describe('derivePurchaseLedgerStatus', () => {
+  it('marks paid-now purchases as paid regardless of account payments', () => {
+    expect(
+      derivePurchaseLedgerStatus({
+        is_on_credit: false,
+        payment_status: 'paid',
+        total: 250,
+      }),
+    ).toEqual({ paid: 250, status: 'paid' });
+  });
+
+  it('marks on-account purchases as unpaid from their own record', () => {
+    expect(
+      derivePurchaseLedgerStatus({
+        is_on_credit: true,
+        payment_status: 'pending',
+        total: 250,
+      }),
+    ).toEqual({ paid: 0, status: 'unpaid' });
+  });
+});
+
+describe('allocateManualDebtPaymentsFIFO', () => {
+  const manualDebts = [{ id: 'd1', total: 1200, debtDate: '2026-06-01' }];
+
+  it('applies payments to manual debts only', () => {
+    const result = allocateManualDebtPaymentsFIFO(manualDebts, 500);
+    expect(result.manualDebts[0]).toMatchObject({ id: 'd1', status: 'partial', paid: 500 });
+    expect(result.totalRemaining).toBe(700);
+  });
+
+  it('marks manual debt paid when fully covered', () => {
+    const result = allocateManualDebtPaymentsFIFO(manualDebts, 1200);
+    expect(result.manualDebts[0]).toMatchObject({ id: 'd1', status: 'paid', paid: 1200 });
+    expect(result.totalRemaining).toBe(0);
+  });
 });
 
 describe('allocatePaymentsFIFO', () => {
@@ -24,24 +97,10 @@ describe('allocatePaymentsFIFO', () => {
     { id: 'p2', total: 200, purchaseDate: '2026-07-09' },
   ];
 
-  it('applies payments to oldest debt lines first (manual before later purchases)', () => {
-    const result = allocatePaymentsFIFO(manualDebts, purchases, 500);
-    expect(result.manualDebts[0]).toMatchObject({ id: 'd1', status: 'partial', paid: 500 });
-    expect(result.purchases.every((p) => p.status === 'unpaid')).toBe(true);
-    expect(result.totalRemaining).toBe(1200);
-  });
-
-  it('rolls overpayment into purchases after manual debts cleared', () => {
+  it('allocates manual debts via FIFO but leaves purchases unpaid', () => {
     const result = allocatePaymentsFIFO(manualDebts, purchases, 1500);
     expect(result.manualDebts[0]).toMatchObject({ id: 'd1', status: 'paid', paid: 1200 });
-    expect(result.purchases[0]).toMatchObject({ id: 'p1', status: 'paid', paid: 300 });
-    expect(result.purchases[1]).toMatchObject({ id: 'p2', status: 'unpaid', paid: 0 });
-  });
-
-  it('marks partial when payment covers part of oldest purchase only', () => {
-    const result = allocatePaymentsFIFO([], purchases, 150);
-    expect(result.purchases[0]).toMatchObject({ id: 'p1', status: 'partial', paid: 150 });
-    expect(result.purchases[1]).toMatchObject({ id: 'p2', status: 'unpaid', paid: 0 });
+    expect(result.purchases.every((p) => p.status === 'unpaid' && p.paid === 0)).toBe(true);
   });
 });
 

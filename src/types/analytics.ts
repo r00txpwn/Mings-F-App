@@ -19,9 +19,7 @@ export interface ExecutiveKpis {
   grossMarginPct: number;
   operatingProfit: number;
   bankFees: number;
-  salesTax: number;
   payroll: number;
-  employerContributions: number;
   netProfit: number;
   avgOrderValue: number;
   orderCount: number;
@@ -209,12 +207,7 @@ export interface PeriodSummary {
   cogs: number;
   opex: number;
   bankFees: number;
-  salesTax: number;
   payroll: number;
-  employerContributions: number;
-  payrollTaxLiability: number;
-  cashTurnover: number;
-  nonCashTurnover: number;
 }
 
 export interface PeriodSummaryParams extends DateRangeParams {

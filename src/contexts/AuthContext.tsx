@@ -3,6 +3,8 @@ import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { isLikelyE164, normalizePhoneE164 } from '../lib/phoneE164';
 import { parseStaffRole, type StaffRole } from '../lib/staffRole';
+import { isStaffBuild } from '../lib/buildTarget';
+import { logStaffAuthEvent } from '../lib/logAuthEvent';
 
 interface AuthContextType {
   user: User | null;
@@ -98,7 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'SIGNED_IN' && s?.user?.id && isStaffBuild()) {
+        void logStaffAuthEvent('login', s.user.id);
+      }
       void applySession(s);
     });
 
@@ -191,6 +196,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    const uid = user?.id;
+    if (uid && isStaffBuild()) {
+      await logStaffAuthEvent('logout', uid);
+    }
     await supabase.auth.signOut();
   };
 

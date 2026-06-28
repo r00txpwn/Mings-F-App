@@ -14,12 +14,10 @@ import { SuppliersScreen } from './screens/SuppliersScreen';
 import { UsersScreen } from './screens/UsersScreen';
 import { ExpensesScreen } from './screens/ExpensesScreen';
 import { StaffScreen } from './screens/StaffScreen';
-import { TaxesScreen } from './screens/TaxesScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { StaffAccessDeniedScreen } from './screens/StaffAccessDeniedScreen';
 import { AdminAccessDeniedScreen } from './screens/AdminAccessDeniedScreen';
 import { roleMayAccessCockpit } from './lib/staffRole';
-import { KioskOrdersScreen } from './screens/KioskOrdersScreen';
 import { MenuScreen } from './screens/MenuScreen';
 import { PayoutsScreen } from './screens/PayoutsScreen';
 import { DeliveryScreen } from './screens/DeliveryScreen';
@@ -28,9 +26,12 @@ import { CombosScreen } from './screens/CombosScreen';
 import { AdminOrderSupportScreen } from './screens/AdminOrderSupportScreen';
 import { PaymentsScreen } from './screens/PaymentsScreen';
 import { CashDebtScreen } from './screens/CashDebtScreen';
+import { AuditLogScreen } from './screens/AuditLogScreen';
 import {
   CockpitLayout,
+  CockpitHubTabs,
   readCockpitScreenFromUrl,
+  screenHasHubTabs,
   writeCockpitScreenToUrl,
   type CockpitScreen,
 } from './components/cockpit';
@@ -58,7 +59,7 @@ function AppContent() {
   }, [currentScreen]);
 
   useEffect(() => {
-    if (currentScreen === 'users' && !isAdminUser) {
+    if ((currentScreen === 'users' || currentScreen === 'audit-log') && !isAdminUser) {
       setCurrentScreen('home');
       writeCockpitScreenToUrl('home');
     }
@@ -105,8 +106,6 @@ function AppContent() {
         return <HomeScreen />;
       case 'sales':
         return <SalesScreen />;
-      case 'kiosk-orders':
-        return <KioskOrdersScreen />;
       case 'order-support':
         return <AdminOrderSupportScreen />;
       case 'delivery':
@@ -135,10 +134,10 @@ function AppContent() {
         return <PayoutsScreen />;
       case 'staff':
         return <StaffScreen />;
-      case 'taxes':
-        return <TaxesScreen />;
       case 'users':
         return isAdminUser ? <UsersScreen /> : <HomeScreen />;
+      case 'audit-log':
+        return isAdminUser ? <AuditLogScreen /> : <HomeScreen />;
       case 'settings':
         return <SettingsScreen />;
       default:
@@ -154,6 +153,9 @@ function AppContent() {
       userEmail={user?.email}
       onSignOut={() => void signOut()}
     >
+      {screenHasHubTabs(currentScreen) ? (
+        <CockpitHubTabs currentScreen={currentScreen} onNavigate={setCurrentScreen} />
+      ) : null}
       {renderScreen()}
     </CockpitLayout>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Truck,
   Plus,
@@ -6,11 +6,10 @@ import {
   Trash2,
   Save,
   X,
-  Package,
-  ChevronDown,
-  ChevronRight,
   Wallet,
   Loader2,
+  Info,
+  Search,
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
@@ -24,6 +23,49 @@ import {
 } from '../services/finance/supplierFinanceService';
 import { displayName, isTestRecord } from '../lib/displayName';
 
+type StatementEntry = {
+  key: string;
+  date: string;
+  label: string;
+  delta: number;
+  kind: 'manual' | 'purchase' | 'payment';
+  debt?: { id: string; amount: number; debtDate: string; notes: string };
+  paymentId?: string;
+};
+
+function buildStatementEntries(
+  account: SupplierAccountSummary,
+  t: ReturnType<typeof useLanguage>['t'],
+): StatementEntry[] {
+  return [
+    ...account.manualDebts.map((d) => ({
+      key: `m-${d.id}`,
+      date: d.debtDate,
+      label: d.notes ? `${t.supplierManualDebt} · ${d.notes}` : t.supplierManualDebt,
+      delta: d.amount,
+      kind: 'manual' as const,
+      debt: { id: d.id, amount: d.amount, debtDate: d.debtDate, notes: d.notes },
+    })),
+    ...account.purchases.map((p) => ({
+      key: `p-${p.id}`,
+      date: p.purchaseDate,
+      label: p.notes ? `${t.supplierDebtFromPurchase} · ${p.notes}` : t.supplierDebtFromPurchase,
+      delta: p.total,
+      kind: 'purchase' as const,
+    })),
+    ...account.payments.map((p) => ({
+      key: `pay-${p.id}`,
+      date: p.paidDate,
+      label: p.paymentMethod
+        ? `${t.supplierPaymentLabel} · ${p.paymentMethod}`
+        : t.supplierPaymentLabel,
+      delta: -p.amount,
+      kind: 'payment' as const,
+      paymentId: p.id,
+    })),
+  ].sort((a, b) => a.date.localeCompare(b.date) || a.key.localeCompare(b.key));
+}
+
 export function SuppliersScreen() {
   const { t } = useLanguage();
   const toast = useToast();
@@ -32,6 +74,8 @@ export function SuppliersScreen() {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     contact_person: '',
@@ -40,10 +84,8 @@ export function SuppliersScreen() {
     address: '',
     notes: '',
   });
-  const [productCounts, setProductCounts] = useState<Record<string, number>>({});
   const [accounts, setAccounts] = useState<SupplierAccountSummary[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
-  const [expandedAccountId, setExpandedAccountId] = useState<string | null>(null);
   const [payingSupplierId, setPayingSupplierId] = useState<string | null>(null);
   const [addingDebtSupplierId, setAddingDebtSupplierId] = useState<string | null>(null);
   const [editingDebtId, setEditingDebtId] = useState<string | null>(null);
@@ -66,11 +108,49 @@ export function SuppliersScreen() {
     [accounts],
   );
 
+  const visibleSuppliers = useMemo(() => {
+    const base = suppliers.filter((s) => !isTestRecord(s.name));
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        (s.contact_person || '').toLowerCase().includes(q) ||
+        (s.phone || '').toLowerCase().includes(q) ||
+        (s.email || '').toLowerCase().includes(q),
+    );
+  }, [suppliers, searchTerm]);
+
+  const selectedSupplier = useMemo(
+    () => suppliers.find((s) => s.id === selectedSupplierId) ?? null,
+    [suppliers, selectedSupplierId],
+  );
+
+  const selectedAccount = selectedSupplierId
+    ? accountBySupplierId.get(selectedSupplierId)
+    : undefined;
+
+  const closeDrawer = useCallback(() => {
+    setSelectedSupplierId(null);
+    setPayingSupplierId(null);
+    setAddingDebtSupplierId(null);
+    setEditingDebtId(null);
+    setDeleteConfirm(null);
+  }, []);
+
   useEffect(() => {
     loadSuppliers();
-    loadProductCounts();
     void loadAccounts();
   }, []);
+
+  useEffect(() => {
+    if (!selectedSupplierId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeDrawer();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedSupplierId, closeDrawer]);
 
   const loadAccounts = async () => {
     setAccountsLoading(true);
@@ -84,19 +164,6 @@ export function SuppliersScreen() {
     if (data) setSuppliers(data);
   };
 
-  const loadProductCounts = async () => {
-    const { data } = await supabase.from('products').select('supplier_id');
-    if (data) {
-      const counts: Record<string, number> = {};
-      data.forEach((product) => {
-        if (product.supplier_id) {
-          counts[product.supplier_id] = (counts[product.supplier_id] || 0) + 1;
-        }
-      });
-      setProductCounts(counts);
-    }
-  };
-
   const resetForm = () => ({
     name: '',
     contact_person: '',
@@ -106,10 +173,19 @@ export function SuppliersScreen() {
     notes: '',
   });
 
+  const openDrawer = (supplierId: string) => {
+    setSelectedSupplierId(supplierId);
+    setPayingSupplierId(null);
+    setAddingDebtSupplierId(null);
+    setEditingDebtId(null);
+    setDeleteConfirm(null);
+  };
+
   const handleAdd = () => {
     setIsAdding(true);
     setEditingId(null);
     setFormData(resetForm());
+    closeDrawer();
   };
 
   const handleEdit = (supplier: Supplier) => {
@@ -123,6 +199,11 @@ export function SuppliersScreen() {
       address: supplier.address,
       notes: supplier.notes,
     });
+  };
+
+  const handleEditFromDrawer = (supplier: Supplier) => {
+    closeDrawer();
+    handleEdit(supplier);
   };
 
   const handleCancel = () => {
@@ -199,26 +280,29 @@ export function SuppliersScreen() {
   const openAddDebt = (supplierId: string) => {
     setAddingDebtSupplierId(supplierId);
     setEditingDebtId(null);
+    setPayingSupplierId(null);
     setDebtForm({
       amount: '',
       debt_date: new Date().toISOString().split('T')[0],
       notes: '',
     });
-    setExpandedAccountId(supplierId);
   };
 
   const openEditDebt = (
     supplierId: string,
     debt: { id: string; amount: number; debtDate: string; notes: string },
   ) => {
-    setExpandedAccountId(supplierId);
-    setEditingDebtId(debt.id);
     setAddingDebtSupplierId(null);
+    setEditingDebtId(debt.id);
+    setPayingSupplierId(null);
     setDebtForm({
       amount: String(debt.amount),
       debt_date: debt.debtDate,
       notes: debt.notes,
     });
+    if (selectedSupplierId !== supplierId) {
+      setSelectedSupplierId(supplierId);
+    }
   };
 
   const handleSaveDebt = async (supplierId: string) => {
@@ -265,8 +349,8 @@ export function SuppliersScreen() {
       return;
     }
     toast.success(t.deletedSuccessfully);
+    if (selectedSupplierId === id) closeDrawer();
     loadSuppliers();
-    loadProductCounts();
     void loadAccounts();
   };
 
@@ -279,15 +363,90 @@ export function SuppliersScreen() {
     loadSuppliers();
   };
 
-  const statusLabel = (status: 'paid' | 'partial' | 'unpaid') =>
-    status === 'paid' ? t.paid : status === 'partial' ? t.partial : t.pending;
+  const balanceState = (account: SupplierAccountSummary) => {
+    if (account.outstanding > 0) {
+      return { text: `${t.supplierYouOwe}: ₼${account.outstanding.toFixed(2)}`, cls: 'text-amber-400' };
+    }
+    if (account.creditBalance > 0) {
+      return { text: `${t.supplierPrepaid}: +₼${account.creditBalance.toFixed(2)}`, cls: 'text-sky-400' };
+    }
+    return { text: t.supplierSettled, cls: 'text-emerald-400' };
+  };
 
-  const statusClass = (status: 'paid' | 'partial' | 'unpaid') =>
-    status === 'paid'
-      ? 'text-emerald-400'
-      : status === 'partial'
-        ? 'text-amber-400'
-        : 'text-slate-500';
+  const hasDebtHistory = (account: SupplierAccountSummary | undefined) =>
+    Boolean(
+      account &&
+        (account.manualDebts.length > 0 ||
+          account.purchases.length > 0 ||
+          account.payments.length > 0),
+    );
+
+  const renderStatement = (supplier: Supplier, account: SupplierAccountSummary) => {
+    const entries = buildStatementEntries(account, t);
+    const history = hasDebtHistory(account);
+
+    return (
+      <div className="space-y-2 text-xs">
+        <p className="font-semibold text-slate-400">{t.supplierStatement}</p>
+        {history ? (
+          <>
+            {entries.map((e) => (
+              <div key={e.key} className="flex items-center justify-between gap-2 text-slate-300">
+                <span className="min-w-0 truncate">
+                  <span className="text-slate-500">{e.date}</span> · {e.label}
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span
+                    className={`w-20 text-right font-medium ${
+                      e.delta < 0 ? 'text-emerald-400' : 'text-slate-200'
+                    }`}
+                  >
+                    {e.delta < 0 ? '−' : '+'}₼{Math.abs(e.delta).toFixed(2)}
+                  </span>
+                  {e.kind === 'manual' && e.debt ? (
+                    <span className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openEditDebt(supplier.id, e.debt!)}
+                        className="text-slate-500 hover:text-cockpit-400"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteDebt(e.debt!.id)}
+                        className="text-slate-500 hover:text-rose-400"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ) : e.kind === 'payment' && e.paymentId ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeletePayment(e.paymentId!)}
+                      className="text-slate-500 hover:text-rose-400"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  ) : (
+                    <span className="inline-block w-3" />
+                  )}
+                </span>
+              </div>
+            ))}
+          </>
+        ) : (
+          <p className="text-slate-500">{t.supplierNoActivity}</p>
+        )}
+      </div>
+    );
+  };
+
+  const drawerIsPaying = payingSupplierId === selectedSupplierId;
+  const drawerIsAddingDebt = addingDebtSupplierId === selectedSupplierId;
+  const drawerIsEditingDebt =
+    editingDebtId != null &&
+    selectedAccount?.manualDebts.some((d) => d.id === editingDebtId);
 
   return (
     <div className="animate-fadeIn">
@@ -305,6 +464,13 @@ export function SuppliersScreen() {
           ) : null
         }
       />
+
+      <div className="cockpit-panel mb-6 flex items-start gap-3 p-4">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-cockpit-400" />
+        <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          {t.supplierAccountExplainer}
+        </p>
+      </div>
 
       {(isAdding || editingId) && (
         <div className="cockpit-panel mb-6 p-6">
@@ -397,182 +563,241 @@ export function SuppliersScreen() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {suppliers.filter((s) => !isTestRecord(s.name)).map((supplier) => {
-          const isDeleting = deleteConfirm === supplier.id;
-          const account = accountBySupplierId.get(supplier.id);
-          const isExpanded = expandedAccountId === supplier.id;
-          const isPaying = payingSupplierId === supplier.id;
-          const isAddingDebt = addingDebtSupplierId === supplier.id;
-          const isEditingDebtHere =
-            editingDebtId != null && account?.manualDebts.some((d) => d.id === editingDebtId);
-          const hasDebtHistory =
-            account &&
-            (account.manualDebts.length > 0 ||
-              account.purchases.length > 0 ||
-              account.payments.length > 0);
+      <div className="cockpit-panel-solid mb-5 p-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={t.supplierSearchPlaceholder}
+            className="cockpit-input w-full py-2.5 pl-10 pr-4 text-sm"
+          />
+        </div>
+      </div>
 
-          return (
-            <div
-              key={supplier.id}
-              className={`cockpit-panel p-5 transition-all ${
-                isDeleting
-                  ? 'ring-2 ring-rose-500/80'
-                  : supplier.is_active
-                    ? ''
-                    : 'opacity-60'
-              }`}
-            >
-              {isDeleting ? (
-                <div className="space-y-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-800 dark:text-rose-100">
-                  <p className="font-semibold">
-                    Delete "{displayName(supplier.name, t.cockpitTestRecordLabel)}"? Associated products will be unlinked.
-                  </p>
-                  <div className="flex gap-2">
+      {visibleSuppliers.length === 0 ? (
+        <div className="cockpit-panel py-12 text-center">
+          <Truck className="mx-auto mb-3 h-12 w-12 text-slate-400 dark:text-slate-600" />
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {searchTerm.trim() ? t.supplierNoMatches : t.noSuppliersYet}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {visibleSuppliers.map((supplier) => {
+            const account = accountBySupplierId.get(supplier.id);
+            const balance = account ? balanceState(account) : null;
+
+            return (
+              <button
+                key={supplier.id}
+                type="button"
+                onClick={() => openDrawer(supplier.id)}
+                className={`cockpit-panel w-full p-4 text-left transition-all hover:ring-2 hover:ring-cockpit-500/40 ${
+                  supplier.is_active ? '' : 'opacity-60'
+                } ${selectedSupplierId === supplier.id ? 'ring-2 ring-cockpit-500/60' : ''}`}
+              >
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Truck className="h-5 w-5 shrink-0 text-cockpit-500" />
+                    <h3 className="truncate font-semibold text-slate-900 dark:text-white">
+                      {displayName(supplier.name, t.cockpitTestRecordLabel)}
+                    </h3>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-semibold ${
+                      supplier.is_active
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                        : 'bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                    }`}
+                  >
+                    {supplier.is_active ? t.active : t.inactive}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {accountsLoading ? (
+                    <Loader2 className="h-3 w-3 animate-spin text-slate-500" />
+                  ) : balance && hasDebtHistory(account) ? (
+                    <p className={`font-mono text-sm font-bold ${balance.cls}`}>{balance.text}</p>
+                  ) : balance && !hasDebtHistory(account) ? (
+                    <p className={`font-mono text-sm font-bold ${balance.cls}`}>{t.supplierSettled}</p>
+                  ) : null}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {selectedSupplier && selectedSupplierId ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
+          <button
+            type="button"
+            aria-label={t.cancel}
+            className="absolute inset-0 bg-black/50"
+            onClick={closeDrawer}
+          />
+          <div
+            className="cockpit-panel-solid relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-2xl shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="supplier-drawer-title"
+          >
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 p-4 dark:border-white/5">
+              <div className="min-w-0">
+                <h2
+                  id="supplier-drawer-title"
+                  className="truncate text-lg font-semibold text-slate-900 dark:text-white"
+                >
+                  {displayName(selectedSupplier.name, t.cockpitTestRecordLabel)}
+                </h2>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleEditFromDrawer(selectedSupplier)}
+                    className="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-200 hover:bg-white/15"
+                  >
+                    <Edit2 className="mr-1 inline h-3 w-3" />
+                    {t.edit}
+                  </button>
+                  {deleteConfirm === selectedSupplier.id ? (
+                    <span className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(selectedSupplier.id)}
+                        className="rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white"
+                      >
+                        {t.delete}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirm(null)}
+                        className="cockpit-btn-ghost px-2 py-1 text-xs"
+                      >
+                        {t.cancel}
+                      </button>
+                    </span>
+                  ) : (
                     <button
                       type="button"
-                      onClick={() => handleDelete(supplier.id)}
-                      className="flex-1 rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+                      onClick={() => setDeleteConfirm(selectedSupplier.id)}
+                      className="rounded-lg bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-400 hover:bg-rose-500/25"
                     >
+                      <Trash2 className="mr-1 inline h-3 w-3" />
                       {t.delete}
                     </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void handleToggleActive(selectedSupplier)}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                      selectedSupplier.is_active
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                        : 'bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                    }`}
+                  >
+                    {selectedSupplier.is_active ? t.active : t.inactive}
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeDrawer}
+                className="rounded-lg p-1.5 text-slate-400 hover:text-slate-200"
+                aria-label={t.cancel}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              <div className="mb-4 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                {selectedSupplier.contact_person ? (
+                  <p>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{t.contact}</span>{' '}
+                    {selectedSupplier.contact_person}
+                  </p>
+                ) : null}
+                {selectedSupplier.email ? (
+                  <p>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{t.email}:</span>{' '}
+                    {selectedSupplier.email}
+                  </p>
+                ) : null}
+                {selectedSupplier.phone ? (
+                  <p>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{t.phone}:</span>{' '}
+                    {selectedSupplier.phone}
+                  </p>
+                ) : null}
+                {selectedSupplier.address ? (
+                  <p>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{t.address}:</span>{' '}
+                    {selectedSupplier.address}
+                  </p>
+                ) : null}
+                {selectedSupplier.notes ? (
+                  <p>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{t.notes}:</span>{' '}
+                    {selectedSupplier.notes}
+                  </p>
+                ) : null}
+              </div>
+
+              {accountsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+                </div>
+              ) : selectedAccount ? (
+                <>
+                  <div className="mb-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-white/10 p-3">
+                      <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                        {t.supplierTotalSpend}
+                      </p>
+                      <p className="mt-1 font-mono text-lg font-bold text-slate-900 dark:text-white">
+                        ₼{selectedAccount.totalSpend.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 p-3">
+                      <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                        {t.supplierBalanceColumn}
+                      </p>
+                      <p className={`mt-1 font-mono text-lg font-bold ${balanceState(selectedAccount).cls}`}>
+                        {balanceState(selectedAccount).text}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => setDeleteConfirm(null)}
-                      className="cockpit-btn-ghost flex-1 justify-center"
+                      onClick={() => openAddDebt(selectedSupplierId)}
+                      className="rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/15"
                     >
-                      {t.cancel}
+                      <Plus className="mr-1 inline h-3 w-3" />
+                      {t.supplierAddDebt}
                     </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-3 flex items-start justify-between">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Truck className="h-5 w-5 shrink-0 text-cockpit-500" />
-                      <h3 className="truncate font-semibold text-slate-900 dark:text-white">
-                        {displayName(supplier.name, t.cockpitTestRecordLabel)}
-                      </h3>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
+                    {selectedAccount.outstanding > 0 ? (
                       <button
                         type="button"
-                        onClick={() => handleEdit(supplier)}
-                        className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-cockpit-400 dark:text-slate-500"
+                        onClick={() => {
+                          setPayingSupplierId(drawerIsPaying ? null : selectedSupplierId);
+                          setAddingDebtSupplierId(null);
+                          setEditingDebtId(null);
+                        }}
+                        className="rounded-lg bg-cockpit-600 px-3 py-2 text-xs font-bold text-white hover:bg-cockpit-500"
                       >
-                        <Edit2 className="h-4 w-4" />
+                        <Wallet className="mr-1 inline h-3 w-3" />
+                        {t.supplierClearDebt}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteConfirm(supplier.id)}
-                        className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-rose-500/10 hover:text-rose-400"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mb-3 space-y-2">
-                    {supplier.contact_person ? (
-                      <p className="text-xs text-slate-600 dark:text-slate-300">
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {t.contact}
-                        </span>{' '}
-                        {supplier.contact_person}
-                      </p>
-                    ) : null}
-                    {supplier.email ? (
-                      <p className="text-xs text-slate-600 dark:text-slate-300">
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {t.email}:
-                        </span>{' '}
-                        {supplier.email}
-                      </p>
-                    ) : null}
-                    {supplier.phone ? (
-                      <p className="text-xs text-slate-600 dark:text-slate-300">
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {t.phone}:
-                        </span>{' '}
-                        {supplier.phone}
-                      </p>
-                    ) : null}
-                    {supplier.address ? (
-                      <p className="text-xs text-slate-600 dark:text-slate-300">
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {t.address}:
-                        </span>{' '}
-                        {supplier.address}
-                      </p>
                     ) : null}
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-white/10 pt-3 dark:border-white/5">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1.5 font-mono text-xs text-slate-500 dark:text-slate-400">
-                        <Package className="h-3.5 w-3.5" />
-                        <span>{productCounts[supplier.id] || 0} products</span>
-                      </div>
-                      {accountsLoading ? (
-                        <Loader2 className="h-3 w-3 animate-spin text-slate-500" />
-                      ) : account ? (
-                        <p
-                          className={`font-mono text-xs font-bold ${
-                            account.outstanding > 0 ? 'text-amber-400' : 'text-emerald-400'
-                          }`}
-                        >
-                          {t.supplierOutstanding}: ₼{account.outstanding.toFixed(2)}
-                          {account.outstanding <= 0 && hasDebtHistory ? ` (${t.supplierDebtCleared})` : ''}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="flex flex-wrap items-center justify-end gap-1">
-                      <button
-                        type="button"
-                        onClick={() => openAddDebt(supplier.id)}
-                        className="rounded-lg bg-white/10 px-2 py-1 text-[10px] font-bold text-slate-200 hover:bg-white/15"
-                      >
-                        <Plus className="mr-1 inline h-3 w-3" />
-                        {t.supplierAddDebt}
-                      </button>
-                      {account && account.outstanding > 0 ? (
-                        <button
-                          type="button"
-                          onClick={() => setPayingSupplierId(isPaying ? null : supplier.id)}
-                          className="rounded-lg bg-cockpit-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-cockpit-500"
-                        >
-                          <Wallet className="mr-1 inline h-3 w-3" />
-                          {t.supplierClearDebt}
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => setExpandedAccountId(isExpanded ? null : supplier.id)}
-                        className="rounded-lg p-1 text-slate-500 hover:text-cockpit-400"
-                        aria-label={t.supplierAccountView}
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleActive(supplier)}
-                        className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
-                          supplier.is_active
-                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                            : 'bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                        }`}
-                      >
-                        {supplier.is_active ? t.active : t.inactive}
-                      </button>
-                    </div>
-                  </div>
-
-                  {isPaying ? (
-                    <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+                  {drawerIsPaying ? (
+                    <div className="mb-4 space-y-2 rounded-lg border border-white/10 p-3">
                       <input
                         type="number"
                         min="0"
@@ -591,7 +816,7 @@ export function SuppliersScreen() {
                         <button
                           type="button"
                           disabled={paySaving}
-                          onClick={() => void handlePaySupplier(supplier.id)}
+                          onClick={() => void handlePaySupplier(selectedSupplierId)}
                           className="cockpit-btn-primary flex-1 text-xs"
                         >
                           {paySaving ? (
@@ -611,10 +836,13 @@ export function SuppliersScreen() {
                     </div>
                   ) : null}
 
-                  {(isAddingDebt || isEditingDebtHere) ? (
-                    <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+                  {drawerIsAddingDebt || drawerIsEditingDebt ? (
+                    <div className="mb-4 space-y-2 rounded-lg border border-white/10 p-3">
                       <p className="text-xs font-semibold text-slate-400">
                         {editingDebtId ? t.edit : t.supplierAddDebt}
+                      </p>
+                      <p className="text-[11px] leading-relaxed text-slate-500">
+                        {t.supplierAddDebtHint}
                       </p>
                       <input
                         type="number"
@@ -641,7 +869,7 @@ export function SuppliersScreen() {
                         <button
                           type="button"
                           disabled={debtSaving}
-                          onClick={() => void handleSaveDebt(supplier.id)}
+                          onClick={() => void handleSaveDebt(selectedSupplierId)}
                           className="cockpit-btn-primary flex-1 text-xs"
                         >
                           {debtSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : t.save}
@@ -660,106 +888,11 @@ export function SuppliersScreen() {
                     </div>
                   ) : null}
 
-                  {isExpanded && account ? (
-                    <div className="mt-3 space-y-3 border-t border-white/10 pt-3 text-xs">
-                      <p className="font-semibold text-slate-400">{t.supplierDebtHistory}</p>
-
-                      {account.manualDebts.length > 0 ? (
-                        <div className="space-y-1">
-                          <p className="text-[10px] uppercase tracking-wide text-slate-500">
-                            {t.supplierManualDebt}
-                          </p>
-                          {account.manualDebts.map((d) => (
-                            <div
-                              key={d.id}
-                              className="flex items-center justify-between gap-2 text-slate-300"
-                            >
-                              <span>
-                                {d.debtDate}
-                                {d.notes ? ` · ${d.notes}` : ''}
-                              </span>
-                              <span className="flex items-center gap-2">
-                                ₼{d.amount.toFixed(2)}{' '}
-                                <span className={statusClass(d.status)}>{statusLabel(d.status)}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => openEditDebt(supplier.id, d)}
-                                  className="text-slate-500 hover:text-cockpit-400"
-                                >
-                                  <Edit2 className="h-3 w-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => void handleDeleteDebt(d.id)}
-                                  className="text-slate-500 hover:text-rose-400"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      {account.purchases.length > 0 ? (
-                        <div className="space-y-1">
-                          <p className="text-[10px] uppercase tracking-wide text-slate-500">
-                            {t.supplierDebtFromPurchase}
-                          </p>
-                          {account.purchases.slice(0, 12).map((p) => (
-                            <div key={p.id} className="flex justify-between text-slate-300">
-                              <span>{p.purchaseDate}</span>
-                              <span>
-                                ₼{p.total.toFixed(2)}{' '}
-                                <span className={statusClass(p.status)}>{statusLabel(p.status)}</span>
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      {account.payments.length > 0 ? (
-                        <div>
-                          <p className="mb-1 text-[10px] uppercase tracking-wide text-slate-500">
-                            {t.supplierRecentPayments}
-                          </p>
-                          {account.payments.slice(0, 8).map((p) => (
-                            <div
-                              key={p.id}
-                              className="flex items-center justify-between text-slate-400"
-                            >
-                              <span>{p.paidDate}</span>
-                              <span className="flex items-center gap-2">
-                                <span className="text-emerald-400">−₼{p.amount.toFixed(2)}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => void handleDeletePayment(p.id)}
-                                  className="text-slate-500 hover:text-rose-400"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      {!hasDebtHistory ? (
-                        <p className="text-slate-500">{t.supplierAddDebt}</p>
-                      ) : null}
-                    </div>
-                  ) : null}
+                  {renderStatement(selectedSupplier, selectedAccount)}
                 </>
-              )}
+              ) : null}
             </div>
-          );
-        })}
-      </div>
-
-      {suppliers.length === 0 && !isAdding ? (
-        <div className="cockpit-panel py-12 text-center">
-          <Truck className="mx-auto mb-3 h-12 w-12 text-slate-400 dark:text-slate-600" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">{t.noSuppliersYet}</p>
+          </div>
         </div>
       ) : null}
     </div>

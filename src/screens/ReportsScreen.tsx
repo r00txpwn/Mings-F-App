@@ -78,9 +78,7 @@ export function ReportsScreen() {
     totalPurchases: 0,
     totalExpenses: 0,
     totalCommissions: 0,
-    salesTax: 0,
     payroll: 0,
-    employerContributions: 0,
     netProfit: 0,
   });
   const [channelStats, setChannelStats] = useState<Array<{ name: string; sales: number; orders: number; aov: number; share: number }>>([]);
@@ -175,9 +173,7 @@ export function ReportsScreen() {
         totalPurchases: 0,
         totalExpenses: 0,
         totalCommissions: 0,
-        salesTax: 0,
         payroll: 0,
-        employerContributions: 0,
         netProfit: 0,
       });
       setChannelStats([]);
@@ -217,9 +213,7 @@ export function ReportsScreen() {
           cogs: summary.cogs,
           opex: summary.opex,
           bankFees: summary.bankFees ?? 0,
-          salesTax: summary.salesTax ?? 0,
           payroll: summary.payroll ?? 0,
-          employerContributions: summary.employerContributions ?? 0,
           orderCount: summary.orderCount,
         })
       : null;
@@ -230,9 +224,7 @@ export function ReportsScreen() {
       totalPurchases: purchasesTotal,
       totalExpenses: operationalTotal,
       totalCommissions,
-      salesTax: summary?.salesTax ?? 0,
       payroll: summary?.payroll ?? 0,
-      employerContributions: summary?.employerContributions ?? 0,
       netProfit: executiveKpis
         ? executiveKpis.netProfit - totalCommissions
         : revenue - purchasesTotal - operationalTotal - totalCommissions,
@@ -400,11 +392,10 @@ export function ReportsScreen() {
             <KpiCard label={t.cogs} value={toCurrency(totals.totalPurchases)} subtitle={`${foodCostPercentage.toFixed(1)}% ${t.ofSales}`} />
             <KpiCard label={t.operationalExpenses} value={toCurrency(totals.totalExpenses)} />
             <KpiCard label={t.platformCosts} value={toCurrency(totals.totalCommissions)} subtitle={`${commissionPercentage.toFixed(1)}% ${t.ofSales}`} />
-            <KpiCard label={t.taxesSalesTaxLabel} value={toCurrency(totals.salesTax)} />
             <KpiCard
               label={t.staffSalariesLabel}
               value={toCurrency(totals.payroll)}
-              subtitle={t.staffSalariesHint.replace('{employer}', totals.employerContributions.toFixed(2))}
+              subtitle={t.staffSalariesHint}
             />
             <KpiCard
               label={t.netProfit}

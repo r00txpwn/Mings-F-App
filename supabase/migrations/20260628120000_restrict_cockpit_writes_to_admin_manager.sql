@@ -152,14 +152,9 @@ DECLARE
     -- Catalog / menu
     'products',
     'sales_channels',
-    'combo_deals',
-    'combo_groups',
-    'combo_group_items',
     'modifier_groups',
     'modifier_options',
     'product_modifier_groups',
-    -- Delivery config
-    'delivery_zones',
     -- Tax / payroll
     'tax_settings',
     'tax_payments',
@@ -171,5 +166,52 @@ BEGIN
     PERFORM public._harden_admin_manager_writes(t);
   END LOOP;
 END $$;
+
+-- combo_* tables ship with FOR ALL "Staff can manage …" policies (see
+-- 20260418140100_combo_deals.sql). Replace those without touching storefront
+-- SELECT policies ("Anyone can read …").
+DROP POLICY IF EXISTS "Staff can manage combo deals" ON public.combo_deals;
+CREATE POLICY "admin_manager_insert_combo_deals"
+  ON public.combo_deals FOR INSERT TO authenticated
+  WITH CHECK (public.is_admin_or_manager());
+CREATE POLICY "admin_manager_update_combo_deals"
+  ON public.combo_deals FOR UPDATE TO authenticated
+  USING (public.is_admin_or_manager()) WITH CHECK (public.is_admin_or_manager());
+CREATE POLICY "admin_delete_combo_deals"
+  ON public.combo_deals FOR DELETE TO authenticated
+  USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Staff can manage combo groups" ON public.combo_groups;
+CREATE POLICY "admin_manager_insert_combo_groups"
+  ON public.combo_groups FOR INSERT TO authenticated
+  WITH CHECK (public.is_admin_or_manager());
+CREATE POLICY "admin_manager_update_combo_groups"
+  ON public.combo_groups FOR UPDATE TO authenticated
+  USING (public.is_admin_or_manager()) WITH CHECK (public.is_admin_or_manager());
+CREATE POLICY "admin_delete_combo_groups"
+  ON public.combo_groups FOR DELETE TO authenticated
+  USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Staff can manage combo group items" ON public.combo_group_items;
+CREATE POLICY "admin_manager_insert_combo_group_items"
+  ON public.combo_group_items FOR INSERT TO authenticated
+  WITH CHECK (public.is_admin_or_manager());
+CREATE POLICY "admin_manager_update_combo_group_items"
+  ON public.combo_group_items FOR UPDATE TO authenticated
+  USING (public.is_admin_or_manager()) WITH CHECK (public.is_admin_or_manager());
+CREATE POLICY "admin_delete_combo_group_items"
+  ON public.combo_group_items FOR DELETE TO authenticated
+  USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Staff can manage delivery zones" ON public.delivery_zones;
+CREATE POLICY "admin_manager_insert_delivery_zones"
+  ON public.delivery_zones FOR INSERT TO authenticated
+  WITH CHECK (public.is_admin_or_manager());
+CREATE POLICY "admin_manager_update_delivery_zones"
+  ON public.delivery_zones FOR UPDATE TO authenticated
+  USING (public.is_admin_or_manager()) WITH CHECK (public.is_admin_or_manager());
+CREATE POLICY "admin_delete_delivery_zones"
+  ON public.delivery_zones FOR DELETE TO authenticated
+  USING (public.is_admin());
 
 DROP FUNCTION public._harden_admin_manager_writes(text);

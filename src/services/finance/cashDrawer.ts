@@ -21,19 +21,24 @@ export interface CashDrawerInput {
   /** Net cash pulled from the bank (withdrawal amount − fee). */
   bankWithdrawalsIn: CashEntry[];
   movementsIn: CashEntry[];
+  /** Platform/channel payouts received as cash (e.g. ChoiceQR cash). */
+  payoutsIn?: CashEntry[];
   cashExpenses: CashEntry[];
   cashSupplierPayments: CashEntry[];
   cashLiabilityPayments: CashEntry[];
+  /** Purchases recorded as "paid now" in cash (is_on_credit = false). */
+  cashPurchases?: CashEntry[];
   movementsOut: CashEntry[];
 }
 
 export interface CashDrawerResult {
   openingBalance: number;
-  cashIn: { orders: number; bankWithdrawals: number; movementsIn: number; total: number };
+  cashIn: { orders: number; bankWithdrawals: number; movementsIn: number; payouts: number; total: number };
   cashOut: {
     expenses: number;
     supplierPayments: number;
     liabilityPayments: number;
+    purchases: number;
     movementsOut: number;
     total: number;
   };
@@ -81,21 +86,25 @@ export function computeCashDrawer(
   addOpening(input.orderCashIn, 1);
   addOpening(input.bankWithdrawalsIn, 1);
   addOpening(input.movementsIn, 1);
+  addOpening(input.payoutsIn ?? [], 1);
   addOpening(input.cashExpenses, -1);
   addOpening(input.cashSupplierPayments, -1);
   addOpening(input.cashLiabilityPayments, -1);
+  addOpening(input.cashPurchases ?? [], -1);
   addOpening(input.movementsOut, -1);
 
   const orders = sumWithin(input.orderCashIn, startDate, endDate);
   const bankWithdrawals = sumWithin(input.bankWithdrawalsIn, startDate, endDate);
   const movementsIn = sumWithin(input.movementsIn, startDate, endDate);
+  const payouts = sumWithin(input.payoutsIn ?? [], startDate, endDate);
   const expenses = sumWithin(input.cashExpenses, startDate, endDate);
   const supplierPayments = sumWithin(input.cashSupplierPayments, startDate, endDate);
   const liabilityPayments = sumWithin(input.cashLiabilityPayments, startDate, endDate);
+  const purchases = sumWithin(input.cashPurchases ?? [], startDate, endDate);
   const movementsOut = sumWithin(input.movementsOut, startDate, endDate);
 
-  const cashInTotal = orders + bankWithdrawals + movementsIn;
-  const cashOutTotal = expenses + supplierPayments + liabilityPayments + movementsOut;
+  const cashInTotal = orders + bankWithdrawals + movementsIn + payouts;
+  const cashOutTotal = expenses + supplierPayments + liabilityPayments + purchases + movementsOut;
   const netChange = cashInTotal - cashOutTotal;
 
   return {
@@ -104,12 +113,14 @@ export function computeCashDrawer(
       orders: roundMoney(orders),
       bankWithdrawals: roundMoney(bankWithdrawals),
       movementsIn: roundMoney(movementsIn),
+      payouts: roundMoney(payouts),
       total: roundMoney(cashInTotal),
     },
     cashOut: {
       expenses: roundMoney(expenses),
       supplierPayments: roundMoney(supplierPayments),
       liabilityPayments: roundMoney(liabilityPayments),
+      purchases: roundMoney(purchases),
       movementsOut: roundMoney(movementsOut),
       total: roundMoney(cashOutTotal),
     },

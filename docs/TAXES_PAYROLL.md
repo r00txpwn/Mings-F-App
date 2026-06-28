@@ -1,65 +1,47 @@
-# Taxes & Payroll (Azerbaijan MMC)
+# Taxes & Payroll — deprecated (2026-06-29)
 
-Staff cockpit modules for **Staff & Salaries** (`?screen=staff`) and **Taxes** (`?screen=taxes`).
+## Status
 
-## What applies (2026 defaults)
+The **Taxes** cockpit screen (`?screen=taxes`) and all tax estimation logic were **removed** from the app on 2026-06-29. Old bookmarks redirect to **Payroll** (`?screen=staff`).
 
-Rates are **configurable** in `tax_settings` (Taxes → Rate settings). Defaults match common Azerbaijan private-sector rules for a restaurant MMC:
+**Payroll (Staff & Salaries)** remains active at **`?screen=staff`**.
 
-### Simplified sales / turnover tax (public catering)
+Track tax payments as normal **operational expenses** (Expenses hub) with your own categories — the app no longer estimates sales tax or payroll tax liabilities.
 
-- Default catering rate in 2026 is often **8%** (or **6%** for integrated POS non-cash).
-- A special **2%** regime exists for qualifying businesses (prior 12-month turnover ≤ 100,000 AZN, ≥1 year in current regime, formal application).
-- Ming's OS defaults both cash and non-cash rates to **2%** — change in Taxes settings if your regime differs.
-- Turnover is split **cash vs non-cash** using `sales.online_payment_method` (card/epoint/online → non-cash; cod/cash → cash).
+## Database tables (preserved, orphaned)
 
-### Payroll taxes (on **official declared** salary only)
+Migration `20260627120000_taxes_and_payroll.sql` created:
 
-Computed per employee from `employees.official_salary` (not total cash paid):
+| Table | Status |
+|-------|--------|
+| `employees` | **Active** — Staff / Payroll screen |
+| `salary_payments` | **Active** — Staff / Payroll screen |
+| `tax_settings` | **Orphaned** — no UI; data kept for audit |
+| `tax_payments` | **Orphaned** — no UI; data kept for audit |
 
-- **Income tax (PIT):** progressive brackets with 200 AZN exempt on first bracket (2026 private non-oil defaults).
-- **DSMF (social insurance):** employee + employer shares with caps above 8,000 AZN.
-- **Medical + unemployment insurance:** configurable % splits.
+Do **not** drop these tables without an explicit owner decision and backup.
 
-**Unofficial pay** (total salary minus official base) is recorded in salary payments but carries **no payroll tax** in the app.
-
-## Database tables
-
-| Table | Purpose |
-|-------|---------|
-| `employees` | Roster: name, designation, total vs official monthly salary |
-| `salary_payments` | Dated ledger: salary, advance, partial, bonus |
-| `tax_settings` | Singleton configurable rates |
-| `tax_payments` | Log when taxes were paid to the state |
-
-Migration: `supabase/migrations/20260627120000_taxes_and_payroll.sql`
-
-## P&L integration
-
-Executive KPIs (`HomeScreen`, `ReportsScreen`) use:
+## Net profit formula (current)
 
 ```
-operatingProfit = netRevenue - cogs - opex   // unchanged
-netProfit = operatingProfit - bankFees - salesTax - payroll - employerContributions
+netProfit = operatingProfit - bankFees - payroll
 ```
 
-- **payroll** = sum of `salary_payments` in the period (actual cash out)
-- **employerContributions** = prorated employer-side payroll taxes on active employees' official bases
-- **salesTax** = computed from period turnover × configured rates
+- **payroll** = sum of `salary_payments` in the selected period
+- Tax is **not** estimated; if logged as an operational expense it is already inside **opex** / **operatingProfit**
 
-Do **not** also enter salaries under Expenses → “Salaries” or taxes under “Taxes & Fees” — that double-counts.
+Do **not** also enter salaries under Expenses → “Salaries” — that double-counts (see warning on the Staff screen).
 
-## Services
+## Removed code (reference)
 
-| File | Role |
-|------|------|
-| `src/services/finance/payrollTax.ts` | Pure AZ payroll tax math |
-| `src/services/finance/salesTax.ts` | Simplified turnover tax + cash/non-cash classifier |
-| `src/services/finance/taxFinanceService.ts` | Period aggregation for analytics |
+| Path | Was |
+|------|-----|
+| `src/screens/TaxesScreen.tsx` | Taxes UI |
+| `src/services/finance/taxFinanceService.ts` | Period tax aggregation |
+| `src/services/finance/salesTax.ts` | Turnover tax math |
+| `src/services/finance/payrollTax.ts` | AZ payroll tax math |
 
-## Local QA URLs
+## QA URLs
 
-- Staff: `http://127.0.0.1:4175/spec-ops?screen=staff`
-- Taxes: `http://127.0.0.1:4175/spec-ops?screen=taxes`
-
-Confirm rates with your accountant before filing.
+- Payroll: `http://127.0.0.1:4175/spec-ops?screen=staff`
+- Legacy taxes link (redirect): `http://127.0.0.1:4175/spec-ops?screen=taxes` → Staff

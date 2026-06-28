@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabase';
 import type { AnalyticsServiceResponse } from '../../types/analytics';
 import { isCashPaymentMethod } from '../../lib/cashPayment';
+import { isOnCreditFromPurchase } from './purchaseCredit';
 import {
   computeCashDrawer,
   type CashDrawerInput,
@@ -34,7 +35,7 @@ interface CashDrawerParams {
 export async function fetchCashDrawer(
   params: CashDrawerParams = {},
 ): Promise<AnalyticsServiceResponse<CashDrawerResult>> {
-  const [salesRes, movementsRes, expensesRes, supplierPayRes, liabilityPayRes, withdrawalsRes] =
+  const [salesRes, movementsRes, expensesRes, supplierPayRes, liabilityPayRes, withdrawalsRes, purchasesRes, payoutsRes] =
     await Promise.all([
       supabase
         .from('sales')
@@ -44,6 +45,11 @@ export async function fetchCashDrawer(
       supabase.from('supplier_account_payments').select('amount, payment_method, paid_date'),
       supabase.from('liability_payments').select('amount, payment_method, paid_date'),
       supabase.from('bank_withdrawals').select('amount, fee_amount, withdrawal_date'),
+      supabase.from('purchases').select('total_cost, payment_method, is_on_credit, payment_status, purchase_date'),
+      supabase
+        .from('platform_payouts')
+        .select('payout_amount, received_account, payout_date')
+        .eq('received_account', 'cash'),
     ]);
 
   const firstError =
@@ -52,7 +58,9 @@ export async function fetchCashDrawer(
     expensesRes.error ??
     supplierPayRes.error ??
     liabilityPayRes.error ??
-    withdrawalsRes.error;
+    withdrawalsRes.error ??
+    purchasesRes.error ??
+    payoutsRes.error;
   if (firstError) {
     return { data: null, error: firstError.message };
   }
@@ -101,13 +109,33 @@ export async function fetchCashDrawer(
       amount: safeNumber(row.amount) - safeNumber(row.fee_amount),
     }));
 
+  // "Paid now" cash purchases leave the drawer immediately. On-account
+  // purchases are excluded — they move money later via supplier payments.
+  const cashPurchases: CashEntry[] = ((purchasesRes.data ?? []) as Array<Record<string, unknown>>)
+    .filter(
+      (row) =>
+        !isOnCreditFromPurchase({
+          is_on_credit: row.is_on_credit as boolean | null,
+          payment_status: row.payment_status as string | null,
+        }) && isCashPaymentMethod(row.payment_method as string | null),
+    )
+    .map((row) => ({ date: toDate(row.purchase_date), amount: safeNumber(row.total_cost) }));
+
+  // Channel/platform payouts the owner recorded as landing in cash (e.g. ChoiceQR).
+  const payoutsIn: CashEntry[] = ((payoutsRes.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    date: toDate(row.payout_date),
+    amount: safeNumber(row.payout_amount),
+  }));
+
   const input: CashDrawerInput = {
     orderCashIn,
     bankWithdrawalsIn,
     movementsIn,
+    payoutsIn,
     cashExpenses,
     cashSupplierPayments,
     cashLiabilityPayments,
+    cashPurchases,
     movementsOut,
   };
 

@@ -17,10 +17,8 @@ export function computeExecutiveKpis(input: ComputeExecutiveKpisInput): Executiv
   const grossProfit = netRevenue - input.cogs;
   const operatingProfit = grossProfit - input.opex;
   const bankFees = input.bankFees ?? 0;
-  const salesTax = input.salesTax ?? 0;
   const payroll = input.payroll ?? 0;
-  const employerContributions = input.employerContributions ?? 0;
-  const netProfit = operatingProfit - bankFees - salesTax - payroll - employerContributions;
+  const netProfit = operatingProfit - bankFees - payroll;
 
   return {
     grossSales: input.grossSales,
@@ -30,9 +28,7 @@ export function computeExecutiveKpis(input: ComputeExecutiveKpisInput): Executiv
     grossMarginPct: safePct(grossProfit, netRevenue),
     operatingProfit,
     bankFees,
-    salesTax,
     payroll,
-    employerContributions,
     netProfit,
     avgOrderValue: input.orderCount > 0 ? netRevenue / input.orderCount : 0,
     orderCount: input.orderCount,

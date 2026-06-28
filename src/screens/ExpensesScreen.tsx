@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Settings2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
+import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
 import { ExpensesSummaryBar } from './expenses/ExpensesSummaryBar';
@@ -12,6 +13,11 @@ import { displayName, isTestRecord } from '../lib/displayName';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { SingleDatePicker } from '../components/SingleDatePicker';
 import { isOnCreditFromPurchase, purchaseCreditFields } from '../services/finance/purchaseCredit';
+import {
+  BANK_TRANSFER_PAYMENT_METHOD,
+  CARD_PAYMENT_METHOD,
+  CASH_PAYMENT_METHOD,
+} from '../lib/cashPayment';
 
 interface MasterCategory {
   id: string;
@@ -53,6 +59,7 @@ interface Purchase {
   purchase_date: string;
   payment_status: 'pending' | 'partial' | 'paid';
   is_on_credit?: boolean;
+  payment_method?: string | null;
   notes: string;
   products?: { name: string; unit: string };
   suppliers?: { name: string };
@@ -73,6 +80,58 @@ type PurchasePriceSuggestion = {
   purchase_date: string;
 };
 
+type InlineItemDraft = {
+  open: boolean;
+  name: string;
+  categoryId: string;
+  makeNewCategory: boolean;
+  newCategoryName: string;
+  newCategoryColor: string;
+  saving: boolean;
+  error: string | null;
+};
+
+type InlineSupplierDraft = {
+  open: boolean;
+  name: string;
+  saving: boolean;
+  error: string | null;
+};
+
+type InlineCategoryDraft = {
+  open: boolean;
+  name: string;
+  color: string;
+  saving: boolean;
+  error: string | null;
+};
+
+const defaultInlineItemDraft = (defaultColor: string): InlineItemDraft => ({
+  open: false,
+  name: '',
+  categoryId: '',
+  makeNewCategory: false,
+  newCategoryName: '',
+  newCategoryColor: defaultColor,
+  saving: false,
+  error: null,
+});
+
+const defaultInlineSupplierDraft = (): InlineSupplierDraft => ({
+  open: false,
+  name: '',
+  saving: false,
+  error: null,
+});
+
+const defaultInlineCategoryDraft = (defaultColor: string): InlineCategoryDraft => ({
+  open: false,
+  name: '',
+  color: defaultColor,
+  saving: false,
+  error: null,
+});
+
 const toLocalDateInput = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -89,6 +148,7 @@ const getCurrentMonthRange = () => {
 
 export function ExpensesScreen() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('operational');
   const [loading, setLoading] = useState(true);
 
@@ -317,6 +377,7 @@ export function ExpensesScreen() {
         unit_cost: pur.unit_cost,
         purchase_date: new Date(pur.purchase_date).toISOString().split('T')[0],
         is_on_credit: isOnCreditFromPurchase(pur),
+        payment_method: pur.payment_method || CASH_PAYMENT_METHOD,
         notes: pur.notes || '',
       });
       setShowPurchaseForm(true);
@@ -346,7 +407,7 @@ export function ExpensesScreen() {
     expense_item_id: '',
     amount: 0,
     expense_date: new Date().toISOString().split('T')[0],
-    payment_method: '',
+    payment_method: CASH_PAYMENT_METHOD,
     description: '',
   });
 
@@ -358,6 +419,7 @@ export function ExpensesScreen() {
     unit_cost: 0,
     purchase_date: new Date().toISOString().split('T')[0],
     is_on_credit: true,
+    payment_method: CASH_PAYMENT_METHOD,
     notes: '',
   });
 
@@ -369,15 +431,22 @@ export function ExpensesScreen() {
   const [cogsItemSearchText, setCogsItemSearchText] = useState('');
   const cogsItemDropdownRef = useRef<HTMLDivElement>(null);
 
+  const [inlineExpenseItem, setInlineExpenseItem] = useState<InlineItemDraft>(() => defaultInlineItemDraft('#F97316'));
+  const [inlineCogsItem, setInlineCogsItem] = useState<InlineItemDraft>(() => defaultInlineItemDraft('#3B82F6'));
+  const [inlineSupplier, setInlineSupplier] = useState<InlineSupplierDraft>(defaultInlineSupplierDraft);
+  const [inlineCategory, setInlineCategory] = useState<InlineCategoryDraft>(() => defaultInlineCategoryDraft('#F97316'));
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (itemDropdownRef.current && !itemDropdownRef.current.contains(event.target as Node)) {
         setIsItemDropdownOpen(false);
         setItemSearchText('');
+        setInlineExpenseItem(defaultInlineItemDraft('#F97316'));
       }
       if (cogsItemDropdownRef.current && !cogsItemDropdownRef.current.contains(event.target as Node)) {
         setIsCogsItemDropdownOpen(false);
         setCogsItemSearchText('');
+        setInlineCogsItem(defaultInlineItemDraft('#3B82F6'));
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -452,6 +521,7 @@ export function ExpensesScreen() {
     }
     setIsItemDropdownOpen(false);
     setItemSearchText('');
+    setInlineExpenseItem(defaultInlineItemDraft('#F97316'));
   };
 
   const handleSelectCogsItem = (itemId: string) => {
@@ -465,6 +535,308 @@ export function ExpensesScreen() {
     }
     setIsCogsItemDropdownOpen(false);
     setCogsItemSearchText('');
+    setInlineCogsItem(defaultInlineItemDraft('#3B82F6'));
+  };
+
+  const createInlineItem = async (kind: 'expense' | 'purchase') => {
+    const draft = kind === 'expense' ? inlineExpenseItem : inlineCogsItem;
+    const setDraft = kind === 'expense' ? setInlineExpenseItem : setInlineCogsItem;
+    const defaultColor = kind === 'expense' ? '#F97316' : '#3B82F6';
+
+    if (!user || draft.saving) return;
+
+    const name = draft.name.trim();
+    if (!name) {
+      setDraft(prev => ({ ...prev, error: t.enterExpenseItemName }));
+      return;
+    }
+
+    let categoryId = draft.categoryId;
+    if (draft.makeNewCategory) {
+      const catName = draft.newCategoryName.trim();
+      if (!catName) {
+        setDraft(prev => ({ ...prev, error: t.categoryName }));
+        return;
+      }
+      setDraft(prev => ({ ...prev, saving: true, error: null }));
+      const catResult = await adminInsert<{ id: string }>('master_categories', {
+        name: catName,
+        description: '',
+        type: kind,
+        color: draft.newCategoryColor,
+        icon: 'circle',
+      });
+      if (!catResult.ok || !catResult.data?.id) {
+        const message = catResult.error ?? t.errorOccurred;
+        setDraft(prev => ({ ...prev, saving: false, error: message }));
+        flashError(message);
+        return;
+      }
+      categoryId = catResult.data.id;
+    } else if (!categoryId) {
+      setDraft(prev => ({ ...prev, error: t.selectCategory }));
+      return;
+    }
+
+    setDraft(prev => ({ ...prev, saving: true, error: null }));
+    const itemResult = await adminInsert<{ id: string; master_category_id: string }>('expense_items', {
+      name,
+      master_category_id: categoryId,
+      user_id: user.id,
+    });
+
+    if (!itemResult.ok || !itemResult.data?.id) {
+      const message = itemResult.error ?? t.errorOccurred;
+      setDraft(prev => ({ ...prev, saving: false, error: message }));
+      flashError(message);
+      return;
+    }
+
+    await loadAllData();
+
+    if (kind === 'expense') {
+      setExpenseFormData(prev => ({
+        ...prev,
+        expense_item_id: itemResult.data!.id,
+        master_category_id: categoryId,
+      }));
+      setIsItemDropdownOpen(false);
+      setItemSearchText('');
+      setInlineExpenseItem(defaultInlineItemDraft(defaultColor));
+    } else {
+      setPurchaseFormData(prev => ({
+        ...prev,
+        expense_item_id: itemResult.data!.id,
+        master_category_id: categoryId,
+      }));
+      setIsCogsItemDropdownOpen(false);
+      setCogsItemSearchText('');
+      setInlineCogsItem(defaultInlineItemDraft(defaultColor));
+    }
+
+    flashSuccess(t.savedSuccessfully);
+  };
+
+  const createInlineSupplier = async () => {
+    if (inlineSupplier.saving) return;
+
+    const name = inlineSupplier.name.trim();
+    if (!name) {
+      setInlineSupplier(prev => ({ ...prev, error: t.newSupplierName }));
+      return;
+    }
+
+    setInlineSupplier(prev => ({ ...prev, saving: true, error: null }));
+    const result = await adminInsert<{ id: string }>('suppliers', {
+      name,
+      contact_person: '',
+      email: '',
+      phone: '',
+      address: '',
+      notes: '',
+      is_active: true,
+    });
+
+    if (!result.ok || !result.data?.id) {
+      const message = result.error ?? t.errorOccurred;
+      setInlineSupplier(prev => ({ ...prev, saving: false, error: message }));
+      flashError(message);
+      return;
+    }
+
+    await loadAllData();
+    setPurchaseFormData(prev => ({ ...prev, supplier_id: result.data!.id }));
+    setInlineSupplier(defaultInlineSupplierDraft());
+    flashSuccess(t.savedSuccessfully);
+  };
+
+  const createInlineCategory = async () => {
+    if (inlineCategory.saving) return;
+
+    const name = inlineCategory.name.trim();
+    if (!name) {
+      setInlineCategory(prev => ({ ...prev, error: t.categoryName }));
+      return;
+    }
+
+    setInlineCategory(prev => ({ ...prev, saving: true, error: null }));
+    const result = await adminInsert<{ id: string }>('master_categories', {
+      name,
+      description: '',
+      type: 'expense',
+      color: inlineCategory.color,
+      icon: 'circle',
+    });
+
+    if (!result.ok || !result.data?.id) {
+      const message = result.error ?? t.errorOccurred;
+      setInlineCategory(prev => ({ ...prev, saving: false, error: message }));
+      flashError(message);
+      return;
+    }
+
+    await loadAllData();
+    setExpenseFormData(prev => ({ ...prev, master_category_id: result.data!.id }));
+    setInlineCategory(defaultInlineCategoryDraft('#F97316'));
+    flashSuccess(t.savedSuccessfully);
+  };
+
+  const renderInlineItemCreatePanel = (
+    kind: 'expense' | 'purchase',
+    draft: InlineItemDraft,
+    setDraft: React.Dispatch<React.SetStateAction<InlineItemDraft>>,
+    categoryOptions: MasterCategory[],
+    searchText: string,
+    defaultColor: string,
+  ) => {
+    const canSave = Boolean(
+      draft.name.trim() &&
+      (draft.makeNewCategory ? draft.newCategoryName.trim() : draft.categoryId),
+    );
+
+    if (!draft.open) {
+      return (
+        <div className="border-t border-gray-200 p-2 dark:border-gray-600">
+          <button
+            type="button"
+            onClick={() => setDraft(prev => ({
+              ...prev,
+              open: true,
+              name: searchText.trim() || prev.name,
+              categoryId: prev.categoryId || categoryOptions[0]?.id || '',
+              error: null,
+            }))}
+            className="flex w-full items-center gap-1 rounded-lg px-3 py-2 text-left text-sm font-medium text-violet-600 hover:bg-gray-50 dark:text-violet-400 dark:hover:bg-gray-700"
+          >
+            <Plus className="h-4 w-4 shrink-0" />
+            {t.createNamed.replace('{name}', searchText.trim() || t.newItem)}
+          </button>
+        </div>
+      );
+    }
+
+    const closePanel = () => {
+      if (draft.saving) return;
+      setDraft(defaultInlineItemDraft(defaultColor));
+    };
+
+    return (
+      <div
+        className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+        onMouseDown={closePanel}
+      >
+        <div
+          className="flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl dark:bg-gray-800 sm:max-w-md sm:rounded-2xl"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t.addNewExpenseItem}</h3>
+            <button
+              type="button"
+              onClick={closePanel}
+              disabled={draft.saving}
+              className="text-gray-400 hover:text-gray-600 disabled:opacity-50 dark:hover:text-gray-200"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="ming-scroll space-y-4 overflow-y-auto px-5 py-4">
+            {draft.error ? (
+              <div className="cockpit-alert-error text-sm">{draft.error}</div>
+            ) : null}
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200">{t.expenseItemName}</label>
+              <input
+                type="text"
+                placeholder={t.expenseItemName}
+                value={draft.name}
+                onChange={(e) => setDraft(prev => ({ ...prev, name: e.target.value, error: null }))}
+                className="cockpit-input w-full"
+                disabled={draft.saving}
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  {draft.makeNewCategory ? t.newCategory : t.assignToCategory}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setDraft(prev => ({
+                    ...prev,
+                    makeNewCategory: !prev.makeNewCategory,
+                    error: null,
+                    categoryId: prev.makeNewCategory ? (categoryOptions[0]?.id ?? '') : prev.categoryId,
+                  }))}
+                  className="text-xs font-medium text-violet-600 hover:underline disabled:opacity-50 dark:text-violet-400"
+                  disabled={draft.saving}
+                >
+                  {draft.makeNewCategory ? t.selectCategory : `+ ${t.newCategory}`}
+                </button>
+              </div>
+
+              {!draft.makeNewCategory ? (
+                <select
+                  value={draft.categoryId}
+                  onChange={(e) => setDraft(prev => ({ ...prev, categoryId: e.target.value, error: null }))}
+                  className="cockpit-select w-full"
+                  disabled={draft.saving}
+                >
+                  <option value="">{t.selectCategory}</option>
+                  {categoryOptions.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="space-y-3 rounded-lg border border-gray-200 bg-violet-50/40 p-3 dark:border-gray-600 dark:bg-violet-500/10">
+                  <input
+                    type="text"
+                    placeholder={t.categoryName}
+                    value={draft.newCategoryName}
+                    onChange={(e) => setDraft(prev => ({ ...prev, newCategoryName: e.target.value, error: null }))}
+                    className="cockpit-input w-full"
+                    disabled={draft.saving}
+                  />
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.color}</label>
+                    <input
+                      type="color"
+                      value={draft.newCategoryColor}
+                      onChange={(e) => setDraft(prev => ({ ...prev, newCategoryColor: e.target.value }))}
+                      className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={draft.saving}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-3 border-t border-gray-200 px-5 py-4 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={() => void createInlineItem(kind)}
+              disabled={!canSave || draft.saving}
+              className="flex-1 rounded-lg bg-violet-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {draft.saving ? t.creating : t.create}
+            </button>
+            <button
+              type="button"
+              onClick={closePanel}
+              disabled={draft.saving}
+              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              {t.cancel}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const handleSubmitExpense = async (e: React.FormEvent) => {
@@ -550,6 +922,9 @@ export function ExpensesScreen() {
       total_cost,
       purchase_date: purchaseFormData.purchase_date,
       notes: purchaseFormData.notes,
+      payment_method: purchaseFormData.is_on_credit
+        ? null
+        : purchaseFormData.payment_method || CASH_PAYMENT_METHOD,
       ...purchaseCreditFields(purchaseFormData.is_on_credit),
     };
 
@@ -608,9 +983,11 @@ export function ExpensesScreen() {
       expense_item_id: '',
       amount: 0,
       expense_date: toLocalDateInput(new Date()),
-      payment_method: '',
+      payment_method: CASH_PAYMENT_METHOD,
       description: '',
     });
+    setInlineExpenseItem(defaultInlineItemDraft('#F97316'));
+    setInlineCategory(defaultInlineCategoryDraft('#F97316'));
     setEditingExpense(null);
     setShowExpenseForm(false);
   };
@@ -624,8 +1001,11 @@ export function ExpensesScreen() {
       unit_cost: 0,
       purchase_date: toLocalDateInput(new Date()),
       is_on_credit: true,
+      payment_method: CASH_PAYMENT_METHOD,
       notes: '',
     });
+    setInlineCogsItem(defaultInlineItemDraft('#3B82F6'));
+    setInlineSupplier(defaultInlineSupplierDraft());
     setEditingPurchase(null);
     setShowPurchaseForm(false);
   };
@@ -880,6 +1260,14 @@ export function ExpensesScreen() {
                           })
                         )}
                       </div>
+                      {renderInlineItemCreatePanel(
+                        'expense',
+                        inlineExpenseItem,
+                        setInlineExpenseItem,
+                        expenseCategories,
+                        itemSearchText,
+                        '#F97316',
+                      )}
                     </div>
                   )}
                 </div>
@@ -898,6 +1286,56 @@ export function ExpensesScreen() {
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
+                  {!inlineCategory.open ? (
+                    <button
+                      type="button"
+                      onClick={() => setInlineCategory(prev => ({ ...prev, open: true, error: null }))}
+                      className="mt-2 flex items-center gap-1 text-xs font-medium text-violet-600 hover:underline dark:text-violet-400"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      {t.addCategory}
+                    </button>
+                  ) : (
+                    <div className="mt-2 space-y-2 rounded-lg border border-gray-200 bg-violet-50/40 p-3 dark:border-gray-600 dark:bg-violet-500/10">
+                      {inlineCategory.error ? (
+                        <div className="cockpit-alert-error text-xs">{inlineCategory.error}</div>
+                      ) : null}
+                      <input
+                        type="text"
+                        placeholder={t.categoryName}
+                        value={inlineCategory.name}
+                        onChange={(e) => setInlineCategory(prev => ({ ...prev, name: e.target.value, error: null }))}
+                        className="cockpit-input w-full text-sm"
+                        disabled={inlineCategory.saving}
+                        autoFocus
+                      />
+                      <input
+                        type="color"
+                        value={inlineCategory.color}
+                        onChange={(e) => setInlineCategory(prev => ({ ...prev, color: e.target.value }))}
+                        className="h-9 w-full cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={inlineCategory.saving}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void createInlineCategory()}
+                          disabled={!inlineCategory.name.trim() || inlineCategory.saving}
+                          className="flex-1 rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        >
+                          {inlineCategory.saving ? t.creating : t.create}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setInlineCategory(defaultInlineCategoryDraft('#F97316'))}
+                          disabled={inlineCategory.saving}
+                          className="px-3 py-2 text-sm text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200"
+                        >
+                          {t.cancel}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -925,13 +1363,16 @@ export function ExpensesScreen() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.paymentMethod}</label>
-                  <input
-                    type="text"
+                  <select
                     value={expenseFormData.payment_method}
                     onChange={(e) => setExpenseFormData(prev => ({ ...prev, payment_method: e.target.value }))}
-                    placeholder={t.paymentMethodExample}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                  />
+                    className="cockpit-select w-full"
+                  >
+                    <option value="">{t.selectPaymentMethod}</option>
+                    <option value={CASH_PAYMENT_METHOD}>{t.paymentCash}</option>
+                    <option value={CARD_PAYMENT_METHOD}>{t.paymentCard}</option>
+                    <option value={BANK_TRANSFER_PAYMENT_METHOD}>{t.paymentBankTransfer}</option>
+                  </select>
                 </div>
               </div>
 
@@ -1050,6 +1491,14 @@ export function ExpensesScreen() {
                           })
                         )}
                       </div>
+                      {renderInlineItemCreatePanel(
+                        'purchase',
+                        inlineCogsItem,
+                        setInlineCogsItem,
+                        cogsCategories,
+                        cogsItemSearchText,
+                        '#3B82F6',
+                      )}
                     </div>
                   )}
                 </div>
@@ -1067,6 +1516,49 @@ export function ExpensesScreen() {
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
+                {!inlineSupplier.open ? (
+                  <button
+                    type="button"
+                    onClick={() => setInlineSupplier(prev => ({ ...prev, open: true, error: null }))}
+                    className="mt-2 flex items-center gap-1 text-xs font-medium text-violet-600 hover:underline dark:text-violet-400"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    {t.addNewSupplier}
+                  </button>
+                ) : (
+                  <div className="mt-2 space-y-2 rounded-lg border border-gray-200 bg-violet-50/40 p-3 dark:border-gray-600 dark:bg-violet-500/10">
+                    {inlineSupplier.error ? (
+                      <div className="cockpit-alert-error text-xs">{inlineSupplier.error}</div>
+                    ) : null}
+                    <input
+                      type="text"
+                      placeholder={t.newSupplierName}
+                      value={inlineSupplier.name}
+                      onChange={(e) => setInlineSupplier(prev => ({ ...prev, name: e.target.value, error: null }))}
+                      className="cockpit-input w-full text-sm"
+                      disabled={inlineSupplier.saving}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void createInlineSupplier()}
+                        disabled={!inlineSupplier.name.trim() || inlineSupplier.saving}
+                        className="flex-1 rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      >
+                        {inlineSupplier.saving ? t.creating : t.create}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInlineSupplier(defaultInlineSupplierDraft())}
+                        disabled={inlineSupplier.saving}
+                        className="px-3 py-2 text-sm text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200"
+                      >
+                        {t.cancel}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {purchaseFormData.expense_item_id && purchasePriceSuggestions.length > 0 && (
@@ -1177,8 +1669,31 @@ export function ExpensesScreen() {
                       {t.purchasePaidNow}
                     </button>
                   </div>
+                  {purchaseFormData.is_on_credit ? (
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                      {t.purchaseOnAccountHint}
+                    </p>
+                  ) : null}
                 </div>
               </div>
+
+              {!purchaseFormData.is_on_credit ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.paymentMethod}</label>
+                  <select
+                    value={purchaseFormData.payment_method}
+                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, payment_method: e.target.value }))}
+                    className="cockpit-select w-full"
+                  >
+                    <option value={CASH_PAYMENT_METHOD}>{t.paymentCash}</option>
+                    <option value={CARD_PAYMENT_METHOD}>{t.paymentCard}</option>
+                    <option value={BANK_TRANSFER_PAYMENT_METHOD}>{t.paymentBankTransfer}</option>
+                  </select>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                    {t.purchasePaidNowHint}
+                  </p>
+                </div>
+              ) : null}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.notes}</label>

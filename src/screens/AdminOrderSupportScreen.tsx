@@ -15,6 +15,9 @@ import {
   MapPin,
   Clock3,
   Loader2,
+  ShoppingCart,
+  ChefHat,
+  Monitor,
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
@@ -26,6 +29,7 @@ import { DateRangePicker } from '../components/DateRangePicker';
 import { EmptyState } from '../components/ui/EmptyState';
 import { SkeletonTable } from '../components/ui/Skeleton';
 import { getOrderAppUrl } from '../lib/surfaceRouting';
+import { getPublicKioskEntryUrl } from '../lib/surfaceHost';
 import { OrderItemSummary } from '../order-manager/OrderItemSummary';
 import { isCardOnlinePaymentMethod } from '../lib/onlinePaymentMethod';
 import { getCustomerDisplayName, type OrderManagerOrder } from '../order-manager/types';
@@ -101,6 +105,22 @@ const STATUS_FILTERS: StatusFilter[] = [
 ];
 
 const PREP_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
+
+/**
+ * Quick links to the staff floor surfaces. POS / KDS / Order Manager are served
+ * same-origin on the staff host (preserves the active staff session); Kiosk uses
+ * the public entry URL so the `?key=` secret is included when configured.
+ */
+const QUICK_LINKS: Array<{
+  labelKey: 'adminAccessGoToPos' | 'adminAccessGoToKds' | 'adminAccessGoToOrderManager' | 'adminAccessGoToKiosk';
+  icon: typeof ShoppingCart;
+  getUrl: () => string;
+}> = [
+  { labelKey: 'adminAccessGoToPos', icon: ShoppingCart, getUrl: () => '/pos' },
+  { labelKey: 'adminAccessGoToKds', icon: ChefHat, getUrl: () => '/kds' },
+  { labelKey: 'adminAccessGoToOrderManager', icon: ClipboardList, getUrl: () => '/order-manager' },
+  { labelKey: 'adminAccessGoToKiosk', icon: Monitor, getUrl: () => getPublicKioskEntryUrl() },
+];
 
 function fmtTime(ts: string | null | undefined): string {
   if (!ts) return '—';
@@ -724,6 +744,27 @@ export function AdminOrderSupportScreen() {
           </>
         }
       />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          {t.cockpitQuickLinks}
+        </span>
+        {QUICK_LINKS.map((link) => {
+          const Icon = link.icon;
+          return (
+            <button
+              key={link.labelKey}
+              type="button"
+              onClick={() => window.open(link.getUrl(), '_blank', 'noopener')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white/60 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white"
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {t[link.labelKey]}
+              <ExternalLink className="h-3 w-3 opacity-60" />
+            </button>
+          );
+        })}
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">

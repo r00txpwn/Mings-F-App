@@ -25,7 +25,8 @@ import {
   validateAnalyticsSnapshot,
 } from '../services/analytics';
 import { fetchTotalOutstandingDebt } from '../services/finance/supplierFinanceService';
-import { fetchCashOnHand } from '../services/finance/cashDrawerService';
+import { fetchAccountBalances } from '../services/finance/accountsService';
+import type { AccountBalances } from '../services/finance/accounts';
 import type {
   AnalyticsSourceFilter,
   ChannelPerformance,
@@ -99,7 +100,7 @@ export function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [outstandingDebt, setOutstandingDebt] = useState<number | null>(null);
-  const [cashOnHand, setCashOnHand] = useState<number | null>(null);
+  const [accountBalances, setAccountBalances] = useState<AccountBalances | null>(null);
 
   const dateRange = useMemo(
     () => getDateRange(preset, customStartDate, customEndDate),
@@ -136,7 +137,7 @@ export function HomeScreen() {
       fetchPeriodSummary({ ...previousRange, source: sourceFilter }),
       fetchDashboardOperationalData(params),
       fetchTotalOutstandingDebt(),
-      fetchCashOnHand(),
+      fetchAccountBalances(),
     ]);
 
     const firstError =
@@ -161,7 +162,7 @@ export function HomeScreen() {
     setPreviousSummary(prevSummaryRes.data);
     setOperationalData(operationalRes.data);
     setOutstandingDebt(debtRes.data ?? null);
-    setCashOnHand(cashRes.data ?? null);
+    setAccountBalances(cashRes.data ?? null);
 
     if (selectedChannels.size === 0 && channels.length > 0) {
       setSelectedChannels(new Set(channels.map((c) => c.channelId)));
@@ -186,9 +187,7 @@ export function HomeScreen() {
       cogs: summary.cogs,
       opex: summary.opex,
       bankFees: summary.bankFees ?? 0,
-      salesTax: summary.salesTax ?? 0,
       payroll: summary.payroll ?? 0,
-      employerContributions: summary.employerContributions ?? 0,
       orderCount: summary.orderCount,
     });
   }, [currentSummary, trendData]);
@@ -202,9 +201,7 @@ export function HomeScreen() {
       cogs: previousSummary.cogs,
       opex: previousSummary.opex,
       bankFees: previousSummary.bankFees ?? 0,
-      salesTax: previousSummary.salesTax ?? 0,
       payroll: previousSummary.payroll ?? 0,
-      employerContributions: previousSummary.employerContributions ?? 0,
       orderCount: previousSummary.orderCount,
     });
   }, [previousSummary]);
@@ -256,16 +253,9 @@ export function HomeScreen() {
         trendOverride: kpis.operatingProfit >= 0 ? 'up' : 'down',
       },
       {
-        label: t.taxesSalesTaxLabel,
-        value: `₼${kpis.salesTax.toFixed(2)}`,
-        subtitle: t.taxesSalesTaxHint,
-        delta: deltaFor(kpis.salesTax, prev?.salesTax),
-        trendOverride: 'neutral',
-      },
-      {
         label: t.staffSalariesLabel,
         value: `₼${kpis.payroll.toFixed(2)}`,
-        subtitle: t.staffSalariesHint.replace('{employer}', kpis.employerContributions.toFixed(2)),
+        subtitle: t.staffSalariesHint,
         delta: deltaFor(kpis.payroll, prev?.payroll),
         trendOverride: 'neutral',
       },
@@ -274,17 +264,26 @@ export function HomeScreen() {
         value: `₼${kpis.netProfit.toFixed(2)}`,
         subtitle: t.kpiNetProfitHintExtended
           .replace('{fees}', kpis.bankFees.toFixed(2))
-          .replace('{tax}', kpis.salesTax.toFixed(2))
           .replace('{payroll}', kpis.payroll.toFixed(2)),
         delta: deltaFor(kpis.netProfit, prev?.netProfit),
         trendOverride: kpis.netProfit >= 0 ? 'up' : 'down',
       },
-      ...(cashOnHand != null
+      ...(accountBalances != null
         ? [
             {
-              label: t.cashOnHand,
-              value: `₼${cashOnHand.toFixed(2)}`,
+              label: t.accountCash,
+              value: `₼${accountBalances.cash.toFixed(2)}`,
               subtitle: t.cashOnHandHint,
+            },
+            {
+              label: t.accountBank,
+              value: `₼${accountBalances.bank.toFixed(2)}`,
+              subtitle: t.accountBankHint,
+            },
+            {
+              label: t.accountCard,
+              value: `₼${accountBalances.card.toFixed(2)}`,
+              subtitle: t.accountCardHint,
             },
           ]
         : []),
@@ -298,7 +297,7 @@ export function HomeScreen() {
           ]
         : []),
     ];
-  }, [comparePrevious, kpis, previousKpis, outstandingDebt, cashOnHand, t]);
+  }, [comparePrevious, kpis, previousKpis, outstandingDebt, accountBalances, t]);
 
   const financeTrendSeries = useMemo(
     () => [

@@ -1,9 +1,11 @@
 import { supabase } from '../../lib/supabase';
 import {
-  allocatePaymentsFIFO,
+  allocateManualDebtPaymentsFIFO,
+  computeSupplierCreditBalance,
   computeSupplierOutstanding,
   type DerivedPurchasePaymentStatus,
 } from '../finance/supplierLedger';
+import { derivePurchaseLedgerStatus } from '../finance/purchaseCredit';
 import type { AnalyticsServiceResponse } from '../../types/analytics';
 
 export interface SupplierManualDebtRow {
@@ -38,7 +40,9 @@ export interface SupplierAccountSummary {
   manualDebtsTotal: number;
   creditPurchasesTotal: number;
   paymentsTotal: number;
+  totalSpend: number;
   outstanding: number;
+  creditBalance: number;
   manualDebts: SupplierManualDebtRow[];
   purchases: SupplierAccountPurchase[];
   payments: SupplierAccountPaymentRow[];
@@ -77,7 +81,7 @@ export async function fetchSupplierAccounts(): Promise<AnalyticsServiceResponse<
       .order('debt_date', { ascending: true }),
     supabase
       .from('purchases')
-      .select('id, supplier_id, total_cost, purchase_date, notes, is_on_credit')
+      .select('id, supplier_id, total_cost, purchase_date, notes, is_on_credit, payment_status')
       .not('supplier_id', 'is', null),
     supabase
       .from('supplier_account_payments')
@@ -131,28 +135,29 @@ export async function fetchSupplierAccounts(): Promise<AnalyticsServiceResponse<
       return Boolean(p.is_on_credit);
     });
     const supplierPayments = paymentsBySupplier.get(supplierId) ?? [];
+    const allSupplierPurchases = purchasesBySupplier.get(supplierId) ?? [];
 
     const debtTotals = supplierDebts.map((d) => safeNumber(d.amount));
     const creditTotals = supplierPurchases.map((p) => safeNumber(p.total_cost));
     const paymentTotals = supplierPayments.map((p) => safeNumber(p.amount));
     const paymentsTotal = paymentTotals.reduce((s, v) => s + v, 0);
 
-    const fifo = allocatePaymentsFIFO(
+    const ledgerInput = {
+      manualDebts: debtTotals,
+      creditPurchases: creditTotals,
+      payments: paymentTotals,
+    };
+
+    const manualFifo = allocateManualDebtPaymentsFIFO(
       supplierDebts.map((d) => ({
         id: d.id as string,
         total: safeNumber(d.amount),
         debtDate: String(d.debt_date).slice(0, 10),
       })),
-      supplierPurchases.map((p) => ({
-        id: p.id as string,
-        total: safeNumber(p.total_cost),
-        purchaseDate: String(p.purchase_date).slice(0, 10),
-      })),
       paymentsTotal,
     );
 
-    const manualDebtMap = new Map(fifo.manualDebts.map((l) => [l.id, l]));
-    const purchaseMap = new Map(fifo.purchases.map((l) => [l.id, l]));
+    const manualDebtMap = new Map(manualFifo.manualDebts.map((l) => [l.id, l]));
 
     return {
       supplierId,
@@ -160,11 +165,9 @@ export async function fetchSupplierAccounts(): Promise<AnalyticsServiceResponse<
       manualDebtsTotal: debtTotals.reduce((s, v) => s + v, 0),
       creditPurchasesTotal: creditTotals.reduce((s, v) => s + v, 0),
       paymentsTotal,
-      outstanding: computeSupplierOutstanding({
-        manualDebts: debtTotals,
-        creditPurchases: creditTotals,
-        payments: paymentTotals,
-      }),
+      totalSpend: allSupplierPurchases.reduce((s, p) => s + safeNumber(p.total_cost), 0),
+      outstanding: computeSupplierOutstanding(ledgerInput),
+      creditBalance: computeSupplierCreditBalance(ledgerInput),
       manualDebts: supplierDebts.map((d) => {
         const alloc = manualDebtMap.get(d.id as string);
         return {
@@ -177,13 +180,18 @@ export async function fetchSupplierAccounts(): Promise<AnalyticsServiceResponse<
         };
       }),
       purchases: supplierPurchases.map((p) => {
-        const alloc = purchaseMap.get(p.id as string);
+        const total = safeNumber(p.total_cost);
+        const ledger = derivePurchaseLedgerStatus({
+          is_on_credit: p.is_on_credit,
+          payment_status: p.payment_status,
+          total,
+        });
         return {
           id: p.id as string,
-          total: safeNumber(p.total_cost),
+          total,
           purchaseDate: String(p.purchase_date).slice(0, 10),
-          paid: alloc?.paid ?? 0,
-          status: alloc?.status ?? 'unpaid',
+          paid: ledger.paid,
+          status: ledger.status,
           notes: String(p.notes ?? ''),
         };
       }),

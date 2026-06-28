@@ -78,6 +78,19 @@ describe('computeExecutiveKpis', () => {
     expect(result.netProfit).toBe(4950);
   });
 
+  it('deducts payroll for net profit', () => {
+    const result = computeExecutiveKpis({
+      grossSales: 10000,
+      cogs: 3000,
+      opex: 2000,
+      bankFees: 50,
+      payroll: 500,
+      orderCount: 10,
+    });
+    expect(result.operatingProfit).toBe(5000);
+    expect(result.netProfit).toBe(4450);
+  });
+
   it('handles negative operating profit (loss scenario)', () => {
     const result = computeExecutiveKpis({
       grossSales: 1000,

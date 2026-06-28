@@ -78,7 +78,35 @@ describe('computeCashDrawer', () => {
     expect(result.cashOut.expenses).toBe(12.5);
     expect(result.cashOut.supplierPayments).toBe(7.25);
     expect(result.cashOut.liabilityPayments).toBe(1.25);
+    expect(result.cashOut.purchases).toBe(0);
     expect(result.cashOut.total).toBe(21);
+  });
+
+  it('adds cash payouts received as cash in', () => {
+    const result = computeCashDrawer({
+      ...empty,
+      payoutsIn: [
+        { date: '2026-06-10', amount: 300 },
+        { date: '2026-06-12', amount: 75.5 },
+      ],
+    });
+    expect(result.cashIn.payouts).toBe(375.5);
+    expect(result.cashIn.total).toBe(375.5);
+    expect(result.closingBalance).toBe(375.5);
+  });
+
+  it('deducts paid-now cash purchases from the drawer', () => {
+    const result = computeCashDrawer({
+      ...empty,
+      movementsIn: [{ date: '2026-06-01', amount: 500 }], // opening float
+      cashPurchases: [
+        { date: '2026-06-05', amount: 80 },
+        { date: '2026-06-06', amount: 20.5 },
+      ],
+    });
+    expect(result.cashOut.purchases).toBe(100.5);
+    expect(result.cashOut.total).toBe(100.5);
+    expect(result.closingBalance).toBe(399.5);
   });
 
   it('treats non-finite amounts as zero', () => {

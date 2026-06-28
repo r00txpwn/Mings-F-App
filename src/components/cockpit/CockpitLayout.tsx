@@ -73,10 +73,8 @@ export function CockpitLayout({
             >
               <Menu className="h-6 w-6" />
             </button>
-            <div className="flex min-w-0 max-w-[min(200px,55vw)] items-center justify-center">
-              <div className="flex h-9 shrink-0 items-center justify-center rounded-lg bg-black px-2 py-1 shadow-sm ring-1 ring-white/10">
-                <MingsWordmark className="h-6 w-auto max-w-[120px] object-contain" />
-              </div>
+            <div className="flex min-w-0 max-w-[min(220px,60vw)] items-center justify-center">
+              <MingsWordmark className="h-8 w-auto max-w-[150px] object-contain" />
             </div>
             <div className="w-10" />
           </div>
