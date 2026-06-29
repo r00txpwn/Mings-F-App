@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-06-29T08:58:28.134Z
+## Last Run: 2026-06-29T18:03:52.792Z
 
 | Check | Status |
 |-------|--------|
@@ -68,7 +68,7 @@
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeDelta[2m > [22mcorrectly detects down direction[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeDelta[2m > [22mcorrectly detects flat direction[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeDelta[2m > [22mreturns null pctChange when previous is 0[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22maggregateByDay[2m > [22mgroups records by UTC date and sums amounts[32m 12[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22maggregateByDay[2m > [22mgroups records by UTC date and sums amounts[32m 13[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22maggregateByDay[2m > [22mreturns sorted ascending result[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22maggregateByDay[2m > [22mskips records with null/undefined date or amount[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22maggregateByDay[2m > [22mreturns empty array for empty input[32m 0[2mms[22m[39m
