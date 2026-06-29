@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-06-26T13:53:51.139Z
+## Last Run: 2026-06-28T16:54:31.130Z
 
 | Check | Status |
 |-------|--------|
@@ -11,76 +11,34 @@
 | ESLint | PASSED |
 | Build | PASSED |
 | Unit Tests | PASSED |
-| E2E | PASSED |
-
-## Test Plan Coverage
-
-## Test plan coverage (machine diff)
-
-| Metric | Value |
-|--------|-------|
-| Items in plan | 41 |
-| Covered | 27 |
-| Gaps | 14 |
-| Broken refs | 0 |
-| Plan coverage | 66% |
-
-### Open gaps (critical)
-
-- **customer-checkout-card** Browse → cart → card checkout → confirmation
-- **customer-checkout-cod** Browse → cart → COD → order created
-- **customer-cod-kds** COD order appears on KDS board
-- **kds-status-flow** pending → preparing → ready updates
-- **unit-epoint-signature** Epoint webhook signature verification
-- **unit-payment-idempotency** Duplicate webhook does not double-charge
-- **unit-order-totals** Order total recomputation matches cart
-- **integration-rls** Live RLS deny checks (anon cannot mutate admin tables)
-
-### Open gaps (major)
-
-- **staff-functional-nav** Authenticated navigation across cockpit screens
-- **staff-kpi-dashboard** Home KPI numbers match finance service inputs
-- **customer-delivery-zone** Out-of-zone address blocked at checkout
-- **kds-realtime-reconnect** Board refetches after realtime reconnect
-- **kiosk-order-create** Full kiosk order → sale row created
-- **pos-order-create** POS order → sale + label payload
-
+| E2E | SKIPPED |
 
 ## Unit Test Output
 ```
 
 > vite-react-typescript-starter@0.0.0 test
-> vitest run --reporter=verbose --reporter=json --outputFile=test-results/unit-results.json
+> vitest run
 
 
- RUN  v3.2.4 C:/Users/vinit/Mings/Mings-f-app
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90m/home/runner/work/Mings-F-App/Mings-F-App[39m
 
- ✓ tests/unit/deliveryZones.test.ts > pointInPolygon > returns true for a point inside the polygon 3ms
- ✓ tests/unit/deliveryZones.test.ts > pointInPolygon > returns false for a point outside the polygon 1ms
- ✓ tests/unit/deliveryZones.test.ts > pointInPolygon > returns false for an empty or too-small ring 0ms
- ✓ tests/unit/deliveryZones.test.ts > pointInPolygon > handles horizontal edges without dividing by zero 2ms
- ✓ tests/unit/deliveryZones.test.ts > findZoneForPoint > returns the first matching zone for a point inside 0ms
- ✓ tests/unit/deliveryZones.test.ts > findZoneForPoint > falls through to next zone when point is outside first 1ms
- ✓ tests/unit/deliveryZones.test.ts > findZoneForPoint > returns null when point matches no zone 0ms
- ✓ tests/unit/deliveryZones.test.ts > findZoneForPoint > returns null for empty zones array 0ms
- ✓ tests/unit/deliveryZones.test.ts > findZoneForPoint > skips zones with missing polygon data 0ms
- ✓ tests/unit/kpiCalculations.test.ts > safePct > returns correct percentage 3ms
- ✓ tests/unit/kpiCalculations.test.ts > safePct > returns 0 when denominator is zero 0ms
- ✓ tests/unit/kpiCalculations.test.ts > safePct > returns 0 for non-finite inputs 1ms
- ✓ tests/unit/kpiCalculations.test.ts > computeExecutiveKpis > computes all KPIs correctly 1ms
- ✓ tests/unit/kpiCalculations.test.ts > computeExecutiveKpis > defaults discounts and refunds to 0 when omitted 0ms
- ✓ tests/unit/kpiCalculations.test.ts > computeExecutiveKpis > returns avgOrderValue of 0 when orderCount is 0 0ms
- ✓ tests/unit/kpiCalculations.test.ts > computeExecutiveKpis > deducts bank fees for net profit only 0ms
- ✓ tests/unit/kpiCalculations.test.ts > computeExecutiveKpis > handles negative operating profit (loss scenario) 0ms
- ✓ tests/unit/kpiCalculations.test.ts > computeDelta > correctly detects up direction 0ms
- ✓ tests/unit/kpiCalculations.test.ts > computeDelta > correctly detects down direction 0ms
- ✓ tests/unit/kpiCalculations.test.ts > computeDelta > correctly detects flat direction 0ms
- ✓ tests/unit/kpiCalculations.test.ts > computeDelta > returns null pctChange when previous is 0 0ms
- ✓ tests/unit/kpiCalculations.test.ts > aggregateByDay > groups records by UTC date and sums amounts 18ms
- ✓ tests/unit/kpiCalculations.test.ts > aggregateByDay > returns sorted ascending result 0ms
- ✓ tests/unit/kpiCalculations.test.ts > aggregateByDay > skips records with null/undefined date or amount 0ms
- ✓ tests/unit/kpiCalculations.test.ts > aggregateByDay > returns empty array for empty input 0ms
- ✓ tests/unit/unitedPaymentReturnParse.test.ts > parseUnitedPaymentReturn > decodes base64 up query param 4ms
- ✓ tests/unit/unitedPaymentReturnParse.test.ts > parseUnitedPaymentReturn > reads plain JSON body fields 1ms
- ✓ tests/unit/unitedPaymentReturnParse.test.ts > parseUnitedPaymen
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateRevenueVsChannels[2m > [22mreturns no issues when totals match within epsilon[32m 2[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateRevenueVsChannels[2m > [22mreturns mismatch issue when totals differ beyond epsilon[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateRevenueVsChannels[2m > [22mreturns no issues when channelTotal is null/undefined[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateNetFormula[2m > [22mreturns no issues for consistent data[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateNetFormula[2m > [22mreturns error when operating profit is inconsistent[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateNetFormula[2m > [22mhandles negative operating profit correctly[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidatePayoutReconciliationTotals[2m > [22mreturns no issues for null/undefined input[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidatePayoutReconciliationTotals[2m > [22mreturns no issues for consistent payout data[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidatePayoutReconciliationTotals[2m > [22mreports all mismatches for inconsistent payout data[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateAnalyticsSnapshot[2m > [22mreturns empty array for fully consistent snapshot[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/validation.test.ts[2m > [22mvalidateAnalyticsSnapshot[2m > [22maggregates issues from all validators[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns correct percentage[32m 3[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 when denominator is zero[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 for non-finite inputs[32m 2[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mcomputes all KPIs correctly[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdefaults discounts and refunds to 0 when omitted[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mreturns avgOrderValue of 0 when orderCount is 0[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mhandles negative operating profit (loss scenario)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalcula
 ```

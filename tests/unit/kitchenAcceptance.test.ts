@@ -99,7 +99,7 @@ describe('kitchenAcceptance', () => {
   });
 
   it('getSessionEndBaku returns same-day close for normal window', () => {
-    const end = getSessionEndBaku(bakuWallToUtcDate(2026, 6, 15, 12, 0, 0), hoursMon10to22);
+    const end = getSessionEndBaku(baseSettings(), bakuWallToUtcDate(2026, 6, 15, 12, 0, 0));
     expect(end).not.toBeNull();
     const p = new Intl.DateTimeFormat('en-GB', {
       timeZone: 'Asia/Baku',
