@@ -28,7 +28,7 @@ export function isAdminPath(pathname: string): boolean {
   return normalizePathname(pathname) === normalizePathname(resolved);
 }
 
-const RESERVED = new Set(['/', '/kiosk', '/kds', '/order', '/track', '/order-manager']);
+const RESERVED = new Set(['/', '/kiosk', '/kds', '/pos', '/order', '/track', '/order-manager']);
 
 export function assertAdminPathDoesNotCollide(): void {
   if (!import.meta.env.DEV) return;

@@ -25,7 +25,7 @@ Staff completes → Customer sees status on /track
 | 3 | Customer enters checkout | `OrderApp.tsx`, `OrderAddressMap.tsx` |
 | 4 | Order submission | `supabase/functions/online-order-create/index.ts` |
 | 5 | Kitchen receives order | `src/kds/KitchenDisplay.tsx` |
-| 6 | Kitchen prepares & marks ready | `src/kds/OrderCard.tsx`, status updates on `sales` |
+| 6 | Kitchen prepares & marks ready | `src/kds/KdsOrderCard.tsx`, status updates on `sales` |
 | 7 | Staff books Wolt (manual) | Wolt Drive web portal + `KioskOrdersBoard` dispatch footer |
 | 8 | Courier picks up & delivers | Wolt portal; staff may mark completed in-app |
 | 9 | Order complete / customer tracking | `src/order/TrackingApp.tsx` |
@@ -143,7 +143,7 @@ Until then, **manual portal + tracking URL paste** is the supported path; the st
 | Order create | `supabase/functions/online-order-create/index.ts` |
 | Wolt stub/API | `supabase/functions/wolt-drive-create/index.ts` |
 | Manual dispatch | `supabase/functions/wolt-drive-manual-dispatch/index.ts` |
-| KDS | `src/kds/KitchenDisplay.tsx`, `src/kds/OrderCard.tsx` |
+| KDS | `src/kds/KitchenDisplay.tsx`, `src/kds/KdsOrderCard.tsx` |
 | Management board | `src/components/kiosk/KioskOrdersBoard.tsx` |
 | Tracking | `src/order/TrackingApp.tsx` |
 | Address | `src/order/OrderAddressMap.tsx` |

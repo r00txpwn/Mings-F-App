@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BarChart3, Loader2 } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
+import { applyAnalyticsSourceFilter } from '../lib/analyticsSourceFilter';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import {
@@ -9,14 +10,19 @@ import {
   KpiCard,
   type DatePreset,
 } from '../components/analytics';
+import { SourceFilterChips } from '../components/home/SourceFilterChips';
 import {
   fetchChannelPerformance,
   fetchExpenseBreakdown,
   fetchPayoutReconciliation,
+  fetchPeriodSummary,
   fetchRevenueCostTrend,
+  computeExecutiveKpis,
   type AnalyticsSourceFilter,
 } from '../services/analytics';
 import { PageHeader } from '../components/cockpit';
+import { EmptyState } from '../components/ui/EmptyState';
+import { SkeletonCard } from '../components/ui/Skeleton';
 
 interface ActivityItem {
   id: string;
@@ -72,6 +78,8 @@ export function ReportsScreen() {
     totalPurchases: 0,
     totalExpenses: 0,
     totalCommissions: 0,
+    payroll: 0,
+    netProfit: 0,
   });
   const [channelStats, setChannelStats] = useState<Array<{ name: string; sales: number; orders: number; aov: number; share: number }>>([]);
   const [opexCategoryStats, setOpexCategoryStats] = useState<Array<{ name: string; total: number; count: number; percentage: number; color: string }>>([]);
@@ -104,6 +112,11 @@ export function ReportsScreen() {
       startDate,
       endDate,
     });
+    const summaryPromise = fetchPeriodSummary({
+      startDate,
+      endDate,
+      source: sourceFilter,
+    });
 
     let salesQuery = supabase
       .from('sales')
@@ -112,9 +125,7 @@ export function ReportsScreen() {
       .lte('sale_date', `${endDate}T23:59:59`)
       .order('sale_date', { ascending: false })
       .limit(50);
-    if (sourceFilter !== 'all') {
-      salesQuery = salesQuery.eq('source', sourceFilter);
-    }
+    salesQuery = applyAnalyticsSourceFilter(salesQuery, sourceFilter);
 
     const activityPromise = Promise.all([
       salesQuery,
@@ -134,11 +145,12 @@ export function ReportsScreen() {
         .limit(50),
     ]);
 
-    const [trendRes, channelRes, expensesRes, payoutsRes, activityRes] = await Promise.all([
+    const [trendRes, channelRes, expensesRes, payoutsRes, summaryRes, activityRes] = await Promise.all([
       trendPromise,
       channelPromise,
       expensesPromise,
       payoutsPromise,
+      summaryPromise,
       activityPromise,
     ]);
 
@@ -147,6 +159,7 @@ export function ReportsScreen() {
       channelRes.error ||
       expensesRes.error ||
       payoutsRes.error ||
+      summaryRes.error ||
       activityRes[0].error?.message ||
       activityRes[1].error?.message ||
       activityRes[2].error?.message ||
@@ -160,6 +173,8 @@ export function ReportsScreen() {
         totalPurchases: 0,
         totalExpenses: 0,
         totalCommissions: 0,
+        payroll: 0,
+        netProfit: 0,
       });
       setChannelStats([]);
       setOpexCategoryStats([]);
@@ -189,6 +204,19 @@ export function ReportsScreen() {
       .map(([name, commission]) => ({ name, commission }))
       .sort((a, b) => b.commission - a.commission);
     const totalCommissions = commissions.reduce((sum, item) => sum + item.commission, 0);
+    const summary = summaryRes.data;
+    const executiveKpis = summary
+      ? computeExecutiveKpis({
+          grossSales: summary.grossSales,
+          discounts: summary.discounts,
+          refunds: summary.refunds,
+          cogs: summary.cogs,
+          opex: summary.opex,
+          bankFees: summary.bankFees ?? 0,
+          payroll: summary.payroll ?? 0,
+          orderCount: summary.orderCount,
+        })
+      : null;
 
     setTotals({
       totalSales: revenue,
@@ -196,6 +224,10 @@ export function ReportsScreen() {
       totalPurchases: purchasesTotal,
       totalExpenses: operationalTotal,
       totalCommissions,
+      payroll: summary?.payroll ?? 0,
+      netProfit: executiveKpis
+        ? executiveKpis.netProfit - totalCommissions
+        : revenue - purchasesTotal - operationalTotal - totalCommissions,
     });
 
     const channelData = channelRes.data ?? [];
@@ -277,7 +309,7 @@ export function ReportsScreen() {
     loadReports();
   }, [loadReports]);
 
-  const netProfit = totals.totalSales - totals.totalPurchases - totals.totalExpenses - totals.totalCommissions;
+  const netProfit = totals.netProfit;
   const aov = totals.totalOrders > 0 ? totals.totalSales / totals.totalOrders : 0;
   const profitMargin = totals.totalSales > 0 ? (netProfit / totals.totalSales) * 100 : 0;
   const foodCostPercentage = totals.totalSales > 0 ? (totals.totalPurchases / totals.totalSales) * 100 : 0;
@@ -317,29 +349,8 @@ export function ReportsScreen() {
             setDateRange((prev) => ({ ...prev, endDate: value }));
           }}
         />
-        <div className="cockpit-panel-solid flex flex-wrap items-center gap-2 p-3">
-          {(['all', 'manual', 'kiosk', 'online_delivery', 'online_takeaway'] as const).map((src) => (
-            <button
-              key={src}
-              type="button"
-              onClick={() => setSourceFilter(src)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                sourceFilter === src
-                  ? 'bg-slate-900 text-white dark:bg-slate-700'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-              }`}
-            >
-              {src === 'all'
-                ? t.allStatuses
-                : src === 'manual'
-                  ? t.manual
-                  : src === 'kiosk'
-                    ? t.kiosk
-                    : src === 'online_delivery'
-                      ? t.onlineDelivery
-                      : t.onlineTakeaway}
-            </button>
-          ))}
+        <div className="cockpit-panel-solid p-3">
+          <SourceFilterChips value={sourceFilter} onChange={setSourceFilter} />
         </div>
       </div>
 
@@ -348,8 +359,11 @@ export function ReportsScreen() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-cockpit-500" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       ) : null}
 
@@ -369,17 +383,20 @@ export function ReportsScreen() {
       {!loading && !error ? (
         <>
           {isEmpty ? (
-            <InsightPanel title="No data" severity="info">
-              <p>{t.financialInsights}</p>
-            </InsightPanel>
+            <EmptyState icon={BarChart3} title={t.noDataForPeriod} description={t.financialInsights} />
           ) : null}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8">
             <KpiCard label={t.totalSales} value={toCurrency(totals.totalSales)} />
             <KpiCard label={t.orders} value={totals.totalOrders} />
             <KpiCard label={t.cogs} value={toCurrency(totals.totalPurchases)} subtitle={`${foodCostPercentage.toFixed(1)}% ${t.ofSales}`} />
             <KpiCard label={t.operationalExpenses} value={toCurrency(totals.totalExpenses)} />
             <KpiCard label={t.platformCosts} value={toCurrency(totals.totalCommissions)} subtitle={`${commissionPercentage.toFixed(1)}% ${t.ofSales}`} />
+            <KpiCard
+              label={t.staffSalariesLabel}
+              value={toCurrency(totals.payroll)}
+              subtitle={t.staffSalariesHint}
+            />
             <KpiCard
               label={t.netProfit}
               value={toCurrency(netProfit)}

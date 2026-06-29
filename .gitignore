@@ -8,6 +8,8 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-staff
+dist-storefront
 dist-ssr
 *.local
 
@@ -24,6 +26,8 @@ dist-ssr
 .env.*
 !.env.example
 supabase/.temp/
+tools/supabase*
+!tools/.gitkeep
 .vercel
 .playwright-mcp/
 pw-*.png
@@ -32,3 +36,8 @@ pw-*.png
 test-results/
 .cursor/skills/
 **/__pycache__/
+.env*.local
+payments.md
+# Playwright stored auth state (session tokens) — never commit
+**/.auth/
+docs/qa-screenshots/.auth/

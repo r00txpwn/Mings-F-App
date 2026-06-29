@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw, WifiOff } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
+import { adminUpdate } from '../lib/adminApi';
+import { buildMarkPaidPatch } from '../lib/cashPayment';
 import { InDeliveryCard } from './InDeliveryCard';
 import { InProgressCard } from './InProgressCard';
 import { NewOrderCard } from './NewOrderCard';
@@ -9,9 +11,12 @@ import { ReadyCard } from './ReadyCard';
 import { ScheduledOrderCard } from './ScheduledOrderCard';
 import { getKitchenLocationFromSettings, type KitchenLocation } from './deliveryUtils';
 import type { OrderManagerOrder } from './types';
+import { ALL_KITCHEN_SOURCES } from '../pos/posSources';
+import { PosReprintButton } from '../pos/PosReprintButton';
 
 interface ActiveOrdersTabProps {
   accessToken: string | null;
+  showReprint?: boolean;
 }
 
 type NewSubTab = 'new' | 'scheduled';
@@ -21,7 +26,7 @@ function emptyState(label: string) {
   return <p className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-slate-400">{label}</p>;
 }
 
-export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
+export function ActiveOrdersTab({ accessToken, showReprint = false }: ActiveOrdersTabProps) {
   const { t } = useLanguage();
   const [orders, setOrders] = useState<OrderManagerOrder[]>([]);
   const [kitchenLocation, setKitchenLocation] = useState<KitchenLocation>(() =>
@@ -77,7 +82,7 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
     const { data } = await supabase
       .from('sales')
       .select('*, sale_items(*, sale_item_modifiers(*))')
-      .in('source', ['kiosk', 'online_delivery', 'online_takeaway'])
+      .in('source', [...ALL_KITCHEN_SOURCES])
       .in('order_status', ['pending', 'preparing', 'ready', 'dispatched'])
       .order('created_at', { ascending: true });
 
@@ -114,9 +119,9 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
       setBusyOrderId(orderId);
       setActionError(null);
       try {
-        const { error } = await supabase.from('sales').update(patch).eq('id', orderId);
-        if (error) {
-          setActionError(`${t.errorOccurred}: ${error.message}`);
+        const result = await adminUpdate('sales', orderId, patch);
+        if (!result.ok) {
+          setActionError(`${t.errorOccurred}: ${result.error ?? 'Update failed'}`);
           return false;
         }
         await loadOrders();
@@ -374,22 +379,26 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
           <div className="space-y-2">
             {newSubTab === 'new'
               ? grouped.newOrders.map((order) => (
-                  <NewOrderCard
-                    key={order.id}
-                    order={order}
-                    disabled={busyOrderId === order.id}
-                    onMarkPaid={() => void updateSale(order.id, { payment_status: 'paid' })}
-                    onAccept={(minutes) => void acceptNew(order.id, minutes)}
-                    onReject={(reason, note) => void rejectOrder(order.id, reason, note)}
-                  />
+                  <div key={order.id}>
+                    <NewOrderCard
+                      order={order}
+                      disabled={busyOrderId === order.id}
+                      onMarkPaid={() => void updateSale(order.id, buildMarkPaidPatch(order))}
+                      onAccept={(minutes) => void acceptNew(order.id, minutes)}
+                      onReject={(reason, note) => void rejectOrder(order.id, reason, note)}
+                    />
+                    {showReprint ? <PosReprintButton order={order} className="mt-1 px-1" /> : null}
+                  </div>
                 ))
               : grouped.scheduledOrders.map((order) => (
-                  <ScheduledOrderCard
-                    key={order.id}
-                    order={order}
-                    disabled={busyOrderId === order.id}
-                    onAccept={(minutes) => void acceptScheduled(order, minutes)}
-                  />
+                  <div key={order.id}>
+                    <ScheduledOrderCard
+                      order={order}
+                      disabled={busyOrderId === order.id}
+                      onAccept={(minutes) => void acceptScheduled(order, minutes)}
+                    />
+                    {showReprint ? <PosReprintButton order={order} className="mt-1 px-1" /> : null}
+                  </div>
                 ))}
             {(newSubTab === 'new' && grouped.newOrders.length === 0 && emptyState(t.omNoActiveOrders)) ||
               (newSubTab === 'scheduled' && grouped.scheduledOrders.length === 0 && emptyState(t.omNoScheduledOrders))}
@@ -402,13 +411,15 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
           </p>
           <div className="space-y-2">
             {grouped.preparingOrders.map((order) => (
-              <InProgressCard
-                key={order.id}
-                order={order}
-                nowMs={nowMs}
-                disabled={busyOrderId === order.id}
-                onReady={() => void updateSale(order.id, { order_status: 'ready', ready_at: new Date().toISOString() })}
-              />
+              <div key={order.id}>
+                <InProgressCard
+                  order={order}
+                  nowMs={nowMs}
+                  disabled={busyOrderId === order.id}
+                  onReady={() => void updateSale(order.id, { order_status: 'ready', ready_at: new Date().toISOString() })}
+                />
+                {showReprint ? <PosReprintButton order={order} className="mt-1 px-1" /> : null}
+              </div>
             ))}
             {grouped.preparingOrders.length === 0 ? emptyState(t.omNoActiveOrders) : null}
           </div>
@@ -440,31 +451,35 @@ export function ActiveOrdersTab({ accessToken }: ActiveOrdersTabProps) {
           <div className="space-y-2">
             {readySubTab === 'ready'
               ? grouped.readyOrders.map((order) => (
-                  <ReadyCard
-                    key={order.id}
-                    order={order}
-                    kitchenLocation={kitchenLocation}
-                    onPickedUp={() =>
-                      void updateSale(order.id, {
-                        order_status: 'completed',
-                        completed_at: new Date().toISOString(),
-                      })
-                    }
-                    onDispatched={() => void loadOrders()}
-                    onSelfDispatch={(orderId) => void selfDispatch(orderId)}
-                  />
+                  <div key={order.id}>
+                    <ReadyCard
+                      order={order}
+                      kitchenLocation={kitchenLocation}
+                      onPickedUp={() =>
+                        void updateSale(order.id, {
+                          order_status: 'completed',
+                          completed_at: new Date().toISOString(),
+                        })
+                      }
+                      onDispatched={() => void loadOrders()}
+                      onSelfDispatch={(orderId) => void selfDispatch(orderId)}
+                    />
+                    {showReprint ? <PosReprintButton order={order} className="mt-1 px-1" /> : null}
+                  </div>
                 ))
               : grouped.deliveryOrders.map((order) => (
-                  <InDeliveryCard
-                    key={order.id}
-                    order={order}
-                    onDelivered={() =>
-                      void updateSale(order.id, {
-                        order_status: 'completed',
-                        completed_at: new Date().toISOString(),
-                      })
-                    }
-                  />
+                  <div key={order.id}>
+                    <InDeliveryCard
+                      order={order}
+                      onDelivered={() =>
+                        void updateSale(order.id, {
+                          order_status: 'completed',
+                          completed_at: new Date().toISOString(),
+                        })
+                      }
+                    />
+                    {showReprint ? <PosReprintButton order={order} className="mt-1 px-1" /> : null}
+                  </div>
                 ))}
             {(readySubTab === 'ready' && grouped.readyOrders.length === 0 && emptyState(t.omNoActiveOrders)) ||
               (readySubTab === 'delivery' && grouped.deliveryOrders.length === 0 && emptyState(t.omNoActiveOrders))}

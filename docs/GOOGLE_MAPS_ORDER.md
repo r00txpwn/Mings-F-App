@@ -17,7 +17,9 @@ Latitude/longitude from the pin are used for **delivery zones** (same as before)
 2. **Credentials** → create an **API key** (browser).
 3. **Restrict key** → **Application restrictions** → *HTTP referrers*:
    - `http://localhost:5173/*`
-   - `https://YOUR_PRODUCTION_DOMAIN/*`
+   - `http://127.0.0.1:4176/*` (local storefront preview)
+   - `https://order.mings.az/*`
+   - `https://*.vercel.app/*` (preview deploys)
 4. **API restrictions** → restrict to the three APIs above.
 
 Add to `.env`:

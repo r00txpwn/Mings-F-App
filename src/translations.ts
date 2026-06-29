@@ -11,6 +11,26 @@ export interface Translations {
   more: string;
   commandCenter: string;
   signedIn: string;
+  navOverview: string;
+  navOrders: string;
+  navCatalog: string;
+  navFinance: string;
+  navHubIncome: string;
+  navHubSpending: string;
+  navHubCashAccounts: string;
+  navHubPayroll: string;
+  navHubInsights: string;
+  navSystem: string;
+  cockpitLoadingContent: string;
+  cockpitResetFilters: string;
+  cockpitEmptyFilteredHint: string;
+  cockpitTestRecordLabel: string;
+  cockpitNeedsReview: string;
+  cockpitReviewHighCommission: string;
+  cockpitReviewUnusualAmount: string;
+  settingsAppearance: string;
+  collapseSidebar: string;
+  expandSidebar: string;
   system: string;
   inventory: string;
   procurement: string;
@@ -75,6 +95,34 @@ export interface Translations {
   kpiNetRevenueHint: string;
   /** KPI card helper line under Operating Profit */
   kpiOperatingProfitHint: string;
+  kpiNetProfitHint: string;
+  comparePreviousPeriod: string;
+  netProfitLabel: string;
+  sourceFilter: string;
+  orderSourceMix: string;
+  avgPrepTime: string;
+  kitchenSla: string;
+  paymentHealth: string;
+  payoutCommission: string;
+  topProducts: string;
+  peakHours: string;
+  operationalInsights: string;
+  paidOrders: string;
+  unpaidOrders: string;
+  cardPayments: string;
+  codPayments: string;
+  matchedPayouts: string;
+  mismatchedPayouts: string;
+  pendingPayouts: string;
+  expandDetails: string;
+  collapseDetails: string;
+  viewFullReport: string;
+  viewPayouts: string;
+  revenueShare: string;
+  dashboardOrdersHint: string;
+  dashboardAovHint: string;
+  dataConsistencyWarning: string;
+  pos: string;
 
   // Sales
   addSale: string;
@@ -126,6 +174,13 @@ export interface Translations {
 
   // Settings
   settings: string;
+  deleteChannelConfirmTitle: string;
+  deleteChannelConfirmMessage: string;
+  deleteChannelError: string;
+  channelRemovedSuccess: string;
+  systemSalesChannel: string;
+  salesChannelProtectedError: string;
+  dismiss: string;
   language: string;
   categories: string;
   manageCategories: string;
@@ -265,6 +320,27 @@ export interface Translations {
   cannotChangeOwnRole: string;
   passwordMinLength: string;
 
+  // Audit log (admin)
+  auditLog: string;
+  auditLogTitle: string;
+  auditLogSubtitle: string;
+  auditLogTabActions: string;
+  auditLogTabChanges: string;
+  auditLogTabSignIns: string;
+  auditLogEmpty: string;
+  auditLogColWhen: string;
+  auditLogColWho: string;
+  auditLogColAction: string;
+  auditLogColResource: string;
+  auditLogColDetails: string;
+  auditLogColSurface: string;
+  auditLogColDevice: string;
+  auditLogSurfaceCockpit: string;
+  auditLogSurfacePos: string;
+  auditLogSurfaceKds: string;
+  auditLogSurfaceKiosk: string;
+  auditLogSurfaceOrderManager: string;
+
   // Login
   welcomeBack: string;
   signInToAccount: string;
@@ -278,6 +354,9 @@ export interface Translations {
   adminAccessDeniedTitle: string;
   adminAccessDeniedBody: string;
   adminAccessGoToOrderManager: string;
+  adminAccessGoToPos: string;
+  adminAccessGoToKds: string;
+  adminAccessGoToKiosk: string;
   newUserRole: string;
   userRoleStaff: string;
   userRoleManager: string;
@@ -292,8 +371,11 @@ export interface Translations {
 
   // Messages
   savedSuccessfully: string;
+  updatedSuccessfully: string;
   deletedSuccessfully: string;
   errorOccurred: string;
+  amountMustBePositive: string;
+  quantityMustBePositive: string;
   foodCost: string;
   cogs: string;
   share: string;
@@ -343,6 +425,11 @@ export interface Translations {
   selectExpenseItem: string;
   expenseItemName: string;
   addNewExpenseItem: string;
+  createNamed: string;
+  newItem: string;
+  assignToCategory: string;
+  newCategory: string;
+  newSupplierName: string;
   noExpenseItems: string;
   createFirstExpenseItem: string;
   selectMasterCategory: string;
@@ -360,6 +447,16 @@ export interface Translations {
 
   // Kiosk
   tapToOrder: string;
+  kioskWelcomeTitle: string;
+  kioskEatIn: string;
+  kioskTakeOut: string;
+  kioskExploreMenu: string;
+  kioskRestartMenu: string;
+  kioskOrderNow: string;
+  kioskOrderMore: string;
+  kioskDoneCountdown: string;
+  kioskNoCategories: string;
+  kioskNoProducts: string;
   addToCart: string;
   viewCart: string;
   placeOrder: string;
@@ -400,6 +497,29 @@ export interface Translations {
   kdsPrepTimeLabel: string;
   kdsBusyKitchenHint: string;
   kdsCourierNoteLabel: string;
+  kdsStatusUpdating: string;
+  kdsChannelDelivery: string;
+  kdsChannelTakeaway: string;
+  kdsChannelKiosk: string;
+  kdsChannelPosEatIn: string;
+  kdsChannelPosTakeaway: string;
+  kdsChannelPosDelivery: string;
+  kdsFilterAll: string;
+  kdsSearchPlaceholder: string;
+  kdsHistoryTitle: string;
+  kdsHistoryEmpty: string;
+  kdsUndoComplete: string;
+  kdsUndoSeconds: string;
+  kdsUndoButton: string;
+  kdsAllItemsPrepared: string;
+  kdsMarkItemPrepared: string;
+  kdsMarkItemUnprepared: string;
+  kdsEmptyQueueTitle: string;
+  kdsEmptyQueueHint: string;
+  kdsEmptyColumn: string;
+  kdsEmptyFiltered: string;
+  kdsEmptyFilteredHint: string;
+  kdsHistorySubtitle: string;
 
   // Kiosk Admin
   orderManagerTitle: string;
@@ -415,6 +535,7 @@ export interface Translations {
   unpaidOnly: string;
   paidOnly: string;
   kioskOrders: string;
+  cockpitQuickLinks: string;
   confirmPayment: string;
   printAgain: string;
   cancelOrder: string;
@@ -530,6 +651,49 @@ export interface Translations {
   difference: string;
   matched: string;
   mismatched: string;
+
+  // Staff / Salaries
+  staff: string;
+  staffScreenTitle: string;
+  staffScreenDescription: string;
+  staffAddEmployee: string;
+  staffEditEmployee: string;
+  staffRecordPayment: string;
+  staffEditPayment: string;
+  staffFullName: string;
+  staffDesignation: string;
+  staffTotalSalary: string;
+  staffActiveLabel: string;
+  staffActiveEmployees: string;
+  staffMonthlyPayrollTarget: string;
+  staffPaidInPeriod: string;
+  staffEmployee: string;
+  staffSelectEmployee: string;
+  staffPaymentType: string;
+  staffPaymentTypeSalary: string;
+  staffPaymentTypeAdvance: string;
+  staffPaymentTypeBonus: string;
+  staffPaymentTypePartial: string;
+  staffNameRequired: string;
+  staffInvalidSalary: string;
+  staffInvalidPaymentAmount: string;
+  staffEmployeeAdded: string;
+  staffEmployeeUpdated: string;
+  staffEmployeeDeleted: string;
+  staffPaymentAdded: string;
+  staffPaymentUpdated: string;
+  staffPaymentDeleted: string;
+  staffDeleteEmployeeConfirm: string;
+  staffDeletePaymentConfirm: string;
+  staffNoEmployees: string;
+  staffNoPaymentsInPeriod: string;
+  staffInactive: string;
+  staffNoDesignation: string;
+  staffDoubleEntryWarning: string;
+  staffSalariesLabel: string;
+  staffSalariesHint: string;
+  kpiNetProfitHintExtended: string;
+
   weatherUnavailable: string;
   cached: string;
   clear: string;
@@ -555,6 +719,12 @@ export interface Translations {
   platformCosts: string;
   noSalesInPeriod: string;
   payoutReceived: string;
+  /** Label for choosing which account a payout landed in */
+  payoutReceivedInto: string;
+  /** Helper under the received-account selector */
+  payoutReceivedIntoHint: string;
+  /** Warning when a payout has no account chosen (won't affect balances) */
+  payoutNoAccountWarning: string;
   /** Sum of recorded sales for the payout period (channel + dates) */
   periodRevenue: string;
   /** Commission implied as revenue minus payout (same idea as platform fee) */
@@ -676,6 +846,9 @@ export interface Translations {
   orderAuthEmail: string;
   orderAuthSms: string;
   orderAuthGoogle: string;
+  /** Staff cockpit login — Google OAuth button. */
+  orderSignInGoogle: string;
+  orderSignInGoogleRedirecting: string;
   orderForgotPassword: string;
   orderForgotPasswordSent: string;
   orderSignUpInlinePrompt: string;
@@ -960,7 +1133,53 @@ export interface Translations {
   omSourceKiosk: string;
   omSourceTakeaway: string;
   omSourceDelivery: string;
+  omSourcePos: string;
   omTitle: string;
+  posTitle: string;
+  posTabActive: string;
+  posTabHistory: string;
+  posTabNewOrder: string;
+  posTabSettings: string;
+  posSettingsTitle: string;
+  posPrintAgentUrl: string;
+  posPrinterProfile: string;
+  posProfileEscpos80: string;
+  posProfileZpl58: string;
+  posProfileZpl40x30: string;
+  posTestConnection: string;
+  posTestPrint: string;
+  posAgentConnected: string;
+  posAgentUnreachable: string;
+  posTestPrintSent: string;
+  posTestPrintFailed: string;
+  posFulfillmentEatIn: string;
+  posFulfillmentTakeaway: string;
+  posFulfillmentDelivery: string;
+  posSourceEatIn: string;
+  posSourceTakeaway: string;
+  posSourceDelivery: string;
+  posCustomerPanelTitle: string;
+  posCustomerName: string;
+  posCustomerPhone: string;
+  posOrderNotes: string;
+  posDeliveryPanelTitle: string;
+  posCartTitle: string;
+  posCartEmpty: string;
+  posSubmitOrder: string;
+  posSubmitFailed: string;
+  posOrderCreated: string;
+  posViewActiveOrders: string;
+  posNewOrderTitle: string;
+  posOutsideZone: string;
+  posDeliveryRequired: string;
+  posReprintLabels: string;
+  posPrintSent: string;
+  posPrintPending: string;
+  posPrintFailed: string;
+  posPrintPendingCount: string;
+  posMapSearch: string;
+  posMapPinHint: string;
+  posMapsUnavailable: string;
   omKitchenStatusTitle: string;
   omKitchenStatusOnline: string;
   omKitchenStatusPausedUntil: string;
@@ -1012,7 +1231,183 @@ export interface Translations {
   orderSupportOrderActions: string;
   orderSupportPrepareQuick: string;
   orderSupportScheduledHint: string;
+  payments: string;
+  paymentsScreenTitle: string;
+  paymentsScreenDescription: string;
+  paymentsFilterAll: string;
+  paymentsFilterPending: string;
+  paymentsFilterSuccess: string;
+  paymentsFilterFailed: string;
+  paymentsProviderAll: string;
+  paymentsSearch: string;
+  paymentsFound: string;
+  paymentsNoRows: string;
+  paymentsColTime: string;
+  paymentsColOrder: string;
+  paymentsColCustomer: string;
+  paymentsColAmount: string;
+  paymentsColProvider: string;
+  paymentsColPaymentStatus: string;
+  paymentsColSaleStatus: string;
+  paymentsColMismatch: string;
+  paymentsMismatchYes: string;
+  paymentsDetailProvider: string;
+  paymentsDetailClientOrderId: string;
+  paymentsDetailTransactionId: string;
+  paymentsDetailProviderStatus: string;
+  paymentsDetailPaidAt: string;
+  paymentsDetailError: string;
+  paymentsDetailRawPayload: string;
+  paymentsRecheckButton: string;
+  paymentsRechecking: string;
+  paymentsRecheckSuccess: string;
+  paymentsRecheckFailed: string;
+  paymentsRecheckForbidden: string;
+  paymentsStatusPending: string;
+  paymentsStatusSuccess: string;
+  paymentsStatusFailed: string;
+  paymentsProviderEpoint: string;
+  paymentsProviderUnited: string;
+  paymentsProviderOther: string;
+  cashDebt: string;
+  cashDebtScreenTitle: string;
+  cashDebtScreenDescription: string;
+  cashDebtTabLoans: string;
+  cashDebtTabWithdrawals: string;
+  outstandingDebtLabel: string;
+  outstandingDebtHint: string;
+  supplierOutstanding: string;
+  supplierPayButton: string;
+  supplierOpeningBalance: string;
+  supplierOpeningBalanceDate: string;
+  supplierAddDebt: string;
+  supplierDebtHistory: string;
+  supplierDebtCleared: string;
+  supplierCreditBalance: string;
+  supplierDebtFromPurchase: string;
+  supplierManualDebt: string;
+  supplierClearDebt: string;
+  supplierAccountView: string;
+  supplierRecentPayments: string;
+  supplierAccountExplainer: string;
+  supplierYouOwe: string;
+  supplierPrepaid: string;
+  supplierSettled: string;
+  supplierStatement: string;
+  supplierBalanceColumn: string;
+  supplierPaymentLabel: string;
+  supplierAddDebtHint: string;
+  supplierNoActivity: string;
+  supplierSearchPlaceholder: string;
+  supplierNoMatches: string;
+  supplierTotalSpend: string;
+  purchaseOnAccountHint: string;
+  purchasePaidNowHint: string;
+  purchaseOnAccount: string;
+  purchasePaidNow: string;
+  purchasePaymentMode: string;
+  liabilityAdd: string;
+  liabilityRecordPayment: string;
+  liabilityTypeLoan: string;
+  liabilityTypeOther: string;
+  liabilityCounterparty: string;
+  liabilityLenderOwedTo: string;
+  liabilityLenderHelp: string;
+  cashDebtLoansHelp: string;
+  liabilityEmpty: string;
+  liabilityStatusOpen: string;
+  liabilityStatusPartial: string;
+  liabilityStatusSettled: string;
+  withdrawalLog: string;
+  withdrawalMethodCashier: string;
+  withdrawalMethodAbbAtm: string;
+  withdrawalFeePreview: string;
+  withdrawalFeesPeriodTotal: string;
+  withdrawalEmpty: string;
+  withdrawalAvailableInAccount: string;
+  withdrawalInsufficientFunds: string;
+  withdrawalMethod: string;
+  withdrawalFee: string;
+  posPaymentMethod: string;
+  posPayCash: string;
+  posPayCard: string;
+  cashDrawerTab: string;
+  cashOnHand: string;
+  cashOnHandHint: string;
+  accountCash: string;
+  accountBank: string;
+  accountCard: string;
+  accountBalancesTitle: string;
+  accountBankHint: string;
+  accountCardHint: string;
+  accountManage: string;
+  accountSetupTitle: string;
+  accountCurrentBalance: string;
+  accountTransferAction: string;
+  accountActivityTitle: string;
+  accountActivityEmpty: string;
+  accountActivityFilterAll: string;
+  accountLedgerOpening: string;
+  accountLedgerTransferIn: string;
+  accountLedgerTransferOut: string;
+  accountLedgerWithdrawal: string;
+  accountLedgerExpense: string;
+  accountLedgerPurchase: string;
+  accountLedgerPayout: string;
+  accountLedgerManagedElsewhere: string;
+  accountLedgerManagedPayouts: string;
+  accountTransferDeleted: string;
+  accountOpeningBalance: string;
+  accountOpeningDate: string;
+  accountOpeningBalanceSaved: string;
+  accountTransferBankToCard: string;
+  accountTransferSaved: string;
+  paymentCash: string;
+  paymentCard: string;
+  paymentBankTransfer: string;
+  selectPaymentMethod: string;
+  withdrawalMethodCardAccount: string;
+  cashDrawerTitle: string;
+  cashDrawerSubtitle: string;
+  cashOpeningBalance: string;
+  cashClosingBalance: string;
+  cashInTotal: string;
+  cashOutTotal: string;
+  cashFromOrders: string;
+  cashFromWithdrawals: string;
+  cashFromPayouts: string;
+  cashAdjustmentsIn: string;
+  cashToExpenses: string;
+  cashToPurchases: string;
+  cashToSuppliers: string;
+  cashToLiabilities: string;
+  cashBankDeposits: string;
+  cashMovementLog: string;
+  cashMovementEmpty: string;
+  cashAddMovement: string;
+  cashMovementCategory: string;
+  cashCategoryOpeningFloat: string;
+  cashCategoryBankDeposit: string;
+  cashCategoryAdjustment: string;
+  cashCategoryOther: string;
+  cashMovementDirection: string;
+  cashDirectionIn: string;
+  cashDirectionOut: string;
+  cashMovementAdded: string;
+  cashMovementDeleted: string;
   deliveryScreenTitle: string;
+  orderLocations: string;
+  orderLocationsTitle: string;
+  orderLocationsSubtitle: string;
+  orderLocationsEmpty: string;
+  orderLocationsLoading: string;
+  orderLocationsUnavailable: string;
+  orderLocationsMapHint: string;
+  orderLocationsTotalOrders: string;
+  orderLocationsSourceAll: string;
+  orderLocationsSourceOnline: string;
+  orderLocationsSourcePos: string;
+  orderLocationsOrderLabel: string;
   deliveryScreenDescription: string;
   deliveryRefresh: string;
   deliveryTabZones: string;
@@ -1086,6 +1481,34 @@ export interface Translations {
   deliverySettingsDayFri: string;
   deliverySettingsDaySat: string;
   deliverySettingsDaySun: string;
+  deliverySettingsStatusOpenNow: string;
+  deliverySettingsStatusClosedNow: string;
+  deliverySettingsStatusPaused: string;
+  deliverySettingsTodayHours: string;
+  deliverySettingsTodayClosed: string;
+  deliverySettingsSpecialDayBadge: string;
+  deliverySettingsAcceptingOrders: string;
+  deliverySettingsStoppedOrders: string;
+  deliverySettingsAcceptingOrdersHint: string;
+  deliverySettingsStoppedOrdersHint: string;
+  deliverySettingsDayOpen: string;
+  deliverySettingsWeeklyHours: string;
+  deliverySettingsSpecialDaysTitle: string;
+  deliverySettingsSpecialDaysHint: string;
+  deliverySettingsSpecialDayAdd: string;
+  deliverySettingsSpecialDayRemove: string;
+  deliverySettingsSpecialDayDate: string;
+  deliverySettingsSpecialDayClosedAllDay: string;
+  deliverySettingsSpecialDayCustomHours: string;
+  deliverySettingsSpecialDayNote: string;
+  deliverySettingsSpecialDayNoteHint: string;
+  deliverySettingsSpecialDayNoteEn: string;
+  deliverySettingsSpecialDayNoteAz: string;
+  deliverySettingsSpecialDayNoteRu: string;
+  deliverySettingsSpecialDayDuplicateDate: string;
+  deliverySettingsSpecialDaysInvalid: string;
+  orderSpecialDayNoticeTitle: string;
+  orderSpecialDayNoticeDismiss: string;
   deliveryDispatchTitle: string;
   deliveryDispatchDescription: string;
   deliveryDispatchEmpty: string;
@@ -1120,6 +1543,26 @@ export const translations: Record<Language, Translations> = {
     more: 'More',
     commandCenter: 'Command Center',
     signedIn: 'Signed in',
+    navOverview: 'Overview',
+    navOrders: 'Orders',
+    navCatalog: 'Catalog',
+    navFinance: 'Finance',
+    navHubIncome: 'Income',
+    navHubSpending: 'Spending',
+    navHubCashAccounts: 'Cash & Accounts',
+    navHubPayroll: 'Payroll',
+    navHubInsights: 'Insights',
+    navSystem: 'System',
+    cockpitLoadingContent: 'Loading…',
+    cockpitResetFilters: 'Reset filters',
+    cockpitEmptyFilteredHint: 'Try widening the date range or clearing filters.',
+    cockpitTestRecordLabel: 'Test record',
+    cockpitNeedsReview: 'Needs review',
+    cockpitReviewHighCommission: 'Commission rate looks unusually high — verify channel settings.',
+    cockpitReviewUnusualAmount: 'This amount is unusually large — confirm before trusting totals.',
+    settingsAppearance: 'Appearance',
+    collapseSidebar: 'Collapse sidebar',
+    expandSidebar: 'Expand sidebar',
     system: 'System',
     inventory: 'Inventory',
     procurement: 'Procurement',
@@ -1180,6 +1623,34 @@ export const translations: Record<Language, Translations> = {
     aov: 'AOV',
     kpiNetRevenueHint: 'After COGS',
     kpiOperatingProfitHint: 'After COGS & OPEX',
+    kpiNetProfitHint: 'After bank fees (₼{fees})',
+    comparePreviousPeriod: 'Compare vs prior period',
+    netProfitLabel: 'Net profit',
+    sourceFilter: 'Source',
+    orderSourceMix: 'Order source mix',
+    avgPrepTime: 'Avg prep time',
+    kitchenSla: 'Kitchen SLA met',
+    paymentHealth: 'Payment health',
+    payoutCommission: 'Payout commission',
+    topProducts: 'Top products',
+    peakHours: 'Peak hours',
+    operationalInsights: 'Operational insights',
+    paidOrders: 'paid',
+    unpaidOrders: 'unpaid',
+    cardPayments: 'card',
+    codPayments: 'COD',
+    matchedPayouts: 'Matched',
+    mismatchedPayouts: 'Mismatch',
+    pendingPayouts: 'Pending',
+    expandDetails: 'Show expense & payout details',
+    collapseDetails: 'Hide expense & payout details',
+    viewFullReport: 'View full report',
+    viewPayouts: 'View payouts',
+    revenueShare: 'share',
+    dashboardOrdersHint: 'Distinct orders in period',
+    dashboardAovHint: 'Net revenue per order',
+    dataConsistencyWarning: 'Detected {count} consistency issue(s) in aggregated KPI data.',
+    pos: 'POS',
 
     addSale: 'Add Sale',
     saleAmount: 'Sale Amount',
@@ -1228,6 +1699,13 @@ export const translations: Record<Language, Translations> = {
     type: 'Type',
 
     settings: 'Settings',
+    deleteChannelConfirmTitle: 'Remove sales channel?',
+    deleteChannelConfirmMessage: 'Remove "{name}" from active channels? Past sales and payouts stay linked in reports.',
+    deleteChannelError: 'Could not remove this channel. Try again or contact an admin.',
+    channelRemovedSuccess: 'Channel removed.',
+    systemSalesChannel: 'System',
+    salesChannelProtectedError: 'This channel is required by the app and cannot be removed or deactivated.',
+    dismiss: 'Dismiss',
     language: 'Language',
     categories: 'Categories',
     manageCategories: 'Manage Categories',
@@ -1362,6 +1840,26 @@ export const translations: Record<Language, Translations> = {
     cannotChangeOwnRole: 'You cannot change your own role',
     passwordMinLength: 'Password must be at least 8 characters',
 
+    auditLog: 'Audit log',
+    auditLogTitle: 'Audit log',
+    auditLogSubtitle: 'Admin actions, database changes, and staff sign-ins',
+    auditLogTabActions: 'Admin actions',
+    auditLogTabChanges: 'Row changes',
+    auditLogTabSignIns: 'Sign-ins',
+    auditLogEmpty: 'No entries yet',
+    auditLogColWhen: 'When',
+    auditLogColWho: 'Who',
+    auditLogColAction: 'Action',
+    auditLogColResource: 'Resource',
+    auditLogColDetails: 'Details',
+    auditLogColSurface: 'Surface',
+    auditLogColDevice: 'Device',
+    auditLogSurfaceCockpit: 'Command center',
+    auditLogSurfacePos: 'Point of Sale',
+    auditLogSurfaceKds: 'Kitchen Display',
+    auditLogSurfaceKiosk: 'Kiosk',
+    auditLogSurfaceOrderManager: 'Order Manager',
+
     welcomeBack: 'Welcome Back',
     signInToAccount: 'Sign in to your account',
     signIn: 'Sign In',
@@ -1374,8 +1872,11 @@ export const translations: Record<Language, Translations> = {
     staffSignOut: 'Sign out',
     adminAccessDeniedTitle: 'Access Restricted',
     adminAccessDeniedBody:
-      'You do not have permission to access the admin panel. Please use the Order Manager instead.',
+      'The command center is for administrators. Your account works on the floor apps — open Point of Sale, the Kitchen Display, or the Kiosk below.',
     adminAccessGoToOrderManager: 'Go to Order Manager',
+    adminAccessGoToPos: 'Open Point of Sale',
+    adminAccessGoToKds: 'Open Kitchen Display',
+    adminAccessGoToKiosk: 'Open Kiosk',
     newUserRole: 'Role',
     userRoleStaff: 'Staff',
     userRoleManager: 'Manager',
@@ -1389,8 +1890,11 @@ export const translations: Record<Language, Translations> = {
     quantity: 'Quantity',
 
     savedSuccessfully: 'Saved successfully!',
+    updatedSuccessfully: 'Updated successfully!',
     deletedSuccessfully: 'Deleted successfully!',
     errorOccurred: 'An error occurred',
+    amountMustBePositive: 'Amount must be greater than zero',
+    quantityMustBePositive: 'Quantity must be greater than zero',
     foodCost: 'Food Cost %',
     cogs: 'COGS',
     share: '% share',
@@ -1438,6 +1942,11 @@ export const translations: Record<Language, Translations> = {
     selectExpenseItem: 'Select Expense Item',
     expenseItemName: 'Expense Item Name',
     addNewExpenseItem: 'Add New Expense Item',
+    createNamed: 'Create "{name}"',
+    newItem: 'New item',
+    assignToCategory: 'Assign to category',
+    newCategory: 'New category',
+    newSupplierName: 'Supplier name',
     noExpenseItems: 'No expense items found',
     createFirstExpenseItem: 'Create your first expense item to get started',
     selectMasterCategory: 'Select Master Category',
@@ -1453,6 +1962,16 @@ export const translations: Record<Language, Translations> = {
     payment: 'Payment',
 
     tapToOrder: 'Tap to Order',
+    kioskWelcomeTitle: 'Where will you be eating today?',
+    kioskEatIn: 'Eat In',
+    kioskTakeOut: 'Take Out',
+    kioskExploreMenu: 'Explore our Menu',
+    kioskRestartMenu: 'Restart Menu',
+    kioskOrderNow: 'Order Now',
+    kioskOrderMore: 'Order More',
+    kioskDoneCountdown: 'Done ({seconds}s)',
+    kioskNoCategories: 'No menu categories available',
+    kioskNoProducts: 'No products available',
     addToCart: 'Add to Cart',
     viewCart: 'View Cart',
     placeOrder: 'Place Order',
@@ -1490,6 +2009,29 @@ export const translations: Record<Language, Translations> = {
     kdsPrepTimeLabel: 'Prep time (minutes)',
     kdsBusyKitchenHint: 'Busy kitchen? 20 min is suggested.',
     kdsCourierNoteLabel: 'Courier',
+    kdsStatusUpdating: 'Updating…',
+    kdsChannelDelivery: 'Delivery',
+    kdsChannelTakeaway: 'Takeaway',
+    kdsChannelKiosk: 'Kiosk',
+    kdsChannelPosEatIn: 'POS · Eat In',
+    kdsChannelPosTakeaway: 'POS · Takeaway',
+    kdsChannelPosDelivery: 'POS · Delivery',
+    kdsFilterAll: 'All',
+    kdsSearchPlaceholder: 'Search #…',
+    kdsHistoryTitle: 'History',
+    kdsHistoryEmpty: 'No completed orders today',
+    kdsUndoComplete: 'Order {number} complete',
+    kdsUndoSeconds: 'Undo',
+    kdsUndoButton: 'Undo',
+    kdsAllItemsPrepared: 'All items prepared',
+    kdsMarkItemPrepared: 'Mark item prepared',
+    kdsMarkItemUnprepared: 'Mark item not prepared',
+    kdsEmptyQueueTitle: 'No active orders',
+    kdsEmptyQueueHint: 'New tickets from kiosk and online ordering appear here automatically.',
+    kdsEmptyColumn: 'Nothing here yet',
+    kdsEmptyFiltered: 'No orders match your filters',
+    kdsEmptyFilteredHint: 'Try a different channel or clear the search.',
+    kdsHistorySubtitle: 'Completed today',
 
     orderManagerTitle: 'Order Manager',
     orderManagerDescription: 'Monitor and act on kiosk and online orders in one queue',
@@ -1504,6 +2046,7 @@ export const translations: Record<Language, Translations> = {
     unpaidOnly: 'Unpaid only',
     paidOnly: 'Paid only',
     kioskOrders: 'Kiosk Orders',
+    cockpitQuickLinks: 'Quick links',
     confirmPayment: 'Confirm Payment',
     printAgain: 'Print Again',
     cancelOrder: 'Cancel Order',
@@ -1616,6 +2159,48 @@ export const translations: Record<Language, Translations> = {
     difference: 'Difference',
     matched: 'Matched',
     mismatched: 'Mismatched',
+
+    staff: 'Staff & Salaries',
+    staffScreenTitle: 'Staff & Salaries',
+    staffScreenDescription: 'Employee roster and dated salary payment ledger.',
+    staffAddEmployee: 'Add employee',
+    staffEditEmployee: 'Edit employee',
+    staffRecordPayment: 'Record payment',
+    staffEditPayment: 'Edit payment',
+    staffFullName: 'Full name',
+    staffDesignation: 'Designation',
+    staffTotalSalary: 'Monthly salary',
+    staffActiveLabel: 'Active employee',
+    staffActiveEmployees: 'Active employees',
+    staffMonthlyPayrollTarget: 'Monthly payroll target',
+    staffPaidInPeriod: 'Paid in period',
+    staffEmployee: 'Employee',
+    staffSelectEmployee: 'Select employee',
+    staffPaymentType: 'Payment type',
+    staffPaymentTypeSalary: 'Salary',
+    staffPaymentTypeAdvance: 'Advance',
+    staffPaymentTypeBonus: 'Bonus',
+    staffPaymentTypePartial: 'Partial',
+    staffNameRequired: 'Employee name is required',
+    staffInvalidSalary: 'Enter valid salary amounts',
+    staffInvalidPaymentAmount: 'Enter a valid payment amount',
+    staffEmployeeAdded: 'Employee added',
+    staffEmployeeUpdated: 'Employee updated',
+    staffEmployeeDeleted: 'Employee deleted',
+    staffPaymentAdded: 'Payment recorded',
+    staffPaymentUpdated: 'Payment updated',
+    staffPaymentDeleted: 'Payment deleted',
+    staffDeleteEmployeeConfirm: 'Delete this employee and all payment history?',
+    staffDeletePaymentConfirm: 'Delete this payment?',
+    staffNoEmployees: 'No employees yet. Add your first team member.',
+    staffNoPaymentsInPeriod: 'No payments in this period.',
+    staffInactive: 'Inactive',
+    staffNoDesignation: 'No designation',
+    staffDoubleEntryWarning: 'Record salaries here instead of the Expenses “Salaries” category to avoid double-counting in reports.',
+    staffSalariesLabel: 'Salaries paid',
+    staffSalariesHint: 'Salary payments recorded in the Staff module',
+    kpiNetProfitHintExtended: 'After bank fees ₼{fees} and salaries ₼{payroll}',
+
     weatherUnavailable: 'Weather unavailable',
     cached: 'cached',
     clear: 'Clear',
@@ -1641,6 +2226,9 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Platform Costs',
     noSalesInPeriod: 'No sales found for this period',
     payoutReceived: 'Payout Received',
+    payoutReceivedInto: 'Received into',
+    payoutReceivedIntoHint: 'Which account did this payout land in? The balance updates automatically.',
+    payoutNoAccountWarning: 'No account selected — this payout will not update any balance.',
     periodRevenue: 'Period revenue',
     impliedCommission: 'Commission',
     payoutPeriodsInRange: '{count} payout periods in this range',
@@ -1753,6 +2341,8 @@ export const translations: Record<Language, Translations> = {
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Continue with Google',
+    orderSignInGoogle: 'Sign in with Google',
+    orderSignInGoogleRedirecting: 'Redirecting to Google…',
     orderForgotPassword: 'Forgot password?',
     orderForgotPasswordSent: 'If this email exists, reset instructions were sent.',
     orderSignUpInlinePrompt: "Don't have an account yet?",
@@ -2036,7 +2626,53 @@ export const translations: Record<Language, Translations> = {
     omSourceKiosk: 'Kiosk',
     omSourceTakeaway: 'Online · Takeaway',
     omSourceDelivery: 'Online · Delivery',
+    omSourcePos: 'POS',
     omTitle: 'Order Manager',
+    posTitle: 'Point of Sale',
+    posTabActive: 'Active',
+    posTabHistory: 'History',
+    posTabNewOrder: 'New Order',
+    posTabSettings: 'Settings',
+    posSettingsTitle: 'Print settings',
+    posPrintAgentUrl: 'Print agent URL',
+    posPrinterProfile: 'Printer profile',
+    posProfileEscpos80: 'ESC/POS · 80mm thermal',
+    posProfileZpl58: 'ZPL · 58mm label',
+    posProfileZpl40x30: 'ZPL · 40×30mm label',
+    posTestConnection: 'Test connection',
+    posTestPrint: 'Test print',
+    posAgentConnected: 'Print agent is reachable',
+    posAgentUnreachable: 'Cannot reach print agent',
+    posTestPrintSent: 'Test label sent to printer',
+    posTestPrintFailed: 'Test print failed',
+    posFulfillmentEatIn: 'Eat In',
+    posFulfillmentTakeaway: 'Takeaway',
+    posFulfillmentDelivery: 'Delivery',
+    posSourceEatIn: 'POS · Eat In',
+    posSourceTakeaway: 'POS · Takeaway',
+    posSourceDelivery: 'POS · Delivery',
+    posCustomerPanelTitle: 'Customer',
+    posCustomerName: 'Name (optional)',
+    posCustomerPhone: 'Phone (optional)',
+    posOrderNotes: 'Order notes',
+    posDeliveryPanelTitle: 'Delivery address',
+    posCartTitle: 'Cart',
+    posCartEmpty: 'Cart is empty',
+    posSubmitOrder: 'Create order',
+    posSubmitFailed: 'Could not create order',
+    posOrderCreated: 'Order created',
+    posViewActiveOrders: 'View active orders',
+    posNewOrderTitle: 'New order',
+    posOutsideZone: 'Address is outside delivery zones',
+    posDeliveryRequired: 'Set delivery pin and address',
+    posReprintLabels: 'Reprint labels',
+    posPrintSent: 'Labels sent to printer',
+    posPrintPending: 'Print queued — agent offline',
+    posPrintFailed: 'Print failed',
+    posPrintPendingCount: '{count} label job(s) waiting for print agent',
+    posMapSearch: 'Search address in Baku',
+    posMapPinHint: 'Drag pin or tap map to set location',
+    posMapsUnavailable: 'Maps unavailable',
     omKitchenStatusTitle: 'Online kitchen',
     omKitchenStatusOnline: 'Accepting orders',
     omKitchenStatusPausedUntil: 'Paused until {time}',
@@ -2089,7 +2725,184 @@ export const translations: Record<Language, Translations> = {
     orderSupportPrepareQuick: 'Prepare (15 min)',
     orderSupportScheduledHint:
       'This order is scheduled. Reminder timing is safest from Order Manager; you can still view details here.',
+    payments: 'Payments',
+    paymentsScreenTitle: 'Payments',
+    paymentsScreenDescription: 'View online payment records, detect mismatches, and re-check status with the provider',
+    paymentsFilterAll: 'All',
+    paymentsFilterPending: 'Pending',
+    paymentsFilterSuccess: 'Paid',
+    paymentsFilterFailed: 'Failed',
+    paymentsProviderAll: 'All providers',
+    paymentsSearch: 'Search by order #, customer, phone, transaction id',
+    paymentsFound: 'payments found',
+    paymentsNoRows: 'No payments found for this filter',
+    paymentsColTime: 'Time',
+    paymentsColOrder: 'Order',
+    paymentsColCustomer: 'Customer',
+    paymentsColAmount: 'Amount',
+    paymentsColProvider: 'Provider',
+    paymentsColPaymentStatus: 'Payment',
+    paymentsColSaleStatus: 'Sale',
+    paymentsColMismatch: 'Mismatch',
+    paymentsMismatchYes: 'Mismatch',
+    paymentsDetailProvider: 'Provider',
+    paymentsDetailClientOrderId: 'Client order id',
+    paymentsDetailTransactionId: 'Transaction id',
+    paymentsDetailProviderStatus: 'Provider status',
+    paymentsDetailPaidAt: 'Paid at',
+    paymentsDetailError: 'Error',
+    paymentsDetailRawPayload: 'Raw payload',
+    paymentsRecheckButton: 'Re-check status with provider',
+    paymentsRechecking: 'Re-checking…',
+    paymentsRecheckSuccess: 'Provider status re-checked. List refreshed.',
+    paymentsRecheckFailed: 'Re-check failed',
+    paymentsRecheckForbidden: 'Only managers and admins can re-check payment status',
+    paymentsStatusPending: 'Pending',
+    paymentsStatusSuccess: 'Paid',
+    paymentsStatusFailed: 'Failed',
+    paymentsProviderEpoint: 'Epoint',
+    paymentsProviderUnited: 'United Payment',
+    paymentsProviderOther: 'Other',
+    cashDebt: 'Cash & Accounts',
+    cashDebtScreenTitle: 'Cash & Debt',
+    cashDebtScreenDescription: 'Loans, other liabilities, and bank withdrawal fees.',
+    cashDebtTabLoans: 'Loans & other',
+    cashDebtTabWithdrawals: 'Bank withdrawals',
+    outstandingDebtLabel: 'Outstanding debt',
+    outstandingDebtHint: 'Supplier accounts + loans (balance sheet)',
+    supplierOutstanding: 'Owed',
+    supplierPayButton: 'Pay supplier',
+    supplierOpeningBalance: 'Opening balance',
+    supplierOpeningBalanceDate: 'Balance as of',
+    supplierAddDebt: 'Add debt',
+    supplierDebtHistory: 'Debt history',
+    supplierDebtCleared: 'Cleared',
+    supplierCreditBalance: 'Credit balance',
+    supplierDebtFromPurchase: 'Purchase (on account)',
+    supplierManualDebt: 'Manual debt',
+    supplierClearDebt: 'Clear debt',
+    supplierAccountView: 'Account',
+    supplierRecentPayments: 'Recent payments',
+    supplierAccountExplainer:
+      "A supplier's balance is a running tab: on-account purchases add to it, payments reduce it. Pay it down with “Clear debt”.",
+    supplierYouOwe: 'Debt',
+    supplierPrepaid: 'Overpayment',
+    supplierSettled: 'Paid',
+    supplierStatement: 'Account statement',
+    supplierBalanceColumn: 'Balance',
+    supplierPaymentLabel: 'Payment',
+    supplierAddDebtHint: 'Only for amounts not from a recorded purchase (e.g. an opening balance you already owed).',
+    supplierNoActivity: 'No purchases or payments yet.',
+    supplierSearchPlaceholder: 'Search suppliers…',
+    supplierNoMatches: 'No suppliers match your search.',
+    supplierTotalSpend: 'Total spend',
+    purchaseOnAccountHint: 'Adds this purchase to the supplier’s balance until you pay it.',
+    purchasePaidNowHint: 'Deducts this purchase from the selected account balance now.',
+    purchaseOnAccount: 'On account',
+    purchasePaidNow: 'Paid now',
+    purchasePaymentMode: 'Payment',
+    liabilityAdd: 'Add liability',
+    liabilityRecordPayment: 'Record payment',
+    liabilityTypeLoan: 'Loan',
+    liabilityTypeOther: 'Other',
+    liabilityCounterparty: 'Counterparty',
+    liabilityLenderOwedTo: 'Lender / owed to',
+    liabilityLenderHelp: 'Who you owe — bank name, friend, etc. Supplier debt is tracked on the Suppliers screen.',
+    cashDebtLoansHelp: 'Use this for bank loans and personal debt. Supplier debt belongs on Suppliers.',
+    liabilityEmpty: 'No loans or other liabilities yet.',
+    liabilityStatusOpen: 'Open',
+    liabilityStatusPartial: 'Partially paid',
+    liabilityStatusSettled: 'Settled',
+    withdrawalLog: 'Log withdrawal',
+    withdrawalMethodCashier: 'Cashier (0.5%)',
+    withdrawalMethodAbbAtm: 'ABB ATM (1%, min ₼1)',
+    withdrawalFeePreview: 'Bank fee',
+    withdrawalFeesPeriodTotal: 'Fees in list',
+    withdrawalEmpty: 'No withdrawals logged yet.',
+    withdrawalAvailableInAccount: 'Available in {account}: {available}',
+    withdrawalInsufficientFunds: 'Not enough in {account}. Available: {available}.',
+    withdrawalMethod: 'Method',
+    withdrawalFee: 'Fee',
+    posPaymentMethod: 'Payment method',
+    posPayCash: 'Cash',
+    posPayCard: 'Card',
+    cashDrawerTab: 'Cash drawer',
+    cashOnHand: 'Cash on hand',
+    cashOnHandHint: 'Physical cash you should have now',
+    accountCash: 'Cash on hand',
+    accountBank: 'Main (bank) account',
+    accountCard: 'Card account',
+    accountBalancesTitle: 'Account balances',
+    accountBankHint: 'Payouts land here; cheque withdrawals come from it',
+    accountCardHint: 'Funded by transfers; used for ATM withdrawals',
+    accountManage: 'Manage accounts',
+    accountSetupTitle: 'Account setup',
+    accountCurrentBalance: 'Current',
+    accountTransferAction: 'Transfer',
+    accountActivityTitle: 'Account activity',
+    accountActivityEmpty: 'No bank or card activity yet.',
+    accountActivityFilterAll: 'All accounts',
+    accountLedgerOpening: 'Opening balance',
+    accountLedgerTransferIn: 'Transfer in',
+    accountLedgerTransferOut: 'Transfer out',
+    accountLedgerWithdrawal: 'Withdrawal',
+    accountLedgerExpense: 'Expense',
+    accountLedgerPurchase: 'Purchase',
+    accountLedgerPayout: 'Payout received',
+    accountLedgerManagedElsewhere: 'Managed on the Expenses screen',
+    accountLedgerManagedPayouts: 'Managed on the Payouts screen',
+    accountTransferDeleted: 'Transfer deleted',
+    accountOpeningBalance: 'Opening balance',
+    accountOpeningDate: 'As of date',
+    accountOpeningBalanceSaved: 'Opening balance saved',
+    accountTransferBankToCard: 'Transfer main → card',
+    accountTransferSaved: 'Transfer recorded',
+    paymentCash: 'Cash',
+    paymentCard: 'Card',
+    paymentBankTransfer: 'Bank transfer',
+    selectPaymentMethod: 'Select payment method',
+    withdrawalMethodCardAccount: 'Card account (ABB ATM, 1%, min ₼1)',
+    cashDrawerTitle: 'Cash drawer',
+    cashDrawerSubtitle: 'Track physical cash to reconcile the drawer at month end.',
+    cashOpeningBalance: 'Opening balance',
+    cashClosingBalance: 'Closing balance',
+    cashInTotal: 'Cash in',
+    cashOutTotal: 'Cash out',
+    cashFromOrders: 'Cash orders collected',
+    cashFromWithdrawals: 'Bank withdrawals (net of fees)',
+    cashFromPayouts: 'Cash payouts received',
+    cashAdjustmentsIn: 'Float & adjustments in',
+    cashToExpenses: 'Cash expenses',
+    cashToPurchases: 'Cash purchases',
+    cashToSuppliers: 'Cash to suppliers',
+    cashToLiabilities: 'Cash to loans',
+    cashBankDeposits: 'Bank deposits & adjustments out',
+    cashMovementLog: 'Cash movements',
+    cashMovementEmpty: 'No manual cash movements yet.',
+    cashAddMovement: 'Add movement',
+    cashMovementCategory: 'Category',
+    cashCategoryOpeningFloat: 'Opening float',
+    cashCategoryBankDeposit: 'Bank deposit',
+    cashCategoryAdjustment: 'Adjustment',
+    cashCategoryOther: 'Other',
+    cashMovementDirection: 'Direction',
+    cashDirectionIn: 'Cash in',
+    cashDirectionOut: 'Cash out',
+    cashMovementAdded: 'Cash movement added',
+    cashMovementDeleted: 'Cash movement deleted',
     deliveryScreenTitle: 'Delivery',
+    orderLocations: 'Order map',
+    orderLocationsTitle: 'Delivery order map',
+    orderLocationsSubtitle: 'See where delivery orders come from in Baku — one dot per order location.',
+    orderLocationsEmpty: 'No delivery locations in this period. Try a wider date range or another source filter.',
+    orderLocationsLoading: 'Loading map…',
+    orderLocationsUnavailable: 'Add VITE_GOOGLE_MAPS_API_KEY to show the order map.',
+    orderLocationsMapHint: 'Click a dot for order details. Map is limited to Baku.',
+    orderLocationsTotalOrders: 'Orders with location',
+    orderLocationsSourceAll: 'All delivery',
+    orderLocationsSourceOnline: 'Website delivery',
+    orderLocationsSourcePos: 'POS delivery',
+    orderLocationsOrderLabel: 'Order',
     deliveryScreenDescription: 'Manage zones, kitchen rules, and manual dispatch',
     deliveryRefresh: 'Refresh delivery data',
     deliveryTabZones: 'Zones',
@@ -2115,7 +2928,7 @@ export const translations: Record<Language, Translations> = {
     deliveryZoneFieldSortOrder: 'Sort order',
     deliveryZoneFieldActive: 'Active',
     deliveryZoneFieldPolygon: 'Zone polygon',
-    deliveryZonePolygonHint: 'Draw at least 3 points on the map to define the zone.',
+    deliveryZonePolygonHint: 'Click the map to add points (min. 3). Double-click or click the first point to finish.',
     deliveryZoneClearShape: 'Clear shape',
     deliveryZonePolygonRequired: 'Polygon is required',
     deliveryZonePreview: 'Zone preview',
@@ -2164,6 +2977,35 @@ export const translations: Record<Language, Translations> = {
     deliverySettingsDayFri: 'Fri',
     deliverySettingsDaySat: 'Sat',
     deliverySettingsDaySun: 'Sun',
+    deliverySettingsStatusOpenNow: 'Open now — accepting orders',
+    deliverySettingsStatusClosedNow: 'Closed now — outside operating hours',
+    deliverySettingsStatusPaused: 'Paused — online orders stopped manually',
+    deliverySettingsTodayHours: "Today's hours: {hours}",
+    deliverySettingsTodayClosed: 'Closed all day today',
+    deliverySettingsSpecialDayBadge: 'Special schedule today',
+    deliverySettingsAcceptingOrders: 'Accepting online orders',
+    deliverySettingsStoppedOrders: 'All online orders stopped',
+    deliverySettingsAcceptingOrdersHint: 'Customers can place orders when inside your hours below.',
+    deliverySettingsStoppedOrdersHint: 'No new online orders until you turn this back on (overrides hours).',
+    deliverySettingsDayOpen: 'Open',
+    deliverySettingsWeeklyHours: 'Weekly schedule',
+    deliverySettingsSpecialDaysTitle: 'Special days & holidays',
+    deliverySettingsSpecialDaysHint:
+      'One-off dates that override the weekly schedule. Add a customer note to show a popup on the order website.',
+    deliverySettingsSpecialDayAdd: 'Add special day',
+    deliverySettingsSpecialDayRemove: 'Remove',
+    deliverySettingsSpecialDayDate: 'Date',
+    deliverySettingsSpecialDayClosedAllDay: 'Closed all day',
+    deliverySettingsSpecialDayCustomHours: 'Custom hours',
+    deliverySettingsSpecialDayNote: 'Customer notice (optional)',
+    deliverySettingsSpecialDayNoteHint: 'Shown as a popup on order.mings.az when this date is active.',
+    deliverySettingsSpecialDayNoteEn: 'English',
+    deliverySettingsSpecialDayNoteAz: 'Azerbaijani',
+    deliverySettingsSpecialDayNoteRu: 'Russian',
+    deliverySettingsSpecialDayDuplicateDate: 'Each special day must have a unique date.',
+    deliverySettingsSpecialDaysInvalid: 'Special days need a date and valid hours when not closed all day.',
+    orderSpecialDayNoticeTitle: 'Notice',
+    orderSpecialDayNoticeDismiss: 'Got it',
     deliveryDispatchTitle: 'Dispatch center',
     deliveryDispatchDescription: 'Manage active deliveries and dispatch actions.',
     deliveryDispatchEmpty: 'No dispatchable orders for this range.',
@@ -2198,6 +3040,26 @@ export const translations: Record<Language, Translations> = {
     more: 'Daha çox',
     commandCenter: 'Komanda Mərkəzi',
     signedIn: 'Daxil olub',
+    navOverview: 'İcmal',
+    navOrders: 'Sifarişlər',
+    navCatalog: 'Kataloq',
+    navFinance: 'Maliyyə',
+    navHubIncome: 'Gəlir',
+    navHubSpending: 'Xərclər',
+    navHubCashAccounts: 'Nağd və hesablar',
+    navHubPayroll: 'Maaş',
+    navHubInsights: 'Analitika',
+    navSystem: 'Sistem',
+    cockpitLoadingContent: 'Yüklənir…',
+    cockpitResetFilters: 'Filtrləri sıfırla',
+    cockpitEmptyFilteredHint: 'Tarix aralığını genişləndirin və ya filtrləri təmizləyin.',
+    cockpitTestRecordLabel: 'Test qeydi',
+    cockpitNeedsReview: 'Yoxlama lazımdır',
+    cockpitReviewHighCommission: 'Komissiya faizi qeyri-adi yüksəkdir — kanal parametrlərini yoxlayın.',
+    cockpitReviewUnusualAmount: 'Bu məbləğ qeyri-adi böyükdür — cəmlərə etibar etməzdən əvvəl təsdiqləyin.',
+    settingsAppearance: 'Görünüş',
+    collapseSidebar: 'Yan paneli yığ',
+    expandSidebar: 'Yan paneli aç',
     system: 'Sistem',
     inventory: 'Anbar',
     procurement: 'Təchizat',
@@ -2258,6 +3120,34 @@ export const translations: Record<Language, Translations> = {
     aov: 'Orta Sifariş',
     kpiNetRevenueHint: 'COGS-dan sonra',
     kpiOperatingProfitHint: 'COGS və OPEX-dan sonra',
+    kpiNetProfitHint: 'Bank haqlarından sonra (₼{fees})',
+    comparePreviousPeriod: 'Əvvəlki periodla müqayisə',
+    netProfitLabel: 'Xalis mənfəət',
+    sourceFilter: 'Mənbə',
+    orderSourceMix: 'Sifariş mənbəyi',
+    avgPrepTime: 'Orta hazırlanma',
+    kitchenSla: 'Mətbəx SLA',
+    paymentHealth: 'Ödəniş vəziyyəti',
+    payoutCommission: 'Platforma komissiyası',
+    topProducts: 'Top məhsullar',
+    peakHours: 'Pik saatlar',
+    operationalInsights: 'Əməliyyat statistikası',
+    paidOrders: 'ödənilib',
+    unpaidOrders: 'ödənilməyib',
+    cardPayments: 'kart',
+    codPayments: 'COD',
+    matchedPayouts: 'Uyğun',
+    mismatchedPayouts: 'Uyğunsuz',
+    pendingPayouts: 'Gözləyir',
+    expandDetails: 'Xərc və payout detallarını göstər',
+    collapseDetails: 'Xərc və payout detallarını gizlət',
+    viewFullReport: 'Tam hesabat',
+    viewPayouts: 'Payout-lara bax',
+    revenueShare: 'pay',
+    dashboardOrdersHint: 'Period üzrə unikal sifarişlər',
+    dashboardAovHint: 'Sifariş başına xalis gəlir',
+    dataConsistencyWarning: 'Agregat KPI məlumatında {count} uyğunsuzluq aşkarlandı.',
+    pos: 'POS',
 
     addSale: 'Satış əlavə et',
     saleAmount: 'Satış məbləği',
@@ -2306,6 +3196,13 @@ export const translations: Record<Language, Translations> = {
     type: 'Növ',
 
     settings: 'Tənzimləmələr',
+    deleteChannelConfirmTitle: 'Satış kanalını silmək?',
+    deleteChannelConfirmMessage: '"{name}" aktiv kanallardan silinsin? Keçmiş satış və payout-lar hesabatlarda qalır.',
+    deleteChannelError: 'Kanal silinmədi. Yenidən cəhd edin və ya adminə müraciət edin.',
+    channelRemovedSuccess: 'Kanal silindi.',
+    systemSalesChannel: 'Sistem',
+    salesChannelProtectedError: 'Bu kanal tətbiq üçün vacibdir — silinə və ya deaktiv edilə bilməz.',
+    dismiss: 'Bağla',
     language: 'Dil',
     categories: 'Kateqoriyalar',
     manageCategories: 'Kateqoriyaları İdarə Et',
@@ -2440,6 +3337,26 @@ export const translations: Record<Language, Translations> = {
     cannotChangeOwnRole: 'Öz rolunuzu dəyişə bilməzsiniz',
     passwordMinLength: 'Şifrə ən az 8 simvol olmalıdır',
 
+    auditLog: 'Audit jurnalı',
+    auditLogTitle: 'Audit jurnalı',
+    auditLogSubtitle: 'Admin əməliyyatları, verilənlər bazası dəyişiklikləri və staff girişləri',
+    auditLogTabActions: 'Admin əməliyyatları',
+    auditLogTabChanges: 'Sətir dəyişiklikləri',
+    auditLogTabSignIns: 'Girişlər',
+    auditLogEmpty: 'Hələ qeyd yoxdur',
+    auditLogColWhen: 'Vaxt',
+    auditLogColWho: 'Kim',
+    auditLogColAction: 'Əməliyyat',
+    auditLogColResource: 'Resurs',
+    auditLogColDetails: 'Detallar',
+    auditLogColSurface: 'Səth',
+    auditLogColDevice: 'Cihaz',
+    auditLogSurfaceCockpit: 'İdarəetmə mərkəzi',
+    auditLogSurfacePos: 'Satış nöqtəsi',
+    auditLogSurfaceKds: 'Mətbəx ekranı',
+    auditLogSurfaceKiosk: 'Kiosk',
+    auditLogSurfaceOrderManager: 'Sifariş meneceri',
+
     welcomeBack: 'Xoş Gəlmisiniz',
     signInToAccount: 'Hesabınıza daxil olun',
     signIn: 'Daxil Ol',
@@ -2452,8 +3369,11 @@ export const translations: Record<Language, Translations> = {
     staffSignOut: 'Çıxış',
     adminAccessDeniedTitle: 'Giriş məhduddur',
     adminAccessDeniedBody:
-      'Admin panelinə giriş icazəniz yoxdur. Zəhmət olmasa Sifariş Menecerindən istifadə edin.',
+      'İdarəetmə mərkəzi administratorlar üçündür. Hesabınız zal tətbiqləri ilə işləyir — aşağıdan Satış nöqtəsini, Mətbəx ekranını və ya Kiosku açın.',
     adminAccessGoToOrderManager: 'Sifariş menecerinə keç',
+    adminAccessGoToPos: 'Satış nöqtəsini aç',
+    adminAccessGoToKds: 'Mətbəx ekranını aç',
+    adminAccessGoToKiosk: 'Kiosku aç',
     newUserRole: 'Rol',
     userRoleStaff: 'Personal',
     userRoleManager: 'Menecer',
@@ -2467,8 +3387,11 @@ export const translations: Record<Language, Translations> = {
     quantity: 'Miqdar',
 
     savedSuccessfully: 'Uğurla yadda saxlanıldı!',
+    updatedSuccessfully: 'Uğurla yeniləndi!',
     deletedSuccessfully: 'Uğurla silindi!',
     errorOccurred: 'Xəta baş verdi',
+    amountMustBePositive: 'Məbləğ sıfırdan böyük olmalıdır',
+    quantityMustBePositive: 'Miqdar sıfırdan böyük olmalıdır',
     foodCost: 'Ərzaq Dəyəri %',
     cogs: 'Maya Dəyəri',
     share: '% pay',
@@ -2516,6 +3439,11 @@ export const translations: Record<Language, Translations> = {
     selectExpenseItem: 'Xərc Maddəsini Seçin',
     expenseItemName: 'Xərc Maddəsinin Adı',
     addNewExpenseItem: 'Yeni Xərc Maddəsi Əlavə Et',
+    createNamed: '"{name}" yarat',
+    newItem: 'Yeni maddə',
+    assignToCategory: 'Kateqoriyaya təyin et',
+    newCategory: 'Yeni kateqoriya',
+    newSupplierName: 'Təchizatçı adı',
     noExpenseItems: 'Xərc maddəsi tapılmadı',
     createFirstExpenseItem: 'Başlamaq üçün ilk xərc maddəsini yaradın',
     selectMasterCategory: 'Ana Kateqoriya Seçin',
@@ -2531,6 +3459,16 @@ export const translations: Record<Language, Translations> = {
     payment: 'Ödəniş',
 
     tapToOrder: 'Sifariş üçün toxunun',
+    kioskWelcomeTitle: 'Bu gün harada yemək yeyəcəksiniz?',
+    kioskEatIn: 'Burada yemək',
+    kioskTakeOut: 'Paket',
+    kioskExploreMenu: 'Menyumuzu kəşf edin',
+    kioskRestartMenu: 'Menyunu yenidən başlat',
+    kioskOrderNow: 'Sifariş ver',
+    kioskOrderMore: 'Daha çox sifariş',
+    kioskDoneCountdown: 'Bitdi ({seconds}s)',
+    kioskNoCategories: 'Menyu kateqoriyası yoxdur',
+    kioskNoProducts: 'Məhsul mövcud deyil',
     addToCart: 'Səbətə əlavə et',
     viewCart: 'Səbətə bax',
     placeOrder: 'Sifariş ver',
@@ -2568,6 +3506,29 @@ export const translations: Record<Language, Translations> = {
     kdsPrepTimeLabel: 'Hazırlıq müddəti (dəqiqə)',
     kdsBusyKitchenHint: 'Mətbəx yüklüdür? 20 dəq tövsiyə olunur.',
     kdsCourierNoteLabel: 'Kuryer',
+    kdsStatusUpdating: 'Yenilənir…',
+    kdsChannelDelivery: 'Çatdırılma',
+    kdsChannelTakeaway: 'Götürmə',
+    kdsChannelKiosk: 'Kiosk',
+    kdsChannelPosEatIn: 'POS · Yerdə',
+    kdsChannelPosTakeaway: 'POS · Götürmə',
+    kdsChannelPosDelivery: 'POS · Çatdırılma',
+    kdsFilterAll: 'Hamısı',
+    kdsSearchPlaceholder: '# axtar…',
+    kdsHistoryTitle: 'Tarixçə',
+    kdsHistoryEmpty: 'Bu gün tamamlanmış sifariş yoxdur',
+    kdsUndoComplete: 'Sifariş {number} tamamlandı',
+    kdsUndoSeconds: 'Geri al',
+    kdsUndoButton: 'Geri al',
+    kdsAllItemsPrepared: 'Bütün məhsullar hazırdır',
+    kdsMarkItemPrepared: 'Məhsulu hazır kimi işarələ',
+    kdsMarkItemUnprepared: 'Məhsulu hazır deyil kimi işarələ',
+    kdsEmptyQueueTitle: 'Aktiv sifariş yoxdur',
+    kdsEmptyQueueHint: 'Kiosk və onlayn sifarişlər avtomatik burada görünəcək.',
+    kdsEmptyColumn: 'Hələ boşdur',
+    kdsEmptyFiltered: 'Filtrə uyğun sifariş yoxdur',
+    kdsEmptyFilteredHint: 'Başqa kanal seçin və ya axtarışı təmizləyin.',
+    kdsHistorySubtitle: 'Bu gün tamamlananlar',
 
     orderManagerTitle: 'Sifariş Meneceri',
     orderManagerDescription: 'Kiosk və onlayn sifarişləri bir növbədə izləyin və idarə edin',
@@ -2582,6 +3543,7 @@ export const translations: Record<Language, Translations> = {
     unpaidOnly: 'Yalnız ödənilməmiş',
     paidOnly: 'Yalnız ödənilmiş',
     kioskOrders: 'Kiosk Sifarişləri',
+    cockpitQuickLinks: 'Sürətli keçidlər',
     confirmPayment: 'Ödənişi təsdiq et',
     printAgain: 'Yenidən çap et',
     cancelOrder: 'Sifarişi ləğv et',
@@ -2694,6 +3656,48 @@ export const translations: Record<Language, Translations> = {
     difference: 'Fərq',
     matched: 'Uyğun',
     mismatched: 'Uyğunsuz',
+
+    staff: 'Kadr və maaşlar',
+    staffScreenTitle: 'Kadr və maaşlar',
+    staffScreenDescription: 'İşçi siyahısı və tarixli maaş ödənişləri.',
+    staffAddEmployee: 'İşçi əlavə et',
+    staffEditEmployee: 'İşçini redaktə et',
+    staffRecordPayment: 'Ödəniş qeyd et',
+    staffEditPayment: 'Ödənişi redaktə et',
+    staffFullName: 'Ad soyad',
+    staffDesignation: 'Vəzifə',
+    staffTotalSalary: 'Aylıq maaş',
+    staffActiveLabel: 'Aktiv işçi',
+    staffActiveEmployees: 'Aktiv işçilər',
+    staffMonthlyPayrollTarget: 'Aylıq maaş hədəfi',
+    staffPaidInPeriod: 'Dövr üzrə ödənilib',
+    staffEmployee: 'İşçi',
+    staffSelectEmployee: 'İşçi seçin',
+    staffPaymentType: 'Ödəniş növü',
+    staffPaymentTypeSalary: 'Maaş',
+    staffPaymentTypeAdvance: 'Avans',
+    staffPaymentTypeBonus: 'Bonus',
+    staffPaymentTypePartial: 'Qismən',
+    staffNameRequired: 'İşçi adı tələb olunur',
+    staffInvalidSalary: 'Düzgün maaş məbləğləri daxil edin',
+    staffInvalidPaymentAmount: 'Düzgün ödəniş məbləği daxil edin',
+    staffEmployeeAdded: 'İşçi əlavə edildi',
+    staffEmployeeUpdated: 'İşçi yeniləndi',
+    staffEmployeeDeleted: 'İşçi silindi',
+    staffPaymentAdded: 'Ödəniş qeyd edildi',
+    staffPaymentUpdated: 'Ödəniş yeniləndi',
+    staffPaymentDeleted: 'Ödəniş silindi',
+    staffDeleteEmployeeConfirm: 'Bu işçi və bütün ödəniş tarixçəsi silinsin?',
+    staffDeletePaymentConfirm: 'Bu ödəniş silinsin?',
+    staffNoEmployees: 'Hələ işçi yoxdur. İlk komanda üzvünü əlavə edin.',
+    staffNoPaymentsInPeriod: 'Bu dövrdə ödəniş yoxdur.',
+    staffInactive: 'Qeyri-aktiv',
+    staffNoDesignation: 'Vəzifə yoxdur',
+    staffDoubleEntryWarning: 'Hesabatlarda təkrar sayılmasın deyə maaşları Xərclər “Maaşlar” kateqoriyası əvəzinə burada qeyd edin.',
+    staffSalariesLabel: 'Ödənilən maaşlar',
+    staffSalariesHint: 'Maaş modulunda qeyd edilən ödənişlər',
+    kpiNetProfitHintExtended: 'Bank haqları ₼{fees} və maaşlar ₼{payroll} çıxıldıqdan sonra',
+
     weatherUnavailable: 'Hava məlumatı mövcud deyil',
     cached: 'keş',
     clear: 'Açıq',
@@ -2719,6 +3723,9 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Platforma Xərcləri',
     noSalesInPeriod: 'Bu dövr üçün satış tapılmadı',
     payoutReceived: 'Alınan Ödəniş',
+    payoutReceivedInto: 'Hara daxil oldu',
+    payoutReceivedIntoHint: 'Bu ödəniş hansı hesaba düşdü? Balans avtomatik yenilənir.',
+    payoutNoAccountWarning: 'Hesab seçilməyib — bu ödəniş heç bir balansı yeniləməyəcək.',
     periodRevenue: 'Dövr üzrə gəlir',
     impliedCommission: 'Komissiya',
     payoutPeriodsInRange: 'Bu aralıqda {count} ödəniş dövrü',
@@ -2833,6 +3840,8 @@ export const translations: Record<Language, Translations> = {
     orderAuthEmail: 'E-poçt',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Google ilə davam et',
+    orderSignInGoogle: 'Google ilə daxil olun',
+    orderSignInGoogleRedirecting: 'Google-a yönləndirilir…',
     orderForgotPassword: 'Şifrəni unutmusunuz?',
     orderForgotPasswordSent: 'Bu e-poçt mövcuddursa, bərpa təlimatı göndərildi.',
     orderSignUpInlinePrompt: 'Hələ hesabınız yoxdur?',
@@ -3116,7 +4125,53 @@ export const translations: Record<Language, Translations> = {
     omSourceKiosk: 'Kiosk',
     omSourceTakeaway: 'Onlayn · Əlavə',
     omSourceDelivery: 'Onlayn · Çatdırılma',
+    omSourcePos: 'POS',
     omTitle: 'Sifariş meneceri',
+    posTitle: 'Satış nöqtəsi',
+    posTabActive: 'Aktiv',
+    posTabHistory: 'Tarixçə',
+    posTabNewOrder: 'Yeni sifariş',
+    posTabSettings: 'Parametrlər',
+    posSettingsTitle: 'Çap parametrləri',
+    posPrintAgentUrl: 'Çap agenti URL',
+    posPrinterProfile: 'Printer profili',
+    posProfileEscpos80: 'ESC/POS · 80mm termal',
+    posProfileZpl58: 'ZPL · 58mm etiket',
+    posProfileZpl40x30: 'ZPL · 40×30mm etiket',
+    posTestConnection: 'Bağlantını yoxla',
+    posTestPrint: 'Test çapı',
+    posAgentConnected: 'Çap agentinə çatmaq mümkündür',
+    posAgentUnreachable: 'Çap agentinə çatmaq mümkün deyil',
+    posTestPrintSent: 'Test etiketi printerə göndərildi',
+    posTestPrintFailed: 'Test çapı uğursuz oldu',
+    posFulfillmentEatIn: 'Yerdə',
+    posFulfillmentTakeaway: 'Götürmə',
+    posFulfillmentDelivery: 'Çatdırılma',
+    posSourceEatIn: 'POS · Yerdə',
+    posSourceTakeaway: 'POS · Götürmə',
+    posSourceDelivery: 'POS · Çatdırılma',
+    posCustomerPanelTitle: 'Müştəri',
+    posCustomerName: 'Ad (istəyə bağlı)',
+    posCustomerPhone: 'Telefon (istəyə bağlı)',
+    posOrderNotes: 'Sifariş qeydləri',
+    posDeliveryPanelTitle: 'Çatdırılma ünvanı',
+    posCartTitle: 'Səbət',
+    posCartEmpty: 'Səbət boşdur',
+    posSubmitOrder: 'Sifariş yarat',
+    posSubmitFailed: 'Sifariş yaradıla bilmədi',
+    posOrderCreated: 'Sifariş yaradıldı',
+    posViewActiveOrders: 'Aktiv sifarişlərə bax',
+    posNewOrderTitle: 'Yeni sifariş',
+    posOutsideZone: 'Ünvan çatdırılma zonasından kənardadır',
+    posDeliveryRequired: 'Çatdırılma ünvanı və pin təyin edin',
+    posReprintLabels: 'Etiketləri yenidən çap et',
+    posPrintSent: 'Etiketlər printerə göndərildi',
+    posPrintPending: 'Çap növbədə — agent offline',
+    posPrintFailed: 'Çap uğursuz oldu',
+    posPrintPendingCount: '{count} çap işi agent gözləyir',
+    posMapSearch: 'Bakıda ünvan axtar',
+    posMapPinHint: 'Pin sürüşdürün və ya xəritəyə toxunun',
+    posMapsUnavailable: 'Xəritə əlçatan deyil',
     omKitchenStatusTitle: 'Onlayn mətbəx',
     omKitchenStatusOnline: 'Sifariş qəbul edilir',
     omKitchenStatusPausedUntil: '{time}-ə qədər dayanır',
@@ -3169,7 +4224,184 @@ export const translations: Record<Language, Translations> = {
     orderSupportPrepareQuick: 'Hazırlığa başla (15 dəq)',
     orderSupportScheduledHint:
       'Bu sifariş planlıdır. Xatırlatma üçün Sifariş Meneceri daha təhlükəsizdir; detalları burada görə bilərsiniz.',
+    payments: 'Ödənişlər',
+    paymentsScreenTitle: 'Ödənişlər',
+    paymentsScreenDescription: 'Onlayn ödəniş qeydlərinə baxın, uyğunsuzluqları görün və provayderdə statusu yenidən yoxlayın',
+    paymentsFilterAll: 'Hamısı',
+    paymentsFilterPending: 'Gözləyir',
+    paymentsFilterSuccess: 'Ödənilib',
+    paymentsFilterFailed: 'Uğursuz',
+    paymentsProviderAll: 'Bütün provayderlər',
+    paymentsSearch: 'Sifariş #, müştəri, telefon, tranzaksiya id ilə axtar',
+    paymentsFound: 'ödəniş tapıldı',
+    paymentsNoRows: 'Bu filtr üçün ödəniş tapılmadı',
+    paymentsColTime: 'Vaxt',
+    paymentsColOrder: 'Sifariş',
+    paymentsColCustomer: 'Müştəri',
+    paymentsColAmount: 'Məbləğ',
+    paymentsColProvider: 'Provayder',
+    paymentsColPaymentStatus: 'Ödəniş',
+    paymentsColSaleStatus: 'Satış',
+    paymentsColMismatch: 'Uyğunsuzluq',
+    paymentsMismatchYes: 'Uyğunsuzluq',
+    paymentsDetailProvider: 'Provayder',
+    paymentsDetailClientOrderId: 'Müştəri sifariş id',
+    paymentsDetailTransactionId: 'Tranzaksiya id',
+    paymentsDetailProviderStatus: 'Provayder statusu',
+    paymentsDetailPaidAt: 'Ödənilmə vaxtı',
+    paymentsDetailError: 'Xəta',
+    paymentsDetailRawPayload: 'Xam payload',
+    paymentsRecheckButton: 'Provayderdə statusu yenidən yoxla',
+    paymentsRechecking: 'Yenidən yoxlanılır…',
+    paymentsRecheckSuccess: 'Provayder statusu yenidən yoxlandı. Siyahı yeniləndi.',
+    paymentsRecheckFailed: 'Yenidən yoxlama uğursuz oldu',
+    paymentsRecheckForbidden: 'Yalnız menecer və admin ödəniş statusunu yenidən yoxlaya bilər',
+    paymentsStatusPending: 'Gözləyir',
+    paymentsStatusSuccess: 'Ödənilib',
+    paymentsStatusFailed: 'Uğursuz',
+    paymentsProviderEpoint: 'Epoint',
+    paymentsProviderUnited: 'United Payment',
+    paymentsProviderOther: 'Digər',
+    cashDebt: 'Nağd və hesablar',
+    cashDebtScreenTitle: 'Nağd və borc',
+    cashDebtScreenDescription: 'Kreditlər, digər öhdəliklər və bank çıxarış haqları.',
+    cashDebtTabLoans: 'Kreditlər və digər',
+    cashDebtTabWithdrawals: 'Bank çıxarışları',
+    outstandingDebtLabel: 'Ödənilməmiş borc',
+    outstandingDebtHint: 'Təchizatçı hesabları + kreditlər (balans)',
+    supplierOutstanding: 'Borc',
+    supplierPayButton: 'Təchizatçıya ödə',
+    supplierOpeningBalance: 'Açılış balansı',
+    supplierOpeningBalanceDate: 'Balans tarixi',
+    supplierAddDebt: 'Borc əlavə et',
+    supplierDebtHistory: 'Borc tarixçəsi',
+    supplierDebtCleared: 'Bağlanıb',
+    supplierCreditBalance: 'Kredit balansı',
+    supplierDebtFromPurchase: 'Alış (hesabdan)',
+    supplierManualDebt: 'Manual borc',
+    supplierClearDebt: 'Borcu bağla',
+    supplierAccountView: 'Hesab',
+    supplierRecentPayments: 'Son ödənişlər',
+    supplierAccountExplainer:
+      'Təchizatçının balansı davamlı hesabdır: hesabdan alışlar onu artırır, ödənişlər azaldır. “Borcu bağla” ilə ödəyin.',
+    supplierYouOwe: 'Borc',
+    supplierPrepaid: 'Artıq ödəniş',
+    supplierSettled: 'Ödənilib',
+    supplierStatement: 'Hesab çıxarışı',
+    supplierBalanceColumn: 'Balans',
+    supplierPaymentLabel: 'Ödəniş',
+    supplierAddDebtHint: 'Yalnız qeydə alınmış alışdan olmayan məbləğlər üçün (məsələn, əvvəlcədən mövcud borc).',
+    supplierNoActivity: 'Hələ alış və ya ödəniş yoxdur.',
+    supplierSearchPlaceholder: 'Təchizatçı axtar…',
+    supplierNoMatches: 'Axtarışa uyğun təchizatçı tapılmadı.',
+    supplierTotalSpend: 'Ümumi xərc',
+    purchaseOnAccountHint: 'Ödəyənə qədər bu alışı təchizatçının balansına əlavə edir.',
+    purchasePaidNowHint: 'Bu alışı indi seçilmiş hesab balansından çıxır.',
+    purchaseOnAccount: 'Hesabdan',
+    purchasePaidNow: 'İndi ödənilib',
+    purchasePaymentMode: 'Ödəniş',
+    liabilityAdd: 'Öhdəlik əlavə et',
+    liabilityRecordPayment: 'Ödəniş qeyd et',
+    liabilityTypeLoan: 'Kredit',
+    liabilityTypeOther: 'Digər',
+    liabilityCounterparty: 'Kontragent',
+    liabilityLenderOwedTo: 'Kreditor / borclu olduğunuz',
+    liabilityLenderHelp: 'Kimə borclusunuz — bank, dost və s. Təchizatçı borcu Təchizatçılar ekranındadır.',
+    cashDebtLoansHelp: 'Bank kreditləri və şəxsi borclar üçün. Təchizatçı borcu Təchizatçılar ekranındadır.',
+    liabilityEmpty: 'Hələ kredit və ya digər öhdəlik yoxdur.',
+    liabilityStatusOpen: 'Açıq',
+    liabilityStatusPartial: 'Qismən ödənilib',
+    liabilityStatusSettled: 'Bağlanıb',
+    withdrawalLog: 'Çıxarış qeyd et',
+    withdrawalMethodCashier: 'Kassir (0.5%)',
+    withdrawalMethodAbbAtm: 'ABB ATM (1%, min ₼1)',
+    withdrawalFeePreview: 'Bank haqqı',
+    withdrawalFeesPeriodTotal: 'Siyahıdakı haqlar',
+    withdrawalEmpty: 'Hələ çıxarış qeyd olunmayıb.',
+    withdrawalAvailableInAccount: '{account} hesabında mövcuddur: {available}',
+    withdrawalInsufficientFunds: '{account} hesabında kifayət deyil. Mövcud: {available}.',
+    withdrawalMethod: 'Üsul',
+    withdrawalFee: 'Haqq',
+    posPaymentMethod: 'Ödəniş üsulu',
+    posPayCash: 'Nağd',
+    posPayCard: 'Kart',
+    cashDrawerTab: 'Kassa',
+    cashOnHand: 'Kassada nağd',
+    cashOnHandHint: 'İndi əlinizdə olmalı olan nağd pul',
+    accountCash: 'Kassada nağd',
+    accountBank: 'Əsas (bank) hesabı',
+    accountCard: 'Kart hesabı',
+    accountBalancesTitle: 'Hesab qalıqları',
+    accountBankHint: 'Ödənişlər bura gəlir; çek üzrə çıxarışlar buradan',
+    accountCardHint: 'Köçürmələrlə doldurulur; bankomatdan çıxarışlar üçün',
+    accountManage: 'Hesabları idarə et',
+    accountSetupTitle: 'Hesab quraşdırması',
+    accountCurrentBalance: 'Cari',
+    accountTransferAction: 'Köçür',
+    accountActivityTitle: 'Hesab hərəkətləri',
+    accountActivityEmpty: 'Hələ bank və ya kart hərəkəti yoxdur.',
+    accountActivityFilterAll: 'Bütün hesablar',
+    accountLedgerOpening: 'Açılış qalığı',
+    accountLedgerTransferIn: 'Daxil olan köçürmə',
+    accountLedgerTransferOut: 'Çıxan köçürmə',
+    accountLedgerWithdrawal: 'Çıxarış',
+    accountLedgerExpense: 'Xərc',
+    accountLedgerPurchase: 'Alış',
+    accountLedgerPayout: 'Alınan ödəniş',
+    accountLedgerManagedElsewhere: 'Xərclər ekranında idarə olunur',
+    accountLedgerManagedPayouts: 'Ödənişlər ekranında idarə olunur',
+    accountTransferDeleted: 'Köçürmə silindi',
+    accountOpeningBalance: 'Açılış qalığı',
+    accountOpeningDate: 'Tarix',
+    accountOpeningBalanceSaved: 'Açılış qalığı yadda saxlanıldı',
+    accountTransferBankToCard: 'Əsas → kart köçürməsi',
+    accountTransferSaved: 'Köçürmə qeyd olundu',
+    paymentCash: 'Nağd',
+    paymentCard: 'Kart',
+    paymentBankTransfer: 'Bank köçürməsi',
+    selectPaymentMethod: 'Ödəmə üsulunu seçin',
+    withdrawalMethodCardAccount: 'Kart hesabı (ABB ATM, 1%, min ₼1)',
+    cashDrawerTitle: 'Kassa',
+    cashDrawerSubtitle: 'Ay sonunda kassanı tutuşdurmaq üçün nağd pulu izləyin.',
+    cashOpeningBalance: 'Açılış qalığı',
+    cashClosingBalance: 'Bağlanış qalığı',
+    cashInTotal: 'Nağd daxilolma',
+    cashOutTotal: 'Nağd çıxış',
+    cashFromOrders: 'Yığılan nağd sifarişlər',
+    cashFromWithdrawals: 'Bankdan çıxarış (xalis)',
+    cashFromPayouts: 'Alınan nağd ödənişlər',
+    cashAdjustmentsIn: 'İlkin nağd və düzəlişlər',
+    cashToExpenses: 'Nağd xərclər',
+    cashToPurchases: 'Nağd alışlar',
+    cashToSuppliers: 'Təchizatçılara nağd',
+    cashToLiabilities: 'Kreditlərə nağd',
+    cashBankDeposits: 'Banka köçürmə və çıxış düzəlişləri',
+    cashMovementLog: 'Nağd hərəkətləri',
+    cashMovementEmpty: 'Hələ əl ilə nağd hərəkəti yoxdur.',
+    cashAddMovement: 'Hərəkət əlavə et',
+    cashMovementCategory: 'Kateqoriya',
+    cashCategoryOpeningFloat: 'İlkin nağd',
+    cashCategoryBankDeposit: 'Banka köçürmə',
+    cashCategoryAdjustment: 'Düzəliş',
+    cashCategoryOther: 'Digər',
+    cashMovementDirection: 'İstiqamət',
+    cashDirectionIn: 'Nağd daxilolma',
+    cashDirectionOut: 'Nağd çıxış',
+    cashMovementAdded: 'Nağd hərəkəti əlavə edildi',
+    cashMovementDeleted: 'Nağd hərəkəti silindi',
     deliveryScreenTitle: 'Çatdırılma',
+    orderLocations: 'Sifariş xəritəsi',
+    orderLocationsTitle: 'Çatdırılma sifariş xəritəsi',
+    orderLocationsSubtitle: 'Bakıda çatdırılma sifarişlərinin haradan gəldiyini görün — hər nöqtə bir sifarişdir.',
+    orderLocationsEmpty: 'Bu periodda çatdırılma ünvanı yoxdur. Tarix aralığını və ya mənbə filtrini dəyişin.',
+    orderLocationsLoading: 'Xəritə yüklənir…',
+    orderLocationsUnavailable: 'Sifariş xəritəsi üçün VITE_GOOGLE_MAPS_API_KEY əlavə edin.',
+    orderLocationsMapHint: 'Sifariş detalları üçün nöqtəyə klik edin. Xəritə Bakı ilə məhdudlaşır.',
+    orderLocationsTotalOrders: 'Ünvanı olan sifarişlər',
+    orderLocationsSourceAll: 'Bütün çatdırılma',
+    orderLocationsSourceOnline: 'Sayt çatdırılması',
+    orderLocationsSourcePos: 'POS çatdırılması',
+    orderLocationsOrderLabel: 'Sifariş',
     deliveryScreenDescription: 'Zonaları, mətbəx qaydalarını və əl ilə yola salmanı idarə edin',
     deliveryRefresh: 'Çatdırılma məlumatını yenilə',
     deliveryTabZones: 'Zonalar',
@@ -3195,7 +4427,7 @@ export const translations: Record<Language, Translations> = {
     deliveryZoneFieldSortOrder: 'Sıralama',
     deliveryZoneFieldActive: 'Aktiv',
     deliveryZoneFieldPolygon: 'Zona poliqonu',
-    deliveryZonePolygonHint: 'Zonanı təyin etmək üçün xəritədə ən azı 3 nöqtə qeyd edin.',
+    deliveryZonePolygonHint: 'Zonanı çəkmək üçün xəritəyə klik edin (min. 3). Bitirmək üçün iki dəfə klik edin və ya birinci nöqtəyə klik edin.',
     deliveryZoneClearShape: 'Formanı təmizlə',
     deliveryZonePolygonRequired: 'Poliqon tələb olunur',
     deliveryZonePreview: 'Zona önizləməsi',
@@ -3244,6 +4476,35 @@ export const translations: Record<Language, Translations> = {
     deliverySettingsDayFri: 'C',
     deliverySettingsDaySat: 'Ş',
     deliverySettingsDaySun: 'B',
+    deliverySettingsStatusOpenNow: 'İndi açıqdır — sifariş qəbul olunur',
+    deliverySettingsStatusClosedNow: 'İndi bağlıdır — iş saatları xaricində',
+    deliverySettingsStatusPaused: 'Fasilə — onlayn sifarişlər əl ilə dayandırılıb',
+    deliverySettingsTodayHours: 'Bu günün saatları: {hours}',
+    deliverySettingsTodayClosed: 'Bu gün bütün gün bağlıdır',
+    deliverySettingsSpecialDayBadge: 'Bu gün xüsusi cədvəl',
+    deliverySettingsAcceptingOrders: 'Onlayn sifarişlər qəbul olunur',
+    deliverySettingsStoppedOrders: 'Bütün onlayn sifarişlər dayandırılıb',
+    deliverySettingsAcceptingOrdersHint: 'Aşağıdakı saatlarda müştərilər sifariş verə bilər.',
+    deliverySettingsStoppedOrdersHint: 'Bunu yenidən açana qədər yeni onlayn sifariş yoxdur (saatları ləğv edir).',
+    deliverySettingsDayOpen: 'Açıq',
+    deliverySettingsWeeklyHours: 'Həftəlik cədvəl',
+    deliverySettingsSpecialDaysTitle: 'Xüsusi günlər və bayramlar',
+    deliverySettingsSpecialDaysHint:
+      'Həftəlik cədvəli ləğv edən tək günlük tarixlər. Sifariş saytında popup göstərmək üçün müştəri qeydi əlavə edin.',
+    deliverySettingsSpecialDayAdd: 'Xüsusi gün əlavə et',
+    deliverySettingsSpecialDayRemove: 'Sil',
+    deliverySettingsSpecialDayDate: 'Tarix',
+    deliverySettingsSpecialDayClosedAllDay: 'Bütün gün bağlı',
+    deliverySettingsSpecialDayCustomHours: 'Xüsusi saatlar',
+    deliverySettingsSpecialDayNote: 'Müştəri bildirişi (istəyə bağlı)',
+    deliverySettingsSpecialDayNoteHint: 'Bu tarix aktiv olduqda order.mings.az-da popup kimi göstərilir.',
+    deliverySettingsSpecialDayNoteEn: 'İngilis',
+    deliverySettingsSpecialDayNoteAz: 'Azərbaycan',
+    deliverySettingsSpecialDayNoteRu: 'Rus',
+    deliverySettingsSpecialDayDuplicateDate: 'Hər xüsusi günün unikal tarixi olmalıdır.',
+    deliverySettingsSpecialDaysInvalid: 'Xüsusi günlər üçün tarix və bağlı deyilsə etibarlı saatlar lazımdır.',
+    orderSpecialDayNoticeTitle: 'Bildiriş',
+    orderSpecialDayNoticeDismiss: 'Başa düşdüm',
     deliveryDispatchTitle: 'Yola salma mərkəzi',
     deliveryDispatchDescription: 'Aktiv çatdırılmaları və yola salma əməliyyatlarını idarə edin.',
     deliveryDispatchEmpty: 'Bu aralıq üçün yola salınacaq sifariş yoxdur.',
@@ -3279,6 +4540,26 @@ export const translations: Record<Language, Translations> = {
     more: 'Ещё',
     commandCenter: 'Командный Центр',
     signedIn: 'Выполнен вход',
+    navOverview: 'Обзор',
+    navOrders: 'Заказы',
+    navCatalog: 'Каталог',
+    navFinance: 'Финансы',
+    navHubIncome: 'Доходы',
+    navHubSpending: 'Расходы',
+    navHubCashAccounts: 'Касса и счета',
+    navHubPayroll: 'Зарплата',
+    navHubInsights: 'Аналитика',
+    navSystem: 'Система',
+    cockpitLoadingContent: 'Загрузка…',
+    cockpitResetFilters: 'Сбросить фильтры',
+    cockpitEmptyFilteredHint: 'Расширьте диапазон дат или сбросьте фильтры.',
+    cockpitTestRecordLabel: 'Тестовая запись',
+    cockpitNeedsReview: 'Требует проверки',
+    cockpitReviewHighCommission: 'Комиссия необычно высокая — проверьте настройки канала.',
+    cockpitReviewUnusualAmount: 'Сумма необычно большая — подтвердите перед использованием в отчётах.',
+    settingsAppearance: 'Оформление',
+    collapseSidebar: 'Свернуть панель',
+    expandSidebar: 'Развернуть панель',
     system: 'Система',
     inventory: 'Инвентарь',
     procurement: 'Снабжение',
@@ -3339,6 +4620,34 @@ export const translations: Record<Language, Translations> = {
     aov: 'Ср. чек',
     kpiNetRevenueHint: 'После COGS',
     kpiOperatingProfitHint: 'После COGS и OPEX',
+    kpiNetProfitHint: 'После банковских комиссий (₼{fees})',
+    comparePreviousPeriod: 'Сравнить с прошлым периодом',
+    netProfitLabel: 'Чистая прибыль',
+    sourceFilter: 'Источник',
+    orderSourceMix: 'Источники заказов',
+    avgPrepTime: 'Среднее время готовки',
+    kitchenSla: 'SLA кухни',
+    paymentHealth: 'Статус оплат',
+    payoutCommission: 'Комиссия платформ',
+    topProducts: 'Топ продукты',
+    peakHours: 'Пиковые часы',
+    operationalInsights: 'Операционная аналитика',
+    paidOrders: 'оплачено',
+    unpaidOrders: 'не оплачено',
+    cardPayments: 'карта',
+    codPayments: 'наличные',
+    matchedPayouts: 'Совпало',
+    mismatchedPayouts: 'Расхождение',
+    pendingPayouts: 'Ожидает',
+    expandDetails: 'Показать расходы и выплаты',
+    collapseDetails: 'Скрыть расходы и выплаты',
+    viewFullReport: 'Полный отчёт',
+    viewPayouts: 'Выплаты',
+    revenueShare: 'доля',
+    dashboardOrdersHint: 'Уникальные заказы за период',
+    dashboardAovHint: 'Чистая выручка на заказ',
+    dataConsistencyWarning: 'Обнаружено {count} несоответствий в агрегированных KPI.',
+    pos: 'POS',
 
     addSale: 'Добавить продажу',
     saleAmount: 'Сумма продажи',
@@ -3387,6 +4696,13 @@ export const translations: Record<Language, Translations> = {
     type: 'Тип',
 
     settings: 'Настройки',
+    deleteChannelConfirmTitle: 'Удалить канал продаж?',
+    deleteChannelConfirmMessage: 'Убрать «{name}» из активных каналов? Прошлые продажи и выплаты останутся в отчётах.',
+    deleteChannelError: 'Не удалось удалить канал. Попробуйте снова или обратитесь к администратору.',
+    channelRemovedSuccess: 'Канал удалён.',
+    systemSalesChannel: 'Системный',
+    salesChannelProtectedError: 'Этот канал обязателен для приложения — его нельзя удалить или отключить.',
+    dismiss: 'Закрыть',
     language: 'Язык',
     categories: 'Категории',
     manageCategories: 'Управление Категориями',
@@ -3521,6 +4837,26 @@ export const translations: Record<Language, Translations> = {
     cannotChangeOwnRole: 'Нельзя изменить собственную роль',
     passwordMinLength: 'Пароль должен содержать минимум 8 символов',
 
+    auditLog: 'Журнал аудита',
+    auditLogTitle: 'Журнал аудита',
+    auditLogSubtitle: 'Действия админа, изменения в БД и входы сотрудников',
+    auditLogTabActions: 'Действия админа',
+    auditLogTabChanges: 'Изменения строк',
+    auditLogTabSignIns: 'Входы',
+    auditLogEmpty: 'Записей пока нет',
+    auditLogColWhen: 'Когда',
+    auditLogColWho: 'Кто',
+    auditLogColAction: 'Действие',
+    auditLogColResource: 'Ресурс',
+    auditLogColDetails: 'Детали',
+    auditLogColSurface: 'Поверхность',
+    auditLogColDevice: 'Устройство',
+    auditLogSurfaceCockpit: 'Командный центр',
+    auditLogSurfacePos: 'Касса',
+    auditLogSurfaceKds: 'Кухонный экран',
+    auditLogSurfaceKiosk: 'Киоск',
+    auditLogSurfaceOrderManager: 'Менеджер заказов',
+
     welcomeBack: 'С Возвращением',
     signInToAccount: 'Войдите в свою учетную запись',
     signIn: 'Войти',
@@ -3533,8 +4869,11 @@ export const translations: Record<Language, Translations> = {
     staffSignOut: 'Выйти',
     adminAccessDeniedTitle: 'Доступ ограничен',
     adminAccessDeniedBody:
-      'У вас нет доступа к панели администратора. Пожалуйста, используйте Менеджер заказов.',
+      'Командный центр предназначен для администраторов. Ваш аккаунт работает с приложениями зала — откройте Кассу, Кухонный экран или Киоск ниже.',
     adminAccessGoToOrderManager: 'Перейти в Менеджер заказов',
+    adminAccessGoToPos: 'Открыть Кассу',
+    adminAccessGoToKds: 'Открыть Кухонный экран',
+    adminAccessGoToKiosk: 'Открыть Киоск',
     newUserRole: 'Роль',
     userRoleStaff: 'Сотрудник',
     userRoleManager: 'Менеджер',
@@ -3548,8 +4887,11 @@ export const translations: Record<Language, Translations> = {
     quantity: 'Количество',
 
     savedSuccessfully: 'Успешно сохранено!',
+    updatedSuccessfully: 'Успешно обновлено!',
     deletedSuccessfully: 'Успешно удалено!',
     errorOccurred: 'Произошла ошибка',
+    amountMustBePositive: 'Сумма должна быть больше нуля',
+    quantityMustBePositive: 'Количество должно быть больше нуля',
     foodCost: 'Себестоимость Еды %',
     cogs: 'Себестоимость',
     share: '% доля',
@@ -3597,6 +4939,11 @@ export const translations: Record<Language, Translations> = {
     selectExpenseItem: 'Выберите Статью Расходов',
     expenseItemName: 'Название Статьи Расходов',
     addNewExpenseItem: 'Добавить Новую Статью Расходов',
+    createNamed: 'Создать «{name}»',
+    newItem: 'Новый элемент',
+    assignToCategory: 'Назначить категорию',
+    newCategory: 'Новая категория',
+    newSupplierName: 'Название поставщика',
     noExpenseItems: 'Статьи расходов не найдены',
     createFirstExpenseItem: 'Создайте первую статью расходов для начала',
     selectMasterCategory: 'Выберите Главную Категорию',
@@ -3612,6 +4959,16 @@ export const translations: Record<Language, Translations> = {
     payment: 'Оплата',
 
     tapToOrder: 'Нажмите для заказа',
+    kioskWelcomeTitle: 'Где вы будете есть сегодня?',
+    kioskEatIn: 'В зале',
+    kioskTakeOut: 'С собой',
+    kioskExploreMenu: 'Изучите наше меню',
+    kioskRestartMenu: 'Начать заново',
+    kioskOrderNow: 'Заказать',
+    kioskOrderMore: 'Ещё заказ',
+    kioskDoneCountdown: 'Готово ({seconds}с)',
+    kioskNoCategories: 'Нет категорий меню',
+    kioskNoProducts: 'Нет доступных блюд',
     addToCart: 'В корзину',
     viewCart: 'Корзина',
     placeOrder: 'Оформить заказ',
@@ -3649,6 +5006,29 @@ export const translations: Record<Language, Translations> = {
     kdsPrepTimeLabel: 'Время приготовления (мин)',
     kdsBusyKitchenHint: 'Загруженная кухня? Рекомендуем 20 мин.',
     kdsCourierNoteLabel: 'Курьер',
+    kdsStatusUpdating: 'Обновление…',
+    kdsChannelDelivery: 'Доставка',
+    kdsChannelTakeaway: 'Самовывоз',
+    kdsChannelKiosk: 'Киоск',
+    kdsChannelPosEatIn: 'POS · В зале',
+    kdsChannelPosTakeaway: 'POS · С собой',
+    kdsChannelPosDelivery: 'POS · Доставка',
+    kdsFilterAll: 'Все',
+    kdsSearchPlaceholder: 'Поиск #…',
+    kdsHistoryTitle: 'История',
+    kdsHistoryEmpty: 'Сегодня нет завершённых заказов',
+    kdsUndoComplete: 'Заказ {number} завершён',
+    kdsUndoSeconds: 'Отменить',
+    kdsUndoButton: 'Отменить',
+    kdsAllItemsPrepared: 'Все позиции готовы',
+    kdsMarkItemPrepared: 'Отметить позицию готовой',
+    kdsMarkItemUnprepared: 'Снять отметку готовности',
+    kdsEmptyQueueTitle: 'Нет активных заказов',
+    kdsEmptyQueueHint: 'Заказы с киоска и сайта появятся здесь автоматически.',
+    kdsEmptyColumn: 'Пока пусто',
+    kdsEmptyFiltered: 'Нет заказов по фильтру',
+    kdsEmptyFilteredHint: 'Смените канал или очистите поиск.',
+    kdsHistorySubtitle: 'Завершённые сегодня',
 
     orderManagerTitle: 'Менеджер заказов',
     orderManagerDescription: 'Отслеживайте и обрабатывайте киоск и онлайн-заказы в единой очереди',
@@ -3663,6 +5043,7 @@ export const translations: Record<Language, Translations> = {
     unpaidOnly: 'Только неоплаченные',
     paidOnly: 'Только оплаченные',
     kioskOrders: 'Заказы с Киоска',
+    cockpitQuickLinks: 'Быстрые ссылки',
     confirmPayment: 'Подтвердить оплату',
     printAgain: 'Печать повторно',
     cancelOrder: 'Отменить заказ',
@@ -3775,6 +5156,48 @@ export const translations: Record<Language, Translations> = {
     difference: 'Разница',
     matched: 'Совпало',
     mismatched: 'Не совпало',
+
+    staff: 'Персонал и зарплаты',
+    staffScreenTitle: 'Персонал и зарплаты',
+    staffScreenDescription: 'Список сотрудников и журнал выплат с датами.',
+    staffAddEmployee: 'Добавить сотрудника',
+    staffEditEmployee: 'Редактировать сотрудника',
+    staffRecordPayment: 'Записать выплату',
+    staffEditPayment: 'Редактировать выплату',
+    staffFullName: 'ФИО',
+    staffDesignation: 'Должность',
+    staffTotalSalary: 'Месячная зарплата',
+    staffActiveLabel: 'Активный сотрудник',
+    staffActiveEmployees: 'Активные сотрудники',
+    staffMonthlyPayrollTarget: 'Целевой месячный фонд',
+    staffPaidInPeriod: 'Выплачено за период',
+    staffEmployee: 'Сотрудник',
+    staffSelectEmployee: 'Выберите сотрудника',
+    staffPaymentType: 'Тип выплаты',
+    staffPaymentTypeSalary: 'Зарплата',
+    staffPaymentTypeAdvance: 'Аванс',
+    staffPaymentTypeBonus: 'Бонус',
+    staffPaymentTypePartial: 'Частичная',
+    staffNameRequired: 'Укажите имя сотрудника',
+    staffInvalidSalary: 'Введите корректные суммы зарплаты',
+    staffInvalidPaymentAmount: 'Введите корректную сумму выплаты',
+    staffEmployeeAdded: 'Сотрудник добавлен',
+    staffEmployeeUpdated: 'Сотрудник обновлён',
+    staffEmployeeDeleted: 'Сотрудник удалён',
+    staffPaymentAdded: 'Выплата записана',
+    staffPaymentUpdated: 'Выплата обновлена',
+    staffPaymentDeleted: 'Выплата удалена',
+    staffDeleteEmployeeConfirm: 'Удалить сотрудника и всю историю выплат?',
+    staffDeletePaymentConfirm: 'Удалить эту выплату?',
+    staffNoEmployees: 'Сотрудников пока нет. Добавьте первого.',
+    staffNoPaymentsInPeriod: 'Нет выплат за этот период.',
+    staffInactive: 'Неактивен',
+    staffNoDesignation: 'Без должности',
+    staffDoubleEntryWarning: 'Записывайте зарплаты здесь, а не в категории «Зарплаты» в расходах, чтобы избежать двойного учёта.',
+    staffSalariesLabel: 'Выплаченные зарплаты',
+    staffSalariesHint: 'Выплаты, записанные в модуле «Персонал»',
+    kpiNetProfitHintExtended: 'После комиссий ₼{fees} и зарплат ₼{payroll}',
+
     weatherUnavailable: 'Погода недоступна',
     cached: 'кэш',
     clear: 'Ясно',
@@ -3800,6 +5223,9 @@ export const translations: Record<Language, Translations> = {
     platformCosts: 'Расходы на Платформы',
     noSalesInPeriod: 'Продаж за этот период не найдено',
     payoutReceived: 'Получено от Платформы',
+    payoutReceivedInto: 'Зачислено на',
+    payoutReceivedIntoHint: 'На какой счёт поступила эта выплата? Баланс обновится автоматически.',
+    payoutNoAccountWarning: 'Счёт не выбран — эта выплата не обновит баланс.',
     periodRevenue: 'Выручка за период',
     impliedCommission: 'Комиссия',
     payoutPeriodsInRange: 'В этом диапазоне периодов выплат: {count}',
@@ -3914,6 +5340,8 @@ export const translations: Record<Language, Translations> = {
     orderAuthEmail: 'Email',
     orderAuthSms: 'SMS',
     orderAuthGoogle: 'Продолжить через Google',
+    orderSignInGoogle: 'Войти через Google',
+    orderSignInGoogleRedirecting: 'Переход в Google…',
     orderForgotPassword: 'Забыли пароль?',
     orderForgotPasswordSent: 'Если такой email существует, инструкция по сбросу отправлена.',
     orderSignUpInlinePrompt: 'Еще нет аккаунта?',
@@ -4197,7 +5625,53 @@ export const translations: Record<Language, Translations> = {
     omSourceKiosk: 'Киоск',
     omSourceTakeaway: 'Онлайн · Самовывоз',
     omSourceDelivery: 'Онлайн · Доставка',
+    omSourcePos: 'POS',
     omTitle: 'Менеджер заказов',
+    posTitle: 'Касса',
+    posTabActive: 'Активные',
+    posTabHistory: 'История',
+    posTabNewOrder: 'Новый заказ',
+    posTabSettings: 'Настройки',
+    posSettingsTitle: 'Печать',
+    posPrintAgentUrl: 'URL агента печати',
+    posPrinterProfile: 'Профиль принтера',
+    posProfileEscpos80: 'ESC/POS · 80mm',
+    posProfileZpl58: 'ZPL · 58mm',
+    posProfileZpl40x30: 'ZPL · 40×30mm',
+    posTestConnection: 'Проверить связь',
+    posTestPrint: 'Тестовая печать',
+    posAgentConnected: 'Агент печати доступен',
+    posAgentUnreachable: 'Агент печати недоступен',
+    posTestPrintSent: 'Тестовая этикетка отправлена',
+    posTestPrintFailed: 'Тестовая печать не удалась',
+    posFulfillmentEatIn: 'В зале',
+    posFulfillmentTakeaway: 'С собой',
+    posFulfillmentDelivery: 'Доставка',
+    posSourceEatIn: 'POS · В зале',
+    posSourceTakeaway: 'POS · С собой',
+    posSourceDelivery: 'POS · Доставка',
+    posCustomerPanelTitle: 'Клиент',
+    posCustomerName: 'Имя (необяз.)',
+    posCustomerPhone: 'Телефон (необяз.)',
+    posOrderNotes: 'Заметки к заказу',
+    posDeliveryPanelTitle: 'Адрес доставки',
+    posCartTitle: 'Корзина',
+    posCartEmpty: 'Корзина пуста',
+    posSubmitOrder: 'Создать заказ',
+    posSubmitFailed: 'Не удалось создать заказ',
+    posOrderCreated: 'Заказ создан',
+    posViewActiveOrders: 'К активным заказам',
+    posNewOrderTitle: 'Новый заказ',
+    posOutsideZone: 'Адрес вне зоны доставки',
+    posDeliveryRequired: 'Укажите адрес и метку на карте',
+    posReprintLabels: 'Перепечатать этикетки',
+    posPrintSent: 'Этикетки отправлены на печать',
+    posPrintPending: 'В очереди — агент offline',
+    posPrintFailed: 'Печать не удалась',
+    posPrintPendingCount: '{count} заданий ждут агента печати',
+    posMapSearch: 'Поиск адреса в Баку',
+    posMapPinHint: 'Перетащите метку или нажмите на карту',
+    posMapsUnavailable: 'Карта недоступна',
     omKitchenStatusTitle: 'Онлайн-кухня',
     omKitchenStatusOnline: 'Принимаем заказы',
     omKitchenStatusPausedUntil: 'Пауза до {time}',
@@ -4250,7 +5724,184 @@ export const translations: Record<Language, Translations> = {
     orderSupportPrepareQuick: 'Начать готовку (15 мин)',
     orderSupportScheduledHint:
       'Заказ по расписанию. Настройку напоминаний лучше делать в менеджере заказов; здесь можно просмотреть детали.',
+    payments: 'Платежи',
+    paymentsScreenTitle: 'Платежи',
+    paymentsScreenDescription: 'Просмотр онлайн-платежей, несоответствий и повторная проверка статуса у провайдера',
+    paymentsFilterAll: 'Все',
+    paymentsFilterPending: 'Ожидание',
+    paymentsFilterSuccess: 'Оплачено',
+    paymentsFilterFailed: 'Ошибка',
+    paymentsProviderAll: 'Все провайдеры',
+    paymentsSearch: 'Поиск по заказу #, клиенту, телефону, id транзакции',
+    paymentsFound: 'платежей найдено',
+    paymentsNoRows: 'Для этого фильтра платежи не найдены',
+    paymentsColTime: 'Время',
+    paymentsColOrder: 'Заказ',
+    paymentsColCustomer: 'Клиент',
+    paymentsColAmount: 'Сумма',
+    paymentsColProvider: 'Провайдер',
+    paymentsColPaymentStatus: 'Платёж',
+    paymentsColSaleStatus: 'Продажа',
+    paymentsColMismatch: 'Расхождение',
+    paymentsMismatchYes: 'Расхождение',
+    paymentsDetailProvider: 'Провайдер',
+    paymentsDetailClientOrderId: 'Client order id',
+    paymentsDetailTransactionId: 'Id транзакции',
+    paymentsDetailProviderStatus: 'Статус провайдера',
+    paymentsDetailPaidAt: 'Оплачено в',
+    paymentsDetailError: 'Ошибка',
+    paymentsDetailRawPayload: 'Сырой payload',
+    paymentsRecheckButton: 'Повторно проверить статус у провайдера',
+    paymentsRechecking: 'Проверка…',
+    paymentsRecheckSuccess: 'Статус провайдера обновлён. Список обновлён.',
+    paymentsRecheckFailed: 'Повторная проверка не удалась',
+    paymentsRecheckForbidden: 'Только менеджеры и админы могут повторно проверять статус платежа',
+    paymentsStatusPending: 'Ожидание',
+    paymentsStatusSuccess: 'Оплачено',
+    paymentsStatusFailed: 'Ошибка',
+    paymentsProviderEpoint: 'Epoint',
+    paymentsProviderUnited: 'United Payment',
+    paymentsProviderOther: 'Другое',
+    cashDebt: 'Касса и счета',
+    cashDebtScreenTitle: 'Касса и долги',
+    cashDebtScreenDescription: 'Кредиты, прочие обязательства и комиссии за снятие с банка.',
+    cashDebtTabLoans: 'Кредиты и прочее',
+    cashDebtTabWithdrawals: 'Снятия с банка',
+    outstandingDebtLabel: 'Непогашенный долг',
+    outstandingDebtHint: 'Счета поставщиков + кредиты (баланс)',
+    supplierOutstanding: 'Долг',
+    supplierPayButton: 'Оплатить поставщику',
+    supplierOpeningBalance: 'Начальный остаток',
+    supplierOpeningBalanceDate: 'Остаток на дату',
+    supplierAddDebt: 'Добавить долг',
+    supplierDebtHistory: 'История долга',
+    supplierDebtCleared: 'Погашено',
+    supplierCreditBalance: 'Кредитный баланс',
+    supplierDebtFromPurchase: 'Закупка (в долг)',
+    supplierManualDebt: 'Ручной долг',
+    supplierClearDebt: 'Погасить долг',
+    supplierAccountView: 'Счёт',
+    supplierRecentPayments: 'Недавние платежи',
+    supplierAccountExplainer:
+      'Баланс поставщика — это текущий счёт: закупки в долг увеличивают его, платежи уменьшают. Гасите через «Погасить долг».',
+    supplierYouOwe: 'Долг',
+    supplierPrepaid: 'Переплата',
+    supplierSettled: 'Оплачено',
+    supplierStatement: 'Выписка по счёту',
+    supplierBalanceColumn: 'Баланс',
+    supplierPaymentLabel: 'Платёж',
+    supplierAddDebtHint: 'Только для сумм не из учтённой закупки (например, начальный долг, который уже был).',
+    supplierNoActivity: 'Пока нет закупок или платежей.',
+    supplierSearchPlaceholder: 'Поиск поставщиков…',
+    supplierNoMatches: 'Нет поставщиков по вашему запросу.',
+    supplierTotalSpend: 'Всего потрачено',
+    purchaseOnAccountHint: 'Добавляет эту закупку к балансу поставщика, пока вы её не оплатите.',
+    purchasePaidNowHint: 'Списывает эту закупку с выбранного счёта сразу.',
+    purchaseOnAccount: 'В долг',
+    purchasePaidNow: 'Оплачено сразу',
+    purchasePaymentMode: 'Оплата',
+    liabilityAdd: 'Добавить обязательство',
+    liabilityRecordPayment: 'Записать платёж',
+    liabilityTypeLoan: 'Кредит',
+    liabilityTypeOther: 'Прочее',
+    liabilityCounterparty: 'Контрагент',
+    liabilityLenderOwedTo: 'Кредитор / кому должны',
+    liabilityLenderHelp: 'Кому вы должны — банк, друг и т.д. Долг поставщикам — на экране Поставщики.',
+    cashDebtLoansHelp: 'Для банковских кредитов и личных долгов. Долг поставщикам — на экране Поставщики.',
+    liabilityEmpty: 'Кредитов и прочих обязательств пока нет.',
+    liabilityStatusOpen: 'Открыто',
+    liabilityStatusPartial: 'Частично оплачено',
+    liabilityStatusSettled: 'Закрыто',
+    withdrawalLog: 'Записать снятие',
+    withdrawalMethodCashier: 'Касса (0.5%)',
+    withdrawalMethodAbbAtm: 'ABB ATM (1%, мин. ₼1)',
+    withdrawalFeePreview: 'Банковская комиссия',
+    withdrawalFeesPeriodTotal: 'Комиссии в списке',
+    withdrawalEmpty: 'Снятий пока не записано.',
+    withdrawalAvailableInAccount: 'Доступно на счёте {account}: {available}',
+    withdrawalInsufficientFunds: 'Недостаточно средств на счёте {account}. Доступно: {available}.',
+    withdrawalMethod: 'Способ',
+    withdrawalFee: 'Комиссия',
+    posPaymentMethod: 'Способ оплаты',
+    posPayCash: 'Наличные',
+    posPayCard: 'Карта',
+    cashDrawerTab: 'Касса',
+    cashOnHand: 'Наличные в кассе',
+    cashOnHandHint: 'Сколько наличных должно быть сейчас',
+    accountCash: 'Наличные в кассе',
+    accountBank: 'Основной (банковский) счёт',
+    accountCard: 'Карточный счёт',
+    accountBalancesTitle: 'Остатки по счетам',
+    accountBankHint: 'Сюда поступают выплаты; чековые снятия отсюда',
+    accountCardHint: 'Пополняется переводами; для снятий в банкомате',
+    accountManage: 'Управление счетами',
+    accountSetupTitle: 'Настройка счетов',
+    accountCurrentBalance: 'Текущий',
+    accountTransferAction: 'Перевести',
+    accountActivityTitle: 'Движение по счетам',
+    accountActivityEmpty: 'Пока нет движений по банку или карте.',
+    accountActivityFilterAll: 'Все счета',
+    accountLedgerOpening: 'Начальный остаток',
+    accountLedgerTransferIn: 'Перевод (приход)',
+    accountLedgerTransferOut: 'Перевод (расход)',
+    accountLedgerWithdrawal: 'Снятие',
+    accountLedgerExpense: 'Расход',
+    accountLedgerPurchase: 'Закупка',
+    accountLedgerPayout: 'Полученная выплата',
+    accountLedgerManagedElsewhere: 'Управляется на экране «Расходы»',
+    accountLedgerManagedPayouts: 'Управляется на экране «Выплаты»',
+    accountTransferDeleted: 'Перевод удалён',
+    accountOpeningBalance: 'Начальный остаток',
+    accountOpeningDate: 'На дату',
+    accountOpeningBalanceSaved: 'Начальный остаток сохранён',
+    accountTransferBankToCard: 'Перевод основной → карта',
+    accountTransferSaved: 'Перевод записан',
+    paymentCash: 'Наличные',
+    paymentCard: 'Карта',
+    paymentBankTransfer: 'Банковский перевод',
+    selectPaymentMethod: 'Выберите способ оплаты',
+    withdrawalMethodCardAccount: 'Карточный счёт (ABB ATM, 1%, мин. ₼1)',
+    cashDrawerTitle: 'Касса',
+    cashDrawerSubtitle: 'Учитывайте наличные, чтобы сверять кассу в конце месяца.',
+    cashOpeningBalance: 'Начальный остаток',
+    cashClosingBalance: 'Конечный остаток',
+    cashInTotal: 'Приход наличных',
+    cashOutTotal: 'Расход наличных',
+    cashFromOrders: 'Собранные наличные заказы',
+    cashFromWithdrawals: 'Снятия из банка (за вычетом комиссий)',
+    cashFromPayouts: 'Полученные наличные выплаты',
+    cashAdjustmentsIn: 'Начальная касса и корректировки',
+    cashToExpenses: 'Наличные расходы',
+    cashToPurchases: 'Наличные закупки',
+    cashToSuppliers: 'Наличные поставщикам',
+    cashToLiabilities: 'Наличные по кредитам',
+    cashBankDeposits: 'Внесения в банк и корректировки',
+    cashMovementLog: 'Движения наличных',
+    cashMovementEmpty: 'Пока нет ручных движений наличных.',
+    cashAddMovement: 'Добавить движение',
+    cashMovementCategory: 'Категория',
+    cashCategoryOpeningFloat: 'Начальная касса',
+    cashCategoryBankDeposit: 'Внесение в банк',
+    cashCategoryAdjustment: 'Корректировка',
+    cashCategoryOther: 'Другое',
+    cashMovementDirection: 'Направление',
+    cashDirectionIn: 'Приход',
+    cashDirectionOut: 'Расход',
+    cashMovementAdded: 'Движение наличных добавлено',
+    cashMovementDeleted: 'Движение наличных удалено',
     deliveryScreenTitle: 'Доставка',
+    orderLocations: 'Карта заказов',
+    orderLocationsTitle: 'Карта заказов доставки',
+    orderLocationsSubtitle: 'Смотрите, откуда приходят заказы на доставку в Баку — одна точка на заказ.',
+    orderLocationsEmpty: 'За этот период нет адресов доставки. Расширьте диапазон дат или смените фильтр источника.',
+    orderLocationsLoading: 'Загрузка карты…',
+    orderLocationsUnavailable: 'Добавьте VITE_GOOGLE_MAPS_API_KEY для карты заказов.',
+    orderLocationsMapHint: 'Нажмите на точку для деталей заказа. Карта ограничена Баку.',
+    orderLocationsTotalOrders: 'Заказы с адресом',
+    orderLocationsSourceAll: 'Вся доставка',
+    orderLocationsSourceOnline: 'Доставка с сайта',
+    orderLocationsSourcePos: 'Доставка POS',
+    orderLocationsOrderLabel: 'Заказ',
     deliveryScreenDescription: 'Управляйте зонами, правилами кухни и ручной отправкой',
     deliveryRefresh: 'Обновить данные доставки',
     deliveryTabZones: 'Зоны',
@@ -4276,7 +5927,7 @@ export const translations: Record<Language, Translations> = {
     deliveryZoneFieldSortOrder: 'Порядок сортировки',
     deliveryZoneFieldActive: 'Активно',
     deliveryZoneFieldPolygon: 'Полигон зоны',
-    deliveryZonePolygonHint: 'Нарисуйте на карте минимум 3 точки для определения зоны.',
+    deliveryZonePolygonHint: 'Кликайте по карте, чтобы добавить точки (мин. 3). Дважды кликните или нажмите первую точку, чтобы завершить.',
     deliveryZoneClearShape: 'Очистить форму',
     deliveryZonePolygonRequired: 'Полигон обязателен',
     deliveryZonePreview: 'Предпросмотр зоны',
@@ -4325,6 +5976,35 @@ export const translations: Record<Language, Translations> = {
     deliverySettingsDayFri: 'Пт',
     deliverySettingsDaySat: 'Сб',
     deliverySettingsDaySun: 'Вс',
+    deliverySettingsStatusOpenNow: 'Сейчас открыто — принимаем заказы',
+    deliverySettingsStatusClosedNow: 'Сейчас закрыто — вне рабочих часов',
+    deliverySettingsStatusPaused: 'Пауза — онлайн-заказы остановлены вручную',
+    deliverySettingsTodayHours: 'Часы сегодня: {hours}',
+    deliverySettingsTodayClosed: 'Сегодня закрыто весь день',
+    deliverySettingsSpecialDayBadge: 'Сегодня особый график',
+    deliverySettingsAcceptingOrders: 'Принимаем онлайн-заказы',
+    deliverySettingsStoppedOrders: 'Все онлайн-заказы остановлены',
+    deliverySettingsAcceptingOrdersHint: 'Клиенты могут заказывать в указанные ниже часы.',
+    deliverySettingsStoppedOrdersHint: 'Новых онлайн-заказов нет, пока вы не включите снова (отменяет часы).',
+    deliverySettingsDayOpen: 'Открыто',
+    deliverySettingsWeeklyHours: 'Еженедельный график',
+    deliverySettingsSpecialDaysTitle: 'Особые дни и праздники',
+    deliverySettingsSpecialDaysHint:
+      'Разовые даты, которые заменяют недельный график. Добавьте заметку для клиентов — она покажется на сайте заказов.',
+    deliverySettingsSpecialDayAdd: 'Добавить особый день',
+    deliverySettingsSpecialDayRemove: 'Удалить',
+    deliverySettingsSpecialDayDate: 'Дата',
+    deliverySettingsSpecialDayClosedAllDay: 'Закрыто весь день',
+    deliverySettingsSpecialDayCustomHours: 'Особые часы',
+    deliverySettingsSpecialDayNote: 'Сообщение для клиентов (необязательно)',
+    deliverySettingsSpecialDayNoteHint: 'Показывается на order.mings.az, когда эта дата активна.',
+    deliverySettingsSpecialDayNoteEn: 'Английский',
+    deliverySettingsSpecialDayNoteAz: 'Азербайджанский',
+    deliverySettingsSpecialDayNoteRu: 'Русский',
+    deliverySettingsSpecialDayDuplicateDate: 'У каждого особого дня должна быть уникальная дата.',
+    deliverySettingsSpecialDaysInvalid: 'Для особых дней нужна дата и корректные часы, если не закрыто весь день.',
+    orderSpecialDayNoticeTitle: 'Уведомление',
+    orderSpecialDayNoticeDismiss: 'Понятно',
     deliveryDispatchTitle: 'Центр отправки',
     deliveryDispatchDescription: 'Управляйте активными доставками и действиями отправки.',
     deliveryDispatchEmpty: 'Нет заказов для отправки в этом диапазоне.',

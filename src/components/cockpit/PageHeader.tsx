@@ -5,27 +5,36 @@ interface PageHeaderProps {
   description?: string;
   eyebrow?: string;
   icon?: ComponentType<{ className?: string }>;
-  /** Right-aligned actions (e.g. primary CTA) on larger screens */
+  /** Right-aligned primary/secondary actions */
   actions?: ReactNode;
 }
 
-export function PageHeader({ title, eyebrow, icon: Icon, actions }: PageHeaderProps) {
+/**
+ * Standard cockpit page chrome: visible title block + predictable action slot.
+ * Page order: header → filters → summary → content → empty/loading/error.
+ */
+export function PageHeader({ title, description, eyebrow, icon: Icon, actions }: PageHeaderProps) {
   return (
-    <div className="neon-card mb-8 p-5 sm:p-6">
-      {eyebrow ? <p className="cockpit-eyebrow">{eyebrow}</p> : null}
-      <div className="mt-1 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+    <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0 flex-1">
+        {eyebrow ? (
+          <p className="cockpit-eyebrow mb-1">{eyebrow}</p>
+        ) : null}
+        <div className="flex items-start gap-3">
           {Icon ? (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 shadow-neon-soft">
-              <Icon className="h-6 w-6 text-white" />
-            </div>
+            <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cockpit-50 text-cockpit-600 dark:bg-cockpit-950/50 dark:text-cockpit-400">
+              <Icon className="h-5 w-5" aria-hidden />
+            </span>
           ) : null}
           <div className="min-w-0">
-            <h1 className="cockpit-page-title">{title}</h1>
+            <h1 className="cockpit-page-title text-2xl sm:text-3xl">{title}</h1>
+            {description ? <p className="cockpit-page-sub mt-1">{description}</p> : null}
           </div>
         </div>
-        {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">{actions}</div> : null}
       </div>
-    </div>
+      {actions ? (
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">{actions}</div>
+      ) : null}
+    </header>
   );
 }

@@ -18,6 +18,9 @@ export interface ExecutiveKpis {
   opex: number;
   grossMarginPct: number;
   operatingProfit: number;
+  bankFees: number;
+  payroll: number;
+  netProfit: number;
   avgOrderValue: number;
   orderCount: number;
 }
@@ -45,6 +48,9 @@ export interface ChannelPerformance {
   netRevenue: number;
   orderCount: number;
   avgOrderValue: number;
+  /** Revenue share % of total channel revenue (not gross margin). */
+  revenueSharePct?: number;
+  /** @deprecated Use revenueSharePct — kept for backward compatibility */
   grossMarginPct?: number;
 }
 
@@ -103,7 +109,10 @@ export type AnalyticsSourceFilter =
   | 'manual'
   | 'kiosk'
   | 'online_delivery'
-  | 'online_takeaway';
+  | 'online_takeaway'
+  | 'pos_eat_in'
+  | 'pos_takeaway'
+  | 'pos_delivery';
 export type ExpenseScope = 'operational' | 'purchases' | 'all';
 export type TrendGranularity = 'day' | 'week' | 'month';
 
@@ -187,4 +196,62 @@ export interface ChannelPerformanceItem {
 export interface AnalyticsServiceResponse<T> {
   data: T | null;
   error: string | null;
+}
+
+export interface PeriodSummary {
+  grossSales: number;
+  discounts: number;
+  refunds: number;
+  tips: number;
+  orderCount: number;
+  cogs: number;
+  opex: number;
+  bankFees: number;
+  payroll: number;
+}
+
+export interface PeriodSummaryParams extends DateRangeParams {
+  source?: AnalyticsSourceFilter;
+}
+
+export interface OrderSourceMixItem {
+  source: string;
+  orderCount: number;
+  revenue: number;
+  sharePct: number;
+}
+
+export interface TopProductItem {
+  productName: string;
+  quantity: number;
+  revenue: number;
+}
+
+export interface PrepTimeStats {
+  avgPrepMinutes: number | null;
+  ordersWithPrep: number;
+  slaMetPct: number | null;
+}
+
+export interface HourlyDemandPoint {
+  hour: number;
+  orderCount: number;
+  revenue: number;
+}
+
+export interface PaymentHealthStats {
+  paidCount: number;
+  unpaidCount: number;
+  paidRevenue: number;
+  unpaidRevenue: number;
+  cardCount: number;
+  codCount: number;
+}
+
+export interface DashboardOperationalData {
+  orderSourceMix: OrderSourceMixItem[];
+  prepTime: PrepTimeStats;
+  paymentHealth: PaymentHealthStats;
+  topProducts: TopProductItem[];
+  hourlyDemand: HourlyDemandPoint[];
 }

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Package, Plus, Edit2, Trash2, Search, AlertCircle, Truck, ShoppingCart, History, X } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, Search, AlertCircle, Truck, ShoppingCart, History, X, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { supabase, Product, Supplier } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
 import { IconActionButton } from '../components/ui/IconActionButton';
 import { SingleDatePicker } from '../components/SingleDatePicker';
+import { isOnCreditFromPurchase, purchaseCreditFields } from '../services/finance/purchaseCredit';
 
 interface Category {
   id: string;
@@ -22,6 +25,7 @@ interface Purchase {
   total_cost: number;
   purchase_date: string;
   payment_status: 'pending' | 'partial' | 'paid';
+  is_on_credit?: boolean;
   notes: string;
   suppliers?: { name: string };
   categories?: {
@@ -36,12 +40,13 @@ interface PurchaseFormData {
   quantity: string;
   unit_cost: string;
   purchase_date: string;
-  payment_status: 'pending' | 'partial' | 'paid';
+  is_on_credit: boolean;
   notes: string;
 }
 
 export function ProductsScreen() {
   const { t } = useLanguage();
+  const toast = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -49,6 +54,10 @@ export function ProductsScreen() {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [savingPurchase, setSavingPurchase] = useState(false);
+  const [savingInline, setSavingInline] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
@@ -82,7 +91,7 @@ export function ProductsScreen() {
     quantity: '',
     unit_cost: '',
     purchase_date: new Date().toISOString().split('T')[0],
-    payment_status: 'pending',
+    is_on_credit: true,
     notes: ''
   });
 
@@ -132,10 +141,10 @@ export function ProductsScreen() {
 
   const loadCategories = async () => {
     const { data } = await supabase
-      .from('categories')
+      .from('master_categories')
       .select('id, name')
-      .eq('type', 'purchase')
-      .order('name');
+      .order('display_order', { ascending: true })
+      .order('name', { ascending: true });
 
     if (data) {
       setCategories(data);
@@ -165,14 +174,14 @@ export function ProductsScreen() {
 
     if (error || !product) return;
 
-    await supabase
-      .from('products')
-      .update({ quantity: Number(product.quantity || 0) + deltaQuantity })
-      .eq('id', productId);
+    await adminUpdate('products', productId, {
+      quantity: Number(product.quantity || 0) + deltaQuantity,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingProduct) return;
 
     const productData = {
       name: formData.name,
@@ -182,7 +191,7 @@ export function ProductsScreen() {
       barcode: formData.barcode || null,
       quantity: Number(formData.quantity) || 0,
       min_stock_level: Number(formData.min_stock_level) || 10,
-      category_id: formData.category_id || null,
+      master_category_id: formData.category_id || null,
       supplier_id: formData.supplier_id || null,
       unit: formData.unit,
       kiosk_visible: formData.kiosk_visible,
@@ -190,23 +199,25 @@ export function ProductsScreen() {
       image_url: formData.image_url || null,
     };
 
-    if (editingProduct) {
-      await supabase
-        .from('products')
-        .update(productData)
-        .eq('id', editingProduct.id);
-    } else {
-      await supabase
-        .from('products')
-        .insert([productData]);
+    setSavingProduct(true);
+    const result = editingProduct
+      ? await adminUpdate('products', editingProduct.id, productData)
+      : await adminInsert('products', productData);
+    setSavingProduct(false);
+
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
     }
 
+    toast.success(editingProduct ? t.updatedSuccessfully : t.savedSuccessfully);
     resetForm();
     loadProducts();
   };
 
   const handlePurchaseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingPurchase) return;
 
     const quantity = Number(purchaseFormData.quantity) || 0;
     const unitCost = Number(purchaseFormData.unit_cost) || 0;
@@ -218,34 +229,42 @@ export function ProductsScreen() {
       unit_cost: unitCost,
       total_cost: quantity * unitCost,
       purchase_date: purchaseFormData.purchase_date,
-      payment_status: purchaseFormData.payment_status,
-      notes: purchaseFormData.notes
+      notes: purchaseFormData.notes,
+      ...purchaseCreditFields(purchaseFormData.is_on_credit),
     };
 
+    setSavingPurchase(true);
+    let result;
     if (editingPurchase) {
       const oldProductId = editingPurchase.product_id || null;
       const oldQuantity = Number(editingPurchase.quantity) || 0;
       const newProductId = purchaseData.product_id || null;
       const newQuantity = quantity;
 
-      await supabase
-        .from('purchases')
-        .update(purchaseData)
-        .eq('id', editingPurchase.id);
+      result = await adminUpdate('purchases', editingPurchase.id, purchaseData);
 
-      if (oldProductId && newProductId && oldProductId === newProductId) {
-        await reconcileProductStock(newProductId, newQuantity - oldQuantity);
-      } else {
-        await reconcileProductStock(oldProductId, -oldQuantity);
-        await reconcileProductStock(newProductId, newQuantity);
+      if (result.ok) {
+        if (oldProductId && newProductId && oldProductId === newProductId) {
+          await reconcileProductStock(newProductId, newQuantity - oldQuantity);
+        } else {
+          await reconcileProductStock(oldProductId, -oldQuantity);
+          await reconcileProductStock(newProductId, newQuantity);
+        }
       }
     } else {
-      await supabase
-        .from('purchases')
-        .insert(purchaseData);
-      await reconcileProductStock(purchaseData.product_id, quantity);
+      result = await adminInsert('purchases', purchaseData);
+      if (result.ok) {
+        await reconcileProductStock(purchaseData.product_id, quantity);
+      }
+    }
+    setSavingPurchase(false);
+
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
     }
 
+    toast.success(editingPurchase ? t.updatedSuccessfully : t.savedSuccessfully);
     if (viewingProduct) {
       loadPurchases(viewingProduct.id);
     }
@@ -255,32 +274,33 @@ export function ProductsScreen() {
 
   const handleCreateInlineProduct = async () => {
     if (!inlineProductData.name) {
-      alert('Please enter product name');
+      toast.error(t.errorOccurred);
+      return;
+    }
+    if (savingInline) return;
+
+    setSavingInline(true);
+    const result = await adminInsert<{ id: string }>('products', {
+      name: inlineProductData.name,
+      description: inlineProductData.description,
+      cost_price: Number(inlineProductData.cost_price) || 0,
+      unit: inlineProductData.unit,
+      supplier_id: inlineProductData.supplier_id || null,
+      selling_price: 0,
+      quantity: 0,
+      min_stock_level: 10,
+    });
+    setSavingInline(false);
+
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
       return;
     }
 
-    const { data, error } = await supabase
-      .from('products')
-      .insert({
-        name: inlineProductData.name,
-        description: inlineProductData.description,
-        cost_price: Number(inlineProductData.cost_price) || 0,
-        unit: inlineProductData.unit,
-        supplier_id: inlineProductData.supplier_id || null,
-        selling_price: 0,
-        quantity: 0,
-        min_stock_level: 10,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating product:', error);
-      alert(`Error creating product: ${error.message}`);
-      return;
-    }
+    const data = result.data;
 
     if (data) {
+      toast.success(t.savedSuccessfully);
       await loadProducts();
       setPurchaseFormData({ ...purchaseFormData, product_id: data.id });
       setInlineProductData({ name: '', description: '', cost_price: '', unit: 'pcs', supplier_id: '' });
@@ -289,21 +309,27 @@ export function ProductsScreen() {
   };
 
   const handleCreateInlineSupplier = async () => {
-    if (!inlineSupplierData.name) return;
+    if (!inlineSupplierData.name || savingInline) return;
 
-    const { data } = await supabase
-      .from('suppliers')
-      .insert({
-        name: inlineSupplierData.name,
-        contact_person: inlineSupplierData.contact_person,
-        phone: inlineSupplierData.phone,
-        email: inlineSupplierData.email,
-        is_active: true
-      })
-      .select()
-      .single();
+    setSavingInline(true);
+    const result = await adminInsert<{ id: string }>('suppliers', {
+      name: inlineSupplierData.name,
+      contact_person: inlineSupplierData.contact_person,
+      phone: inlineSupplierData.phone,
+      email: inlineSupplierData.email,
+      is_active: true,
+    });
+    setSavingInline(false);
+
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+
+    const data = result.data;
 
     if (data) {
+      toast.success(t.savedSuccessfully);
       await loadSuppliers();
       setPurchaseFormData({ ...purchaseFormData, supplier_id: data.id });
       setInlineSupplierData({ name: '', contact_person: '', phone: '', email: '' });
@@ -339,7 +365,7 @@ export function ProductsScreen() {
       quantity: '',
       unit_cost: '',
       purchase_date: new Date().toISOString().split('T')[0],
-      payment_status: 'pending',
+      is_on_credit: true,
       notes: ''
     });
     setEditingPurchase(null);
@@ -357,7 +383,7 @@ export function ProductsScreen() {
       barcode: product.barcode || '',
       quantity: product.quantity?.toString() || '',
       min_stock_level: product.min_stock_level?.toString() || '10',
-      category_id: product.category_id || '',
+      category_id: product.master_category_id || product.category_id || '',
       supplier_id: product.supplier_id || '',
       unit: (product as Product & { unit?: string }).unit || 'pcs',
       kiosk_visible: product.kiosk_visible !== false,
@@ -368,8 +394,16 @@ export function ProductsScreen() {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('products').delete().eq('id', id);
+    if (deletingId) return;
+    setDeletingId(id);
+    const result = await adminDelete('products', id);
+    setDeletingId(null);
     setDeleteConfirm(null);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
     loadProducts();
   };
 
@@ -388,16 +422,25 @@ export function ProductsScreen() {
       quantity: purchase.quantity.toString(),
       unit_cost: purchase.unit_cost.toString(),
       purchase_date: purchase.purchase_date.split('T')[0],
-      payment_status: purchase.payment_status,
+      is_on_credit: isOnCreditFromPurchase(purchase),
       notes: purchase.notes
     });
     setShowPurchaseForm(true);
   };
 
   const handleDeletePurchase = async (id: string) => {
+    if (deletingId) return;
     const purchase = purchases.find(p => p.id === id);
-    await supabase.from('purchases').delete().eq('id', id);
+    setDeletingId(id);
+    const result = await adminDelete('purchases', id);
+    if (!result.ok) {
+      setDeletingId(null);
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
     await reconcileProductStock(purchase?.product_id, -(Number(purchase?.quantity) || 0));
+    setDeletingId(null);
+    toast.success(t.deletedSuccessfully);
     if (viewingProduct) {
       loadPurchases(viewingProduct.id);
     }
@@ -474,7 +517,7 @@ export function ProductsScreen() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
@@ -483,7 +526,7 @@ export function ProductsScreen() {
                     type="text"
                     value={formData.barcode}
                     onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
@@ -494,7 +537,7 @@ export function ProductsScreen() {
                     step="0.01"
                     value={formData.cost_price}
                     onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
@@ -504,7 +547,7 @@ export function ProductsScreen() {
                     step="0.01"
                     value={formData.selling_price}
                     onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                     placeholder="0.00"
                   />
                 </div>
@@ -532,7 +575,7 @@ export function ProductsScreen() {
                     step="0.01"
                     value={formData.quantity}
                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
@@ -542,7 +585,7 @@ export function ProductsScreen() {
                     step="0.01"
                     value={formData.min_stock_level}
                     onChange={(e) => setFormData({ ...formData, min_stock_level: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
@@ -582,7 +625,7 @@ export function ProductsScreen() {
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
               <div>
@@ -592,7 +635,7 @@ export function ProductsScreen() {
                   value={formData.image_url}
                   onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
                   placeholder="https://..."
-                  className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:border-cockpit-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
               <div className="flex items-center gap-3">
@@ -603,7 +646,7 @@ export function ProductsScreen() {
                     onChange={(e) => setFormData({ ...formData, kiosk_visible: e.target.checked })}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-cockpit-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cockpit-600"></div>
                 </label>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.kioskVisible}</span>
               </div>
@@ -629,8 +672,10 @@ export function ProductsScreen() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-medium transition-colors"
+                  disabled={savingProduct}
+                  className="flex flex-1 items-center justify-center gap-2 px-4 py-3 bg-cockpit-600 hover:bg-cockpit-700 text-white rounded-xl font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                  {savingProduct ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {editingProduct ? t.update : t.add} {t.product}
                 </button>
               </div>
@@ -705,8 +750,10 @@ export function ProductsScreen() {
                       <button
                         type="button"
                         onClick={handleCreateInlineProduct}
-                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+                        disabled={savingInline}
+                        className="flex w-full items-center justify-center gap-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
                       >
+                        {savingInline ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                         Create & Select
                       </button>
                     </div>
@@ -778,8 +825,10 @@ export function ProductsScreen() {
                       <button
                         type="button"
                         onClick={handleCreateInlineSupplier}
-                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+                        disabled={savingInline}
+                        className="flex w-full items-center justify-center gap-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
                       >
+                        {savingInline ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                         Create & Select
                       </button>
                     </div>
@@ -847,17 +896,32 @@ export function ProductsScreen() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                    Payment Status *
+                    {t.purchasePaymentMode}
                   </label>
-                  <select
-                    value={purchaseFormData.payment_status}
-                    onChange={(e) => setPurchaseFormData({ ...purchaseFormData, payment_status: e.target.value as 'pending' | 'partial' | 'paid' })}
-                    className="cockpit-select"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="partial">Partial</option>
-                    <option value="paid">Paid</option>
-                  </select>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseFormData({ ...purchaseFormData, is_on_credit: true })}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                        purchaseFormData.is_on_credit
+                          ? 'border-cockpit-500 bg-cockpit-500/20 text-white'
+                          : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {t.purchaseOnAccount}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseFormData({ ...purchaseFormData, is_on_credit: false })}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                        !purchaseFormData.is_on_credit
+                          ? 'border-cockpit-500 bg-cockpit-500/20 text-white'
+                          : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {t.purchasePaidNow}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="sm:col-span-2">
@@ -893,8 +957,10 @@ export function ProductsScreen() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                  disabled={savingPurchase}
+                  className="flex flex-1 items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                  {savingPurchase ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {editingPurchase ? 'Update' : 'Add'} Purchase
                 </button>
               </div>
@@ -1071,8 +1137,8 @@ export function ProductsScreen() {
             </div>
 
             <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-              {product.category_id && (() => {
-                const category = categories.find(c => c.id === product.category_id);
+              {product.master_category_id && (() => {
+                const category = categories.find(c => c.id === product.master_category_id);
                 return category ? (
                   <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
                     <Package className="w-3.5 h-3.5" />

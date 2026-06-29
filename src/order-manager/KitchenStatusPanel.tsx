@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { adminUpdate } from '../lib/adminApi';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getKitchenStatus, nextOpenBoundary, type KitchenSettings } from '../lib/kitchenAcceptance';
 import type { OnlineSettingsRow } from '../types/online';
@@ -99,10 +100,10 @@ export function KitchenStatusPanel() {
     if (!settings?.id) return;
     setSaving(true);
     setErr(null);
-    const { error } = await supabase.from('online_settings').update(patch).eq('id', settings.id);
+    const result = await adminUpdate('online_settings', settings.id, patch);
     setSaving(false);
-    if (error) {
-      setErr(error.message);
+    if (!result.ok) {
+      setErr(result.error ?? 'Update failed');
       return;
     }
     setSettings((prev) => (prev ? { ...prev, ...patch } : prev));

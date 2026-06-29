@@ -6,6 +6,7 @@ import {
   normalizePaymentMethodForPersist,
   type PersistedOnlinePaymentMethod,
 } from '../_shared/onlinePaymentMethod.ts';
+import { acceptingKitchen, type KitchenSettings } from '../_shared/kitchenAcceptance.ts';
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
@@ -234,9 +235,15 @@ async function handleRequest(req: Request): Promise<Response> {
     return errorResponse('PHONE_INVALID', 'Valid phone number required (E.164, e.g. +994...)', 400);
   }
 
+  await supabase.rpc('expire_online_kitchen_pause_if_due');
   const { data: settings } = await supabase.from('online_settings').select('*').limit(1).maybeSingle();
   if (!settings) {
     return errorResponse('ONLINE_NOT_CONFIGURED', 'Online ordering not configured', 503);
+  }
+
+  const kitchenSettings = settings as KitchenSettings;
+  if (!isScheduled && !acceptingKitchen(kitchenSettings, new Date(), 'immediate')) {
+    return errorResponse('KITCHEN_CLOSED', 'Kitchen is closed for online orders', 400);
   }
 
   if (fulfillmentType === 'takeaway' && !settings.takeaway_enabled) {
@@ -267,6 +274,9 @@ async function handleRequest(req: Request): Promise<Response> {
     const leadMinutes = Number(settings.scheduled_lead_minutes ?? settings.default_prep_time_minutes ?? 45);
     if (parsed.getTime() < Date.now() + Math.max(5, leadMinutes) * 60_000) {
       return errorResponse('SCHEDULE_TIME_TOO_SOON', 'Scheduled time does not meet lead time', 400);
+    }
+    if (!acceptingKitchen(kitchenSettings, parsed, 'scheduled')) {
+      return errorResponse('KITCHEN_CLOSED', 'Kitchen is closed at the scheduled time', 400);
     }
     scheduledAtIso = parsed.toISOString();
   }

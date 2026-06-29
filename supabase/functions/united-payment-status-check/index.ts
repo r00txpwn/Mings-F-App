@@ -129,7 +129,7 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  const providerStatus = statusResult.orderStatus ?? statusResult.status ?? 'PENDING';
+  const providerStatus = UnitedPayment.extractConfirmedStatus(statusResult);
   const mapped = await applyPaymentStatus(supabase, payment, providerStatus, {
     source: 'united-payment-status-check',
     status_check: statusResult.raw,

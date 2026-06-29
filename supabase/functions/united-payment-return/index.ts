@@ -34,6 +34,7 @@ function redirectToStorefront(params: URLSearchParams): Response {
 async function loadPayment(
   supabase: SupabaseClient,
   saleId: string | null,
+  clientOrderId: string | null,
   transactionId: string | null
 ): Promise<PaymentRow | null> {
   if (transactionId) {
@@ -46,6 +47,17 @@ async function loadPayment(
       .limit(1)
       .maybeSingle();
     if (!byTx.error && byTx.data) return byTx.data as PaymentRow;
+  }
+  if (clientOrderId) {
+    const byOrder = await supabase
+      .from('online_payments')
+      .select('id, sale_id, status, external_id, epoint_transaction')
+      .eq('provider', 'united_payment')
+      .eq('external_id', clientOrderId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!byOrder.error && byOrder.data) return byOrder.data as PaymentRow;
   }
   if (!saleId) return null;
   const bySale = await supabase
@@ -93,7 +105,7 @@ async function applyPaymentStatus(
       .from('sales')
       .update({ order_status: 'pending' })
       .eq('id', payment.sale_id)
-      .eq('order_status', 'awaiting_payment');
+      .in('order_status', ['awaiting_payment', 'pending']);
   } else if (mapped === 'failed') {
     await supabase.from('sales').update({ payment_status: 'failed' }).eq('id', payment.sale_id);
   }
@@ -107,8 +119,14 @@ Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
   const saleId = url.searchParams.get('sale');
   const kind = url.searchParams.get('kind');
-  const transactionId = url.searchParams.get('transactionId') ?? url.searchParams.get('transaction_id');
-  const redirectStatus = url.searchParams.get('status');
+
+  const parsed = UnitedPayment.parseUnitedPaymentReturn(url.searchParams);
+  const transactionId =
+    parsed.transactionId ??
+    url.searchParams.get('transactionId') ??
+    url.searchParams.get('transaction_id');
+  const clientOrderId = parsed.clientOrderId ?? url.searchParams.get('clientOrderId');
+  const redirectStatus = parsed.status ?? url.searchParams.get('status');
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -116,7 +134,7 @@ Deno.serve(async (req: Request) => {
     { auth: { persistSession: false, autoRefreshToken: false } }
   );
 
-  const payment = await loadPayment(supabase, saleId, transactionId);
+  const payment = await loadPayment(supabase, saleId, clientOrderId, transactionId);
   if (!payment) {
     const params = new URLSearchParams({ payment_error: '1', message: 'Payment record not found' });
     if (saleId) params.set('sale', saleId);
@@ -127,39 +145,41 @@ Deno.serve(async (req: Request) => {
   let providerRaw: Record<string, unknown> = {
     source: 'united-payment-return',
     kind,
+    redirect: parsed.decoded,
     redirectStatus,
     transactionId,
+    clientOrderId,
     query: Object.fromEntries(url.searchParams.entries()),
   };
 
-  try {
-    const token = await UnitedPayment.getAuthToken();
-    const statusResult = transactionId
-      ? await UnitedPayment.statusByTransactionId(token, transactionId)
-      : payment.external_id
-        ? await UnitedPayment.statusByClientOrderId(token, payment.external_id)
-        : null;
-    if (statusResult?.ok) {
-      providerStatus = statusResult.orderStatus ?? statusResult.status ?? providerStatus;
-      providerRaw = {
-        ...providerRaw,
-        status_check: statusResult.raw,
-      };
-    } else if (statusResult) {
-      providerRaw = {
-        ...providerRaw,
-        status_check_error: statusResult.message ?? 'Status check failed',
-        status_check: statusResult.raw,
-      };
-    }
-  } catch (e) {
+  const confirmed = await UnitedPayment.confirmProviderStatus({
+    clientOrderId: clientOrderId ?? payment.external_id,
+    transactionId: transactionId ?? payment.epoint_transaction,
+  });
+
+  if (confirmed.ok) {
+    providerStatus = confirmed.status;
     providerRaw = {
       ...providerRaw,
-      status_check_error: e instanceof Error ? e.message : String(e),
+      status_check: confirmed.result?.raw,
+      status_check_ok: true,
+    };
+  } else {
+    providerRaw = {
+      ...providerRaw,
+      status_check_error: confirmed.message ?? 'Status check failed',
+      status_check: confirmed.result?.raw ?? null,
+      status_check_ok: false,
     };
   }
 
-  const mapped = await applyPaymentStatus(supabase, payment, providerStatus, providerRaw, transactionId);
+  const mapped = await applyPaymentStatus(
+    supabase,
+    payment,
+    providerStatus,
+    providerRaw,
+    transactionId ?? payment.epoint_transaction
+  );
   const params = new URLSearchParams();
   params.set('sale', payment.sale_id);
   if (mapped === 'success') {

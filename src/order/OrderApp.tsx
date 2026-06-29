@@ -39,6 +39,14 @@ import { isCardOnlinePaymentMethod } from '../lib/onlinePaymentMethod';
 import { normalizePhoneE164 } from '../lib/phoneE164';
 import { findZoneForPoint } from '../services/deliveryZones';
 import { Price } from '../components/Price';
+import {
+  getSpecialDayCustomerNote,
+  getSpecialDayForBakuDate,
+  scheduleSlots,
+  type KitchenSettings,
+} from '../lib/kitchenAcceptance';
+
+const SPECIAL_DAY_DISMISS_PREFIX = 'mings-special-day-dismiss';
 
 function generateCartItemKey(productId: string, modifiers: SelectedModifiers): string {
   const modKey = Object.entries(modifiers)
@@ -80,56 +88,6 @@ interface ConfirmationSnapshot {
   total: number;
   fulfillment: OnlineFulfillmentType;
   etaText: string;
-}
-
-const SCHEDULE_DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
-type ScheduleDayKey = (typeof SCHEDULE_DAY_KEYS)[number];
-
-interface DayHoursConfig {
-  closed: boolean;
-  openMinutes: number;
-  closeMinutes: number;
-}
-
-function parseTimeToMinutes(value: string): number | null {
-  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value.trim());
-  if (!match) return null;
-  return Number(match[1]) * 60 + Number(match[2]);
-}
-
-function getScheduleDayKey(date: Date): ScheduleDayKey {
-  return SCHEDULE_DAY_KEYS[date.getDay()];
-}
-
-function getDayHoursConfig(
-  hoursJson: Record<string, unknown> | undefined,
-  dayKey: ScheduleDayKey,
-): DayHoursConfig | null {
-  if (!hoursJson || typeof hoursJson !== 'object') return null;
-  const raw = hoursJson[dayKey];
-  if (!raw || typeof raw !== 'object') return null;
-  const dayObj = raw as Record<string, unknown>;
-  const openRaw = typeof dayObj.open === 'string' ? dayObj.open : null;
-  const closeRaw = typeof dayObj.close === 'string' ? dayObj.close : null;
-  const openMinutes = openRaw ? parseTimeToMinutes(openRaw) : null;
-  const closeMinutes = closeRaw ? parseTimeToMinutes(closeRaw) : null;
-  if (openMinutes == null || closeMinutes == null) return null;
-  return {
-    closed: Boolean(dayObj.closed),
-    openMinutes,
-    closeMinutes,
-  };
-}
-
-function isSlotInsideWorkingHours(date: Date, config: DayHoursConfig | null): boolean {
-  if (!config) return true;
-  if (config.closed) return false;
-  const minutes = date.getHours() * 60 + date.getMinutes();
-  if (config.openMinutes === config.closeMinutes) return true;
-  if (config.openMinutes < config.closeMinutes) {
-    return minutes >= config.openMinutes && minutes < config.closeMinutes;
-  }
-  return minutes >= config.openMinutes || minutes < config.closeMinutes;
 }
 
 function OrderContent() {
@@ -212,6 +170,7 @@ function OrderContent() {
   const [paymentReturn, setPaymentReturn] = useState<'success' | 'error' | null>(null);
   const [paymentReturnDetail, setPaymentReturnDetail] = useState<string | null>(null);
   const [favoriteProductIds, setFavoriteProductIds] = useState<string[]>([]);
+  const [specialDayDismissed, setSpecialDayDismissed] = useState(false);
   const [upsellPromptProduct, setUpsellPromptProduct] = useState<Product | null>(null);
   const [cookieConsent, setCookieConsent] = useState<boolean>(() => {
     const raw = window.localStorage.getItem(ORDER_COOKIE_CONSENT_KEY);
@@ -493,28 +452,42 @@ function OrderContent() {
   }, [fulfillment, zoneMatch]);
 
   const availableScheduleSlots = useMemo(() => {
-    if (settings?.is_open === false) return [];
-    const now = new Date();
-    const lead = Number(settings?.scheduled_lead_minutes ?? settings?.default_prep_time_minutes ?? 45);
-    const slotMinutes = Math.max(5, Number(settings?.scheduled_slot_minutes ?? 15));
-    const slotMs = slotMinutes * 60_000;
-    const earliest = new Date(now.getTime() + lead * 60_000);
-    earliest.setSeconds(0, 0);
-    const roundedTs = Math.ceil(earliest.getTime() / slotMs) * slotMs;
-    const horizonTs = roundedTs + 7 * 24 * 60 * 60_000;
-    const slots: string[] = [];
-    const hoursJson = settings?.hours_json as Record<string, unknown> | undefined;
-
-    for (let ts = roundedTs; ts <= horizonTs && slots.length < 240; ts += slotMs) {
-      const slotDate = new Date(ts);
-      if (slotDate.getTime() < earliest.getTime()) continue;
-      const dayKey = getScheduleDayKey(slotDate);
-      const dayConfig = getDayHoursConfig(hoursJson, dayKey);
-      if (!isSlotInsideWorkingHours(slotDate, dayConfig)) continue;
-      slots.push(slotDate.toISOString());
-    }
-    return slots;
+    if (!settings || settings.is_open === false) return [];
+    const ks = settings as KitchenSettings;
+    const slots = scheduleSlots(ks, new Date(), {
+      slotMinutes: Math.max(5, Number(settings.scheduled_slot_minutes ?? 15)),
+      leadMinutes: Number(settings.scheduled_lead_minutes ?? settings.default_prep_time_minutes ?? 45),
+      maxSlots: 240,
+    });
+    return slots.map((s) => s.toISOString());
   }, [settings]);
+
+  const todaySpecial = useMemo(() => {
+    if (!settings) return null;
+    return getSpecialDayForBakuDate(settings as KitchenSettings, new Date());
+  }, [settings]);
+
+  const specialDayNote = useMemo(() => {
+    if (!todaySpecial) return null;
+    const lang = language === 'az' ? 'az' : language === 'ru' ? 'ru' : 'en';
+    return getSpecialDayCustomerNote(todaySpecial, lang);
+  }, [todaySpecial, language]);
+
+  useEffect(() => {
+    if (!todaySpecial) {
+      setSpecialDayDismissed(false);
+      return;
+    }
+    const key = `${SPECIAL_DAY_DISMISS_PREFIX}-${todaySpecial.date}`;
+    setSpecialDayDismissed(window.sessionStorage.getItem(key) === '1');
+  }, [todaySpecial]);
+
+  const dismissSpecialDayNotice = useCallback(() => {
+    if (todaySpecial) {
+      window.sessionStorage.setItem(`${SPECIAL_DAY_DISMISS_PREFIX}-${todaySpecial.date}`, '1');
+    }
+    setSpecialDayDismissed(true);
+  }, [todaySpecial]);
 
   useEffect(() => {
     if (!isScheduled) return;
@@ -809,6 +782,7 @@ function OrderContent() {
         SCHEDULE_TIME_REQUIRED: t.orderErrScheduleRequired,
         SCHEDULE_TIME_INVALID: t.orderErrScheduleInvalid,
         SCHEDULE_TIME_TOO_SOON: t.orderErrScheduleTooSoon,
+        KITCHEN_CLOSED: t.orderErrKitchenClosed,
       };
       return (code && byCode[code]) || fallback || t.orderErrGeneric;
     },
@@ -1856,6 +1830,23 @@ function OrderContent() {
           theme="order"
         />
       )}
+      {specialDayNote && !specialDayDismissed ? (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-ming-ink/80 backdrop-blur-[2px]"
+            onClick={dismissSpecialDayNotice}
+            aria-label={t.orderSpecialDayNoticeDismiss}
+          />
+          <div className="ming-card-raised relative w-full max-w-md p-5">
+            <p className="ming-eyebrow">{t.orderSpecialDayNoticeTitle}</p>
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ming-bone">{specialDayNote}</p>
+            <button type="button" className="ming-btn-primary mt-5 w-full py-3" onClick={dismissSpecialDayNotice}>
+              {t.orderSpecialDayNoticeDismiss}
+            </button>
+          </div>
+        </div>
+      ) : null}
       {upsellPromptProduct ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <button

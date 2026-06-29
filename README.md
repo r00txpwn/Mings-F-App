@@ -2,22 +2,73 @@ Mings-F-App
 
 ## Local production preview
 
-**One command (build + serve production bundle):**
+**Staff bundle (cockpit, KDS, order-manager):**
 
 ```bash
 npm run deploy:local
 ```
 
-Runs `npm run build`, writes **`dist/build-meta.json`** (git HEAD + timestamp), then `vite preview` on **127.0.0.1:4175** with strict port enforcement.
-If `4175` is busy, stop the existing preview process first (do not start a second instance on another port).
+Serves **`dist-staff/`** on **http://127.0.0.1:4175/** — cockpit at **`/spec-ops`**. Stops any process already on port **4175** first (`--strictPort`; no fallback port).
 
-**QA / second-pass checks:** always run `deploy:local` from the **repo root** after pulling the commit under test. Before testing in the browser, open **`http://127.0.0.1:4175/build-meta.json`** and confirm `gitSha` matches `git rev-parse HEAD` in the same terminal — if it does not, you are still looking at an old `dist/` (wrong directory, skipped build, or a preview started with `vite preview` only).
+**Staff bundle on the LAN (access from other devices):**
 
-**Cockpit on local preview:** the admin app is served at **`http://127.0.0.1:4175/spec-ops`** by default (`VITE_ADMIN_APP_PATH` overrides). Deep links such as Order Support use **`/spec-ops?screen=order-support`**, not `/?screen=order-support` (root is not the cockpit on path-based localhost).
+```bash
+npm run deploy:local:lan
+```
+
+Same single-port (**4175**), single-instance build, but binds to **`0.0.0.0`** so other devices on the same network can open it. The command prints both a **hostname URL** and the detected **IP URL**:
+
+- **Stable (recommended):** `http://<PC-NAME>:4175/` — survives router/DHCP IP changes, so it stays the same over time.
+- **By IP:** `http://<your-lan-ip>:4175/` — works but the IP can change when the DHCP lease renews.
+
+For a permanently fixed IP, set a **DHCP reservation** on your router for this PC. If a device cannot connect, allow inbound TCP **4175** in Windows Firewall (one-time):
+
+```powershell
+New-NetFirewallRule -DisplayName "Mings local preview 4175" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 4175
+```
+
+> LAN access is more reliable than a public tunnel (no third-party server to drop the connection), but both devices must be on the **same network**.
+
+**Remote access from any network (public tunnel via ngrok):**
+
+```bash
+npm run tunnel:ngrok
+```
+
+Exposes the local preview at a **fixed** public URL that never changes:
+
+- **Cockpit:** `https://putt-context-lazily.ngrok-free.dev/spec-ops?screen=home`
+
+Keep both the app (`npm run deploy:local:lan` or `deploy:local`) **and** the tunnel running. Notes:
+
+- One-time setup: install ngrok, then `ngrok config add-authtoken <token>` (token is **not** stored in the repo). Domain is set in [`scripts/tunnel-ngrok.mjs`](scripts/tunnel-ngrok.mjs) via `NGROK_DOMAIN` (default `putt-context-lazily.ngrok-free.dev`).
+- Only run **one** tunnel at a time — ngrok rejects a second connection to the same domain (`ERR_NGROK_334`), which also confirms a tunnel is already live.
+- First visit may show a one-click ngrok **“Visit Site”** page (normal; no password).
+- This replaces the old localtunnel flow (`npm run tunnel`), which cycled random URLs and is no longer the preferred path.
+
+**Dev (hot reload):**
+
+```bash
+npm run dev:staff
+```
+
+**http://127.0.0.1:5173/spec-ops** — also kills port **5173** before start.
+
+**Storefront bundle (customer order + track):**
+
+```bash
+npm run deploy:local:storefront
+```
+
+Serves **`dist-storefront/`** on **http://127.0.0.1:4176/** — menu at **`/order`** or **`/`** on order host. Stops any process on **4176** first.
+
+**Dev:** `npm run dev:storefront` → **http://127.0.0.1:5174/order**
+
+Each build writes **`build-meta.json`** with `gitSha` and `buildTarget`. Confirm SHA before QA.
 
 ## Deploy
 
-See **[DEPLOY.md](DEPLOY.md)** for Vercel/Netlify/Supabase CLI steps. Production build: `npm run build` → `dist/`.
+See **[DEPLOY.md](DEPLOY.md)** for the **two-project** Vercel split (`order.mings.az` + `sp.mings.az`). Builds: `npm run build:staff` / `npm run build:storefront`.
 
 ## Auth basics (`/order` + staff)
 
@@ -36,12 +87,42 @@ See **[DEPLOY.md](DEPLOY.md)** for Vercel/Netlify/Supabase CLI steps. Production
 - PWA basics enabled (`/manifest.webmanifest` + service worker registration) for installability and offline fallback.
 - Delivery Control Center settings include editable kitchen coordinates, used by staff/order-tracking distance and ETA calculations.
 
+## Architecture
+
+- **Technical spec & architecture:** **[docs/TECHNICAL_SPEC_AND_ARCHITECTURE.md](docs/TECHNICAL_SPEC_AND_ARCHITECTURE.md)** — surfaces, data model, Edge Functions, deploy topology, security
+
 ## Feature docs
 
 - Combo deals: **[docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)**
 - Delivery journey: **[docs/DELIVERY_JOURNEY.md](docs/DELIVERY_JOURNEY.md)**
+- Payroll (Staff & Salaries): **[docs/TAXES_PAYROLL.md](docs/TAXES_PAYROLL.md)** — Taxes screen removed 2026-06-29; log tax as operational expenses
+- United Payment (card checkout): **[docs/UNITED_PAYMENT_INTEGRATION.md](docs/UNITED_PAYMENT_INTEGRATION.md)**
 - Kitchen hours / pause / soft-close: **[docs/KITCHEN_HOURS.md](docs/KITCHEN_HOURS.md)**
 - Reliability / manual QA focus: **[docs/RELIABILITY_QA_PRIORITIES.md](docs/RELIABILITY_QA_PRIORITIES.md)**
+- Automated test plan (living spec): **[docs/TEST_PLAN.md](docs/TEST_PLAN.md)** — gaps diffed by `npm run qa:plan` and included in `npm run qa` reports
+
+## Testing workflow
+
+**PR gate (required):** GitHub Actions [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request and push to `main`:
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build:staff`
+- `npm test`
+
+**On demand (full QA + report):**
+
+```bash
+npm run qa          # gates + test-plan diff → docs/QA_STATUS.md
+npm run qa:plan     # advisory: diff TEST_PLAN.md vs repo only
+npm run test:e2e    # Playwright smoke (local preview on 4175/4176)
+```
+
+**Scheduled:** [`.github/workflows/qa-agent.yml`](.github/workflows/qa-agent.yml) runs twice daily — full build, E2E, AI analysis, updates `docs/QA_STATUS.md`.
+
+**Cursor:** say **"test initiate"** for desktop + mobile smoke per `.cursor/rules/test-initiate-web-desktop-mobile.mdc`.
+
+Edit **[docs/TEST_PLAN.md](docs/TEST_PLAN.md)** when adding scope; check boxes only after real tests land. Do not edit **[docs/QA_STATUS.md](docs/QA_STATUS.md)** by hand.
 
 ## Issue loop tooling
 

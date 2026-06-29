@@ -1,10 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Globe, Trash2, Plus, Check, Moon, Sun, Store, AlertCircle } from 'lucide-react';
+import { Globe, Trash2, Plus, Check, Moon, Sun, Store, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Language } from '../translations';
 import { supabase } from '../lib/supabase';
+import { adminInsert, adminUpdate } from '../lib/adminApi';
+import {
+  canToggleSalesChannelActive,
+  dedupeSalesChannelsForDisplay,
+  isDeletableSalesChannel,
+  isProtectedSalesChannel,
+  isProtectedSalesChannelName,
+} from '../lib/salesChannelPolicy';
 import { PageHeader } from '../components/cockpit';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 interface SalesChannel {
   id: string;
@@ -12,18 +22,22 @@ interface SalesChannel {
   description: string;
   logo_url?: string;
   is_active: boolean;
+  is_deleted?: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export function SettingsScreen() {
   const { t, language, setLanguage } = useLanguage();
+  const toast = useToast();
   const { theme, toggleTheme } = useTheme();
   const [salesChannels, setSalesChannels] = useState<SalesChannel[]>([]);
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelDescription, setNewChannelDescription] = useState('');
-  const [showChannelSuccess, setShowChannelSuccess] = useState(false);
-  const [deleteChannelConfirm, setDeleteChannelConfirm] = useState<string | null>(null);
+  const [addingChannel, setAddingChannel] = useState(false);
+  const [deleteChannelConfirm, setDeleteChannelConfirm] = useState<SalesChannel | null>(null);
+  const [deleteChannelError, setDeleteChannelError] = useState<string | null>(null);
+  const [deleteChannelLoading, setDeleteChannelLoading] = useState(false);
 
   const languageNames: Record<Language, Record<Language, string>> = {
     en: { en: 'English', az: 'Azerbaijani', ru: 'Russian' },
@@ -54,110 +68,154 @@ export function SettingsScreen() {
       if (language === 'ru') return 'Платформа доставки еды';
       return base;
     }
+    if (base === 'In-store point of sale') {
+      if (language === 'az') return 'Mağaza daxili satış nöqtəsi (POS)';
+      if (language === 'ru') return 'Касса в зале (POS)';
+      return base;
+    }
+    if (base === 'In-store self-service kiosk') {
+      if (language === 'az') return 'Mağaza daxili self-servis kiosk';
+      if (language === 'ru') return 'Киоск самообслуживания в зале';
+      return base;
+    }
+    if (base === 'Website and mobile ordering') {
+      if (language === 'az') return 'Vebsayt və mobil sifariş';
+      if (language === 'ru') return 'Сайт и мобильные заказы';
+      return base;
+    }
     return base;
   };
 
   useEffect(() => {
-    fetchSalesChannels();
+    void fetchSalesChannels();
   }, []);
 
   const fetchSalesChannels = async () => {
-    const { data, error } = await supabase
+    const primary = await supabase
       .from('sales_channels')
       .select('*')
+      .eq('is_deleted', false)
       .order('name', { ascending: true });
 
-    if (data && !error) {
-      setSalesChannels(data);
+    if (primary.error?.message?.includes('is_deleted')) {
+      const fallback = await supabase.from('sales_channels').select('*').order('name', { ascending: true });
+      if (fallback.data && !fallback.error) {
+        setSalesChannels(dedupeSalesChannelsForDisplay(fallback.data));
+      }
+      return;
+    }
+
+    if (primary.error) {
+      console.error('Error loading sales channels:', primary.error.message);
+      return;
+    }
+
+    if (primary.data) {
+      setSalesChannels(dedupeSalesChannelsForDisplay(primary.data));
     }
   };
 
   const handleAddSalesChannel = async () => {
-    if (!newChannelName.trim()) return;
+    if (!newChannelName.trim() || addingChannel) return;
 
-    const { error } = await supabase
-      .from('sales_channels')
-      .insert([
-        {
-          name: newChannelName.trim(),
-          description: newChannelDescription.trim() || 'Sales channel',
-          is_active: true
-        }
-      ]);
+    if (isProtectedSalesChannelName(newChannelName.trim())) {
+      toast.error(t.salesChannelProtectedError);
+      return;
+    }
 
-    if (error) {
-      console.error('Error adding sales channel:', error);
-      alert(`Error adding sales channel: ${error.message}`);
+    setAddingChannel(true);
+    const result = await adminInsert('sales_channels', {
+      name: newChannelName.trim(),
+      description: newChannelDescription.trim() || 'Sales channel',
+      is_active: true,
+      is_deleted: false,
+    });
+    setAddingChannel(false);
+
+    if (!result.ok) {
+      console.error('Error adding sales channel:', result.error);
+      toast.error(result.error ?? t.errorOccurred);
       return;
     }
 
     setNewChannelName('');
     setNewChannelDescription('');
-    setShowChannelSuccess(true);
-    setTimeout(() => setShowChannelSuccess(false), 3000);
-    fetchSalesChannels();
+    toast.success(t.savedSuccessfully);
+    void fetchSalesChannels();
   };
 
-  const handleToggleSalesChannel = async (id: string, currentStatus: boolean) => {
-    const { error } = await supabase
-      .from('sales_channels')
-      .update({ is_active: !currentStatus })
-      .eq('id', id);
+  const handleToggleSalesChannel = async (channel: SalesChannel) => {
+    if (!canToggleSalesChannelActive(channel)) {
+      toast.error(t.salesChannelProtectedError);
+      return;
+    }
 
-    if (!error) {
-      fetchSalesChannels();
+    const result = await adminUpdate('sales_channels', channel.id, { is_active: !channel.is_active });
+
+    if (result.ok) {
+      void fetchSalesChannels();
+    } else {
+      toast.error(result.error ?? t.errorOccurred);
     }
   };
 
-  const handleDeleteSalesChannel = async (id: string) => {
-    const { error } = await supabase
-      .from('sales_channels')
-      .delete()
-      .eq('id', id);
+  const handleDeleteSalesChannel = async () => {
+    if (!deleteChannelConfirm) return;
 
-    if (!error) {
+    if (!isDeletableSalesChannel(deleteChannelConfirm)) {
+      setDeleteChannelError(t.salesChannelProtectedError);
+      return;
+    }
+
+    const channelId = deleteChannelConfirm.id;
+    const previousChannels = salesChannels;
+
+    setDeleteChannelLoading(true);
+    setDeleteChannelError(null);
+    setSalesChannels((prev) => prev.filter((ch) => ch.id !== channelId));
+
+    const result = await adminUpdate('sales_channels', channelId, {
+      is_deleted: true,
+      is_active: false,
+    });
+
+    setDeleteChannelLoading(false);
+
+    if (result.ok) {
       setDeleteChannelConfirm(null);
-      fetchSalesChannels();
+      toast.success(t.channelRemovedSuccess);
+      void fetchSalesChannels();
+      return;
     }
+
+    setSalesChannels(previousChannels);
+    setDeleteChannelError(result.error ?? t.deleteChannelError);
   };
 
   return (
     <div className="animate-fadeIn">
-      {deleteChannelConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm dark:bg-black/70">
-          <div className="cockpit-panel-solid max-w-md w-full animate-scaleIn p-6 shadow-2xl">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-rose-500/15">
-                <AlertCircle className="h-6 w-6 text-rose-600 dark:text-rose-400" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="mb-2 text-lg font-bold text-slate-900 dark:text-white">
-                  {t.confirm}
-                </h3>
-                <p className="mb-6 text-slate-600 dark:text-slate-400">
-                  {t.delete}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteSalesChannel(deleteChannelConfirm)}
-                    className="flex-1 rounded-xl bg-rose-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-rose-700"
-                  >
-                    {t.yes}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteChannelConfirm(null)}
-                    className="cockpit-btn-ghost flex-1 justify-center"
-                  >
-                    {t.no}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={Boolean(deleteChannelConfirm)}
+        title={t.deleteChannelConfirmTitle}
+        message={
+          deleteChannelConfirm
+            ? t.deleteChannelConfirmMessage.replace('{name}', deleteChannelConfirm.name)
+            : ''
+        }
+        confirmLabel={t.delete}
+        cancelLabel={t.cancel}
+        tone="danger"
+        confirmLoading={deleteChannelLoading}
+        confirmLoadingLabel={t.pleaseWait}
+        errorMessage={deleteChannelError}
+        disableClose={deleteChannelLoading}
+        onConfirm={() => void handleDeleteSalesChannel()}
+        onCancel={() => {
+          if (deleteChannelLoading) return;
+          setDeleteChannelConfirm(null);
+          setDeleteChannelError(null);
+        }}
+      />
 
       <PageHeader eyebrow={t.system} title={t.settings} description={t.applicationPreferences} icon={Globe} />
 
@@ -175,7 +233,7 @@ export function SettingsScreen() {
                 onClick={() => setLanguage(lang.code)}
                 className={`w-full rounded-xl p-4 text-left font-medium shadow-sm transition-all hover:shadow-md ${
                   language === lang.code
-                    ? 'scale-[1.02] bg-gradient-to-r from-cockpit-600 to-cockpit-700 text-white shadow-lg shadow-cockpit-500/25'
+                    ? 'scale-[1.02] bg-cockpit-600 text-white shadow-lg shadow-cockpit-500/25'
                     : 'bg-slate-50 text-slate-900 hover:bg-slate-100 dark:bg-slate-800/80 dark:text-white dark:hover:bg-slate-800'
                 }`}
               >
@@ -184,18 +242,16 @@ export function SettingsScreen() {
                     <span className="text-2xl">{lang.flag}</span>
                     <span>{lang.name}</span>
                   </div>
-                  {language === lang.code && (
-                    <Check className="w-5 h-5" />
-                  )}
+                  {language === lang.code ? <Check className="h-5 w-5" /> : null}
                 </div>
               </button>
             ))}
           </div>
 
-          <div className="border-t border-white/10 pt-5 dark:border-white/5">
+          <div className="border-t border-slate-200 pt-5 dark:border-slate-700">
             <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-slate-100">
               {theme === 'dark' ? <Moon className="h-5 w-5 text-slate-400" /> : <Sun className="h-5 w-5 text-amber-500" />}
-              {t.theme}
+              {t.settingsAppearance}
             </h3>
             <button
               type="button"
@@ -204,11 +260,7 @@ export function SettingsScreen() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {theme === 'dark' ? (
-                    <Moon className="h-5 w-5" />
-                  ) : (
-                    <Sun className="h-5 w-5" />
-                  )}
+                  {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
                   <span>{theme === 'dark' ? t.darkMode : t.lightMode}</span>
                 </div>
                 <div className={`relative h-6 w-12 rounded-full transition-colors ${theme === 'dark' ? 'bg-cockpit-600' : 'bg-slate-300'}`}>
@@ -224,13 +276,6 @@ export function SettingsScreen() {
             <Store className="h-5 w-5 text-cockpit-600 dark:text-cockpit-400" />
             {t.salesChannels}
           </h2>
-
-          {showChannelSuccess && (
-            <div className="cockpit-alert-success mb-5 animate-scaleIn">
-              <Check className="h-5 w-5 shrink-0 text-emerald-800 dark:text-emerald-100" />
-              <span>{t.savedSuccessfully}</span>
-            </div>
-          )}
 
           <div className="mb-5 space-y-3">
             <input
@@ -251,28 +296,31 @@ export function SettingsScreen() {
 
             <button
               type="button"
-              onClick={handleAddSalesChannel}
-              disabled={!newChannelName.trim()}
+              onClick={() => void handleAddSalesChannel()}
+              disabled={!newChannelName.trim() || addingChannel}
               className="cockpit-btn-primary w-full justify-center disabled:opacity-40"
             >
-              <Plus className="h-5 w-5" />
+              {addingChannel ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
               {t.addChannel}
             </button>
           </div>
 
-          <div className="border-t border-white/10 pt-5 dark:border-white/5">
+          <div className="border-t border-slate-200 pt-5 dark:border-slate-700">
             <h3 className="mb-3 text-base font-bold text-slate-700 dark:text-slate-300">{t.activeChannels}</h3>
             <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
               {salesChannels.length === 0 ? (
                 <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">{t.noDataForPeriod}</p>
               ) : (
-                salesChannels.map((channel) => (
+                salesChannels.map((channel) => {
+                  const protectedChannel = isProtectedSalesChannel(channel);
+                  const deletable = isDeletableSalesChannel(channel);
+                  return (
                   <div
                     key={channel.id}
                     className={`flex items-center justify-between rounded-lg border p-3 transition-all ${
                       channel.is_active
                         ? 'border-cockpit-500/30 bg-cockpit-500/5 hover:bg-cockpit-500/10'
-                        : 'border-slate-200 bg-slate-50/80 opacity-60 dark:border-white/5 dark:bg-slate-900/40'
+                        : 'border-slate-200 bg-slate-50/80 opacity-60 dark:border-slate-700 dark:bg-slate-900/40'
                     }`}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -282,33 +330,53 @@ export function SettingsScreen() {
                         <Store className="h-5 w-5 shrink-0 text-cockpit-600 dark:text-cockpit-400" />
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{channel.name}</p>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{channel.name}</p>
+                          {protectedChannel ? (
+                            <span className="shrink-0 rounded-md bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                              {t.systemSalesChannel}
+                            </span>
+                          ) : null}
+                        </div>
                         <p className="truncate text-xs text-slate-600 dark:text-slate-400">{localizeChannelDescription(channel)}</p>
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleSalesChannel(channel.id, channel.is_active)}
-                        className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                          channel.is_active
-                            ? 'bg-cockpit-600 text-white hover:bg-cockpit-700'
-                            : 'bg-slate-300 text-slate-700 hover:bg-slate-400 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500'
-                        }`}
-                      >
-                        {channel.is_active ? t.active : t.inactive}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteChannelConfirm(channel.id)}
-                        className="rounded-md p-1.5 text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
-                        title={t.delete}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {canToggleSalesChannelActive(channel) ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleToggleSalesChannel(channel)}
+                          className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                            channel.is_active
+                              ? 'bg-cockpit-600 text-white hover:bg-cockpit-700'
+                              : 'bg-slate-300 text-slate-700 hover:bg-slate-400 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500'
+                          }`}
+                        >
+                          {channel.is_active ? t.active : t.inactive}
+                        </button>
+                      ) : (
+                        <span className="rounded-md bg-cockpit-600 px-2.5 py-1 text-xs font-semibold text-white">
+                          {t.active}
+                        </span>
+                      )}
+                      {deletable ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteChannelError(null);
+                            setDeleteChannelConfirm(channel);
+                          }}
+                          className="rounded-md p-1.5 text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
+                          title={t.delete}
+                          aria-label={`${t.delete} ${channel.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

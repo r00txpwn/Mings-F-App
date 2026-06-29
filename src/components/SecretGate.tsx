@@ -6,6 +6,13 @@ interface SecretGateProps {
   children: React.ReactNode;
 }
 
+/** Read ?key= from the URL; restore '+' (query strings encode spaces as +). */
+function readGateKeyFromUrl(): string {
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get('key') ?? '';
+  return raw.replace(/ /g, '+');
+}
+
 export function SecretGate({ secretKey, children }: SecretGateProps) {
   const [authorized, setAuthorized] = useState(false);
   const [checked, setChecked] = useState(false);
@@ -18,8 +25,7 @@ export function SecretGate({ secretKey, children }: SecretGateProps) {
       setChecked(true);
       return;
     }
-    const params = new URLSearchParams(window.location.search);
-    const key = params.get('key') ?? '';
+    const key = readGateKeyFromUrl();
     setAuthorized(key === required);
     setChecked(true);
   }, [secretKey]);

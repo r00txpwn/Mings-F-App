@@ -1,16 +1,22 @@
 # Run from repo root after: npx supabase@latest login && npx supabase@latest link
-# Marks REMOTE-ONLY migration records as "reverted" so they no longer conflict with local files.
-# Your database schema is unchanged — only the history table is fixed.
+# Marks REMOTE-ONLY migration records as "reverted" (versions with NO file in supabase/migrations).
+# Does NOT touch local migration IDs — reverting those causes "insert before last migration" / --include-all traps.
+# Schema is unchanged; only supabase_migrations history is updated.
 
 $orphans = @(
-  '20260109092518','20260109114111','20260109115610','20260109125611','20260109125652',
-  '20260109130841','20260109130857','20260109135107','20260109140037','20260111090552',
-  '20260129132659','20260129140936','20260131131918','20260131133116','20260131144024',
-  '20260214150336','20260214150414','20260214152949','20260226085127','20260226085137',
-  '20260226094917','20260226101729','20260307134418','20260307134421','20260307134713'
+  # No local file — remote history only
+  '20260109092518',
+  '20260214150414',
+  '20260307134418',
+  '20260307134421',
+  # dmrvycswdteuhfydchdr — applied via Dashboard/MCP/other branch (2026-06-18)
+  '20260426185945','20260427165528','20260428113335','20260428113345','20260428113354',
+  '20260428113407','20260428113416','20260428141858','20260428142121','20260428193000',
+  '20260428200000','20260615111226'
 )
 
-Write-Host 'Repairing remote migration history (orphan versions -> reverted)...' -ForegroundColor Cyan
+Write-Host 'Repairing remote-only orphan versions (-> reverted)...' -ForegroundColor Cyan
 npx --yes supabase@latest migration repair --status reverted @orphans
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-Write-Host 'Done. Next: npm run supabase:push' -ForegroundColor Green
+Write-Host 'Done. If push asks for --include-all, run: npm run supabase:mark:history-gaps:ps' -ForegroundColor Green
+Write-Host 'Then: npm run supabase:push' -ForegroundColor Green

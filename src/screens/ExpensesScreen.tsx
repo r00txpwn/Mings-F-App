@@ -1,13 +1,23 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Settings2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
+import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { ExpensesSummaryBar } from './expenses/ExpensesSummaryBar';
 import { CategoryGroupedView } from './expenses/CategoryGroupedView';
 import { ManageCategoriesTab } from './expenses/ManageCategoriesTab';
 import { PageHeader } from '../components/cockpit';
+import { displayName, isTestRecord } from '../lib/displayName';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { SingleDatePicker } from '../components/SingleDatePicker';
+import { isOnCreditFromPurchase, purchaseCreditFields } from '../services/finance/purchaseCredit';
+import {
+  BANK_TRANSFER_PAYMENT_METHOD,
+  CARD_PAYMENT_METHOD,
+  CASH_PAYMENT_METHOD,
+} from '../lib/cashPayment';
 
 interface MasterCategory {
   id: string;
@@ -48,6 +58,8 @@ interface Purchase {
   total_cost: number;
   purchase_date: string;
   payment_status: 'pending' | 'partial' | 'paid';
+  is_on_credit?: boolean;
+  payment_method?: string | null;
   notes: string;
   products?: { name: string; unit: string };
   suppliers?: { name: string };
@@ -68,6 +80,58 @@ type PurchasePriceSuggestion = {
   purchase_date: string;
 };
 
+type InlineItemDraft = {
+  open: boolean;
+  name: string;
+  categoryId: string;
+  makeNewCategory: boolean;
+  newCategoryName: string;
+  newCategoryColor: string;
+  saving: boolean;
+  error: string | null;
+};
+
+type InlineSupplierDraft = {
+  open: boolean;
+  name: string;
+  saving: boolean;
+  error: string | null;
+};
+
+type InlineCategoryDraft = {
+  open: boolean;
+  name: string;
+  color: string;
+  saving: boolean;
+  error: string | null;
+};
+
+const defaultInlineItemDraft = (defaultColor: string): InlineItemDraft => ({
+  open: false,
+  name: '',
+  categoryId: '',
+  makeNewCategory: false,
+  newCategoryName: '',
+  newCategoryColor: defaultColor,
+  saving: false,
+  error: null,
+});
+
+const defaultInlineSupplierDraft = (): InlineSupplierDraft => ({
+  open: false,
+  name: '',
+  saving: false,
+  error: null,
+});
+
+const defaultInlineCategoryDraft = (defaultColor: string): InlineCategoryDraft => ({
+  open: false,
+  name: '',
+  color: defaultColor,
+  saving: false,
+  error: null,
+});
+
 const toLocalDateInput = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -84,6 +148,7 @@ const getCurrentMonthRange = () => {
 
 export function ExpensesScreen() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('operational');
   const [loading, setLoading] = useState(true);
 
@@ -100,6 +165,21 @@ export function ExpensesScreen() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState(() => getCurrentMonthRange());
+
+  const [savingExpense, setSavingExpense] = useState(false);
+  const [savingPurchase, setSavingPurchase] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [expenseFormError, setExpenseFormError] = useState<string | null>(null);
+  const [purchaseFormError, setPurchaseFormError] = useState<string | null>(null);
+  const toast = useToast();
+
+  const flashSuccess = (message: string) => {
+    toast.success(message);
+  };
+
+  const flashError = (message: string) => {
+    toast.error(message);
+  };
 
   useEffect(() => {
     loadAllData(true);
@@ -127,6 +207,7 @@ export function ExpensesScreen() {
   const cogsCategories = categories.filter(c => c.type === 'purchase');
 
   const filteredExpenses = expenses.filter(e => {
+    if (isTestRecord(e.description) || isTestRecord(e.expense_items?.name)) return false;
     const dateOk = e.expense_date >= dateFilter.start && e.expense_date <= dateFilter.end;
     if (!dateOk) return false;
     if (!searchTerm) return true;
@@ -139,6 +220,7 @@ export function ExpensesScreen() {
   });
 
   const filteredPurchases = purchases.filter(p => {
+    if (isTestRecord(p.notes) || isTestRecord(p.products?.name) || isTestRecord(p.suppliers?.name)) return false;
     const d = p.purchase_date.split('T')[0];
     const dateOk = d >= dateFilter.start && d <= dateFilter.end;
     if (!dateOk) return false;
@@ -179,9 +261,9 @@ export function ExpensesScreen() {
       items: catExpenses.map(e => ({
         id: e.id,
         date: e.expense_date,
-        subItemName: e.expense_items?.name || '',
+        subItemName: displayName(e.expense_items?.name, t.cockpitTestRecordLabel),
         amount: Number(e.amount),
-        description: e.description,
+        description: displayName(e.description, t.cockpitTestRecordLabel),
         paymentMethod: e.payment_method,
       })),
     };
@@ -197,9 +279,9 @@ export function ExpensesScreen() {
       items: uncategorizedExpenses.map(e => ({
         id: e.id,
         date: e.expense_date,
-        subItemName: e.expense_items?.name || '',
+        subItemName: displayName(e.expense_items?.name, t.cockpitTestRecordLabel),
         amount: Number(e.amount),
-        description: e.description,
+        description: displayName(e.description, t.cockpitTestRecordLabel),
         paymentMethod: e.payment_method,
       })),
     });
@@ -215,11 +297,11 @@ export function ExpensesScreen() {
       items: catPurchases.map(p => ({
         id: p.id,
         date: p.purchase_date,
-        subItemName: p.expense_items?.name || p.products?.name || '',
+        subItemName: displayName(p.expense_items?.name || p.products?.name, t.cockpitTestRecordLabel),
         amount: Number(p.total_cost),
-        description: p.notes,
-        productName: p.products?.name,
-        supplierName: p.suppliers?.name,
+        description: displayName(p.notes, t.cockpitTestRecordLabel),
+        productName: displayName(p.products?.name, t.cockpitTestRecordLabel),
+        supplierName: displayName(p.suppliers?.name, t.cockpitTestRecordLabel),
         quantity: p.quantity,
         unitCost: p.unit_cost,
         paymentStatus: p.payment_status,
@@ -237,11 +319,11 @@ export function ExpensesScreen() {
       items: uncategorizedPurchases.map(p => ({
         id: p.id,
         date: p.purchase_date,
-        subItemName: p.expense_items?.name || p.products?.name || '',
+        subItemName: displayName(p.expense_items?.name || p.products?.name, t.cockpitTestRecordLabel),
         amount: Number(p.total_cost),
-        description: p.notes,
-        productName: p.products?.name,
-        supplierName: p.suppliers?.name,
+        description: displayName(p.notes, t.cockpitTestRecordLabel),
+        productName: displayName(p.products?.name, t.cockpitTestRecordLabel),
+        supplierName: displayName(p.suppliers?.name, t.cockpitTestRecordLabel),
         quantity: p.quantity,
         unitCost: p.unit_cost,
         paymentStatus: p.payment_status,
@@ -252,12 +334,13 @@ export function ExpensesScreen() {
   const handleEditExpense = (id: string) => {
     const exp = expenses.find(e => e.id === id);
     if (exp) {
+      setExpenseFormError(null);
       setEditingExpense(exp);
       setExpenseFormData({
         master_category_id: exp.master_category_id || '',
         expense_item_id: exp.expense_item_id || '',
         amount: exp.amount,
-        expense_date: exp.expense_date,
+        expense_date: exp.expense_date.split('T')[0],
         payment_method: exp.payment_method || '',
         description: exp.description || '',
       });
@@ -266,13 +349,25 @@ export function ExpensesScreen() {
   };
 
   const handleDeleteExpense = async (id: string) => {
-    await supabase.from('operational_expenses').delete().eq('id', id);
+    if (deletingId) return;
+    setDeletingId(id);
+
+    const result = await adminDelete('operational_expenses', id);
+    setDeletingId(null);
+
+    if (!result.ok) {
+      flashError(result.error ?? t.errorOccurred);
+      return;
+    }
+
     await loadAllData();
+    flashSuccess(t.deletedSuccessfully);
   };
 
   const handleEditPurchase = (id: string) => {
     const pur = purchases.find(p => p.id === id);
     if (pur) {
+      setPurchaseFormError(null);
       setEditingPurchase(pur);
       setPurchaseFormData({
         expense_item_id: pur.expense_item_id || '',
@@ -281,7 +376,8 @@ export function ExpensesScreen() {
         quantity: pur.quantity,
         unit_cost: pur.unit_cost,
         purchase_date: new Date(pur.purchase_date).toISOString().split('T')[0],
-        payment_status: pur.payment_status,
+        is_on_credit: isOnCreditFromPurchase(pur),
+        payment_method: pur.payment_method || CASH_PAYMENT_METHOD,
         notes: pur.notes || '',
       });
       setShowPurchaseForm(true);
@@ -289,10 +385,21 @@ export function ExpensesScreen() {
   };
 
   const handleDeletePurchase = async (id: string) => {
+    if (deletingId) return;
     const purchase = purchases.find(p => p.id === id);
-    await supabase.from('purchases').delete().eq('id', id);
+    setDeletingId(id);
+
+    const result = await adminDelete('purchases', id);
+    if (!result.ok) {
+      setDeletingId(null);
+      flashError(result.error ?? t.errorOccurred);
+      return;
+    }
+
     await reconcileProductStock(purchase?.product_id, -(Number(purchase?.quantity) || 0));
+    setDeletingId(null);
     await loadAllData();
+    flashSuccess(t.deletedSuccessfully);
   };
 
   const [expenseFormData, setExpenseFormData] = useState({
@@ -300,7 +407,7 @@ export function ExpensesScreen() {
     expense_item_id: '',
     amount: 0,
     expense_date: new Date().toISOString().split('T')[0],
-    payment_method: '',
+    payment_method: CASH_PAYMENT_METHOD,
     description: '',
   });
 
@@ -311,7 +418,8 @@ export function ExpensesScreen() {
     quantity: 1,
     unit_cost: 0,
     purchase_date: new Date().toISOString().split('T')[0],
-    payment_status: 'pending' as 'pending' | 'partial' | 'paid',
+    is_on_credit: true,
+    payment_method: CASH_PAYMENT_METHOD,
     notes: '',
   });
 
@@ -323,15 +431,22 @@ export function ExpensesScreen() {
   const [cogsItemSearchText, setCogsItemSearchText] = useState('');
   const cogsItemDropdownRef = useRef<HTMLDivElement>(null);
 
+  const [inlineExpenseItem, setInlineExpenseItem] = useState<InlineItemDraft>(() => defaultInlineItemDraft('#F97316'));
+  const [inlineCogsItem, setInlineCogsItem] = useState<InlineItemDraft>(() => defaultInlineItemDraft('#3B82F6'));
+  const [inlineSupplier, setInlineSupplier] = useState<InlineSupplierDraft>(defaultInlineSupplierDraft);
+  const [inlineCategory, setInlineCategory] = useState<InlineCategoryDraft>(() => defaultInlineCategoryDraft('#F97316'));
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (itemDropdownRef.current && !itemDropdownRef.current.contains(event.target as Node)) {
         setIsItemDropdownOpen(false);
         setItemSearchText('');
+        setInlineExpenseItem(defaultInlineItemDraft('#F97316'));
       }
       if (cogsItemDropdownRef.current && !cogsItemDropdownRef.current.contains(event.target as Node)) {
         setIsCogsItemDropdownOpen(false);
         setCogsItemSearchText('');
+        setInlineCogsItem(defaultInlineItemDraft('#3B82F6'));
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -406,6 +521,7 @@ export function ExpensesScreen() {
     }
     setIsItemDropdownOpen(false);
     setItemSearchText('');
+    setInlineExpenseItem(defaultInlineItemDraft('#F97316'));
   };
 
   const handleSelectCogsItem = (itemId: string) => {
@@ -419,10 +535,322 @@ export function ExpensesScreen() {
     }
     setIsCogsItemDropdownOpen(false);
     setCogsItemSearchText('');
+    setInlineCogsItem(defaultInlineItemDraft('#3B82F6'));
+  };
+
+  const createInlineItem = async (kind: 'expense' | 'purchase') => {
+    const draft = kind === 'expense' ? inlineExpenseItem : inlineCogsItem;
+    const setDraft = kind === 'expense' ? setInlineExpenseItem : setInlineCogsItem;
+    const defaultColor = kind === 'expense' ? '#F97316' : '#3B82F6';
+
+    if (!user || draft.saving) return;
+
+    const name = draft.name.trim();
+    if (!name) {
+      setDraft(prev => ({ ...prev, error: t.enterExpenseItemName }));
+      return;
+    }
+
+    let categoryId = draft.categoryId;
+    if (draft.makeNewCategory) {
+      const catName = draft.newCategoryName.trim();
+      if (!catName) {
+        setDraft(prev => ({ ...prev, error: t.categoryName }));
+        return;
+      }
+      setDraft(prev => ({ ...prev, saving: true, error: null }));
+      const catResult = await adminInsert<{ id: string }>('master_categories', {
+        name: catName,
+        description: '',
+        type: kind,
+        color: draft.newCategoryColor,
+        icon: 'circle',
+      });
+      if (!catResult.ok || !catResult.data?.id) {
+        const message = catResult.error ?? t.errorOccurred;
+        setDraft(prev => ({ ...prev, saving: false, error: message }));
+        flashError(message);
+        return;
+      }
+      categoryId = catResult.data.id;
+    } else if (!categoryId) {
+      setDraft(prev => ({ ...prev, error: t.selectCategory }));
+      return;
+    }
+
+    setDraft(prev => ({ ...prev, saving: true, error: null }));
+    const itemResult = await adminInsert<{ id: string; master_category_id: string }>('expense_items', {
+      name,
+      master_category_id: categoryId,
+      user_id: user.id,
+    });
+
+    if (!itemResult.ok || !itemResult.data?.id) {
+      const message = itemResult.error ?? t.errorOccurred;
+      setDraft(prev => ({ ...prev, saving: false, error: message }));
+      flashError(message);
+      return;
+    }
+
+    await loadAllData();
+
+    if (kind === 'expense') {
+      setExpenseFormData(prev => ({
+        ...prev,
+        expense_item_id: itemResult.data!.id,
+        master_category_id: categoryId,
+      }));
+      setIsItemDropdownOpen(false);
+      setItemSearchText('');
+      setInlineExpenseItem(defaultInlineItemDraft(defaultColor));
+    } else {
+      setPurchaseFormData(prev => ({
+        ...prev,
+        expense_item_id: itemResult.data!.id,
+        master_category_id: categoryId,
+      }));
+      setIsCogsItemDropdownOpen(false);
+      setCogsItemSearchText('');
+      setInlineCogsItem(defaultInlineItemDraft(defaultColor));
+    }
+
+    flashSuccess(t.savedSuccessfully);
+  };
+
+  const createInlineSupplier = async () => {
+    if (inlineSupplier.saving) return;
+
+    const name = inlineSupplier.name.trim();
+    if (!name) {
+      setInlineSupplier(prev => ({ ...prev, error: t.newSupplierName }));
+      return;
+    }
+
+    setInlineSupplier(prev => ({ ...prev, saving: true, error: null }));
+    const result = await adminInsert<{ id: string }>('suppliers', {
+      name,
+      contact_person: '',
+      email: '',
+      phone: '',
+      address: '',
+      notes: '',
+      is_active: true,
+    });
+
+    if (!result.ok || !result.data?.id) {
+      const message = result.error ?? t.errorOccurred;
+      setInlineSupplier(prev => ({ ...prev, saving: false, error: message }));
+      flashError(message);
+      return;
+    }
+
+    await loadAllData();
+    setPurchaseFormData(prev => ({ ...prev, supplier_id: result.data!.id }));
+    setInlineSupplier(defaultInlineSupplierDraft());
+    flashSuccess(t.savedSuccessfully);
+  };
+
+  const createInlineCategory = async () => {
+    if (inlineCategory.saving) return;
+
+    const name = inlineCategory.name.trim();
+    if (!name) {
+      setInlineCategory(prev => ({ ...prev, error: t.categoryName }));
+      return;
+    }
+
+    setInlineCategory(prev => ({ ...prev, saving: true, error: null }));
+    const result = await adminInsert<{ id: string }>('master_categories', {
+      name,
+      description: '',
+      type: 'expense',
+      color: inlineCategory.color,
+      icon: 'circle',
+    });
+
+    if (!result.ok || !result.data?.id) {
+      const message = result.error ?? t.errorOccurred;
+      setInlineCategory(prev => ({ ...prev, saving: false, error: message }));
+      flashError(message);
+      return;
+    }
+
+    await loadAllData();
+    setExpenseFormData(prev => ({ ...prev, master_category_id: result.data!.id }));
+    setInlineCategory(defaultInlineCategoryDraft('#F97316'));
+    flashSuccess(t.savedSuccessfully);
+  };
+
+  const renderInlineItemCreatePanel = (
+    kind: 'expense' | 'purchase',
+    draft: InlineItemDraft,
+    setDraft: React.Dispatch<React.SetStateAction<InlineItemDraft>>,
+    categoryOptions: MasterCategory[],
+    searchText: string,
+    defaultColor: string,
+  ) => {
+    const canSave = Boolean(
+      draft.name.trim() &&
+      (draft.makeNewCategory ? draft.newCategoryName.trim() : draft.categoryId),
+    );
+
+    if (!draft.open) {
+      return (
+        <div className="border-t border-gray-200 p-2 dark:border-gray-600">
+          <button
+            type="button"
+            onClick={() => setDraft(prev => ({
+              ...prev,
+              open: true,
+              name: searchText.trim() || prev.name,
+              categoryId: prev.categoryId || categoryOptions[0]?.id || '',
+              error: null,
+            }))}
+            className="flex w-full items-center gap-1 rounded-lg px-3 py-2 text-left text-sm font-medium text-violet-600 hover:bg-gray-50 dark:text-violet-400 dark:hover:bg-gray-700"
+          >
+            <Plus className="h-4 w-4 shrink-0" />
+            {t.createNamed.replace('{name}', searchText.trim() || t.newItem)}
+          </button>
+        </div>
+      );
+    }
+
+    const closePanel = () => {
+      if (draft.saving) return;
+      setDraft(defaultInlineItemDraft(defaultColor));
+    };
+
+    return (
+      <div
+        className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+        onMouseDown={closePanel}
+      >
+        <div
+          className="flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl dark:bg-gray-800 sm:max-w-md sm:rounded-2xl"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t.addNewExpenseItem}</h3>
+            <button
+              type="button"
+              onClick={closePanel}
+              disabled={draft.saving}
+              className="text-gray-400 hover:text-gray-600 disabled:opacity-50 dark:hover:text-gray-200"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="ming-scroll space-y-4 overflow-y-auto px-5 py-4">
+            {draft.error ? (
+              <div className="cockpit-alert-error text-sm">{draft.error}</div>
+            ) : null}
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200">{t.expenseItemName}</label>
+              <input
+                type="text"
+                placeholder={t.expenseItemName}
+                value={draft.name}
+                onChange={(e) => setDraft(prev => ({ ...prev, name: e.target.value, error: null }))}
+                className="cockpit-input w-full"
+                disabled={draft.saving}
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  {draft.makeNewCategory ? t.newCategory : t.assignToCategory}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setDraft(prev => ({
+                    ...prev,
+                    makeNewCategory: !prev.makeNewCategory,
+                    error: null,
+                    categoryId: prev.makeNewCategory ? (categoryOptions[0]?.id ?? '') : prev.categoryId,
+                  }))}
+                  className="text-xs font-medium text-violet-600 hover:underline disabled:opacity-50 dark:text-violet-400"
+                  disabled={draft.saving}
+                >
+                  {draft.makeNewCategory ? t.selectCategory : `+ ${t.newCategory}`}
+                </button>
+              </div>
+
+              {!draft.makeNewCategory ? (
+                <select
+                  value={draft.categoryId}
+                  onChange={(e) => setDraft(prev => ({ ...prev, categoryId: e.target.value, error: null }))}
+                  className="cockpit-select w-full"
+                  disabled={draft.saving}
+                >
+                  <option value="">{t.selectCategory}</option>
+                  {categoryOptions.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="space-y-3 rounded-lg border border-gray-200 bg-violet-50/40 p-3 dark:border-gray-600 dark:bg-violet-500/10">
+                  <input
+                    type="text"
+                    placeholder={t.categoryName}
+                    value={draft.newCategoryName}
+                    onChange={(e) => setDraft(prev => ({ ...prev, newCategoryName: e.target.value, error: null }))}
+                    className="cockpit-input w-full"
+                    disabled={draft.saving}
+                  />
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.color}</label>
+                    <input
+                      type="color"
+                      value={draft.newCategoryColor}
+                      onChange={(e) => setDraft(prev => ({ ...prev, newCategoryColor: e.target.value }))}
+                      className="h-10 w-16 cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={draft.saving}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-3 border-t border-gray-200 px-5 py-4 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={() => void createInlineItem(kind)}
+              disabled={!canSave || draft.saving}
+              className="flex-1 rounded-lg bg-violet-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {draft.saving ? t.creating : t.create}
+            </button>
+            <button
+              type="button"
+              onClick={closePanel}
+              disabled={draft.saving}
+              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              {t.cancel}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const handleSubmitExpense = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingExpense) return;
+
+    if (Number(expenseFormData.amount) <= 0) {
+      setExpenseFormError(t.amountMustBePositive);
+      return;
+    }
+
+    setSavingExpense(true);
+    setExpenseFormError(null);
+
     const payload = {
       master_category_id: expenseFormData.master_category_id || null,
       expense_item_id: expenseFormData.expense_item_id || null,
@@ -432,14 +860,20 @@ export function ExpensesScreen() {
       description: expenseFormData.description,
     };
 
-    if (editingExpense) {
-      await supabase.from('operational_expenses').update(payload).eq('id', editingExpense.id);
-    } else {
-      await supabase.from('operational_expenses').insert(payload);
+    const result = editingExpense
+      ? await adminUpdate('operational_expenses', editingExpense.id, payload)
+      : await adminInsert('operational_expenses', payload);
+
+    setSavingExpense(false);
+
+    if (!result.ok) {
+      setExpenseFormError(result.error ?? t.errorOccurred);
+      return;
     }
 
     resetExpenseForm();
     await loadAllData();
+    flashSuccess(t.savedSuccessfully);
   };
 
   const reconcileProductStock = async (productId: string | null | undefined, deltaQuantity: number) => {
@@ -453,14 +887,31 @@ export function ExpensesScreen() {
 
     if (error || !product) return;
 
-    await supabase
-      .from('products')
-      .update({ quantity: Number(product.quantity || 0) + deltaQuantity })
-      .eq('id', productId);
+    await adminUpdate('products', productId, {
+      quantity: Number(product.quantity || 0) + deltaQuantity,
+    });
   };
 
   const handleSubmitPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingPurchase) return;
+
+    if (!purchaseFormData.expense_item_id) {
+      setPurchaseFormError(t.selectExpenseItem);
+      return;
+    }
+    if (Number(purchaseFormData.quantity) <= 0) {
+      setPurchaseFormError(t.quantityMustBePositive);
+      return;
+    }
+    if (Number(purchaseFormData.unit_cost) < 0) {
+      setPurchaseFormError(t.amountMustBePositive);
+      return;
+    }
+
+    setSavingPurchase(true);
+    setPurchaseFormError(null);
+
     const total_cost = purchaseFormData.quantity * purchaseFormData.unit_cost;
     const payload = {
       expense_item_id: purchaseFormData.expense_item_id || null,
@@ -470,8 +921,11 @@ export function ExpensesScreen() {
       unit_cost: purchaseFormData.unit_cost,
       total_cost,
       purchase_date: purchaseFormData.purchase_date,
-      payment_status: purchaseFormData.payment_status,
       notes: purchaseFormData.notes,
+      payment_method: purchaseFormData.is_on_credit
+        ? null
+        : purchaseFormData.payment_method || CASH_PAYMENT_METHOD,
+      ...purchaseCreditFields(purchaseFormData.is_on_credit),
     };
 
     if (editingPurchase) {
@@ -479,22 +933,48 @@ export function ExpensesScreen() {
       const oldQuantity = Number(editingPurchase.quantity) || 0;
       const newQuantity = Number(purchaseFormData.quantity) || 0;
 
-      const { error } = await supabase.from('purchases').update(payload).eq('id', editingPurchase.id);
-      if (error) {
-        console.error('Failed to update purchase:', error);
+      const result = await adminUpdate('purchases', editingPurchase.id, payload);
+      if (!result.ok) {
+        setSavingPurchase(false);
+        setPurchaseFormError(result.error ?? t.errorOccurred);
         return;
       }
       await reconcileProductStock(oldProductId, newQuantity - oldQuantity);
     } else {
-      const { error } = await supabase.from('purchases').insert(payload);
-      if (error) {
-        console.error('Failed to create purchase:', error);
+      const result = await adminInsert('purchases', payload);
+      if (!result.ok) {
+        setSavingPurchase(false);
+        setPurchaseFormError(result.error ?? t.errorOccurred);
         return;
       }
     }
 
+    setSavingPurchase(false);
     resetPurchaseForm();
     await loadAllData();
+    flashSuccess(t.savedSuccessfully);
+  };
+
+  const openExpenseForm = () => {
+    setExpenseFormError(null);
+    resetExpenseForm();
+    setShowExpenseForm(true);
+  };
+
+  const openPurchaseForm = () => {
+    setPurchaseFormError(null);
+    resetPurchaseForm();
+    setShowPurchaseForm(true);
+  };
+
+  const closeExpenseForm = () => {
+    if (savingExpense) return;
+    resetExpenseForm();
+  };
+
+  const closePurchaseForm = () => {
+    if (savingPurchase) return;
+    resetPurchaseForm();
   };
 
   const resetExpenseForm = () => {
@@ -503,9 +983,11 @@ export function ExpensesScreen() {
       expense_item_id: '',
       amount: 0,
       expense_date: toLocalDateInput(new Date()),
-      payment_method: '',
+      payment_method: CASH_PAYMENT_METHOD,
       description: '',
     });
+    setInlineExpenseItem(defaultInlineItemDraft('#F97316'));
+    setInlineCategory(defaultInlineCategoryDraft('#F97316'));
     setEditingExpense(null);
     setShowExpenseForm(false);
   };
@@ -518,9 +1000,12 @@ export function ExpensesScreen() {
       quantity: 1,
       unit_cost: 0,
       purchase_date: toLocalDateInput(new Date()),
-      payment_status: 'pending',
+      is_on_credit: true,
+      payment_method: CASH_PAYMENT_METHOD,
       notes: '',
     });
+    setInlineCogsItem(defaultInlineItemDraft('#3B82F6'));
+    setInlineSupplier(defaultInlineSupplierDraft());
     setEditingPurchase(null);
     setShowPurchaseForm(false);
   };
@@ -550,8 +1035,9 @@ export function ExpensesScreen() {
           <>
             {activeTab === 'operational' && (
               <button
-                onClick={() => { resetExpenseForm(); setShowExpenseForm(true); }}
-                className="neon-btn-primary"
+                onClick={openExpenseForm}
+                disabled={savingExpense}
+                className="neon-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Plus className="h-4 w-4" />
                 {t.newExpense}
@@ -559,8 +1045,9 @@ export function ExpensesScreen() {
             )}
             {activeTab === 'cogs' && (
               <button
-                onClick={() => { resetPurchaseForm(); setShowPurchaseForm(true); }}
-                className="neon-btn-primary"
+                onClick={openPurchaseForm}
+                disabled={savingPurchase}
+                className="neon-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Plus className="h-4 w-4" />
                 {t.newPurchase}
@@ -632,7 +1119,7 @@ export function ExpensesScreen() {
               <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-1">{t.noExpenses}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t.startTrackingExpenses}</p>
               <button
-                onClick={() => setShowExpenseForm(true)}
+                onClick={openExpenseForm}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />
@@ -645,6 +1132,7 @@ export function ExpensesScreen() {
               type="operational"
               onEdit={handleEditExpense}
               onDelete={handleDeleteExpense}
+              deletingId={deletingId}
             />
           )}
         </>
@@ -663,7 +1151,7 @@ export function ExpensesScreen() {
               <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-1">{t.noPurchasesYet}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t.startTracking}</p>
               <button
-                onClick={() => setShowPurchaseForm(true)}
+                onClick={openPurchaseForm}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />
@@ -676,6 +1164,7 @@ export function ExpensesScreen() {
               type="cogs"
               onEdit={handleEditPurchase}
               onDelete={handleDeletePurchase}
+              deletingId={deletingId}
             />
           )}
         </>
@@ -696,11 +1185,14 @@ export function ExpensesScreen() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {editingExpense ? t.editExpense : t.newExpense}
               </h2>
-              <button onClick={resetExpenseForm} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <button onClick={closeExpenseForm} disabled={savingExpense} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmitExpense} className="p-5 space-y-4 overflow-y-auto max-h-[calc(90vh-130px)]">
+              {expenseFormError ? (
+                <div className="cockpit-alert-error text-sm">{expenseFormError}</div>
+              ) : null}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.expenseItem}</label>
                 <div className="relative" ref={itemDropdownRef}>
@@ -768,6 +1260,14 @@ export function ExpensesScreen() {
                           })
                         )}
                       </div>
+                      {renderInlineItemCreatePanel(
+                        'expense',
+                        inlineExpenseItem,
+                        setInlineExpenseItem,
+                        expenseCategories,
+                        itemSearchText,
+                        '#F97316',
+                      )}
                     </div>
                   )}
                 </div>
@@ -786,6 +1286,56 @@ export function ExpensesScreen() {
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
+                  {!inlineCategory.open ? (
+                    <button
+                      type="button"
+                      onClick={() => setInlineCategory(prev => ({ ...prev, open: true, error: null }))}
+                      className="mt-2 flex items-center gap-1 text-xs font-medium text-violet-600 hover:underline dark:text-violet-400"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      {t.addCategory}
+                    </button>
+                  ) : (
+                    <div className="mt-2 space-y-2 rounded-lg border border-gray-200 bg-violet-50/40 p-3 dark:border-gray-600 dark:bg-violet-500/10">
+                      {inlineCategory.error ? (
+                        <div className="cockpit-alert-error text-xs">{inlineCategory.error}</div>
+                      ) : null}
+                      <input
+                        type="text"
+                        placeholder={t.categoryName}
+                        value={inlineCategory.name}
+                        onChange={(e) => setInlineCategory(prev => ({ ...prev, name: e.target.value, error: null }))}
+                        className="cockpit-input w-full text-sm"
+                        disabled={inlineCategory.saving}
+                        autoFocus
+                      />
+                      <input
+                        type="color"
+                        value={inlineCategory.color}
+                        onChange={(e) => setInlineCategory(prev => ({ ...prev, color: e.target.value }))}
+                        className="h-9 w-full cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={inlineCategory.saving}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void createInlineCategory()}
+                          disabled={!inlineCategory.name.trim() || inlineCategory.saving}
+                          className="flex-1 rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        >
+                          {inlineCategory.saving ? t.creating : t.create}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setInlineCategory(defaultInlineCategoryDraft('#F97316'))}
+                          disabled={inlineCategory.saving}
+                          className="px-3 py-2 text-sm text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200"
+                        >
+                          {t.cancel}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -813,13 +1363,16 @@ export function ExpensesScreen() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.paymentMethod}</label>
-                  <input
-                    type="text"
+                  <select
                     value={expenseFormData.payment_method}
                     onChange={(e) => setExpenseFormData(prev => ({ ...prev, payment_method: e.target.value }))}
-                    placeholder={t.paymentMethodExample}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                  />
+                    className="cockpit-select w-full"
+                  >
+                    <option value="">{t.selectPaymentMethod}</option>
+                    <option value={CASH_PAYMENT_METHOD}>{t.paymentCash}</option>
+                    <option value={CARD_PAYMENT_METHOD}>{t.paymentCard}</option>
+                    <option value={BANK_TRANSFER_PAYMENT_METHOD}>{t.paymentBankTransfer}</option>
+                  </select>
                 </div>
               </div>
 
@@ -837,14 +1390,16 @@ export function ExpensesScreen() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  disabled={savingExpense}
+                  className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {editingExpense ? t.updateExpense : t.createExpense}
+                  {savingExpense ? t.saving : editingExpense ? t.updateExpense : t.createExpense}
                 </button>
                 <button
                   type="button"
-                  onClick={resetExpenseForm}
-                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  onClick={closeExpenseForm}
+                  disabled={savingExpense}
+                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {t.cancel}
                 </button>
@@ -861,11 +1416,14 @@ export function ExpensesScreen() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {editingPurchase ? t.editPurchase : t.newPurchase}
               </h2>
-              <button onClick={resetPurchaseForm} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <button onClick={closePurchaseForm} disabled={savingPurchase} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmitPurchase} className="p-5 space-y-4 overflow-y-auto max-h-[calc(90vh-130px)]">
+              {purchaseFormError ? (
+                <div className="cockpit-alert-error text-sm">{purchaseFormError}</div>
+              ) : null}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.expenseItem} *</label>
                 <div className="relative" ref={cogsItemDropdownRef}>
@@ -933,6 +1491,14 @@ export function ExpensesScreen() {
                           })
                         )}
                       </div>
+                      {renderInlineItemCreatePanel(
+                        'purchase',
+                        inlineCogsItem,
+                        setInlineCogsItem,
+                        cogsCategories,
+                        cogsItemSearchText,
+                        '#3B82F6',
+                      )}
                     </div>
                   )}
                 </div>
@@ -950,6 +1516,49 @@ export function ExpensesScreen() {
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
+                {!inlineSupplier.open ? (
+                  <button
+                    type="button"
+                    onClick={() => setInlineSupplier(prev => ({ ...prev, open: true, error: null }))}
+                    className="mt-2 flex items-center gap-1 text-xs font-medium text-violet-600 hover:underline dark:text-violet-400"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    {t.addNewSupplier}
+                  </button>
+                ) : (
+                  <div className="mt-2 space-y-2 rounded-lg border border-gray-200 bg-violet-50/40 p-3 dark:border-gray-600 dark:bg-violet-500/10">
+                    {inlineSupplier.error ? (
+                      <div className="cockpit-alert-error text-xs">{inlineSupplier.error}</div>
+                    ) : null}
+                    <input
+                      type="text"
+                      placeholder={t.newSupplierName}
+                      value={inlineSupplier.name}
+                      onChange={(e) => setInlineSupplier(prev => ({ ...prev, name: e.target.value, error: null }))}
+                      className="cockpit-input w-full text-sm"
+                      disabled={inlineSupplier.saving}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void createInlineSupplier()}
+                        disabled={!inlineSupplier.name.trim() || inlineSupplier.saving}
+                        className="flex-1 rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      >
+                        {inlineSupplier.saving ? t.creating : t.create}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInlineSupplier(defaultInlineSupplierDraft())}
+                        disabled={inlineSupplier.saving}
+                        className="px-3 py-2 text-sm text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200"
+                      >
+                        {t.cancel}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {purchaseFormData.expense_item_id && purchasePriceSuggestions.length > 0 && (
@@ -1035,18 +1644,56 @@ export function ExpensesScreen() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.paymentStatus}</label>
-                  <select
-                    value={purchaseFormData.payment_status}
-                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, payment_status: e.target.value as 'pending' | 'partial' | 'paid' }))}
-                    className="cockpit-select"
-                  >
-                    <option value="pending">{t.pending}</option>
-                    <option value="partial">{t.partial}</option>
-                    <option value="paid">{t.paid}</option>
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.purchasePaymentMode}</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseFormData((prev) => ({ ...prev, is_on_credit: true }))}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                        purchaseFormData.is_on_credit
+                          ? 'border-cockpit-500 bg-cockpit-500/20 text-white'
+                          : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {t.purchaseOnAccount}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseFormData((prev) => ({ ...prev, is_on_credit: false }))}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                        !purchaseFormData.is_on_credit
+                          ? 'border-cockpit-500 bg-cockpit-500/20 text-white'
+                          : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {t.purchasePaidNow}
+                    </button>
+                  </div>
+                  {purchaseFormData.is_on_credit ? (
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                      {t.purchaseOnAccountHint}
+                    </p>
+                  ) : null}
                 </div>
               </div>
+
+              {!purchaseFormData.is_on_credit ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.paymentMethod}</label>
+                  <select
+                    value={purchaseFormData.payment_method}
+                    onChange={(e) => setPurchaseFormData(prev => ({ ...prev, payment_method: e.target.value }))}
+                    className="cockpit-select w-full"
+                  >
+                    <option value={CASH_PAYMENT_METHOD}>{t.paymentCash}</option>
+                    <option value={CARD_PAYMENT_METHOD}>{t.paymentCard}</option>
+                    <option value={BANK_TRANSFER_PAYMENT_METHOD}>{t.paymentBankTransfer}</option>
+                  </select>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                    {t.purchasePaidNowHint}
+                  </p>
+                </div>
+              ) : null}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.notes}</label>
@@ -1062,14 +1709,16 @@ export function ExpensesScreen() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  disabled={savingPurchase}
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {editingPurchase ? t.updatePurchase : t.createPurchase}
+                  {savingPurchase ? t.saving : editingPurchase ? t.updatePurchase : t.createPurchase}
                 </button>
                 <button
                   type="button"
-                  onClick={resetPurchaseForm}
-                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  onClick={closePurchaseForm}
+                  disabled={savingPurchase}
+                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {t.cancel}
                 </button>

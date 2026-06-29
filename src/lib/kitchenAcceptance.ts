@@ -13,6 +13,18 @@ export interface KitchenSettings {
   hours_json: Record<string, unknown> | unknown;
   offline_until?: string | null;
   closing_soon_minutes?: number | null;
+  special_days_json?: unknown;
+}
+
+/** One-off Baku calendar date overriding weekly hours_json. */
+export interface KitchenSpecialDay {
+  date: string;
+  closed: boolean;
+  open?: string;
+  close?: string;
+  note_en?: string;
+  note_az?: string;
+  note_ru?: string;
 }
 
 const BAKU_TZ = 'Asia/Baku';
@@ -54,6 +66,72 @@ export function getDayHoursConfig(
     openMinutes,
     closeMinutes,
   };
+}
+
+/** Baku calendar date key `YYYY-MM-DD` for instant `when`. */
+export function getBakuDateKey(when: Date): string {
+  const { y, mon, d } = getBakuWallParts(when);
+  return `${y}-${String(mon).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+export function parseSpecialDaysJson(raw: unknown): KitchenSpecialDay[] {
+  if (!Array.isArray(raw)) return [];
+  const out: KitchenSpecialDay[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const o = item as Record<string, unknown>;
+    if (typeof o.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(o.date)) continue;
+    out.push({
+      date: o.date,
+      closed: Boolean(o.closed),
+      open: typeof o.open === 'string' ? o.open : undefined,
+      close: typeof o.close === 'string' ? o.close : undefined,
+      note_en: typeof o.note_en === 'string' ? o.note_en : undefined,
+      note_az: typeof o.note_az === 'string' ? o.note_az : undefined,
+      note_ru: typeof o.note_ru === 'string' ? o.note_ru : undefined,
+    });
+  }
+  return out;
+}
+
+export function getSpecialDayForBakuDate(settings: KitchenSettings, when: Date): KitchenSpecialDay | null {
+  const key = getBakuDateKey(when);
+  return parseSpecialDaysJson(settings.special_days_json).find((d) => d.date === key) ?? null;
+}
+
+function specialDayToDayHoursConfig(special: KitchenSpecialDay): DayHoursConfig | null {
+  if (special.closed) {
+    return { closed: true, openMinutes: 0, closeMinutes: 0 };
+  }
+  const openMinutes = special.open ? parseTimeToMinutes(special.open) : null;
+  const closeMinutes = special.close ? parseTimeToMinutes(special.close) : null;
+  if (openMinutes == null || closeMinutes == null) return null;
+  return { closed: false, openMinutes, closeMinutes };
+}
+
+/** Weekly hours or special-day override for the Baku calendar date of `when`. */
+export function getEffectiveDayConfig(settings: KitchenSettings, when: Date): DayHoursConfig | null {
+  const special = getSpecialDayForBakuDate(settings, when);
+  if (special) return specialDayToDayHoursConfig(special);
+  const hoursJson = settings.hours_json as Record<string, unknown> | undefined;
+  const parts = getBakuWallParts(when);
+  const dayKey = getScheduleDayKeyFromBakuParts(parts.dow0Sun6Sat);
+  return getDayHoursConfig(hoursJson, dayKey);
+}
+
+/** Customer note for a special day in the given language (fallback to any filled note). */
+export function getSpecialDayCustomerNote(
+  special: KitchenSpecialDay,
+  lang: 'en' | 'az' | 'ru',
+): string | null {
+  const byLang = { en: special.note_en, az: special.note_az, ru: special.note_ru };
+  const primary = byLang[lang]?.trim();
+  if (primary) return primary;
+  for (const key of ['en', 'az', 'ru'] as const) {
+    const v = byLang[key]?.trim();
+    if (v) return v;
+  }
+  return null;
 }
 
 /** Baku-local calendar + clock parts for instant `when` (UTC instant). */
@@ -134,10 +212,8 @@ export function isSlotInsideWorkingHoursBaku(
 }
 
 function isInsideHours(settings: KitchenSettings, when: Date): boolean {
-  const hoursJson = settings.hours_json as Record<string, unknown> | undefined;
+  const cfg = getEffectiveDayConfig(settings, when);
   const parts = getBakuWallParts(when);
-  const dayKey = getScheduleDayKeyFromBakuParts(parts.dow0Sun6Sat);
-  const cfg = getDayHoursConfig(hoursJson, dayKey);
   return isSlotInsideWorkingHoursBaku(parts.minutesSinceMidnight, cfg);
 }
 
@@ -155,10 +231,9 @@ export function isKitchenPaused(settings: KitchenSettings, when: Date): boolean 
 }
 
 /** End of the current open session in Baku (first instant where we are outside hours), or null. */
-export function getSessionEndBaku(when: Date, hoursJson: Record<string, unknown> | undefined): Date | null {
+export function getSessionEndBaku(settings: KitchenSettings, when: Date): Date | null {
   const parts = getBakuWallParts(when);
-  const dayKey = getScheduleDayKeyFromBakuParts(parts.dow0Sun6Sat);
-  const cfg = getDayHoursConfig(hoursJson, dayKey);
+  const cfg = getEffectiveDayConfig(settings, when);
   if (!cfg || cfg.closed) return null;
   if (!isSlotInsideWorkingHoursBaku(parts.minutesSinceMidnight, cfg)) return null;
 
@@ -186,8 +261,8 @@ export function getSessionEndBaku(when: Date, hoursJson: Record<string, unknown>
 }
 
 /** Minutes until current session ends; null if not inside hours or cannot compute. */
-export function minutesUntilSessionEnd(when: Date, hoursJson: Record<string, unknown> | undefined): number | null {
-  const end = getSessionEndBaku(when, hoursJson);
+export function minutesUntilSessionEnd(settings: KitchenSettings, when: Date): number | null {
+  const end = getSessionEndBaku(settings, when);
   if (!end) return null;
   const diffMs = end.getTime() - when.getTime();
   const mins = diffMs / 60_000;
@@ -212,7 +287,6 @@ export function getKitchenStatus(
   options: GetKitchenStatusOptions = {},
 ): KitchenStatusResult {
   const orderMode = options.orderMode ?? 'immediate';
-  const hoursJson = settings.hours_json as Record<string, unknown> | undefined;
 
   // Immediate orders: staff toggle `is_open === false` always blocks until DB is opened again
   // (or `expire_online_kitchen_pause_if_due` lifts a finished timed pause).
@@ -232,7 +306,7 @@ export function getKitchenStatus(
 
   const threshold = Math.max(0, Math.floor(Number(settings.closing_soon_minutes ?? 0)));
   if (orderMode === 'immediate' && threshold > 0) {
-    const m = minutesUntilSessionEnd(when, hoursJson);
+    const m = minutesUntilSessionEnd(settings, when);
     if (m != null && m > 0 && m <= threshold) {
       return { status: 'CLOSING_SOON', minutesToClose: m };
     }
@@ -270,14 +344,12 @@ export function firstOpenInstantAfter(
   after: Date,
   horizonDays = 14,
 ): Date | null {
-  const hoursJson = settings.hours_json as Record<string, unknown> | undefined;
   const startParts = getBakuWallParts(after);
 
   for (let dOff = 0; dOff < horizonDays; dOff += 1) {
     const { y, mon, d } = addBakuCalendarDays(startParts.y, startParts.mon, startParts.d, dOff);
     const noon = bakuWallToUtcDate(y, mon, d, 12, 0, 0);
-    const dayKey = getScheduleDayKeyFromBakuParts(getBakuWallParts(noon).dow0Sun6Sat);
-    const cfg = getDayHoursConfig(hoursJson, dayKey);
+    const cfg = getEffectiveDayConfig(settings, noon);
     if (!cfg || cfg.closed) continue;
 
     const oh = Math.floor(cfg.openMinutes / 60);
@@ -296,9 +368,8 @@ export function firstOpenInstantAfter(
  * session ends; otherwise the next opening strictly after `now`.
  */
 export function nextOpenBoundary(settings: KitchenSettings, now: Date): Date | null {
-  const hoursJson = settings.hours_json as Record<string, unknown> | undefined;
   if (isInsideHours(settings, now)) {
-    const end = getSessionEndBaku(now, hoursJson);
+    const end = getSessionEndBaku(settings, now);
     if (end) return firstOpenInstantAfter(settings, end);
   }
   return firstOpenInstantAfter(settings, now);
@@ -321,14 +392,12 @@ export function scheduleSlots(settings: KitchenSettings, now: Date, opts: Schedu
   const roundedTs = Math.ceil(earliest.getTime() / slotMs) * slotMs;
   const horizonTs = roundedTs + 7 * 24 * 60 * 60_000;
   const slots: Date[] = [];
-  const hoursJson = settings.hours_json as Record<string, unknown> | undefined;
 
   for (let ts = roundedTs; ts <= horizonTs && slots.length < maxSlots; ts += slotMs) {
     const slotDate = new Date(ts);
     if (slotDate.getTime() < earliest.getTime()) continue;
     const parts = getBakuWallParts(slotDate);
-    const dayKey = getScheduleDayKeyFromBakuParts(parts.dow0Sun6Sat);
-    const dayConfig = getDayHoursConfig(hoursJson, dayKey);
+    const dayConfig = getEffectiveDayConfig(settings, slotDate);
     if (!isSlotInsideWorkingHoursBaku(parts.minutesSinceMidnight, dayConfig)) continue;
     if (!acceptingKitchen(settings, slotDate, 'scheduled')) continue;
     slots.push(slotDate);

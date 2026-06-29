@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { getCustomerDisplayName, type OrderManagerOrder } from './types';
+import { ALL_KITCHEN_SOURCES } from '../pos/posSources';
+import { PosReprintButton } from '../pos/PosReprintButton';
 
 type PastPreset = 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'lastMonth';
 type PastStatus = 'all' | 'ready' | 'completed' | 'dispatched' | 'cancelled';
@@ -67,7 +69,7 @@ function statusLabel(status: string, t: ReturnType<typeof useLanguage>['t']): st
   }
 }
 
-export function PastOrdersTab() {
+export function PastOrdersTab({ showReprint = false }: { showReprint?: boolean } = {}) {
   const { t } = useLanguage();
   const [preset, setPreset] = useState<PastPreset>('today');
   const [statusFilter, setStatusFilter] = useState<PastStatus>('all');
@@ -90,7 +92,7 @@ export function PastOrdersTab() {
       const { data } = await supabase
         .from('sales')
         .select('*, sale_items(*, sale_item_modifiers(*))')
-        .in('source', ['kiosk', 'online_delivery', 'online_takeaway'])
+        .in('source', [...ALL_KITCHEN_SOURCES])
         .gte('sale_date', range.start)
         .lte('sale_date', `${range.end}T23:59:59`)
         .in('order_status', [...selectedStatuses])
@@ -171,7 +173,13 @@ export function PastOrdersTab() {
               ? t.omSourceDelivery
               : order.source === 'online_takeaway'
                 ? t.omSourceTakeaway
-                : t.omSourceKiosk;
+                : order.source === 'pos_eat_in'
+                  ? t.posSourceEatIn
+                  : order.source === 'pos_takeaway'
+                    ? t.posSourceTakeaway
+                    : order.source === 'pos_delivery'
+                      ? t.posSourceDelivery
+                      : t.omSourceKiosk;
           const ts = new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           const isOpen = Boolean(expanded[order.id]);
           return (
@@ -215,6 +223,7 @@ export function PastOrdersTab() {
                   {order.customer_phone ? <p>{order.customer_phone}</p> : null}
                   {order.delivery_address ? <p>{order.delivery_address}</p> : null}
                   {order.delivery_notes ? <p>{order.delivery_notes}</p> : null}
+                  {showReprint ? <PosReprintButton order={order} /> : null}
                 </div>
               ) : null}
             </article>

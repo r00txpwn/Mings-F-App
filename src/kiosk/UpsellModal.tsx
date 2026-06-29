@@ -16,7 +16,7 @@ export function UpsellModal({ products, onAdd, onDismiss }: UpsellModalProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 font-montserrat"
-      style={{ backgroundColor: 'rgba(31,31,31,0.85)', backdropFilter: 'blur(4px)' }}
+      style={{ backgroundColor: 'rgba(26,26,26,0.45)', backdropFilter: 'blur(4px)' }}
     >
       <div
         className="w-full max-w-lg animate-scaleIn rounded-[22px] p-6"
@@ -56,12 +56,12 @@ export function UpsellModal({ products, onAdd, onDismiss }: UpsellModalProps) {
             <div
               key={product.id}
               className="flex items-center gap-4 p-3 rounded-[18px]"
-              style={{ backgroundColor: '#383838' }}
+              style={{ backgroundColor: 'var(--kiosk-bg)' }}
             >
               {/* Image */}
               <div
                 className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-                style={{ backgroundColor: '#444' }}
+                style={{ backgroundColor: 'var(--kiosk-bg)' }}
               >
                 {product.image_url ? (
                   <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />

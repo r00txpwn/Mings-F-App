@@ -31,11 +31,10 @@ The current linked Supabase project should be treated as staging/testing because
    - expense/inventory configuration if needed
 6. Do not import fake orders, test payments, sandbox sales, or reconciliation test logs.
 7. Connect production frontend/deployment environment variables to the new project:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - Edge Function secrets
-   - service role secrets where needed
-   - **KDS URL gate (production):** set `VITE_KDS_SECRET` to a **long random value** in the **production** frontend build environment only. Do **not** hardcode it in the repo, do **not** commit it, and do **not** paste it into chat. After it is set, **rebuild and redeploy** the frontend (Vite inlines `VITE_*` at build time). Kitchen devices should use a bookmark: **`/kds?key=<the-production-kds-secret>`**. If `VITE_KDS_SECRET` is empty, `/kds` stays **open** (intended for local dev only).
+   - **Two Vercel projects** (see [DEPLOY.md](../DEPLOY.md)): `order.mings.az` → `npm run build:storefront` → `dist-storefront/`; `sp.mings.az` → `npm run build:staff` → `dist-staff/`.
+   - Both need `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+   - **`VITE_KDS_SECRET` / `VITE_KIOSK_SECRET` only on the staff project**; set matching Edge secret **`KDS_SECRET`** for `kds-order-status-update`.
+   - Deploy **`admin-api`** + **`kds-order-status-update`** after migration `20260610120000_harden_staff_only_rls.sql`.
 8. Run smoke tests before launch.
 9. After launch, treat the production database as production-sensitive:
    - no full resets
@@ -153,7 +152,7 @@ Not approved in this PR:
 - No new cash_collection_status column yet
 - No production data backfill
 - No cron
-- No United Payment implementation
+- No United Payment implementation *(superseded — see [docs/UNITED_PAYMENT_INTEGRATION.md](UNITED_PAYMENT_INTEGRATION.md); card checkout now uses United Payment in code)*
 - No provider switch
 - No production deploy
 - No reconciliation of real payment rows

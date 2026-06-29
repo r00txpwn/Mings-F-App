@@ -193,7 +193,7 @@ export function CheckoutScreen({ cart, total, kioskChannelId, onConfirmed, onBac
                 <div key={item.cartItemKey} className="flex items-center gap-3">
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-                    style={{ backgroundColor: '#383838' }}
+                    style={{ backgroundColor: 'var(--kiosk-bg)' }}
                   >
                     {item.product.image_url ? (
                       <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />

@@ -88,8 +88,8 @@ export function ZonePreviewMap({
 
     const poly = new google.maps.Polygon({
       paths: path,
-      fillColor: '#14b8a6',
-      strokeColor: '#14b8a6',
+      fillColor: '#fbbf24',
+      strokeColor: '#d97706',
       fillOpacity: 0.18,
       strokeOpacity: 0.9,
       strokeWeight: 2,

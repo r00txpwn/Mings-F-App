@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flame, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { SkeletonCard } from '../components/ui/Skeleton';
+import { displayName, isTestRecord } from '../lib/displayName';
 
 type ComboGroupItemRow = {
   id: string;
@@ -32,6 +36,7 @@ type ComboRow = {
 
 export function CombosScreen() {
   const { t } = useLanguage();
+  const toast = useToast();
   const [rows, setRows] = useState<ComboRow[]>([]);
   const [products, setProducts] = useState<
     Array<{
@@ -69,6 +74,18 @@ export function CombosScreen() {
         .select('id, name, online_visible, combo_upsell_eligible, upsell_combo_id')
         .order('name'),
     ]);
+
+    if (comboRes.error) {
+      setLoading(false);
+      console.error('[CombosScreen] load combo_deals:', comboRes.error.message);
+      return;
+    }
+    if (productRes.error) {
+      setLoading(false);
+      console.error('[CombosScreen] load products:', productRes.error.message);
+      return;
+    }
+
     const combos = ((comboRes.data ?? []) as Array<Record<string, unknown>>).map((combo) => ({
       id: String(combo.id),
       name: String(combo.name ?? ''),
@@ -118,13 +135,20 @@ export function CombosScreen() {
 
   const createCombo = async () => {
     const p = Number(price);
-    if (!name.trim() || Number.isNaN(p) || p < 0) return;
-    await supabase.from('combo_deals').insert({
+    if (!name.trim() || Number.isNaN(p) || p < 0 || busy) return;
+    setBusy(true);
+    const result = await adminInsert('combo_deals', {
       name: name.trim(),
       base_price: p,
       is_active: true,
       sort_order: rows.length,
     });
+    setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.savedSuccessfully);
     setName('');
     setPrice('');
     await load();
@@ -136,77 +160,111 @@ export function CombosScreen() {
   );
 
   const toggle = async (id: string, is_active: boolean) => {
-    await supabase.from('combo_deals').update({ is_active: !is_active }).eq('id', id);
+    const result = await adminUpdate('combo_deals', id, { is_active: !is_active });
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
     await load();
   };
 
   const updateComboField = async (id: string, patch: Partial<ComboRow>) => {
     setBusy(true);
-    await supabase.from('combo_deals').update(patch).eq('id', id);
+    await adminUpdate('combo_deals', id, patch);
     setBusy(false);
     await load();
   };
 
   const remove = async (id: string) => {
-    await supabase.from('combo_deals').delete().eq('id', id);
+    if (busy) return;
+    setBusy(true);
+    const result = await adminDelete('combo_deals', id);
+    setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
     if (selectedComboId === id) setSelectedComboId(null);
     await load();
   };
 
   const addGroup = async () => {
-    if (!selectedComboId || !newGroupName.trim()) return;
+    if (!selectedComboId || !newGroupName.trim() || busy) return;
     setBusy(true);
-    await supabase.from('combo_groups').insert({
+    const result = await adminInsert('combo_groups', {
       combo_id: selectedComboId,
       name: newGroupName.trim(),
       required: true,
       selection_type: 'single',
       sort_order: selectedCombo?.combo_groups.length ?? 0,
     });
-    setNewGroupName('');
     setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.savedSuccessfully);
+    setNewGroupName('');
     await load();
   };
 
   const updateGroup = async (groupId: string, patch: Partial<ComboGroupRow>) => {
     setBusy(true);
-    await supabase.from('combo_groups').update(patch).eq('id', groupId);
+    await adminUpdate('combo_groups', groupId, patch);
     setBusy(false);
     await load();
   };
 
   const removeGroup = async (groupId: string) => {
+    if (busy) return;
     setBusy(true);
-    await supabase.from('combo_groups').delete().eq('id', groupId);
+    const result = await adminDelete('combo_groups', groupId);
     setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
     await load();
   };
 
   const addGroupItem = async (groupId: string) => {
     const productId = newItemByGroup[groupId];
-    if (!productId) return;
+    if (!productId || busy) return;
     setBusy(true);
-    await supabase.from('combo_group_items').insert({
+    const result = await adminInsert('combo_group_items', {
       group_id: groupId,
       menu_item_id: productId,
       price_adjustment: 0,
     });
-    setNewItemByGroup((prev) => ({ ...prev, [groupId]: '' }));
     setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.savedSuccessfully);
+    setNewItemByGroup((prev) => ({ ...prev, [groupId]: '' }));
     await load();
   };
 
   const updateGroupItem = async (groupItemId: string, patch: Partial<ComboGroupItemRow>) => {
     setBusy(true);
-    await supabase.from('combo_group_items').update(patch).eq('id', groupItemId);
+    await adminUpdate('combo_group_items', groupItemId, patch);
     setBusy(false);
     await load();
   };
 
   const removeGroupItem = async (groupItemId: string) => {
+    if (busy) return;
     setBusy(true);
-    await supabase.from('combo_group_items').delete().eq('id', groupItemId);
+    const result = await adminDelete('combo_group_items', groupItemId);
     setBusy(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
     await load();
   };
 
@@ -214,9 +272,11 @@ export function CombosScreen() {
     productId: string,
     patch: { combo_upsell_eligible?: boolean; upsell_combo_id?: string | null }
   ) => {
-    await supabase.from('products').update(patch).eq('id', productId);
+    await adminUpdate('products', productId, patch);
     await load();
   };
+
+  const visibleRows = useMemo(() => rows.filter((r) => !isTestRecord(r.name)), [rows]);
 
   return (
     <div className="animate-fadeIn">
@@ -248,21 +308,22 @@ export function CombosScreen() {
               placeholder="0"
             />
           </div>
-          <button type="button" className="cockpit-btn-primary inline-flex items-center gap-2" onClick={() => void createCombo()}>
-            <Plus className="h-4 w-4" />
+          <button type="button" className="cockpit-btn-primary inline-flex items-center gap-2 disabled:opacity-40" disabled={busy} onClick={() => void createCombo()}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             {t.create}
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="h-10 w-10 animate-spin text-cockpit-500" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <SkeletonCard lines={2} />
+          <SkeletonCard lines={4} />
         </div>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[minmax(20rem,26rem)_1fr]">
           <div className="space-y-2">
-            {rows.map((r) => (
+            {visibleRows.map((r) => (
               <button
                 key={r.id}
                 type="button"
@@ -275,7 +336,7 @@ export function CombosScreen() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">{r.name}</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{displayName(r.name, t.cockpitTestRecordLabel)}</p>
                     <p className="font-mono text-sm text-cockpit-600 dark:text-cockpit-400">₼{Number(r.base_price).toFixed(2)}</p>
                     <p className="text-xs text-slate-500">
                       {(r.combo_groups?.length ?? 0).toString()} {t.comboGroupsTitle.toLowerCase()}
@@ -301,7 +362,7 @@ export function CombosScreen() {
                 </div>
               </button>
             ))}
-            {rows.length === 0 ? <p className="text-slate-500">{t.combosEmpty}</p> : null}
+            {visibleRows.length === 0 ? <p className="text-slate-500">{t.combosEmpty}</p> : null}
           </div>
 
           <div className="space-y-4">

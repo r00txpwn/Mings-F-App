@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { UtensilsCrossed, Plus, Package, Eye, EyeOff, ChevronUp, ChevronDown, Pencil, Trash2, Loader2, GripVertical, Image, Sliders, Globe, Copy } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, Product, Category } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { ModifierLibrary } from '../components/ProductModifierEditor';
 import { ProductModifierAssigner } from '../components/ProductModifierAssigner';
 import { MenuCategoryManager } from '../components/MenuCategoryManager';
@@ -66,18 +67,12 @@ export function MenuScreen() {
   const filteredProducts = products.filter(p => p.master_category_id === selectedCategoryId);
 
   const handleToggleVisibility = async (product: Product) => {
-    await supabase
-      .from('products')
-      .update({ kiosk_visible: !product.kiosk_visible })
-      .eq('id', product.id);
+    await adminUpdate('products', product.id, { kiosk_visible: !product.kiosk_visible });
     loadData();
   };
 
   const handleToggleOnlineVisibility = async (product: Product) => {
-    await supabase
-      .from('products')
-      .update({ online_visible: !product.online_visible })
-      .eq('id', product.id);
+    await adminUpdate('products', product.id, { online_visible: !product.online_visible });
     loadData();
   };
 
@@ -91,46 +86,43 @@ export function MenuScreen() {
     const swapOrder = sorted[swapIdx].display_order || 0;
 
     await Promise.all([
-      supabase.from('products').update({ display_order: swapOrder }).eq('id', sorted[idx].id),
-      supabase.from('products').update({ display_order: currentOrder }).eq('id', sorted[swapIdx].id),
+      adminUpdate('products', sorted[idx].id, { display_order: swapOrder }),
+      adminUpdate('products', sorted[swapIdx].id, { display_order: currentOrder }),
     ]);
     loadData();
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    await supabase.from('products').delete().eq('id', productId);
+    await adminDelete('products', productId);
     loadData();
   };
 
   const handleDuplicateProduct = async (product: Product) => {
-    const { data: newProduct } = await supabase
-      .from('products')
-      .insert({
-        name: product.name + ' (copy)',
-        description: product.description,
-        master_category_id: product.master_category_id,
-        selling_price: product.selling_price,
-        cost_price: product.cost_price,
-        image_url: product.image_url,
-        kiosk_visible: false,
-        online_visible: false,
-        is_halal: product.is_halal ?? false,
-        display_order: (product.display_order || 0) + 1,
-        unit: product.unit,
-        quantity: 0,
-        min_stock_level: 0,
-      })
-      .select('id')
-      .maybeSingle();
+    const result = await adminInsert<{ id: string }>('products', {
+      name: product.name + ' (copy)',
+      description: product.description,
+      master_category_id: product.master_category_id,
+      selling_price: product.selling_price,
+      cost_price: product.cost_price,
+      image_url: product.image_url,
+      kiosk_visible: false,
+      online_visible: false,
+      is_halal: product.is_halal ?? false,
+      display_order: (product.display_order || 0) + 1,
+      unit: product.unit,
+      quantity: 0,
+      min_stock_level: 0,
+    });
 
+    const newProduct = result.data;
     if (newProduct && product.modifier_groups) {
       const assignments = product.modifier_groups.map((group, idx) => ({
         product_id: newProduct.id,
         modifier_group_id: group.id,
         display_order: idx,
       }));
-      if (assignments.length > 0) {
-        await supabase.from('product_modifier_groups').insert(assignments);
+      for (const row of assignments) {
+        await adminInsert('product_modifier_groups', row);
       }
     }
     loadData();

@@ -1,14 +1,54 @@
 # Deploy Mings
 
-## What runs locally (already done)
+## What runs locally
 
-- `npm run build` → output in `dist/`
+- `npm run build:staff` → `dist-staff/` (sp.mings.az, pos.mings.az — cockpit, order-manager, KDS, kiosk, POS)
+- `npm run build:storefront` → `dist-storefront/` (order.mings.az — menu + tracking)
+- `npm run build:all` → both artifacts
+- `npm run deploy:local` → staff preview on **http://127.0.0.1:4175/** (kills port 4175 first, `--strictPort`)
+- `npm run deploy:local:storefront` → storefront preview on **http://127.0.0.1:4176/** (kills port 4176 first)
+- `npm run dev:staff` → **http://127.0.0.1:5173/** (kills port 5173 first)
+- `npm run dev:storefront` → **http://127.0.0.1:5174/** (kills port 5174 first)
 
-## 1. Frontend (static host)
+## 1. Frontend (two Vercel projects — recommended)
 
-Pick **one** of:
+Deploy **separate** static bundles so customer-facing JS never ships admin cockpit code.
 
-### Vercel
+| Vercel project | Domain | Build command | Output directory | Config file |
+|----------------|--------|---------------|------------------|-------------|
+| `mings-staff` | `sp.mings.az` | `npm run build:staff` | `dist-staff` | [`vercel.staff.json`](vercel.staff.json) |
+| `mings-order` | `order.mings.az` | `npm run build:storefront` | `dist-storefront` | [`vercel.storefront.json`](vercel.storefront.json) |
+
+See **[docs/VERCEL_SPLIT_DEPLOY.md](docs/VERCEL_SPLIT_DEPLOY.md)** for `vercel link` + deploy commands (wrong link ships the wrong bundle).
+
+In each Vercel project **Settings → General**:
+
+1. Set **Root Directory** to repo root (default).
+2. Override **Build Command** and **Output Directory** as in the table.
+3. Copy the matching `vercel.*.json` into the project root as `vercel.json`, **or** point Vercel at the file if using monorepo config.
+
+### Staff project env (`sp.mings.az`)
+
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- `VITE_SURFACE_ADMIN_HOSTS=sp.mings.az`
+- `VITE_PUBLIC_ORDER_URL=https://order.mings.az`
+- **`VITE_KIOSK_SECRET`** (staff only — do not set on storefront project)
+- Optional: `VITE_PUBLIC_KIOSK_URL=https://sp.mings.az/kiosk`
+
+### Storefront project env (`order.mings.az`)
+
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- `VITE_SURFACE_ORDER_HOSTS=order.mings.az`
+- `VITE_GOOGLE_MAPS_API_KEY` (delivery map)
+- **Do not** set `VITE_KIOSK_SECRET` here
+
+Auth sessions use separate storage keys (`mings-staff-auth` vs `mings-storefront-auth`) so staff and customer logins do not bleed across origins.
+
+### Legacy single-build deploy
+
+The root [`vercel.json`](vercel.json) remains for backward compatibility but ships **one** bundle with all surfaces. Prefer the split deploy above for production.
+
+### Vercel CLI (single project — legacy)
 
 1. Install [Vercel CLI](https://vercel.com/docs/cli): `npm i -g vercel`
 2. From repo root: `vercel` (first time) then `vercel --prod`
@@ -16,7 +56,7 @@ Pick **one** of:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - Optional: `VITE_GOOGLE_MAPS_API_KEY` (delivery map on `/order`), `VITE_KIOSK_SECRET`
-   - **Production KDS:** set `VITE_KDS_SECRET` to a long random value in **production** env (and staging separately if you gate staging KDS). Leave unset **only** for local dev if you want `/kds` open. After setting or changing it, **redeploy** so the bundle picks it up. Open KDS as `/kds?key=<secret>` (bookmark on kitchen devices). Do not commit the secret.
+   - **Production KDS:** `/kds` requires **staff login** (same as `/pos`). Bookmark `https://sp.mings.az/kds` on kitchen tablets; sign in once per device. `VITE_KDS_SECRET` is no longer used.
    - Optional subdomain split: `VITE_SURFACE_ADMIN_HOSTS`, `VITE_SURFACE_ORDER_HOSTS`, `VITE_SURFACE_KIOSK_HOSTS`, `VITE_SURFACE_KDS_HOSTS`, `VITE_SURFACE_TRACK_HOSTS` (comma-separated exact hostnames; see [.env.example](.env.example)).
    - Optional public links from staff: `VITE_PUBLIC_ORDER_URL`, `VITE_PUBLIC_KIOSK_URL` (full URLs).
 
@@ -79,11 +119,13 @@ supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 ```
 
-**From this repo (uses `npx`, no global CLI required):**
+**From this repo (uses local `tools/supabase` on Windows when present, else `npx`):**
 
 ```bash
 npm run supabase:push
 ```
+
+**Windows:** if `npx supabase` fails with “No matching … win32-x64”, download [Supabase CLI](https://github.com/supabase/cli/releases) (`supabase_windows_amd64.tar.gz`) into `tools/` (see `scripts/run-supabase-cli.mjs`). Then run `tools/supabase.exe login` and `tools/supabase.exe link --project-ref $(node scripts/get-supabase-ref.mjs)`.
 
 Recent online-order schema additions included in this repo:
 
@@ -102,6 +144,22 @@ If you see **“Remote migration versions not found in local migrations director
 **Kitchen hours + pause + soft-close:** migrations add `online_settings.offline_until` and `closing_soon_minutes` (see `20260423120000_online_settings_kitchen_pause.sql`), plus RPC **`expire_online_kitchen_pause_if_due`** (`20260423180000_expire_online_kitchen_pause_rpc.sql`) so timed pauses auto-open in the DB. Customer and edge validation share **[docs/KITCHEN_HOURS.md](docs/KITCHEN_HOURS.md)**. After changing **`online-order-create`** or **`supabase/functions/_shared/kitchenAcceptance.ts`**, redeploy **`online-order-create`** (same command as below).
 
 ### Edge Functions (deploy each)
+
+**Supabase MCP project ref (Cursor):** the hosted MCP URL must use the **same** project as `VITE_SUPABASE_URL`. A stale `project_ref` (e.g. a paused/deleted project) shows as **MCP server errored** with no tools.
+
+1. Check local ref: `node scripts/get-supabase-ref.mjs`
+2. Fix env + Cursor MCP in one step (pass the live ref from Supabase dashboard or production):
+
+   ```bash
+   npm run fix:supabase-ref -- dmrvycswdteuhfydchdr
+   ```
+
+   This updates `.env`, repo `.mcp.json`, and `%USERPROFILE%\.cursor\mcp.json`.
+
+3. **Cursor → Settings → Tools & MCP → Supabase** — disable/re-enable or restart Cursor, then complete OAuth if prompted.
+4. Verify: ask the agent to run MCP `list_tables` or `get_project_url`.
+
+See [Supabase MCP docs](https://supabase.com/docs/guides/getting-started/mcp) for `read_only=true` and `features=` options.
 
 **Cursor Supabase MCP (preferred when the CLI is not logged in):** for **`online-order-create`** only, you can deploy the exact repo bundle without `supabase login`:
 
@@ -127,6 +185,10 @@ Agent automation cannot reliably pass multi‑tens‑of‑KB JSON into MCP from 
 
 ```bash
 supabase functions deploy online-order-create
+supabase functions deploy united-payment-create-payment
+supabase functions deploy united-payment-return
+supabase functions deploy united-payment-webhook
+supabase functions deploy united-payment-status-check
 supabase functions deploy epoint-create-payment
 supabase functions deploy epoint-webhook
 supabase functions deploy payment-reconcile
@@ -137,7 +199,32 @@ supabase functions deploy wolt-drive-webhook
 supabase functions deploy wolt-drive-manual-dispatch
 supabase functions deploy wolt-dispatch-book-lock
 supabase functions deploy user-management
+supabase functions deploy admin-api
+supabase functions deploy admin-payment-recheck
+supabase functions deploy kds-order-status-update
+supabase functions deploy pos-order-create
 ```
+
+**POS (`pos.mings.az`):** apply migration **`20260620120000_pos_order_sources.sql`** (extends `M###` pool + KDS anon policies for `pos_*` sources), then deploy **`pos-order-create`**:
+
+```bash
+npm run supabase:push
+npm run supabase:deploy:pos-order
+```
+
+Add **`pos.mings.az`** to the **staff** Vercel project domains (same `dist-staff/` as `sp.mings.az`). Set `VITE_SURFACE_POS_HOSTS=pos.mings.az`. Add `https://pos.mings.az` to Supabase Auth redirect URLs.
+
+**Local label printing:** run **`apps/pos-print-agent`** on the counter Windows PC (`npm start` in that folder; default `http://127.0.0.1:9310`). Optional Electron shell: **`apps/pos-desktop`** (`npm run dist` for `.exe` installer). See each app's `README.md`.
+
+**Staff security layer:** after migration `20260610120000_harden_staff_only_rls.sql`, cockpit **mutations** go through **`admin-api`** (audited service-role writes). KDS status buttons call **`kds-order-status-update`** and **`kds-item-prep-toggle`** with the **staff session JWT** (`requireStaffAuth`). Deploy:
+
+```bash
+npm run supabase:deploy:admin-api
+npm run supabase:deploy:kds-status
+npm run supabase:deploy:kds-item-prep
+```
+
+**KDS Chowbus board (2026-06):** three-column kanban, item prep checkoffs, filters/search, undo toast, history drawer. Apply migrations **`20260619120000_kds_item_prep_and_anon_update.sql`** and **`20260619130000_kds_anon_read_completed_today.sql`**, then deploy **`kds-item-prep-toggle`** (item checkoffs) alongside **`kds-order-status-update`** (resets `prepared_at` when starting prep).
 
 **Numbering rollout dependency:** deploy the `20260425173000_direct_order_number_allocator.sql` migration before deploying storefront/kiosk builds that call `allocate_direct_display_number()`. The migration keeps compatibility wrappers (`generate_daily_order_number*`) for staggered rollout safety, but direct callers should move to the shared allocator RPC.
 
@@ -147,6 +234,8 @@ supabase functions deploy user-management
 npm run supabase:deploy:web
 ```
 
+**No Docker Desktop?** `npm run supabase:deploy:*` scripts pass **`--use-api`** so the Supabase CLI bundles on their servers instead of locally. If you run raw `supabase functions deploy`, add `--use-api` yourself (otherwise Docker is required).
+
 **Schema + both functions in one go (after `supabase login` + `supabase link`):**
 
 ```bash
@@ -155,9 +244,31 @@ npm run supabase:sync
 
 ### Secrets (Dashboard → Edge Functions → Secrets)
 
-Set at least: `APP_BASE_URL` (your live site URL). Add E-point / Wolt secrets when you enable them — see `.env.example`.
+Set at least: `APP_BASE_URL` (your live site URL). Add United Payment / E-point / Wolt secrets when you enable them — see `.env.example` and **[docs/UNITED_PAYMENT_INTEGRATION.md](docs/UNITED_PAYMENT_INTEGRATION.md)**.
 
-### Epoint (card payments on `/order`)
+**KDS auth:** `/kds` uses staff Supabase login. Deploy **`admin-api`**, **`kds-order-status-update`**, and **`kds-item-prep-toggle`** after migrations `20260610120000_harden_staff_only_rls.sql`, `20260619120000_kds_item_prep_and_anon_update.sql`, and `20260621120000_kds_staff_auth_drop_anon_policies.sql`.
+
+### Storefront ↔ KDS (split deploy smoke test)
+
+After **`20260618140000_kds_anon_read_kitchen_queue.sql`** and redeploying `online-order-create` + `kds-order-status-update`:
+
+1. Confirm **both** Vercel projects use the same Supabase URL/anon key.
+2. `order.mings.az` — place a **cash takeaway** test order → ticket on `sp.mings.az/kds?key=…` within ~5s.
+3. Place a **card** test order → ticket visible on KDS but **Start preparing** blocked until `payment_status = paid`.
+4. Pause kitchen in Order Manager → new storefront orders return **`KITCHEN_CLOSED`** (localized error).
+
+Apply migration before relying on online orders on KDS: `npm run supabase:push`.
+
+### United Payment (card payments on `/order` — current provider)
+
+New card orders use **United Payment** hosted checkout. See **[docs/UNITED_PAYMENT_INTEGRATION.md](docs/UNITED_PAYMENT_INTEGRATION.md)**.
+
+1. Edge Function secrets: `UNITED_PAYMENT_API_BASE` (test: `https://test-vpos.unitedpayment.az/api`), `UNITED_PAYMENT_EMAIL`, `UNITED_PAYMENT_PASSWORD`, `APP_BASE_URL`, `UNITED_PAYMENT_FUNCTIONS_PUBLIC_URL`, optional `UNITED_PAYMENT_WEBHOOK_URL`.
+2. Deploy: `united-payment-create-payment`, `united-payment-return`, `united-payment-webhook`, `united-payment-status-check` (all `verify_jwt = false` in [`supabase/config.toml`](supabase/config.toml)).
+3. Webhooks are unsigned; functions **re-confirm status** via CheckStatus before marking orders paid.
+4. Ask United Payment to enable webhook delivery to your `UNITED_PAYMENT_WEBHOOK_URL` when going live.
+
+### Epoint (legacy card payments on `/order`)
 
 1. Run migrations (`npm run supabase:push`) so `online_payments` and `saved_cards` exist with Epoint columns. New hosts also get **`payment_reconciliation_log`** (empty until a future reconciler writes rows; EPoint webhook behavior unchanged).
 2. Edge Function secrets:
@@ -174,8 +285,14 @@ Set at least: `APP_BASE_URL` (your live site URL). Add E-point / Wolt secrets wh
 
 Ops-only Edge Function to **read** EPoint `/get-status` and align `online_payments` / `sales` with the shared apply helper. It does **not** create new charges or refunds — it only updates local rows to match the provider (same semantics as a late webhook).
 
+**Cockpit UI:** Staff cockpit → **Payments** (`/spec-ops?screen=payments`) lists `online_payments` and exposes **Re-check status with provider** for **admin/manager**. The browser calls **`admin-payment-recheck`** (staff JWT); that function invokes `payment-reconcile` or `united-payment-status-check` with `PAYMENT_RECONCILE_SECRET` and writes `admin_audit_log`.
+
+**Supplier ledger & cash/debt:** After migration `20260626150000_supplier_ledger_liabilities_bank_withdrawals.sql`, supplier opening balances and lump-sum payments live on **`?screen=suppliers`**; loans/other debt and bank withdrawal fees on **`?screen=liabilities`**. Redeploy **`admin-api`** so mutations on `supplier_account_payments`, `liabilities`, `liability_payments`, and `bank_withdrawals` are allowed.
+
+**Payroll:** After migration `20260627120000_taxes_and_payroll.sql`, staff roster and salary payments live on **`?screen=staff`** (Finance hub → **Payroll**). The Taxes screen was removed 2026-06-29 — track tax as operational expenses. Redeploy **`admin-api`** so mutations on `employees` and `salary_payments` are allowed (`tax_settings` / `tax_payments` tables remain in DB but are no longer exposed in the UI). See **[docs/TAXES_PAYROLL.md](docs/TAXES_PAYROLL.md)**.
+
 1. Set **`PAYMENT_RECONCILE_SECRET`** (strong random string) in Edge secrets.
-2. Deploy: `supabase functions deploy payment-reconcile` (see [`supabase/config.toml`](supabase/config.toml): `verify_jwt = false`; auth is **`Authorization: Bearer <PAYMENT_RECONCILE_SECRET>`**).
+2. Deploy: `supabase functions deploy payment-reconcile` and `supabase functions deploy admin-payment-recheck` (see [`supabase/config.toml`](supabase/config.toml): `verify_jwt = false`; direct reconcile auth is **`Authorization: Bearer <PAYMENT_RECONCILE_SECRET>`**; cockpit bridge validates staff JWT inside the function).
 3. Body: **exactly one** of `{ "sale_id": "<uuid>" }` or `{ "online_payment_id": "<uuid>" }`. For `sale_id`, the function picks `sales.online_payment_id` when it matches the latest `online_payments` row for that sale; otherwise it always uses the **latest** `online_payments` row (`created_at` desc, `id` desc) so an older attempt is never reconciled when a newer one exists.
 4. Every attributed run writes **`payment_reconciliation_log`** (including noops and provider errors).
 

@@ -58,7 +58,7 @@ The staff cockpit in `src/App.tsx` resolves screens via query string:
 On **path-based** hosts (e.g. local `127.0.0.1:4175`), the cockpit is only mounted under the resolved admin path (**default `/spec-ops`**). Order Support is reached as **`/spec-ops?screen=order-support`**, not `/?screen=order-support` (root may render `PublicNotFound`). On **`sp.mings.az`**, the admin surface loads `App` for the whole origin, so `https://sp.mings.az/?screen=order-support` is valid.
 - `?screen=menu-builder`
 - `?screen=combos`
-- `?screen=products`
+- `?screen=products` (inventory screen — hidden from sidebar; Menu Builder + Expenses COGS cover day-to-day catalog)
 - `?screen=suppliers`
 - `?screen=expenses`
 - `?screen=payouts`

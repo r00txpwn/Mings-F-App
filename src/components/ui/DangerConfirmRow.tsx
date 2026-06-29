@@ -2,6 +2,7 @@ interface DangerConfirmRowProps {
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   className?: string;
@@ -11,6 +12,7 @@ export function DangerConfirmRow({
   message,
   confirmLabel = 'Delete',
   cancelLabel = 'Cancel',
+  confirmDisabled = false,
   onConfirm,
   onCancel,
   className = '',
@@ -22,14 +24,16 @@ export function DangerConfirmRow({
         <button
           type="button"
           onClick={onConfirm}
-          className="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-rose-700"
+          disabled={confirmDisabled}
+          className="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {confirmLabel}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="cockpit-btn-ghost px-3 py-1.5"
+          disabled={confirmDisabled}
+          className="cockpit-btn-ghost px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {cancelLabel}
         </button>

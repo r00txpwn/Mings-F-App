@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Check, ChevronDown, ChevronRight, Edit2, Trash2, X, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { supabase, SalesChannel, Sale } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
+import { isPartnerManualSaleChannel } from '../lib/partnerSalesChannels';
 import { useAuth } from '../contexts/AuthContext';
 import { PageHeader } from '../components/cockpit';
 import { SingleDatePicker } from '../components/SingleDatePicker';
@@ -15,15 +18,13 @@ interface GroupedSale {
 }
 
 /** Partner channels allowed for manual Add Sale (kiosk / online are created by the app). */
-const MANUAL_SALE_CHANNEL_NAMES = new Set(['wolt', 'bolt', 'choiceqr']);
-
 function isManualSaleChannel(ch: SalesChannel): boolean {
-  const n = (ch.name ?? '').trim().toLowerCase();
-  return MANUAL_SALE_CHANNEL_NAMES.has(n);
+  return isPartnerManualSaleChannel(ch);
 }
 
 export function SalesScreen() {
   const { t } = useLanguage();
+  const toast = useToast();
   const { user } = useAuth();
   const [amount, setAmount] = useState('');
   const [orderCount, setOrderCount] = useState('1');
@@ -31,13 +32,14 @@ export function SalesScreen() {
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [channels, setChannels] = useState<SalesChannel[]>([]);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [sales, setSales] = useState<Sale[]>([]);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const aov = (Number(amount) / Number(orderCount)) || 0;
@@ -74,6 +76,7 @@ export function SalesScreen() {
       .from('sales_channels')
       .select('*')
       .eq('is_active', true)
+      .eq('is_deleted', false)
       .order('name', { ascending: true });
 
     if (err) {
@@ -104,6 +107,7 @@ export function SalesScreen() {
   };
 
   const handleSave = async () => {
+    if (saving) return;
     if (!amount || Number(amount) <= 0 || !orderCount || Number(orderCount) <= 0) return;
     if (!selectedChannel || !manualChannels.some((c) => c.id === selectedChannel)) {
       setError(t.salesNoManualChannelsConfigured);
@@ -117,7 +121,7 @@ export function SalesScreen() {
     const qty = Number(orderCount);
     const unitPrice = totalPrice / qty;
 
-    const { error: err } = await supabase.from('sales').insert({
+    const result = await adminInsert('sales', {
       total_price: totalPrice,
       quantity: qty,
       unit_price: unitPrice,
@@ -129,21 +133,18 @@ export function SalesScreen() {
 
     setSaving(false);
 
-    if (err) {
-      setError(err.message);
+    if (!result.ok) {
+      setError(result.error ?? 'Insert failed');
+      toast.error(result.error ?? t.errorOccurred);
       return;
     }
 
-    setShowSuccess(true);
+    toast.success(t.savedSuccessfully);
     setAmount('');
     setOrderCount('1');
     setDescription('');
     setTransactionDate(new Date().toISOString().split('T')[0]);
     loadSales();
-
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 2000);
   };
 
   const getGroupedSales = (): GroupedSale[] => {
@@ -192,46 +193,49 @@ export function SalesScreen() {
   };
 
   const handleUpdate = async () => {
-    if (!editingSale) return;
+    if (!editingSale || savingEdit) return;
 
     setError(null);
+    setSavingEdit(true);
     const unitPrice = editingSale.quantity > 0
       ? Number(editingSale.total_price) / editingSale.quantity
       : Number(editingSale.total_price);
 
-    const { error: err } = await supabase
-      .from('sales')
-      .update({
-        total_price: Number(editingSale.total_price),
-        quantity: editingSale.quantity,
-        unit_price: unitPrice,
-        sales_channel_id: editingSale.sales_channel_id,
-        notes: editingSale.notes,
-        sale_date: editingSale.sale_date.split('T')[0],
-      })
-      .eq('id', editingSale.id);
+    const result = await adminUpdate('sales', editingSale.id, {
+      total_price: Number(editingSale.total_price),
+      quantity: editingSale.quantity,
+      unit_price: unitPrice,
+      sales_channel_id: editingSale.sales_channel_id,
+      notes: editingSale.notes,
+      sale_date: editingSale.sale_date.split('T')[0],
+    });
+    setSavingEdit(false);
 
-    if (err) {
-      setError(err.message);
+    if (!result.ok) {
+      setError(result.error ?? 'Update failed');
+      toast.error(result.error ?? t.errorOccurred);
       return;
     }
 
+    toast.success(t.updatedSuccessfully);
     setEditingSale(null);
     loadSales();
   };
 
   const handleDelete = async (id: string) => {
+    if (deletingId) return;
     setError(null);
-    const { error: err } = await supabase
-      .from('sales')
-      .delete()
-      .eq('id', id);
+    setDeletingId(id);
+    const result = await adminDelete('sales', id);
+    setDeletingId(null);
 
-    if (err) {
-      setError(err.message);
+    if (!result.ok) {
+      setError(result.error ?? 'Delete failed');
+      toast.error(result.error ?? t.errorOccurred);
       return;
     }
 
+    toast.success(t.deletedSuccessfully);
     setDeleteConfirm(null);
     loadSales();
   };
@@ -246,13 +250,6 @@ export function SalesScreen() {
       />
 
       {error && <div className="cockpit-alert-error">{error}</div>}
-
-      {showSuccess && (
-        <div className="cockpit-alert-success">
-          <Check className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          <span>{t.savedSuccessfully}</span>
-        </div>
-      )}
 
       <div className="cockpit-panel p-5 sm:p-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -514,9 +511,10 @@ export function SalesScreen() {
                                   <div className="flex items-center justify-end gap-2">
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleUpdate(); }}
-                                      className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
+                                      disabled={savingEdit}
+                                      className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded disabled:cursor-not-allowed disabled:opacity-50"
                                     >
-                                      <Check className="w-4 h-4" />
+                                      {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                     </button>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); setEditingSale(null); }}
@@ -541,8 +539,10 @@ export function SalesScreen() {
                                     <div className="flex gap-2">
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleDelete(sale.id); }}
-                                        className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded"
+                                        disabled={deletingId === sale.id}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded disabled:cursor-not-allowed disabled:opacity-50"
                                       >
+                                        {deletingId === sale.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                                         {t.delete}
                                       </button>
                                       <button

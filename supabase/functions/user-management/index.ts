@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { writeAdminAudit } from '../_shared/staffAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -218,6 +219,15 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      await writeAdminAudit(supabaseAdmin, {
+        actorId: user.id,
+        actorRole: 'admin',
+        action: 'create_user',
+        resourceTable: 'users',
+        resourceId: newUser.id,
+        payload: { email, role },
+      });
+
       return new Response(
         JSON.stringify({ user: newUser, role }),
         {
@@ -268,6 +278,15 @@ Deno.serve(async (req: Request) => {
           }
         );
       }
+
+      await writeAdminAudit(supabaseAdmin, {
+        actorId: user.id,
+        actorRole: 'admin',
+        action: 'delete_user',
+        resourceTable: 'users',
+        resourceId: userId,
+        payload: null,
+      });
 
       return new Response(
         JSON.stringify({ success: true }),
@@ -328,6 +347,15 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      await writeAdminAudit(supabaseAdmin, {
+        actorId: user.id,
+        actorRole: 'admin',
+        action: 'update_role',
+        resourceTable: 'users',
+        resourceId: userId,
+        payload: { role },
+      });
+
       return new Response(
         JSON.stringify({ success: true, role }),
         {
@@ -373,6 +401,15 @@ Deno.serve(async (req: Request) => {
           }
         );
       }
+
+      await writeAdminAudit(supabaseAdmin, {
+        actorId: user.id,
+        actorRole: 'admin',
+        action: 'reset_password',
+        resourceTable: 'users',
+        resourceId: userId,
+        payload: null,
+      });
 
       return new Response(
         JSON.stringify({ success: true }),

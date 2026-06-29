@@ -15,13 +15,21 @@ import {
   MapPin,
   Clock3,
   Loader2,
+  ShoppingCart,
+  ChefHat,
+  Monitor,
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
+import { adminUpdate } from '../lib/adminApi';
+import { buildMarkPaidPatch } from '../lib/cashPayment';
 import type { SaleItem } from '../lib/supabase';
 import { PageHeader } from '../components/cockpit';
 import { DateRangePicker } from '../components/DateRangePicker';
+import { EmptyState } from '../components/ui/EmptyState';
+import { SkeletonTable } from '../components/ui/Skeleton';
 import { getOrderAppUrl } from '../lib/surfaceRouting';
+import { getPublicKioskEntryUrl } from '../lib/surfaceHost';
 import { OrderItemSummary } from '../order-manager/OrderItemSummary';
 import { isCardOnlinePaymentMethod } from '../lib/onlinePaymentMethod';
 import { getCustomerDisplayName, type OrderManagerOrder } from '../order-manager/types';
@@ -34,7 +42,16 @@ type OrderSupportStatus =
   | 'completed'
   | 'cancelled';
 
-type OrderSource = 'kiosk' | 'online_delivery' | 'online_takeaway';
+const POS_SOURCES = ['pos_eat_in', 'pos_takeaway', 'pos_delivery'] as const;
+type PosSource = (typeof POS_SOURCES)[number];
+type OrderSource = 'kiosk' | 'online_delivery' | 'online_takeaway' | PosSource;
+
+const ORDER_SUPPORT_SOURCES: OrderSource[] = [
+  'kiosk',
+  'online_delivery',
+  'online_takeaway',
+  ...POS_SOURCES,
+];
 
 interface DeliveryOrder {
   sale_id: string;
@@ -77,7 +94,7 @@ interface AdminOrder {
 }
 
 type StatusFilter = 'all' | 'active' | 'dispatched' | 'completed' | 'cancelled';
-type SourceFilter = 'all' | OrderSource;
+type SourceFilter = 'all' | 'pos' | OrderSource;
 
 const STATUS_FILTERS: StatusFilter[] = [
   'all',
@@ -88,6 +105,22 @@ const STATUS_FILTERS: StatusFilter[] = [
 ];
 
 const PREP_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
+
+/**
+ * Quick links to the staff floor surfaces. POS / KDS / Order Manager are served
+ * same-origin on the staff host (preserves the active staff session); Kiosk uses
+ * the public entry URL so the `?key=` secret is included when configured.
+ */
+const QUICK_LINKS: Array<{
+  labelKey: 'adminAccessGoToPos' | 'adminAccessGoToKds' | 'adminAccessGoToOrderManager' | 'adminAccessGoToKiosk';
+  icon: typeof ShoppingCart;
+  getUrl: () => string;
+}> = [
+  { labelKey: 'adminAccessGoToPos', icon: ShoppingCart, getUrl: () => '/pos' },
+  { labelKey: 'adminAccessGoToKds', icon: ChefHat, getUrl: () => '/kds' },
+  { labelKey: 'adminAccessGoToOrderManager', icon: ClipboardList, getUrl: () => '/order-manager' },
+  { labelKey: 'adminAccessGoToKiosk', icon: Monitor, getUrl: () => getPublicKioskEntryUrl() },
+];
 
 function fmtTime(ts: string | null | undefined): string {
   if (!ts) return '—';
@@ -147,6 +180,9 @@ function orderStatusLabel(t: ReturnType<typeof useLanguage>['t'], status: OrderS
 function SourceIcon({ source }: { source: OrderSource }) {
   if (source === 'online_delivery') return <Truck className="h-3.5 w-3.5 text-blue-400" />;
   if (source === 'online_takeaway') return <ShoppingBag className="h-3.5 w-3.5 text-cockpit-400" />;
+  if (POS_SOURCES.includes(source as PosSource)) {
+    return <UtensilsCrossed className="h-3.5 w-3.5 text-amber-400" />;
+  }
   return <UtensilsCrossed className="h-3.5 w-3.5 text-slate-400" />;
 }
 
@@ -194,9 +230,9 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
     setBusy(true);
     setActionError(null);
     try {
-      const { error } = await supabase.from('sales').update(patch).eq('id', order.id);
-      if (error) {
-        setActionError(`${t.errorOccurred}: ${error.message}`);
+      const result = await adminUpdate('sales', order.id, patch);
+      if (!result.ok) {
+        setActionError(`${t.errorOccurred}: ${result.error ?? 'Update failed'}`);
         return;
       }
       const next = await refreshOrder();
@@ -392,7 +428,7 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
                       {pendingPay ? (
                         <button
                           type="button"
-                          onClick={() => void runUpdate({ payment_status: 'paid' })}
+                          onClick={() => void runUpdate(buildMarkPaidPatch(order))}
                           className="w-full rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-sm font-semibold text-amber-100 hover:bg-amber-500/25"
                         >
                           {t.confirmPayment}
@@ -425,7 +461,7 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
                             <button
                               type="button"
                               onClick={() => void acceptWithPrep(prepMinutes)}
-                              className="flex-1 rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-teal-500"
+                              className="flex-1 rounded-lg bg-cockpit-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-cockpit-500"
                             >
                               {t.omAccept}
                             </button>
@@ -527,7 +563,7 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
                             dispatched_at: new Date().toISOString(),
                           })
                         }
-                        className="w-full rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-teal-500"
+                        className="w-full rounded-lg bg-cockpit-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-cockpit-500"
                       >
                         {t.omConfirmSelfDispatch}
                       </button>
@@ -540,7 +576,7 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
                             completed_at: new Date().toISOString(),
                           })
                         }
-                        className="w-full rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-teal-500"
+                        className="w-full rounded-lg bg-cockpit-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-cockpit-500"
                       >
                         {t.omPickedUp}
                       </button>
@@ -589,7 +625,7 @@ export function AdminOrderSupportScreen() {
     const { data } = await supabase
       .from('sales')
       .select('*, sale_items(*, sale_item_modifiers(*))')
-      .in('source', ['kiosk', 'online_delivery', 'online_takeaway'])
+      .in('source', ORDER_SUPPORT_SOURCES)
       .gte('created_at', `${dateRange.start}T00:00:00.000Z`)
       .lte('created_at', `${dateRange.end}T23:59:59.999Z`)
       .order('created_at', { ascending: false });
@@ -645,7 +681,13 @@ export function AdminOrderSupportScreen() {
         if (o.order_status !== statusFilter) return false;
       }
 
-      if (sourceFilter !== 'all' && o.source !== sourceFilter) return false;
+      if (sourceFilter !== 'all') {
+        if (sourceFilter === 'pos') {
+          if (!POS_SOURCES.includes(o.source as PosSource)) return false;
+        } else if (o.source !== sourceFilter) {
+          return false;
+        }
+      }
 
       if (search.trim()) {
         const q = search.trim().toLowerCase();
@@ -703,6 +745,27 @@ export function AdminOrderSupportScreen() {
         }
       />
 
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          {t.cockpitQuickLinks}
+        </span>
+        {QUICK_LINKS.map((link) => {
+          const Icon = link.icon;
+          return (
+            <button
+              key={link.labelKey}
+              type="button"
+              onClick={() => window.open(link.getUrl(), '_blank', 'noopener')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white/60 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white"
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {t[link.labelKey]}
+              <ExternalLink className="h-3 w-3 opacity-60" />
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
           {STATUS_FILTERS.map((f) => (
@@ -726,6 +789,7 @@ export function AdminOrderSupportScreen() {
         >
           <option value="all">{t.orderSupportSourceAll}</option>
           <option value="kiosk">{t.omSourceKiosk}</option>
+          <option value="pos">{t.omSourcePos}</option>
           <option value="online_delivery">{t.omSourceDelivery}</option>
           <option value="online_takeaway">{t.omSourceTakeaway}</option>
         </select>
@@ -755,14 +819,13 @@ export function AdminOrderSupportScreen() {
       </p>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <RefreshCw className="h-6 w-6 animate-spin text-cockpit-400" />
-        </div>
+        <SkeletonTable rows={6} />
       ) : filteredOrders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/5 py-16 text-center">
-          <Package className="mb-3 h-10 w-10 text-slate-600" />
-          <p className="text-sm text-slate-500">{t.orderSupportNoOrders}</p>
-        </div>
+        <EmptyState
+          icon={Package}
+          title={t.orderSupportNoOrders}
+          description={t.cockpitEmptyFilteredHint}
+        />
       ) : (
         <div className="overflow-hidden rounded-xl border border-white/10">
           <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto_auto_auto] gap-3 border-b border-white/10 bg-white/5 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">

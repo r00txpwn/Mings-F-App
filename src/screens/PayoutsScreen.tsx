@@ -1,14 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Banknote, Plus, Check, Edit2, Trash2, X, Loader2, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Banknote, Plus, Check, Edit2, Trash2, X, Loader2, AlertCircle, ChevronDown, ChevronRight, Wallet, Landmark, CreditCard } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, SalesChannel, PlatformPayout } from '../lib/supabase';
+import { supabase, SalesChannel, PlatformPayout, FinanceAccountKey } from '../lib/supabase';
+import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { SingleDatePicker } from '../components/SingleDatePicker';
 import { fetchPayoutReconciliation } from '../services/analytics';
 import { PageHeader } from '../components/cockpit';
 import { IconActionButton } from '../components/ui/IconActionButton';
 import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ReviewBadge } from '../components/ui/ReviewBadge';
+import { SkeletonTable } from '../components/ui/Skeleton';
+import { displayName, isTestRecord } from '../lib/displayName';
 
 interface PayoutWithCalc extends PlatformPayout {
   grossSales: number;
@@ -18,6 +24,7 @@ interface PayoutWithCalc extends PlatformPayout {
 
 export function PayoutsScreen() {
   const { t } = useLanguage();
+  const toast = useToast();
   const { user } = useAuth();
 
   const [channels, setChannels] = useState<SalesChannel[]>([]);
@@ -25,7 +32,7 @@ export function PayoutsScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingPayout, setEditingPayout] = useState<PlatformPayout | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -36,6 +43,7 @@ export function PayoutsScreen() {
   const [periodEnd, setPeriodEnd] = useState('');
   const [payoutAmount, setPayoutAmount] = useState('');
   const [payoutDate, setPayoutDate] = useState(new Date().toISOString().split('T')[0]);
+  const [receivedAccount, setReceivedAccount] = useState<FinanceAccountKey | ''>('');
   const [notes, setNotes] = useState('');
   const [previewGross, setPreviewGross] = useState<number | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -53,13 +61,27 @@ export function PayoutsScreen() {
     }
   }, [channelId, periodStart, periodEnd]);
 
-  const PLATFORM_NAMES = ['Wolt', 'Bolt'];
+  const PLATFORM_NAMES = ['Wolt', 'Bolt', 'ChoiceQR'];
+
+  const ACCOUNT_OPTIONS: Array<{ key: FinanceAccountKey; label: string; icon: typeof Wallet }> = [
+    { key: 'bank', label: t.accountBank, icon: Landmark },
+    { key: 'card', label: t.accountCard, icon: CreditCard },
+    { key: 'cash', label: t.accountCash, icon: Wallet },
+  ];
+
+  const accountLabel = (key: FinanceAccountKey | null): string => {
+    if (key === 'bank') return t.accountBank;
+    if (key === 'card') return t.accountCard;
+    if (key === 'cash') return t.accountCash;
+    return '';
+  };
 
   const loadChannels = async () => {
     const { data } = await supabase
       .from('sales_channels')
       .select('*')
       .eq('is_active', true)
+      .eq('is_deleted', false)
       .in('name', PLATFORM_NAMES)
       .order('name');
     if (data) setChannels(data);
@@ -146,6 +168,7 @@ export function PayoutsScreen() {
     setPeriodEnd('');
     setPayoutAmount('');
     setPayoutDate(new Date().toISOString().split('T')[0]);
+    setReceivedAccount('');
     setNotes('');
     setPreviewGross(null);
     setEditingPayout(null);
@@ -153,7 +176,8 @@ export function PayoutsScreen() {
   };
 
   const handleSave = async () => {
-    if (!channelId || !periodStart || !periodEnd || !payoutAmount || Number(payoutAmount) <= 0) return;
+    if (saving) return;
+    if (!channelId || !periodStart || !periodEnd || !payoutAmount || Number(payoutAmount) <= 0 || !receivedAccount) return;
 
     setSaving(true);
     setError(null);
@@ -164,33 +188,34 @@ export function PayoutsScreen() {
       period_end: periodEnd,
       payout_amount: Number(payoutAmount),
       payout_date: payoutDate,
+      received_account: receivedAccount,
       notes: notes || '',
       created_by: user?.id || null,
     };
 
-    let err;
+    let err: string | undefined;
     if (editingPayout) {
-      const res = await supabase
-        .from('platform_payouts')
-        .update({ ...payload, updated_at: new Date().toISOString() })
-        .eq('id', editingPayout.id);
+      const res = await adminUpdate('platform_payouts', editingPayout.id, {
+        ...payload,
+        updated_at: new Date().toISOString(),
+      });
       err = res.error;
     } else {
-      const res = await supabase.from('platform_payouts').insert(payload);
+      const res = await adminInsert('platform_payouts', payload);
       err = res.error;
     }
 
     setSaving(false);
 
     if (err) {
-      setError(err.message);
+      setError(err);
+      toast.error(err);
       return;
     }
 
-    setShowSuccess(true);
+    toast.success(editingPayout ? t.updatedSuccessfully : t.savedSuccessfully);
     resetForm();
     loadPayouts();
-    setTimeout(() => setShowSuccess(false), 2000);
   };
 
   const handleEdit = (p: PayoutWithCalc) => {
@@ -200,16 +225,22 @@ export function PayoutsScreen() {
     setPeriodEnd(p.period_end);
     setPayoutAmount(String(p.payout_amount));
     setPayoutDate(p.payout_date);
+    setReceivedAccount(p.received_account || '');
     setNotes(p.notes || '');
     setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
-    const { error: err } = await supabase.from('platform_payouts').delete().eq('id', id);
-    if (err) {
-      setError(err.message);
+    if (deletingId) return;
+    setDeletingId(id);
+    const res = await adminDelete('platform_payouts', id);
+    setDeletingId(null);
+    if (res.error) {
+      setError(res.error);
+      toast.error(res.error);
       return;
     }
+    toast.success(t.deletedSuccessfully);
     setDeleteConfirm(null);
     loadPayouts();
   };
@@ -244,13 +275,6 @@ export function PayoutsScreen() {
 
       {error ? (
         <div className="cockpit-alert-error mb-6">{error}</div>
-      ) : null}
-
-      {showSuccess ? (
-        <div className="cockpit-alert-success mb-6 animate-scaleIn">
-          <Check className="h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-200" />
-          <span>{t.savedSuccessfully}</span>
-        </div>
       ) : null}
 
       {payouts.length > 0 && (
@@ -320,6 +344,39 @@ export function PayoutsScreen() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <label className="cockpit-label mb-2">
+                {t.payoutReceivedInto} *
+              </label>
+              <div className="flex flex-wrap gap-3">
+                {ACCOUNT_OPTIONS.map((opt) => {
+                  const Icon = opt.icon;
+                  const selected = receivedAccount === opt.key;
+                  return (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setReceivedAccount(opt.key)}
+                      className={`relative flex items-center gap-2.5 rounded-xl border px-4 py-2.5 transition-all ${
+                        selected
+                          ? 'border-cockpit-500 bg-cockpit-500/10 shadow-md shadow-cockpit-500/10 dark:border-cockpit-400'
+                          : 'border-slate-200 bg-white hover:border-slate-300 dark:border-white/10 dark:bg-slate-950/40 dark:hover:border-white/20'
+                      }`}
+                    >
+                      {selected && (
+                        <div className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-cockpit-600 shadow-md dark:bg-cockpit-500">
+                          <Check className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
+                      <Icon className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{t.payoutReceivedIntoHint}</p>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -433,7 +490,7 @@ export function PayoutsScreen() {
           <button
             type="button"
             onClick={handleSave}
-            disabled={!channelId || !periodStart || !periodEnd || !payoutAmount || Number(payoutAmount) <= 0 || saving}
+            disabled={!channelId || !periodStart || !periodEnd || !payoutAmount || Number(payoutAmount) <= 0 || !receivedAccount || saving}
             className="cockpit-btn-primary mt-4 w-full justify-center disabled:opacity-40"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
@@ -446,21 +503,23 @@ export function PayoutsScreen() {
         <h2 className="cockpit-section-title mb-4">{t.payouts}</h2>
         <div className="cockpit-panel overflow-hidden p-0">
           {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin text-cockpit-500" />
-            </div>
+            <SkeletonTable rows={4} />
           ) : payouts.length === 0 ? (
-            <div className="p-12 text-center">
-              <Banknote className="mx-auto mb-3 h-12 w-12 text-slate-400 dark:text-slate-600" />
-              <p className="font-medium text-slate-600 dark:text-slate-300">{t.noPayoutsYet}</p>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">{t.createFirstPayout}</p>
-            </div>
+            <EmptyState
+              icon={Banknote}
+              title={t.noPayoutsYet}
+              description={t.createFirstPayout}
+              className="m-4 border-0 bg-transparent"
+            />
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-white/5">
-              {payouts.map((p) => {
+              {payouts
+                .filter((p) => !isTestRecord(p.sales_channels?.name) && !isTestRecord(p.notes))
+                .map((p) => {
                 const ch = p.sales_channels;
                 const isExpanded = expandedId === p.id;
                 const isDeleting = deleteConfirm === p.id;
+                const highCommission = p.commissionPercent >= 45;
 
                 return (
                   <div key={p.id}>
@@ -478,13 +537,19 @@ export function PayoutsScreen() {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-900 dark:text-white">{ch?.name}</span>
+                          <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {displayName(ch?.name, t.cockpitTestRecordLabel)}
+                          </span>
+                          {highCommission ? (
+                            <ReviewBadge label={t.cockpitNeedsReview} reason={t.cockpitReviewHighCommission} />
+                          ) : null}
                           <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
                             {new Date(p.period_start).toLocaleDateString()} — {new Date(p.period_end).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                           {t.payoutDate}: {new Date(p.payout_date).toLocaleDateString()}
+                          {p.received_account ? ` | ${t.payoutReceivedInto} ${accountLabel(p.received_account)}` : ''}
                           {p.notes ? ` | ${p.notes}` : ''}
                         </div>
                       </div>

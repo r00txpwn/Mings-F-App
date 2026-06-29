@@ -1,0 +1,45 @@
+---
+description: Keep the public tunnel URL fixed (ngrok static domain) — never restart or swap it without the user asking
+alwaysApply: true
+---
+
+# Stable tunnel URL — do not change
+
+The owner uses a **fixed** public URL to access the local staff preview from other devices. Agents must **preserve** this URL across sessions — do not hand out new links unless the user explicitly asks to change the tunnel setup.
+
+## Canonical URL (share this only)
+
+- **Tunnel:** `https://putt-context-lazily.ngrok-free.dev/`
+- **Cockpit:** `https://putt-context-lazily.ngrok-free.dev/spec-ops?screen=home`
+- **LAN (same network):** `http://192.168.1.86:4175/` (host IP may differ; tunnel URL does not)
+
+Configured in [`scripts/tunnel-ngrok.mjs`](scripts/tunnel-ngrok.mjs) via `NGROK_DOMAIN=putt-context-lazily.ngrok-free.dev` (default). Start with **`npm run tunnel:ngrok`** (not localtunnel).
+
+## Required behavior
+
+1. **Prefer ngrok** for remote access: **`npm run tunnel:ngrok`** → fixed domain `https://putt-context-lazily.ngrok-free.dev/`. Do not restart or replace unless the user asks or the tunnel is confirmed dead.
+2. **Never** run bare `npx localtunnel` for sharing links — use ngrok. localtunnel is deprecated here (it cycled random URLs and showed a password page).
+3. **Never** start a second tunnel while one is already running. Only **one** `npm run tunnel:ngrok` instance at a time (ngrok rejects a second connection to the same domain with `ERR_NGROK_334`).
+4. **Do not** kill, restart, or replace the tunnel as a “follow-up” after deploys, rebuilds, or background task cleanup **unless**:
+   - the user explicitly asks to restart the tunnel, or
+   - the tunnel is confirmed dead **and** the user needs remote access again.
+5. Rebuilding the app (`npm run deploy:local` / `deploy:local:lan`) does **not** require restarting the tunnel — it forwards to port 4175 regardless.
+6. **Do not** change `NGROK_DOMAIN`, pick a new domain, or suggest a different tunnel URL without the user’s explicit approval.
+7. When the user asks for the remote link, always give **`https://putt-context-lazily.ngrok-free.dev/...`**.
+
+## Setup (one-time, already done)
+
+- ngrok binary lives at `%LOCALAPPDATA%\ngrok-bin\ngrok.exe` (also works if `ngrok` is on PATH).
+- Authtoken saved via `ngrok config add-authtoken <token>` → `%LOCALAPPDATA%\ngrok\ngrok.yml`. The token is **not** stored in the repo.
+- Tunnel command: [`scripts/tunnel-ngrok.mjs`](scripts/tunnel-ngrok.mjs) runs `ngrok http --url=https://putt-context-lazily.ngrok-free.dev 4175` and auto-restarts on drop.
+
+## If the tunnel must be restarted (user asked or confirmed dead)
+
+1. Stop any running tunnel: kill `tunnel-ngrok.mjs` node processes **and** stray `ngrok.exe` (not the vite preview on 4175).
+2. Start exactly once: `npm run tunnel:ngrok`.
+3. Confirm reachability: `https://putt-context-lazily.ngrok-free.dev/build-meta.json` returns the current `gitSha`.
+4. If ngrok reports `ERR_NGROK_334` (“endpoint already online”), a tunnel is already up — do **not** start another; the URL is live.
+
+## ngrok free-tier note
+
+First visit may show a one-click **“Visit Site”** interstitial — that is normal, not a password. There is no localtunnel-style IP password.

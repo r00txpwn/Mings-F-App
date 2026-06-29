@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getAuthStorageKey } from './buildTarget';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -12,7 +13,7 @@ export const supabase = createClient(
   {
     auth: {
       persistSession: true,
-      storageKey: 'mings-auth-token',
+      storageKey: getAuthStorageKey(),
       storage: window.localStorage,
       autoRefreshToken: true,
       detectSessionInUrl: true,
@@ -38,6 +39,7 @@ export interface SalesChannel {
   logo_url?: string | null;
   display_order?: number;
   is_active: boolean;
+  is_deleted?: boolean;
   created_at: string;
 }
 
@@ -113,6 +115,24 @@ export interface SaleItem {
   combo_id?: string | null;
   combo_selections?: Record<string, unknown> | null;
   sale_item_modifiers?: SaleItemModifier[];
+  prepared_at?: string | null;
+}
+
+export interface OnlinePayment {
+  id: string;
+  sale_id: string;
+  provider: string | null;
+  status: string | null;
+  amount: number | null;
+  currency: string | null;
+  external_id: string | null;
+  epoint_transaction: string | null;
+  epoint_status: string | null;
+  raw_payload: Record<string, unknown> | null;
+  paid_at: string | null;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string | null;
 }
 
 export interface Sale {
@@ -129,11 +149,15 @@ export interface Sale {
   source?: string;
   order_status?: string;
   payment_status?: string;
+  payment_method?: string | null;
+  paid_at?: string | null;
   daily_order_number?: number | null;
   display_number?: string | null;
   prep_started_at?: string | null;
   ready_at?: string | null;
   estimated_ready_at?: string | null;
+  dispatched_at?: string | null;
+  completed_at?: string | null;
   scheduled_for?: string | null;
   is_scheduled?: boolean | null;
   reminder_at?: string | null;
@@ -150,6 +174,10 @@ export interface Sale {
   delivery_zone_id?: string | null;
   track_token?: string | null;
   customer_user_id?: string | null;
+  discount_amount?: number | null;
+  tip_amount?: number | null;
+  promo_code?: string | null;
+  cancellation_reason?: string | null;
   sales_channels?: SalesChannel;
   sale_items?: SaleItem[];
 }
@@ -170,8 +198,102 @@ export interface Supplier {
   address: string;
   notes: string;
   is_active: boolean;
+  opening_balance?: number;
+  opening_balance_date?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface SupplierAccountPayment {
+  id: string;
+  supplier_id: string;
+  amount: number;
+  paid_date: string;
+  payment_method: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface SupplierDebt {
+  id: string;
+  supplier_id: string;
+  amount: number;
+  debt_date: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface Liability {
+  id: string;
+  type: 'loan' | 'other';
+  counterparty: string;
+  principal_amount: number;
+  currency: string;
+  incurred_date: string;
+  due_date: string | null;
+  notes: string;
+  status: 'open' | 'partially_paid' | 'settled';
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LiabilityPayment {
+  id: string;
+  liability_id: string;
+  amount: number;
+  paid_date: string;
+  payment_method: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface BankWithdrawal {
+  id: string;
+  amount: number;
+  method: 'cashier' | 'abb_atm';
+  fee_rate: number;
+  fee_amount: number;
+  withdrawal_date: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CashMovement {
+  id: string;
+  direction: 'in' | 'out';
+  category: 'opening_float' | 'bank_deposit' | 'adjustment' | 'other';
+  amount: number;
+  movement_date: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export type FinanceAccountKey = 'cash' | 'bank' | 'card';
+
+export interface FinanceAccount {
+  key: FinanceAccountKey;
+  name: string;
+  opening_balance: number;
+  opening_date: string | null;
+  updated_at: string;
+}
+
+export interface AccountTransfer {
+  id: string;
+  from_account: FinanceAccountKey;
+  to_account: FinanceAccountKey;
+  amount: number;
+  fee_amount: number;
+  transfer_date: string;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface Product {
@@ -272,9 +394,39 @@ export interface PlatformPayout {
   period_end: string;
   payout_amount: number;
   payout_date: string;
+  /** Which account the payout landed in. null = report-only (no balance impact). */
+  received_account: FinanceAccountKey | null;
   notes: string;
   created_by: string | null;
   created_at: string;
   updated_at: string;
   sales_channels?: SalesChannel;
+}
+
+export type SalaryPaymentType = 'salary' | 'advance' | 'bonus' | 'partial';
+
+export interface Employee {
+  id: string;
+  full_name: string;
+  designation: string;
+  total_salary: number;
+  official_salary: number;
+  is_active: boolean;
+  hired_at: string | null;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SalaryPayment {
+  id: string;
+  employee_id: string;
+  amount: number;
+  payment_date: string;
+  payment_type: SalaryPaymentType;
+  note: string;
+  created_by: string | null;
+  created_at: string;
+  employees?: Pick<Employee, 'full_name' | 'designation'>;
 }

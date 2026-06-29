@@ -75,15 +75,15 @@ export function ProductDetailModal({ product, onAddToCart, onClose, theme = 'kio
       }
     : {
         panelBg: 'var(--kiosk-card)',
-        heroBg: '#383838',
-        text: 'var(--kiosk-white)',
-        muted: 'var(--kiosk-smoke)',
+        heroBg: 'var(--kiosk-bg)',
+        text: 'var(--kiosk-text)',
+        muted: 'var(--kiosk-muted)',
         accent: 'var(--kiosk-primary)',
         border: 'var(--kiosk-border)',
-        tileBg: 'rgba(255,255,255,0.04)',
+        tileBg: 'var(--kiosk-bg)',
         selectedTileBg: 'rgba(214,87,69,0.12)',
-        controlBg: '#383838',
-        footerBg: 'rgba(42, 42, 43, 0.97)',
+        controlBg: 'var(--kiosk-bg)',
+        footerBg: 'var(--kiosk-card)',
       };
 
   const groups = useMemo(() => {

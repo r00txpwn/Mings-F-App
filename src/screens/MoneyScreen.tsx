@@ -170,7 +170,7 @@ export function MoneyScreen() {
                       <span>₼{point.revenue.toFixed(2)}</span>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-700">
-                      <div className="h-2 rounded-full bg-teal-500" style={{ width: `${width}%` }} />
+                      <div className="h-2 rounded-full bg-cockpit-500" style={{ width: `${width}%` }} />
                     </div>
                   </div>
                 );

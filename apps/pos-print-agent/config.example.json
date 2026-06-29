@@ -1,0 +1,12 @@
+{
+  "port": 9310,
+  "host": "0.0.0.0",
+  "printer": {
+    "mode": "tcp",
+    "host": "127.0.0.1",
+    "port": 9100,
+    "windowsSpoolerName": ""
+  },
+  "retryIntervalMs": 5000,
+  "corsOrigins": ["http://127.0.0.1:4175", "https://pos.mings.az", "http://localhost:5173"]
+}
