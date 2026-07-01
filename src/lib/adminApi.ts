@@ -1,3 +1,4 @@
+import { getAuthStorageKey } from './buildTarget';
 import { supabase } from './supabase';
 
 export type AdminMutationOp = 'insert' | 'update' | 'delete' | 'upsert';
@@ -17,9 +18,72 @@ export interface AdminMutateResult<T = unknown> {
   code?: string;
 }
 
+function readPersistedAccessToken(): string | null {
+  try {
+    const raw = localStorage.getItem(getAuthStorageKey());
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { access_token?: string; expires_at?: number };
+    if (!parsed.access_token) return null;
+    if (parsed.expires_at && parsed.expires_at < Math.floor(Date.now() / 1000)) return null;
+    return parsed.access_token;
+  } catch {
+    return null;
+  }
+}
+
 async function getAccessToken(): Promise<string | null> {
+  const persisted = readPersistedAccessToken();
+  if (persisted) return persisted;
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token ?? null;
+}
+
+async function invokeStaffEdgeFunction<T>(
+  functionName: string,
+  body: unknown,
+  token: string
+): Promise<AdminMutateResult<T>> {
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  if (!baseUrl || !anonKey) {
+    return { ok: false, error: 'Supabase is not configured', code: 'CONFIG' };
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/functions/v1/${functionName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        apikey: anonKey,
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Network error',
+      code: 'EDGE_ERROR',
+    };
+  }
+
+  let parsed: { ok?: boolean; data?: T; error?: { message?: string; code?: string } };
+  try {
+    parsed = (await response.json()) as { ok?: boolean; data?: T; error?: { message?: string; code?: string } };
+  } catch {
+    return { ok: false, error: `HTTP ${response.status}`, code: 'EDGE_ERROR' };
+  }
+
+  if (!response.ok || !parsed.ok) {
+    return {
+      ok: false,
+      error: parsed.error?.message ?? `HTTP ${response.status}`,
+      code: parsed.error?.code ?? 'EDGE_ERROR',
+    };
+  }
+
+  return { ok: true, data: parsed.data ?? null };
 }
 
 /**
@@ -31,37 +95,7 @@ export async function adminMutate<T = unknown>(req: AdminMutateRequest): Promise
     return { ok: false, error: 'Not signed in', code: 'UNAUTHORIZED' };
   }
 
-  const { data, error } = await supabase.functions.invoke('admin-api', {
-    body: req,
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (error) {
-    let message = error.message;
-    if (error && typeof error === 'object' && 'context' in error) {
-      const ctx = (error as { context?: Response }).context;
-      if (ctx instanceof Response) {
-        try {
-          const body = await ctx.clone().json();
-          message = body?.error?.message ?? message;
-        } catch {
-          // keep generic message
-        }
-      }
-    }
-    return { ok: false, error: message, code: 'EDGE_ERROR' };
-  }
-
-  const res = data as { ok?: boolean; data?: T; error?: { message?: string; code?: string } } | null;
-  if (!res?.ok) {
-    return {
-      ok: false,
-      error: res?.error?.message ?? 'Mutation failed',
-      code: res?.error?.code,
-    };
-  }
-
-  return { ok: true, data: res.data ?? null };
+  return invokeStaffEdgeFunction<T>('admin-api', req, token);
 }
 
 export async function adminInsert<T = unknown>(

@@ -31,8 +31,7 @@ import { SkeletonTable } from '../components/ui/Skeleton';
 import { getOrderAppUrl } from '../lib/surfaceRouting';
 import { getPublicKioskEntryUrl } from '../lib/surfaceHost';
 import { OrderItemSummary } from '../order-manager/OrderItemSummary';
-import { isCardOnlinePaymentMethod } from '../lib/onlinePaymentMethod';
-import { getCustomerDisplayName, type OrderManagerOrder } from '../order-manager/types';
+import { getCustomerDisplayName, isPendingOnlinePayment, needsStaffPaymentConfirmation, type OrderManagerOrder } from '../order-manager/types';
 
 type OrderSupportStatus =
   | 'pending'
@@ -195,12 +194,8 @@ function itemsSummary(items: SaleItem[] | null | undefined): string {
   return names.join(', ') + extra;
 }
 
-function isPendingOnlinePayment(order: AdminOrder): boolean {
-  const src = order.source;
-  if (src !== 'online_delivery' && src !== 'online_takeaway') return false;
-  if (!isCardOnlinePaymentMethod(order.online_payment_method)) return false;
-  const st = String(order.payment_status ?? '');
-  return st !== 'paid' && st !== 'completed';
+function orderNeedsPaymentConfirm(order: AdminOrder): boolean {
+  return needsStaffPaymentConfirmation(order as OrderManagerOrder);
 }
 
 type OrderSupportDrawerProps = {
@@ -221,9 +216,11 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
 
   const omOrder = order as OrderManagerOrder;
   const customerDisplay = getCustomerDisplayName(omOrder);
-  const pendingPay = isPendingOnlinePayment(order);
+  const pendingPay = isPendingOnlinePayment(omOrder);
   const isScheduledPending = order.order_status === 'pending' && Boolean(order.scheduled_for);
   const isTerminal = order.order_status === 'completed' || order.order_status === 'cancelled';
+  const showPaymentConfirm =
+    orderNeedsPaymentConfirm(order) && !isTerminal && (order.order_status !== 'pending' || isScheduledPending);
   const trackingUrl = order.delivery_order?.tracking_url ?? '';
 
   const runUpdate = async (patch: Record<string, unknown>) => {
@@ -421,6 +418,16 @@ function OrderSupportOrderDrawer({ order, onClose, refreshOrder }: OrderSupportD
                         {t.adminAccessGoToOrderManager}
                       </button>
                     </div>
+                  ) : null}
+
+                  {showPaymentConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => void runUpdate(buildMarkPaidPatch(order))}
+                      className="w-full rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-sm font-semibold text-amber-100 hover:bg-amber-500/25"
+                    >
+                      {t.confirmPayment}
+                    </button>
                   ) : null}
 
                   {order.order_status === 'pending' && !isScheduledPending ? (

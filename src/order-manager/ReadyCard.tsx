@@ -7,7 +7,8 @@ import {
   suggestDeliveryMethod,
   type KitchenLocation,
 } from './deliveryUtils';
-import { getCustomerDisplayName, type OrderManagerOrder } from './types';
+import { getCustomerDisplayName, needsStaffPaymentConfirmation, type OrderManagerOrder } from './types';
+import { orderSourceLabel } from './orderSourceLabel';
 import { OrderItemSummary } from './OrderItemSummary';
 
 interface ReadyCardProps {
@@ -16,9 +17,19 @@ interface ReadyCardProps {
   onPickedUp: () => void;
   onDispatched: () => void;
   onSelfDispatch: (orderId: string) => void;
+  onMarkPaid?: () => void;
+  disabled?: boolean;
 }
 
-export function ReadyCard({ order, kitchenLocation, onPickedUp, onDispatched, onSelfDispatch }: ReadyCardProps) {
+export function ReadyCard({
+  order,
+  kitchenLocation,
+  onPickedUp,
+  onDispatched,
+  onSelfDispatch,
+  onMarkPaid,
+  disabled,
+}: ReadyCardProps) {
   const { t } = useLanguage();
   const [dispatchMethod, setDispatchMethod] = useState<'self' | 'wolt' | null>(null);
   const [dispatchConfirmed, setDispatchConfirmed] = useState(false);
@@ -26,11 +37,7 @@ export function ReadyCard({ order, kitchenLocation, onPickedUp, onDispatched, on
   const [error, setError] = useState<string | null>(null);
   const isDelivery = order.source === 'online_delivery';
 
-  const sourceLabel = useMemo(() => {
-    if (order.source === 'online_delivery') return t.omSourceDelivery;
-    if (order.source === 'online_takeaway') return t.omSourceTakeaway;
-    return t.omSourceKiosk;
-  }, [order.source, t]);
+  const sourceLabel = useMemo(() => orderSourceLabel(order.source, t), [order.source, t]);
   const customerDisplay = getCustomerDisplayName(order);
   const suggestion = suggestDeliveryMethod(order.delivery_lat, order.delivery_lng, kitchenLocation);
   const distanceLabel = formatDistanceKm(order.delivery_lat, order.delivery_lng, kitchenLocation);
@@ -77,6 +84,17 @@ export function ReadyCard({ order, kitchenLocation, onPickedUp, onDispatched, on
         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.orderDetails}</p>
         <OrderItemSummary items={order.sale_items} compact />
       </div>
+
+      {needsStaffPaymentConfirmation(order) && onMarkPaid ? (
+        <button
+          type="button"
+          onClick={onMarkPaid}
+          disabled={disabled}
+          className="mt-3 w-full rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-500/25 disabled:opacity-60"
+        >
+          {t.confirmPayment}
+        </button>
+      ) : null}
 
       {!isDelivery ? (
         <button

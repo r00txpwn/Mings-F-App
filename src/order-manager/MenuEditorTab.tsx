@@ -27,6 +27,8 @@ export function MenuEditorTab() {
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [combos, setCombos] = useState<ComboRow[]>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [err, setErr] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [productRes, comboRes, catRes] = await Promise.all([
@@ -63,17 +65,36 @@ export function MenuEditorTab() {
   );
 
   const toggleProduct = async (id: string, patch: Partial<Pick<ProductRow, 'kiosk_visible' | 'online_visible'>>) => {
-    await adminUpdate('products', id, patch);
+    setSavingId(id);
+    setErr(null);
+    const result = await adminUpdate('products', id, patch);
+    setSavingId(null);
+    if (!result.ok) {
+      setErr(result.error ?? t.omMenuEditorUpdateFailed);
+      return;
+    }
     await load();
   };
 
   const toggleCombo = async (id: string, isActive: boolean) => {
-    await adminUpdate('combo_deals', id, { is_active: !isActive });
+    setSavingId(id);
+    setErr(null);
+    const result = await adminUpdate('combo_deals', id, { is_active: !isActive });
+    setSavingId(null);
+    if (!result.ok) {
+      setErr(result.error ?? t.omMenuEditorUpdateFailed);
+      return;
+    }
     await load();
   };
 
   return (
     <div className="space-y-3">
+      {err ? (
+        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-100" role="alert">
+          {err}
+        </p>
+      ) : null}
       <div className="inline-flex rounded-lg bg-white/5 p-0.5 text-sm">
         <button
           type="button"
@@ -114,8 +135,9 @@ export function MenuEditorTab() {
                       </div>
                       <button
                         type="button"
+                        disabled={savingId === row.id}
                         onClick={() => void toggleProduct(row.id, { kiosk_visible: !row.kiosk_visible })}
-                        className={`rounded-md px-2 py-1 text-xs font-semibold ${
+                        className={`rounded-md px-2 py-1 text-xs font-semibold disabled:opacity-50 ${
                           row.kiosk_visible ? 'bg-emerald-500/30 text-emerald-100' : 'bg-white/10 text-slate-300'
                         }`}
                       >
@@ -123,8 +145,9 @@ export function MenuEditorTab() {
                       </button>
                       <button
                         type="button"
+                        disabled={savingId === row.id}
                         onClick={() => void toggleProduct(row.id, { online_visible: !row.online_visible })}
-                        className={`rounded-md px-2 py-1 text-xs font-semibold ${
+                        className={`rounded-md px-2 py-1 text-xs font-semibold disabled:opacity-50 ${
                           row.online_visible ? 'bg-cockpit-500/35 text-cockpit-100' : 'bg-white/10 text-slate-300'
                         }`}
                       >
@@ -146,8 +169,9 @@ export function MenuEditorTab() {
               </div>
               <button
                 type="button"
+                disabled={savingId === combo.id}
                 onClick={() => void toggleCombo(combo.id, combo.is_active)}
-                className={`rounded-md px-3 py-1 text-xs font-semibold ${
+                className={`rounded-md px-3 py-1 text-xs font-semibold disabled:opacity-50 ${
                   combo.is_active ? 'bg-emerald-500/30 text-emerald-100' : 'bg-white/10 text-slate-300'
                 }`}
               >

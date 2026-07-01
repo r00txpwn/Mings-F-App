@@ -416,6 +416,7 @@ export function ActiveOrdersTab({ accessToken, showReprint = false }: ActiveOrde
                   order={order}
                   nowMs={nowMs}
                   disabled={busyOrderId === order.id}
+                  onMarkPaid={() => void updateSale(order.id, buildMarkPaidPatch(order))}
                   onReady={() => void updateSale(order.id, { order_status: 'ready', ready_at: new Date().toISOString() })}
                 />
                 {showReprint ? <PosReprintButton order={order} className="mt-1 px-1" /> : null}
@@ -455,6 +456,8 @@ export function ActiveOrdersTab({ accessToken, showReprint = false }: ActiveOrde
                     <ReadyCard
                       order={order}
                       kitchenLocation={kitchenLocation}
+                      disabled={busyOrderId === order.id}
+                      onMarkPaid={() => void updateSale(order.id, buildMarkPaidPatch(order))}
                       onPickedUp={() =>
                         void updateSale(order.id, {
                           order_status: 'completed',

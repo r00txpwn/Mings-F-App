@@ -6,6 +6,7 @@ import {
   isCashPickupMethod,
 } from '../lib/onlinePaymentMethod';
 import { getCustomerDisplayName, isPendingOnlinePayment, type OrderManagerOrder } from './types';
+import { orderSourceLabel } from './orderSourceLabel';
 import { OrderItemSummary } from './OrderItemSummary';
 
 const PREP_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
@@ -26,11 +27,7 @@ export function NewOrderCard({ order, onAccept, onMarkPaid, onReject, disabled }
   const [rejectNote, setRejectNote] = useState('');
   const pendingCard = isPendingOnlinePayment(order);
 
-  const sourceLabel = useMemo(() => {
-    if (order.source === 'online_delivery') return t.omSourceDelivery;
-    if (order.source === 'online_takeaway') return t.omSourceTakeaway;
-    return t.omSourceKiosk;
-  }, [order.source, t]);
+  const sourceLabel = useMemo(() => orderSourceLabel(order.source, t), [order.source, t]);
   const sourceVisual = useMemo(() => {
     if (order.source === 'online_delivery') {
       return {

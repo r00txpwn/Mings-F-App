@@ -2,13 +2,14 @@ import { Clock3, User } from 'lucide-react';
 import { useMemo } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getUrgencyColor, remainingMinutes } from '../utils/urgency';
-import { getCustomerDisplayName, type OrderManagerOrder } from './types';
+import { getCustomerDisplayName, needsStaffPaymentConfirmation, type OrderManagerOrder } from './types';
 import { OrderItemSummary } from './OrderItemSummary';
 
 interface InProgressCardProps {
   order: OrderManagerOrder;
   nowMs: number;
   onReady: () => void;
+  onMarkPaid?: () => void;
   disabled?: boolean;
 }
 
@@ -20,7 +21,7 @@ function formatCountdown(ms: number): string {
   return `${ms < 0 ? '-' : ''}${min}:${String(sec).padStart(2, '0')}`;
 }
 
-export function InProgressCard({ order, nowMs, onReady, disabled }: InProgressCardProps) {
+export function InProgressCard({ order, nowMs, onReady, onMarkPaid, disabled }: InProgressCardProps) {
   const { t } = useLanguage();
   const rem = remainingMinutes(order.estimated_ready_at ?? null, nowMs);
   const urgency = rem == null ? null : getUrgencyColor(rem);
@@ -57,6 +58,17 @@ export function InProgressCard({ order, nowMs, onReady, disabled }: InProgressCa
         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t.orderDetails}</p>
         <OrderItemSummary items={order.sale_items} compact />
       </div>
+
+      {needsStaffPaymentConfirmation(order) && onMarkPaid ? (
+        <button
+          type="button"
+          onClick={onMarkPaid}
+          disabled={disabled}
+          className="mt-3 w-full rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs font-semibold text-amber-200 hover:bg-amber-500/25 disabled:opacity-60"
+        >
+          {t.confirmPayment}
+        </button>
+      ) : null}
 
       <button
         type="button"

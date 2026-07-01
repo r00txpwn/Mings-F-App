@@ -183,6 +183,8 @@ export function DeliveryScreen() {
       actionCancel: t.deliveryDispatchActionCancel,
       toastInvokeError: t.deliveryDispatchInvokeError,
       toastInvokeOk: t.deliveryDispatchInvokeOk,
+      trackingUrlPrompt: t.deliveryDispatchTrackingUrlPrompt,
+      trackingUrlInvalid: t.deliveryDispatchTrackingUrlInvalid,
     }),
     [t],
   );
