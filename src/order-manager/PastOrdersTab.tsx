@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { getCustomerDisplayName, type OrderManagerOrder } from './types';
+import { orderSourceLabel } from './orderSourceLabel';
 import { ALL_KITCHEN_SOURCES } from '../pos/posSources';
 import { PosReprintButton } from '../pos/PosReprintButton';
 
@@ -168,18 +169,7 @@ export function PastOrdersTab({ showReprint = false }: { showReprint?: boolean }
         {orders.map((order) => {
           const status = String(order.order_status ?? 'pending');
           const customerDisplay = getCustomerDisplayName(order);
-          const source =
-            order.source === 'online_delivery'
-              ? t.omSourceDelivery
-              : order.source === 'online_takeaway'
-                ? t.omSourceTakeaway
-                : order.source === 'pos_eat_in'
-                  ? t.posSourceEatIn
-                  : order.source === 'pos_takeaway'
-                    ? t.posSourceTakeaway
-                    : order.source === 'pos_delivery'
-                      ? t.posSourceDelivery
-                      : t.omSourceKiosk;
+          const source = orderSourceLabel(order.source, t);
           const ts = new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           const isOpen = Boolean(expanded[order.id]);
           return (

@@ -22,6 +22,8 @@ export interface DispatchTabTranslations {
   actionCancel: string;
   toastInvokeError: string;
   toastInvokeOk: string;
+  trackingUrlPrompt: string;
+  trackingUrlInvalid: string;
 }
 
 interface DispatchTabProps {
@@ -61,18 +63,51 @@ export function DispatchTab({ orders, loading, refresh, t, onError, onInfo }: Di
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const invoke = useCallback(
-    async (saleId: string, fn: 'wolt-drive-create' | 'wolt-drive-cancel' | 'wolt-drive-manual-dispatch') => {
+    async (
+      saleId: string,
+      fn: 'wolt-drive-create' | 'wolt-drive-cancel' | 'wolt-drive-manual-dispatch',
+      trackingUrl?: string,
+    ) => {
       setBusyId(saleId);
-      const { error } = await supabase.functions.invoke(fn, { body: { saleId } });
+      const body =
+        fn === 'wolt-drive-manual-dispatch'
+          ? { saleId, trackingUrl: trackingUrl?.trim() }
+          : { saleId };
+      const { data, error } = await supabase.functions.invoke(fn, { body });
       setBusyId(null);
       if (error) {
         onError(`${t.toastInvokeError}: ${error.message}`);
-      } else {
-        onInfo(t.toastInvokeOk);
-        await refresh();
+        return;
       }
+      const payload = data as { error?: string } | null;
+      if (payload?.error) {
+        onError(`${t.toastInvokeError}: ${payload.error}`);
+        return;
+      }
+      onInfo(t.toastInvokeOk);
+      await refresh();
     },
     [refresh, onError, onInfo, t.toastInvokeError, t.toastInvokeOk],
+  );
+
+  const markManualDispatch = useCallback(
+    (saleId: string) => {
+      const trackingUrl = window.prompt(t.trackingUrlPrompt);
+      if (trackingUrl == null) return;
+      const trimmed = trackingUrl.trim();
+      if (!trimmed) return;
+      try {
+        const parsed = new URL(trimmed);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error('invalid protocol');
+        }
+      } catch {
+        onError(t.trackingUrlInvalid);
+        return;
+      }
+      void invoke(saleId, 'wolt-drive-manual-dispatch', trimmed);
+    },
+    [invoke, onError, t.trackingUrlInvalid, t.trackingUrlPrompt],
   );
 
   const copyTracking = async (id: string, url: string) => {
@@ -214,7 +249,7 @@ export function DispatchTab({ orders, loading, refresh, t, onError, onInfo }: Di
                     )}
                     <button
                       type="button"
-                      onClick={() => void invoke(order.id, 'wolt-drive-manual-dispatch')}
+                      onClick={() => markManualDispatch(order.id)}
                       disabled={busyId === order.id || manual}
                       className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[11px] text-amber-200 hover:bg-amber-500/10 disabled:opacity-40"
                     >

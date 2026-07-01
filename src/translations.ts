@@ -1104,6 +1104,7 @@ export interface Translations {
   omActiveOrders: string;
   omPastOrders: string;
   omMenuEditor: string;
+  omMenuEditorUpdateFailed: string;
   omNewOrders: string;
   omScheduledOrders: string;
   omInProgress: string;
@@ -1527,6 +1528,8 @@ export interface Translations {
   deliveryDispatchActionCancel: string;
   deliveryDispatchInvokeError: string;
   deliveryDispatchInvokeOk: string;
+  deliveryDispatchTrackingUrlPrompt: string;
+  deliveryDispatchTrackingUrlInvalid: string;
   deliverySettingsKitchenLocationTitle: string;
   deliverySettingsKitchenLocationHint: string;
   deliverySettingsKitchenLatitude: string;
@@ -2597,6 +2600,7 @@ export const translations: Record<Language, Translations> = {
     omActiveOrders: 'Active Orders',
     omPastOrders: 'Past Orders',
     omMenuEditor: 'Menu Editor',
+    omMenuEditorUpdateFailed: 'Could not update menu item. Try signing in again.',
     omNewOrders: 'New Orders',
     omScheduledOrders: 'Scheduled Orders',
     omInProgress: 'In Progress',
@@ -3024,6 +3028,8 @@ export const translations: Record<Language, Translations> = {
     deliveryDispatchActionCancel: 'Cancel task',
     deliveryDispatchInvokeError: 'Dispatch action failed',
     deliveryDispatchInvokeOk: 'Dispatch action completed',
+    deliveryDispatchTrackingUrlPrompt: 'Enter the courier tracking URL (https://…)',
+    deliveryDispatchTrackingUrlInvalid: 'Enter a valid http or https tracking URL',
     deliverySettingsKitchenLocationTitle: 'Kitchen location',
     deliverySettingsKitchenLocationHint:
       'Used for distance, ETA, and self-delivery recommendations. Leave empty to use default location.',
@@ -4096,6 +4102,7 @@ export const translations: Record<Language, Translations> = {
     omActiveOrders: 'Aktiv sifarişlər',
     omPastOrders: 'Keçmiş sifarişlər',
     omMenuEditor: 'Menyu redaktoru',
+    omMenuEditorUpdateFailed: 'Menyu elementi yenilənmədi. Yenidən daxil olmağı sınayın.',
     omNewOrders: 'Yeni sifarişlər',
     omScheduledOrders: 'Planlı sifarişlər',
     omInProgress: 'Hazırlanır',
@@ -4523,6 +4530,8 @@ export const translations: Record<Language, Translations> = {
     deliveryDispatchActionCancel: 'Tapşırığı ləğv et',
     deliveryDispatchInvokeError: 'Yola salma əməliyyatı uğursuz oldu',
     deliveryDispatchInvokeOk: 'Yola salma əməliyyatı tamamlandı',
+    deliveryDispatchTrackingUrlPrompt: 'Kuryer izləmə URL-ni daxil edin (https://…)',
+    deliveryDispatchTrackingUrlInvalid: 'Etibarlı http və ya https izləmə URL-i daxil edin',
     deliverySettingsKitchenLocationTitle: 'Mətbəx məkanı',
     deliverySettingsKitchenLocationHint:
       'Məsafə, ETA və öz kuryer tövsiyəsi üçün istifadə olunur. Boş saxlasanız standart məkan istifadə ediləcək.',
@@ -5596,6 +5605,7 @@ export const translations: Record<Language, Translations> = {
     omActiveOrders: 'Активные заказы',
     omPastOrders: 'Прошлые заказы',
     omMenuEditor: 'Редактор меню',
+    omMenuEditorUpdateFailed: 'Не удалось обновить позицию меню. Попробуйте войти снова.',
     omNewOrders: 'Новые заказы',
     omScheduledOrders: 'Запланированные заказы',
     omInProgress: 'В работе',
@@ -6023,6 +6033,8 @@ export const translations: Record<Language, Translations> = {
     deliveryDispatchActionCancel: 'Отменить задачу',
     deliveryDispatchInvokeError: 'Ошибка действия отправки',
     deliveryDispatchInvokeOk: 'Действие отправки выполнено',
+    deliveryDispatchTrackingUrlPrompt: 'Введите URL отслеживания курьера (https://…)',
+    deliveryDispatchTrackingUrlInvalid: 'Введите корректный URL отслеживания (http или https)',
     deliverySettingsKitchenLocationTitle: 'Локация кухни',
     deliverySettingsKitchenLocationHint:
       'Используется для расстояния, ETA и рекомендаций по собственной доставке. Если пусто — используется локация по умолчанию.',

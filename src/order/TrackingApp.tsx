@@ -59,6 +59,12 @@ function TrackingContent() {
     void load();
   }, [token, load]);
 
+  useEffect(() => {
+    if (!token) return;
+    const pollId = window.setInterval(() => void load(), 12_000);
+    return () => window.clearInterval(pollId);
+  }, [token, load]);
+
   const saleId = data?.sale?.id as string | undefined;
 
   useEffect(() => {

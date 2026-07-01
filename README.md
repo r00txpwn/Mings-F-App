@@ -1,5 +1,7 @@
 Mings-F-App
 
+**Go-live (daily ops):** [docs/qa-briefs/go-live-plan-2026-07-01.md](docs/qa-briefs/go-live-plan-2026-07-01.md)
+
 ## Local production preview
 
 **Staff bundle (cockpit, KDS, order-manager):**
