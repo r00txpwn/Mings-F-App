@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-07-04T06:47:05.453Z
+## Last Run: 2026-07-04T16:48:52.978Z
 
 | Check | Status |
 |-------|--------|
@@ -65,11 +65,11 @@
  [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mtreats non-finite amounts as zero[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22misCashPaymentMethod[2m > [22mmatches explicit and localized cash tokens[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22misCashPaymentMethod[2m > [22mrejects card and empty values[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns correct percentage[32m 1[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 when denominator is zero[32m 2[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns correct percentage[32m 3[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 when denominator is zero[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 for non-finite inputs[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mcomputes all KPIs correctly[32m 1[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdefaults discounts and refunds to 0 when omitted[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdefaults discounts and refunds to 0 when omitted[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mreturns avgOrderValue of 0 when orderCount is 0[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdeducts bank fees for net profit only[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdeducts payroll for net profit[32m 0[2mms[22m[39m
