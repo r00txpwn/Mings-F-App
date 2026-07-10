@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-07-10T07:34:38.186Z
+## Last Run: 2026-07-10T17:40:31.559Z
 
 | Check | Status |
 |-------|--------|
@@ -56,14 +56,14 @@
 [1m[46m RUN [49m[22m [36mv3.2.4 [39m[90m/home/runner/work/Mings-F-App/Mings-F-App[39m
 
  [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mall-time: closing = ins - outs with zero opening[32m 2[2mms[22m[39m
- [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mfolds pre-period activity into openingBalance[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mfolds pre-period activity into openingBalance[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mexcludes entries after endDate[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22madds net bank withdrawals (amount − fee) as cash in[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mbreaks down cash-out by source[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mbreaks down cash-out by source[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22madds cash payouts received as cash in[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mdeducts paid-now cash purchases from the drawer[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mtreats non-finite amounts as zero[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22misCashPaymentMethod[2m > [22mmatches explicit and localized cash tokens[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22misCashPaymentMethod[2m > [22mmatches explicit and localized cash tokens[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22misCashPaymentMethod[2m > [22mrejects card and empty values[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns correct percentage[32m 2[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 when denominator is zero[32m 0[2mms[22m[39m
