@@ -49,6 +49,9 @@ verify_jwt = false
 [functions."pos-order-create"]
 verify_jwt = false
 
+[functions."kiosk-order-create"]
+verify_jwt = false
+
 # Admin-only user CRUD — JWT validated inside function (admin role).
 [functions."user-management"]
 verify_jwt = false

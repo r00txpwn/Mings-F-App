@@ -203,7 +203,38 @@ supabase functions deploy admin-api
 supabase functions deploy admin-payment-recheck
 supabase functions deploy kds-order-status-update
 supabase functions deploy pos-order-create
+supabase functions deploy kiosk-order-create
 ```
+
+**Direct order security (sandbox first):** apply **`20260712143000_add_atomic_direct_order_persist.sql`**, then redeploy Edge Functions and ship frontend:
+
+```bash
+npm run supabase:push
+npm run supabase:deploy:admin-api
+npm run supabase:deploy:order
+npm run supabase:deploy:kiosk-order
+```
+
+Run **`node scripts/staging-rls-check.mjs`** on the target project. Only after online + kiosk QA pass, apply **`20260712144500_harden_direct_order_rls.sql`** as a **separate** release (kiosk direct PostgREST writes will break if this runs before **`kiosk-order-create`** is live).
+
+**Local preview against sandbox** (test project `glpdpkozvmfzgoewquxi`): switching project ref requires **URL + anon key + rebuild** — otherwise staff login shows **Invalid API key**.
+
+```bash
+# 1) Point env + MCP at sandbox (pass anon JWT from Dashboard → Settings → API)
+node scripts/fix-supabase-project-ref.mjs glpdpkozvmfzgoewquxi --anon-key "<sandbox_anon_jwt>"
+
+# Or URL only, then sync key separately:
+node scripts/fix-supabase-project-ref.mjs glpdpkozvmfzgoewquxi
+node scripts/sync-supabase-anon-key.mjs "<sandbox_anon_jwt>"
+
+# 2) Rebuild (Vite bakes VITE_* at build time)
+npm run deploy:local && npm run deploy:local:storefront
+
+# 3) Optional smoke test
+node scripts/test-auth-anon-key.mjs
+```
+
+Restore production when done: `node scripts/fix-supabase-project-ref.mjs dmrvycswdteuhfydchdr --anon-key "<production_anon_jwt>"` then rebuild previews.
 
 **POS (`pos.mings.az`):** apply migration **`20260620120000_pos_order_sources.sql`** (extends `M###` pool + KDS anon policies for `pos_*` sources), then deploy **`pos-order-create`**:
 
@@ -290,6 +321,39 @@ Ops-only Edge Function to **read** EPoint `/get-status` and align `online_paymen
 **Supplier ledger & cash/debt:** After migration `20260626150000_supplier_ledger_liabilities_bank_withdrawals.sql`, supplier opening balances and lump-sum payments live on **`?screen=suppliers`**; loans/other debt and bank withdrawal fees on **`?screen=liabilities`**. Redeploy **`admin-api`** so mutations on `supplier_account_payments`, `liabilities`, `liability_payments`, and `bank_withdrawals` are allowed.
 
 **Payroll:** After migration `20260627120000_taxes_and_payroll.sql`, staff roster and salary payments live on **`?screen=staff`** (Finance hub → **Payroll**). The Taxes screen was removed 2026-06-29 — track tax as operational expenses. Redeploy **`admin-api`** so mutations on `employees` and `salary_payments` are allowed (`tax_settings` / `tax_payments` tables remain in DB but are no longer exposed in the UI). See **[docs/TAXES_PAYROLL.md](docs/TAXES_PAYROLL.md)**.
+
+**Finance 3-decimal amounts + COGS discount:** After migrations **`20260712150000_finance_amounts_three_decimals.sql`** and **`20260712151000_purchases_discount_percent.sql`**, cockpit finance inputs accept three decimal places (e.g. 1.255 ₼) and COGS purchases can record vendor **`discount_percent`** (default **0%** in UI; preset chips include 2/4/6% when needed). Run `npm run supabase:push` before shipping the frontend build that sends `discount_percent` on purchase inserts.
+
+**Language preference:** After migration **`20260712152000_user_preferences_per_user.sql`**, Settings language choice persists per auth user (`user_preferences.user_id` + RLS). The frontend also keeps **`app_language`** in `localStorage` as the device source of truth.
+
+### Production rollout — `few-fixes-to-spec-ops` (2026-07-12)
+
+Production Supabase project ref: **`dmrvycswdteuhfydchdr`**. Sandbox QA used **`glpdpkozvmfzgoewquxi`**.
+
+**Phase A — spec-ops (ship with this branch):**
+
+1. **Link CLI to production** (if `.env` / MCP still point at sandbox):
+   ```powershell
+   node scripts/fix-supabase-project-ref.mjs dmrvycswdteuhfydchdr --anon-key "<production_anon_jwt>"
+   supabase link --project-ref dmrvycswdteuhfydchdr
+   ```
+2. **Push DB migrations** (order matters; all idempotent):
+   - `20260712150000_finance_amounts_three_decimals.sql`
+   - `20260712151000_purchases_discount_percent.sql`
+   - `20260712152000_user_preferences_per_user.sql`
+   ```bash
+   npm run supabase:push
+   ```
+   If push fails (history skew, TCP timeout on 5432), use **[docs/MIGRATION_HISTORY.md](docs/MIGRATION_HISTORY.md)** (Dashboard SQL or pooler URL).
+3. **Merge PR → deploy staff frontend** (`mings-staff` / `dist-staff` on `sp.mings.az`). No edge-function redeploy required for Phase A.
+4. **Smoke:** Settings language AZ/RU survives refresh; Expenses accepts 1.255 ₼; COGS discount defaults 0%; Loans CRUD on Liabilities; Payroll table on Staff.
+
+**Phase B — direct orders (separate release; do not combine with Phase A until QA passes):**
+
+1. `20260712143000_add_atomic_direct_order_persist.sql`
+2. Deploy **`online-order-create`** and **`kiosk-order-create`**; ship kiosk `CheckoutScreen` + storefront changes.
+3. QA kiosk + online checkout on staging.
+4. Only then: **`20260712144500_harden_direct_order_rls.sql`** (drops direct client inserts).
 
 1. Set **`PAYMENT_RECONCILE_SECRET`** (strong random string) in Edge secrets.
 2. Deploy: `supabase functions deploy payment-reconcile` and `supabase functions deploy admin-payment-recheck` (see [`supabase/config.toml`](supabase/config.toml): `verify_jwt = false`; direct reconcile auth is **`Authorization: Bearer <PAYMENT_RECONCILE_SECRET>`**; cockpit bridge validates staff JWT inside the function).

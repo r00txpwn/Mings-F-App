@@ -41,6 +41,7 @@
     "supabase:deploy:kds-status": "node scripts/run-supabase-cli.mjs functions deploy kds-order-status-update --no-verify-jwt --use-api",
     "supabase:deploy:kds-item-prep": "node scripts/run-supabase-cli.mjs functions deploy kds-item-prep-toggle --no-verify-jwt --use-api",
     "supabase:deploy:pos-order": "node scripts/run-supabase-cli.mjs functions deploy pos-order-create --no-verify-jwt --use-api",
+    "supabase:deploy:kiosk-order": "node scripts/run-supabase-cli.mjs functions deploy kiosk-order-create --no-verify-jwt --use-api",
     "supabase:deploy:united-payment": "node scripts/run-supabase-cli.mjs functions deploy united-payment-create-payment --no-verify-jwt --use-api && node scripts/run-supabase-cli.mjs functions deploy united-payment-return --no-verify-jwt --use-api && node scripts/run-supabase-cli.mjs functions deploy united-payment-webhook --no-verify-jwt --use-api && node scripts/run-supabase-cli.mjs functions deploy united-payment-status-check --no-verify-jwt --use-api",
     "supabase:functions:serve": "node scripts/run-supabase-cli.mjs functions serve --env-file .env.local",
     "supabase:deploy:web": "npm run supabase:deploy:order && npm run supabase:deploy:united-payment",

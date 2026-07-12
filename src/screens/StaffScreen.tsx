@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, Fragment } from 'react';
 import {
   Plus,
   Users,
@@ -24,6 +24,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { ReviewBadge } from '../components/ui/ReviewBadge';
 import { SkeletonCard } from '../components/ui/Skeleton';
 import { displayName, isTestRecord } from '../lib/displayName';
+import { formatFinanceMoney } from '../lib/money';
 
 type PaymentWithEmployee = SalaryPayment & {
   employees?: { full_name: string; designation: string } | null;
@@ -317,11 +318,11 @@ export function StaffScreen() {
         </div>
         <div className="cockpit-card p-4">
           <p className="text-xs uppercase tracking-wide text-slate-500">{t.staffMonthlyPayrollTarget}</p>
-          <p className="text-2xl font-semibold">₼{summary.monthlyPayroll.toFixed(2)}</p>
+          <p className="text-2xl font-semibold">₼{formatFinanceMoney(summary.monthlyPayroll)}</p>
         </div>
         <div className="cockpit-card p-4">
           <p className="text-xs uppercase tracking-wide text-slate-500">{t.staffPaidInPeriod}</p>
-          <p className="text-2xl font-semibold">₼{summary.totalPaid.toFixed(2)}</p>
+          <p className="text-2xl font-semibold">₼{formatFinanceMoney(summary.totalPaid)}</p>
         </div>
       </div>
 
@@ -346,7 +347,7 @@ export function StaffScreen() {
             </label>
             <label className="block">
               <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffTotalSalary}</span>
-              <input className="cockpit-input mt-1 w-full" type="number" min="0" step="0.01" value={totalSalary} onChange={(e) => setTotalSalary(e.target.value)} />
+              <input className="cockpit-input mt-1 w-full" type="number" min="0" step="0.001" value={totalSalary} onChange={(e) => setTotalSalary(e.target.value)} />
             </label>
             <label className="flex items-center gap-2 pt-6">
               <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
@@ -389,7 +390,7 @@ export function StaffScreen() {
             </label>
             <label className="block">
               <span className="text-sm text-slate-600 dark:text-slate-300">{t.amount}</span>
-              <input className="cockpit-input mt-1 w-full" type="number" min="0" step="0.01" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
+              <input className="cockpit-input mt-1 w-full" type="number" min="0" step="0.001" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
             </label>
             <label className="block">
               <span className="text-sm text-slate-600 dark:text-slate-300">{t.date}</span>
@@ -430,7 +431,19 @@ export function StaffScreen() {
       ) : employees.filter((e) => !isTestRecord(e.full_name)).length === 0 ? (
         <EmptyState icon={Users} title={t.staffNoEmployees} />
       ) : (
-        <div className="space-y-3">
+        <div className="cockpit-table-wrap overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase text-slate-500">
+                <th className="w-10 px-2 py-3" />
+                <th className="px-4 py-3">{t.staffEmployee}</th>
+                <th className="hidden px-4 py-3 md:table-cell">{t.staffDesignation}</th>
+                <th className="hidden px-4 py-3 md:table-cell">{t.staffTotalSalary}</th>
+                <th className="hidden px-4 py-3 md:table-cell">{t.staffPaidInPeriod}</th>
+                <th className="px-4 py-3 text-right">{t.edit}</th>
+              </tr>
+            </thead>
+            <tbody>
           {employees.filter((e) => !isTestRecord(e.full_name)).map((employee) => {
             const employeePayments = paymentsByEmployee.get(employee.id) ?? [];
             const paidInPeriod = employeePayments.reduce((sum, p) => sum + Number(p.amount), 0);
@@ -438,8 +451,9 @@ export function StaffScreen() {
             const unusualSalary = Number(employee.total_salary) >= UNUSUAL_AMOUNT_THRESHOLD;
 
             return (
-              <div key={employee.id} className="cockpit-card overflow-hidden">
-                <div className="flex flex-wrap items-center gap-3 p-4">
+              <Fragment key={employee.id}>
+              <tr className="border-b border-slate-100 dark:border-slate-800">
+                <td className="px-2 py-3">
                   <button
                     type="button"
                     className="text-slate-500"
@@ -447,44 +461,60 @@ export function StaffScreen() {
                   >
                     {expanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                   </button>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold">{displayName(employee.full_name, t.cockpitTestRecordLabel)}</p>
-                      {unusualSalary ? (
-                        <ReviewBadge label={t.cockpitNeedsReview} reason={t.cockpitReviewUnusualAmount} />
-                      ) : null}
-                      {!employee.is_active && (
-                        <span className="rounded bg-slate-200 px-2 py-0.5 text-xs dark:bg-slate-700">
-                          {t.staffInactive}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-slate-500">{employee.designation || t.staffNoDesignation}</p>
-                    <p className="mt-1 text-sm">
-                      {t.staffTotalSalary}: ₼{Number(employee.total_salary).toFixed(2)} ·{' '}
-                      {t.staffPaidInPeriod}: ₼{paidInPeriod.toFixed(2)}
-                    </p>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold">{displayName(employee.full_name, t.cockpitTestRecordLabel)}</p>
+                    {unusualSalary ? (
+                      <ReviewBadge label={t.cockpitNeedsReview} reason={t.cockpitReviewUnusualAmount} />
+                    ) : null}
+                    {!employee.is_active && (
+                      <span className="rounded bg-slate-200 px-2 py-0.5 text-xs dark:bg-slate-700">
+                        {t.staffInactive}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <p className="mt-0.5 text-xs text-slate-500 md:hidden">
+                    {employee.designation || t.staffNoDesignation}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500 md:hidden">
+                    {t.staffTotalSalary}: ₼{formatFinanceMoney(employee.total_salary)} · {t.staffPaidInPeriod}: ₼{formatFinanceMoney(paidInPeriod)}
+                  </p>
+                </td>
+                <td className="hidden px-4 py-3 text-slate-600 dark:text-slate-300 md:table-cell">
+                  {employee.designation || t.staffNoDesignation}
+                </td>
+                <td className="hidden px-4 py-3 font-medium tabular-nums md:table-cell">
+                  ₼{formatFinanceMoney(employee.total_salary)}
+                </td>
+                <td className="hidden px-4 py-3 font-medium tabular-nums md:table-cell">
+                  ₼{formatFinanceMoney(paidInPeriod)}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-1">
                     <IconActionButton icon={<Banknote className="h-4 w-4" />} label={t.staffRecordPayment} onClick={() => openAddPayment(employee.id)} />
                     <IconActionButton icon={<Edit2 className="h-4 w-4" />} tone="edit" label={t.edit} onClick={() => openEditEmployee(employee)} />
                     <IconActionButton icon={<Trash2 className="h-4 w-4" />} tone="danger" label={t.delete} onClick={() => setDeleteEmployeeId(employee.id)} />
                   </div>
-                </div>
+                </td>
+              </tr>
 
                 {deleteEmployeeId === employee.id && (
-                  <div className="border-t px-4 py-3">
+                  <tr>
+                    <td colSpan={6} className="px-4 py-3">
                     <DangerConfirmRow
                       message={t.staffDeleteEmployeeConfirm}
                       onConfirm={() => void handleDeleteEmployee(employee.id)}
                       onCancel={() => setDeleteEmployeeId(null)}
                       confirmDisabled={saving}
                     />
-                  </div>
+                    </td>
+                  </tr>
                 )}
 
                 {expanded && (
-                  <div className="border-t bg-slate-50/50 dark:bg-slate-900/30">
+                  <tr>
+                    <td colSpan={6} className="bg-slate-50/50 p-0 dark:bg-slate-900/30">
                     {employeePayments.length === 0 ? (
                       <p className="p-4 text-sm text-slate-500">{t.staffNoPaymentsInPeriod}</p>
                     ) : (
@@ -507,7 +537,7 @@ export function StaffScreen() {
                               <td className="px-4 py-2">{paymentTypeLabel(payment.payment_type)}</td>
                               <td className="px-4 py-2 font-medium">
                                 <span className="inline-flex items-center gap-2">
-                                  ₼{Number(payment.amount).toFixed(2)}
+                                  ₼{formatFinanceMoney(payment.amount)}
                                   {unusualPayment ? (
                                     <ReviewBadge label={t.cockpitNeedsReview} reason={t.cockpitReviewUnusualAmount} />
                                   ) : null}
@@ -536,11 +566,14 @@ export function StaffScreen() {
                         </tbody>
                       </table>
                     )}
-                  </div>
+                    </td>
+                  </tr>
                 )}
-              </div>
+              </Fragment>
             );
           })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

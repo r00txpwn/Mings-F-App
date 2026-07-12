@@ -10,6 +10,8 @@
  * closing balance is openingBalance + (period ins − period outs).
  */
 
+import { roundFinanceMoney } from '../../lib/money';
+
 export interface CashEntry {
   /** ISO date 'YYYY-MM-DD'. */
   date: string;
@@ -47,7 +49,7 @@ export interface CashDrawerResult {
 }
 
 function roundMoney(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
+  return roundFinanceMoney(value);
 }
 
 function safe(n: number): number {

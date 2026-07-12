@@ -6,6 +6,7 @@ import {
   type StaffRole,
 } from '../_shared/staffAuth.ts';
 import { assertSalesChannelMutationAllowed } from '../_shared/salesChannelPolicy.ts';
+import { assertSalesMutationAllowed } from '../_shared/salesMutationPolicy.ts';
 
 type MutationOp = 'insert' | 'update' | 'delete' | 'upsert';
 
@@ -101,6 +102,84 @@ Deno.serve(async (req: Request) => {
 
   let result;
   let resourceId: string | null = id ?? null;
+  let effectivePayload = payload;
+
+  if (table === 'sales') {
+    if (operation === 'upsert') {
+      return jsonResponse(
+        { ok: false, error: { code: 'FORBIDDEN', message: 'Sales upsert is not allowed' } },
+        403
+      );
+    }
+
+    if (operation === 'update' || operation === 'delete') {
+      if (!id) {
+        return jsonResponse(
+          { ok: false, error: { code: 'BAD_REQUEST', message: `${operation} requires id for sales` } },
+          400
+        );
+      }
+      if (match) {
+        return jsonResponse(
+          { ok: false, error: { code: 'BAD_REQUEST', message: 'sales mutations must use id, not match' } },
+          400
+        );
+      }
+
+      const { data: existingSale, error: loadErr } = await supabaseAdmin
+        .from('sales')
+        .select('id, source, online_payment_method, payment_method')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (loadErr) {
+        return jsonResponse(
+          { ok: false, error: { code: 'DB_ERROR', message: loadErr.message } },
+          400
+        );
+      }
+      if (!existingSale) {
+        return jsonResponse(
+          { ok: false, error: { code: 'NOT_FOUND', message: 'Sale not found' } },
+          404
+        );
+      }
+
+      const guard = assertSalesMutationAllowed(
+        role,
+        operation,
+        existingSale as Record<string, unknown>,
+        payload && !Array.isArray(payload) ? payload : null
+      );
+      if (!guard.ok) {
+        return jsonResponse(
+          { ok: false, error: { code: 'FORBIDDEN', message: guard.message } },
+          403
+        );
+      }
+      if (operation === 'update') {
+        effectivePayload = guard.sanitizedPayload ?? {};
+      }
+    } else if (operation === 'insert') {
+      if (!payload || Array.isArray(payload)) {
+        return jsonResponse(
+          { ok: false, error: { code: 'BAD_REQUEST', message: 'insert requires payload object' } },
+          400
+        );
+      }
+      const guard = assertSalesMutationAllowed(role, operation, null, payload);
+      if (!guard.ok) {
+        return jsonResponse(
+          { ok: false, error: { code: 'FORBIDDEN', message: guard.message } },
+          403
+        );
+      }
+      effectivePayload = {
+        ...(guard.sanitizedPayload ?? {}),
+        created_by: user.id,
+      };
+    }
+  }
 
   if (table === 'sales_channels') {
     if (operation === 'insert' || operation === 'upsert') {
@@ -134,26 +213,26 @@ Deno.serve(async (req: Request) => {
 
   switch (operation) {
     case 'insert': {
-      if (!payload || Array.isArray(payload)) {
+      if (!effectivePayload || Array.isArray(effectivePayload)) {
         return jsonResponse({ ok: false, error: { code: 'BAD_REQUEST', message: 'insert requires payload object' } }, 400);
       }
-      result = await q.insert(payload).select().maybeSingle();
+      result = await q.insert(effectivePayload).select().maybeSingle();
       resourceId = (result.data as { id?: string } | null)?.id ?? null;
       break;
     }
     case 'upsert': {
-      if (!payload || Array.isArray(payload)) {
+      if (!effectivePayload || Array.isArray(effectivePayload)) {
         return jsonResponse({ ok: false, error: { code: 'BAD_REQUEST', message: 'upsert requires payload object' } }, 400);
       }
-      result = await q.upsert(payload).select().maybeSingle();
-      resourceId = (result.data as { id?: string } | null)?.id ?? (payload.id as string | undefined) ?? null;
+      result = await q.upsert(effectivePayload).select().maybeSingle();
+      resourceId = (result.data as { id?: string } | null)?.id ?? (effectivePayload.id as string | undefined) ?? null;
       break;
     }
     case 'update': {
-      if (!payload || Array.isArray(payload)) {
+      if (!effectivePayload || Array.isArray(effectivePayload)) {
         return jsonResponse({ ok: false, error: { code: 'BAD_REQUEST', message: 'update requires payload object' } }, 400);
       }
-      let query = q.update(payload);
+      let query = q.update(effectivePayload);
       if (id) query = query.eq('id', id);
       else if (match) {
         for (const [k, v] of Object.entries(match)) query = query.eq(k, v);
@@ -193,7 +272,7 @@ Deno.serve(async (req: Request) => {
     action: operation,
     resourceTable: table,
     resourceId,
-    payload: payload ?? match ?? null,
+    payload: effectivePayload ?? match ?? null,
   });
 
   return jsonResponse({ ok: true, data: result.data });

@@ -51,7 +51,6 @@ test.describe('Expenses CRUD feedback', () => {
     await page.getByRole('button', { name: NEW_EXPENSE_RE }).click();
     await expect(page.getByRole('heading', { name: NEW_EXPENSE_RE })).toBeVisible();
 
-    // Default amount is 0; bypass native HTML5 required so app validation runs
     await page.locator('.fixed.inset-0 form').evaluate((form: HTMLFormElement) => {
       form.noValidate = true;
       form.requestSubmit();
@@ -59,6 +58,24 @@ test.describe('Expenses CRUD feedback', () => {
 
     await expect(page.getByText(AMOUNT_POSITIVE_RE)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('heading', { name: NEW_EXPENSE_RE })).toBeVisible();
+  });
+
+  test('operational expense: missing required fields show validation', async ({ page }) => {
+    test.setTimeout(60_000);
+    const ITEM_REQUIRED_RE = /select an expense item|xərc maddəsi|статью расхода/i;
+
+    await page.goto('/spec-ops?screen=expenses', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await expect(page.locator('input[name="email"]')).toHaveCount(0, { timeout: 15_000 });
+
+    await page.getByRole('button', { name: NEW_EXPENSE_RE }).click();
+    await page.locator('form').locator('input[type="number"]').first().fill('1.255');
+
+    await page.locator('.fixed.inset-0 form').evaluate((form: HTMLFormElement) => {
+      form.noValidate = true;
+      form.requestSubmit();
+    });
+
+    await expect(page.getByText(ITEM_REQUIRED_RE)).toBeVisible({ timeout: 10_000 });
   });
 
   test('operational expense: valid submit shows success and closes modal', async ({ page }) => {
@@ -70,14 +87,17 @@ test.describe('Expenses CRUD feedback', () => {
 
     await page.getByRole('button', { name: NEW_EXPENSE_RE }).click();
 
-    const categorySelect = page.locator('form select').first();
-    const optionCount = await categorySelect.locator('option').count();
-    if (optionCount <= 1) {
-      test.skip(true, 'No expense categories configured — add one in Categories tab first');
+    const itemDropdown = page.locator('.fixed.inset-0 form').getByPlaceholder(/search/i).first();
+    await itemDropdown.click();
+    const firstItem = page.locator('.fixed.inset-0 form button').filter({ hasText: /.+/ }).nth(1);
+    const itemVisible = await firstItem.isVisible().catch(() => false);
+    if (!itemVisible) {
+      test.skip(true, 'No expense items configured');
     }
-    await categorySelect.selectOption({ index: 1 });
+    await firstItem.click();
 
-    await page.locator('form').locator('input[type="number"]').first().fill('12.50');
+    await page.locator('form').locator('input[type="number"]').first().fill('12.500');
+    await page.locator('form select').last().selectOption({ index: 1 });
     await page.locator('form textarea').fill(note);
 
     const submitBtn = page.getByRole('button', { name: CREATE_EXPENSE_RE });

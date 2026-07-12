@@ -22,6 +22,8 @@ export interface OnlineOrderCreateResponse {
   nextStep: 'united-payment-create-payment' | 'epoint-create-payment' | 'track';
   /** True when order was placed during soft-close (last-call) window. */
   closingSoon?: boolean;
+  /** Server reused an existing sale for the same clientRequestId. */
+  idempotent?: boolean;
 }
 
 export interface DeliveryZoneRow {

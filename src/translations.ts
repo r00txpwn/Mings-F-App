@@ -375,6 +375,10 @@ export interface Translations {
   deletedSuccessfully: string;
   errorOccurred: string;
   amountMustBePositive: string;
+  expenseItemRequired: string;
+  paymentMethodRequired: string;
+  descriptionRequired: string;
+  expenseDateRequired: string;
   quantityMustBePositive: string;
   foodCost: string;
   cogs: string;
@@ -461,6 +465,7 @@ export interface Translations {
   viewCart: string;
   placeOrder: string;
   confirmOrder: string;
+  kioskOrderCreateFailed: string;
   orderConfirmed: string;
   payAtCounter: string;
   yourOrderNumber: string;
@@ -1307,8 +1312,20 @@ export interface Translations {
   purchaseOnAccount: string;
   purchasePaidNow: string;
   purchasePaymentMode: string;
+  purchaseDiscountPercent: string;
+  purchaseDiscountCustom: string;
+  purchaseListTotal: string;
+  purchaseDiscountAmount: string;
+  purchaseNetTotal: string;
+  purchaseSetDefaultDiscount: string;
   liabilityAdd: string;
+  liabilityEdit: string;
   liabilityRecordPayment: string;
+  liabilityEditPayment: string;
+  liabilityDeleteConfirm: string;
+  liabilityDeletePaymentConfirm: string;
+  liabilityPaymentHistory: string;
+  liabilityDueDate: string;
   liabilityTypeLoan: string;
   liabilityTypeOther: string;
   liabilityCounterparty: string;
@@ -1897,6 +1914,10 @@ export const translations: Record<Language, Translations> = {
     deletedSuccessfully: 'Deleted successfully!',
     errorOccurred: 'An error occurred',
     amountMustBePositive: 'Amount must be greater than zero',
+    expenseItemRequired: 'Please select an expense item',
+    paymentMethodRequired: 'Please select a payment method',
+    descriptionRequired: 'Please enter a description',
+    expenseDateRequired: 'Please select a date',
     quantityMustBePositive: 'Quantity must be greater than zero',
     foodCost: 'Food Cost %',
     cogs: 'COGS',
@@ -1979,6 +2000,7 @@ export const translations: Record<Language, Translations> = {
     viewCart: 'View Cart',
     placeOrder: 'Place Order',
     confirmOrder: 'Confirm Order',
+    kioskOrderCreateFailed: 'Could not place your order. Please try again.',
     orderConfirmed: 'Your order has been received!',
     payAtCounter: 'Please pay at the counter',
     yourOrderNumber: 'Your Order Number',
@@ -2805,8 +2827,20 @@ export const translations: Record<Language, Translations> = {
     purchaseOnAccount: 'On account',
     purchasePaidNow: 'Paid now',
     purchasePaymentMode: 'Payment',
+    purchaseDiscountPercent: 'Vendor discount %',
+    purchaseDiscountCustom: 'Custom',
+    purchaseListTotal: 'List total',
+    purchaseDiscountAmount: 'Discount',
+    purchaseNetTotal: 'Net total',
+    purchaseSetDefaultDiscount: 'Save as default discount',
     liabilityAdd: 'Add liability',
+    liabilityEdit: 'Edit liability',
     liabilityRecordPayment: 'Record payment',
+    liabilityEditPayment: 'Edit payment',
+    liabilityDeleteConfirm: 'Delete this liability and all its payments?',
+    liabilityDeletePaymentConfirm: 'Delete this payment?',
+    liabilityPaymentHistory: 'Payment history',
+    liabilityDueDate: 'Due date',
     liabilityTypeLoan: 'Loan',
     liabilityTypeOther: 'Other',
     liabilityCounterparty: 'Counterparty',
@@ -3397,6 +3431,10 @@ export const translations: Record<Language, Translations> = {
     deletedSuccessfully: 'Uğurla silindi!',
     errorOccurred: 'Xəta baş verdi',
     amountMustBePositive: 'Məbləğ sıfırdan böyük olmalıdır',
+    expenseItemRequired: 'Xərc maddəsi seçin',
+    paymentMethodRequired: 'Ödəniş üsulu seçin',
+    descriptionRequired: 'Təsvir daxil edin',
+    expenseDateRequired: 'Tarix seçin',
     quantityMustBePositive: 'Miqdar sıfırdan böyük olmalıdır',
     foodCost: 'Ərzaq Dəyəri %',
     cogs: 'Maya Dəyəri',
@@ -3479,6 +3517,7 @@ export const translations: Record<Language, Translations> = {
     viewCart: 'Səbətə bax',
     placeOrder: 'Sifariş ver',
     confirmOrder: 'Sifarişi təsdiq et',
+    kioskOrderCreateFailed: 'Sifarişi göndərmək mümkün olmadı. Yenidən cəhd edin.',
     orderConfirmed: 'Sifarişiniz qəbul edildi!',
     payAtCounter: 'Kassada ödəyin',
     yourOrderNumber: 'Sifariş nömrəniz',
@@ -4307,8 +4346,20 @@ export const translations: Record<Language, Translations> = {
     purchaseOnAccount: 'Hesabdan',
     purchasePaidNow: 'İndi ödənilib',
     purchasePaymentMode: 'Ödəniş',
+    purchaseDiscountPercent: 'Təchizatçı endirimi %',
+    purchaseDiscountCustom: 'Fərdi',
+    purchaseListTotal: 'Siyahı cəmi',
+    purchaseDiscountAmount: 'Endirim',
+    purchaseNetTotal: 'Xalis cəmi',
+    purchaseSetDefaultDiscount: 'Standart endirim kimi saxla',
     liabilityAdd: 'Öhdəlik əlavə et',
+    liabilityEdit: 'Öhdəliyi redaktə et',
     liabilityRecordPayment: 'Ödəniş qeyd et',
+    liabilityEditPayment: 'Ödənişi redaktə et',
+    liabilityDeleteConfirm: 'Bu öhdəlik və bütün ödənişləri silinsin?',
+    liabilityDeletePaymentConfirm: 'Bu ödəniş silinsin?',
+    liabilityPaymentHistory: 'Ödəniş tarixçəsi',
+    liabilityDueDate: 'Son tarix',
     liabilityTypeLoan: 'Kredit',
     liabilityTypeOther: 'Digər',
     liabilityCounterparty: 'Kontragent',
@@ -4900,6 +4951,10 @@ export const translations: Record<Language, Translations> = {
     deletedSuccessfully: 'Успешно удалено!',
     errorOccurred: 'Произошла ошибка',
     amountMustBePositive: 'Сумма должна быть больше нуля',
+    expenseItemRequired: 'Выберите статью расхода',
+    paymentMethodRequired: 'Выберите способ оплаты',
+    descriptionRequired: 'Введите описание',
+    expenseDateRequired: 'Выберите дату',
     quantityMustBePositive: 'Количество должно быть больше нуля',
     foodCost: 'Себестоимость Еды %',
     cogs: 'Себестоимость',
@@ -4982,6 +5037,7 @@ export const translations: Record<Language, Translations> = {
     viewCart: 'Корзина',
     placeOrder: 'Оформить заказ',
     confirmOrder: 'Подтвердить заказ',
+    kioskOrderCreateFailed: 'Не удалось оформить заказ. Попробуйте ещё раз.',
     orderConfirmed: 'Ваш заказ принят!',
     payAtCounter: 'Оплатите на кассе',
     yourOrderNumber: 'Номер вашего заказа',
@@ -5810,8 +5866,20 @@ export const translations: Record<Language, Translations> = {
     purchaseOnAccount: 'В долг',
     purchasePaidNow: 'Оплачено сразу',
     purchasePaymentMode: 'Оплата',
+    purchaseDiscountPercent: 'Скидка поставщика %',
+    purchaseDiscountCustom: 'Своя',
+    purchaseListTotal: 'Сумма по прайсу',
+    purchaseDiscountAmount: 'Скидка',
+    purchaseNetTotal: 'Итого с учётом скидки',
+    purchaseSetDefaultDiscount: 'Сохранить как скидку по умолчанию',
     liabilityAdd: 'Добавить обязательство',
+    liabilityEdit: 'Изменить обязательство',
     liabilityRecordPayment: 'Записать платёж',
+    liabilityEditPayment: 'Изменить платёж',
+    liabilityDeleteConfirm: 'Удалить это обязательство и все платежи?',
+    liabilityDeletePaymentConfirm: 'Удалить этот платёж?',
+    liabilityPaymentHistory: 'История платежей',
+    liabilityDueDate: 'Срок погашения',
     liabilityTypeLoan: 'Кредит',
     liabilityTypeOther: 'Прочее',
     liabilityCounterparty: 'Контрагент',
