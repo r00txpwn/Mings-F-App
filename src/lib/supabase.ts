@@ -178,6 +178,8 @@ export interface Sale {
   tip_amount?: number | null;
   promo_code?: string | null;
   cancellation_reason?: string | null;
+  client_request_id?: string | null;
+  client_request_hash?: string | null;
   sales_channels?: SalesChannel;
   sale_items?: SaleItem[];
 }

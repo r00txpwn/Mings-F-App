@@ -18,6 +18,14 @@ import {
   CARD_PAYMENT_METHOD,
   CASH_PAYMENT_METHOD,
 } from '../lib/cashPayment';
+import {
+  COGS_DISCOUNT_PRESETS,
+  computePurchaseDiscountAmount,
+  computePurchaseTotalCost,
+  getCogsDefaultDiscountPercent,
+  setCogsDefaultDiscountPercent,
+} from '../lib/cogsDiscount';
+import { FINANCE_AMOUNT_STEP, formatFinanceMoney, roundFinanceMoney } from '../lib/money';
 
 interface MasterCategory {
   id: string;
@@ -56,6 +64,7 @@ interface Purchase {
   quantity: number;
   unit_cost: number;
   total_cost: number;
+  discount_percent?: number;
   purchase_date: string;
   payment_status: 'pending' | 'partial' | 'paid';
   is_on_credit?: boolean;
@@ -375,6 +384,7 @@ export function ExpensesScreen() {
         supplier_id: pur.supplier_id || '',
         quantity: pur.quantity,
         unit_cost: pur.unit_cost,
+        discount_percent: pur.discount_percent ?? 0,
         purchase_date: new Date(pur.purchase_date).toISOString().split('T')[0],
         is_on_credit: isOnCreditFromPurchase(pur),
         payment_method: pur.payment_method || CASH_PAYMENT_METHOD,
@@ -417,11 +427,14 @@ export function ExpensesScreen() {
     supplier_id: '',
     quantity: 1,
     unit_cost: 0,
+    discount_percent: getCogsDefaultDiscountPercent(),
     purchase_date: new Date().toISOString().split('T')[0],
     is_on_credit: true,
     payment_method: CASH_PAYMENT_METHOD,
     notes: '',
   });
+
+  const [customDiscountInput, setCustomDiscountInput] = useState('');
 
   const [isItemDropdownOpen, setIsItemDropdownOpen] = useState(false);
   const [itemSearchText, setItemSearchText] = useState('');
@@ -843,8 +856,28 @@ export function ExpensesScreen() {
     e.preventDefault();
     if (savingExpense) return;
 
+    if (!expenseFormData.expense_item_id) {
+      setExpenseFormError(t.expenseItemRequired);
+      return;
+    }
+    if (!expenseFormData.master_category_id) {
+      setExpenseFormError(t.expenseItemRequired);
+      return;
+    }
     if (Number(expenseFormData.amount) <= 0) {
       setExpenseFormError(t.amountMustBePositive);
+      return;
+    }
+    if (!expenseFormData.expense_date?.trim()) {
+      setExpenseFormError(t.expenseDateRequired);
+      return;
+    }
+    if (!expenseFormData.payment_method?.trim()) {
+      setExpenseFormError(t.paymentMethodRequired);
+      return;
+    }
+    if (!expenseFormData.description?.trim()) {
+      setExpenseFormError(t.descriptionRequired);
       return;
     }
 
@@ -852,12 +885,12 @@ export function ExpensesScreen() {
     setExpenseFormError(null);
 
     const payload = {
-      master_category_id: expenseFormData.master_category_id || null,
-      expense_item_id: expenseFormData.expense_item_id || null,
-      amount: expenseFormData.amount,
+      master_category_id: expenseFormData.master_category_id,
+      expense_item_id: expenseFormData.expense_item_id,
+      amount: roundFinanceMoney(Number(expenseFormData.amount)),
       expense_date: expenseFormData.expense_date,
       payment_method: expenseFormData.payment_method,
-      description: expenseFormData.description,
+      description: expenseFormData.description.trim(),
     };
 
     const result = editingExpense
@@ -912,13 +945,17 @@ export function ExpensesScreen() {
     setSavingPurchase(true);
     setPurchaseFormError(null);
 
-    const total_cost = purchaseFormData.quantity * purchaseFormData.unit_cost;
+    const qty = Number(purchaseFormData.quantity);
+    const unitCost = Number(purchaseFormData.unit_cost);
+    const discountPercent = Number(purchaseFormData.discount_percent) || 0;
+    const total_cost = computePurchaseTotalCost(qty, unitCost, discountPercent);
     const payload = {
       expense_item_id: purchaseFormData.expense_item_id || null,
       master_category_id: purchaseFormData.master_category_id || null,
       supplier_id: purchaseFormData.supplier_id || null,
-      quantity: purchaseFormData.quantity,
-      unit_cost: purchaseFormData.unit_cost,
+      quantity: roundFinanceMoney(qty),
+      unit_cost: roundFinanceMoney(unitCost),
+      discount_percent: roundFinanceMoney(discountPercent),
       total_cost,
       purchase_date: purchaseFormData.purchase_date,
       notes: purchaseFormData.notes,
@@ -999,11 +1036,13 @@ export function ExpensesScreen() {
       supplier_id: '',
       quantity: 1,
       unit_cost: 0,
+      discount_percent: getCogsDefaultDiscountPercent(),
       purchase_date: toLocalDateInput(new Date()),
       is_on_credit: true,
       payment_method: CASH_PAYMENT_METHOD,
       notes: '',
     });
+    setCustomDiscountInput('');
     setInlineCogsItem(defaultInlineItemDraft('#3B82F6'));
     setInlineSupplier(defaultInlineSupplierDraft());
     setEditingPurchase(null);
@@ -1343,7 +1382,7 @@ export function ExpensesScreen() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.amountWithCurrency}</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step={FINANCE_AMOUNT_STEP}
                   min="0"
                   value={expenseFormData.amount || ''}
                   onChange={(e) => setExpenseFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
@@ -1367,6 +1406,7 @@ export function ExpensesScreen() {
                     value={expenseFormData.payment_method}
                     onChange={(e) => setExpenseFormData(prev => ({ ...prev, payment_method: e.target.value }))}
                     className="cockpit-select w-full"
+                    required
                   >
                     <option value="">{t.selectPaymentMethod}</option>
                     <option value={CASH_PAYMENT_METHOD}>{t.paymentCash}</option>
@@ -1382,6 +1422,7 @@ export function ExpensesScreen() {
                   value={expenseFormData.description}
                   onChange={(e) => setExpenseFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={2}
+                  required
                   className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white resize-none"
                   placeholder={t.describeExpense}
                 />
@@ -1604,8 +1645,8 @@ export function ExpensesScreen() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.quantity} *</label>
                   <input
                     type="number"
-                    step="0.01"
-                    min="0.01"
+                    step={FINANCE_AMOUNT_STEP}
+                    min="0.001"
                     value={purchaseFormData.quantity || ''}
                     onChange={(e) => setPurchaseFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
                     required
@@ -1616,7 +1657,7 @@ export function ExpensesScreen() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.cost}</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step={FINANCE_AMOUNT_STEP}
                     min="0"
                     value={purchaseFormData.unit_cost || ''}
                     onChange={(e) => setPurchaseFormData(prev => ({ ...prev, unit_cost: parseFloat(e.target.value) || 0 }))}
@@ -1626,11 +1667,103 @@ export function ExpensesScreen() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">{t.purchaseDiscountPercent}</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {COGS_DISCOUNT_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        setPurchaseFormData((prev) => ({ ...prev, discount_percent: preset }));
+                        setCustomDiscountInput('');
+                      }}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                        purchaseFormData.discount_percent === preset && !customDiscountInput
+                          ? 'border-cockpit-500 bg-cockpit-500/20 text-white'
+                          : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {preset}%
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setCustomDiscountInput(String(purchaseFormData.discount_percent))}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                      customDiscountInput !== ''
+                        ? 'border-cockpit-500 bg-cockpit-500/20 text-white'
+                        : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    {t.purchaseDiscountCustom}
+                  </button>
+                </div>
+                {customDiscountInput !== '' && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="number"
+                      step={FINANCE_AMOUNT_STEP}
+                      min="0"
+                      max="100"
+                      value={customDiscountInput}
+                      onChange={(e) => {
+                        setCustomDiscountInput(e.target.value);
+                        const n = parseFloat(e.target.value);
+                        if (Number.isFinite(n)) {
+                          setPurchaseFormData((prev) => ({ ...prev, discount_percent: n }));
+                        }
+                      }}
+                      className="w-24 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    />
+                    <span className="text-sm text-gray-500">%</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const n = parseFloat(customDiscountInput);
+                        if (Number.isFinite(n) && n >= 0 && n <= 100) {
+                          setCogsDefaultDiscountPercent(n);
+                          setPurchaseFormData((prev) => ({ ...prev, discount_percent: n }));
+                        }
+                      }}
+                      className="text-xs text-cockpit-400 hover:underline"
+                    >
+                      {t.purchaseSetDefaultDiscount}
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {purchaseFormData.quantity > 0 && purchaseFormData.unit_cost > 0 && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {t.totalCost}: <span className="font-bold text-lg">₼{(purchaseFormData.quantity * purchaseFormData.unit_cost).toFixed(2)}</span>
-                  </span>
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg space-y-1">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    {t.purchaseListTotal}: ₼{formatFinanceMoney(purchaseFormData.quantity * purchaseFormData.unit_cost)}
+                  </p>
+                  {purchaseFormData.discount_percent > 0 && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {t.purchaseDiscountAmount} ({purchaseFormData.discount_percent}%): −₼
+                      {formatFinanceMoney(
+                        computePurchaseDiscountAmount(
+                          purchaseFormData.quantity,
+                          purchaseFormData.unit_cost,
+                          purchaseFormData.discount_percent,
+                        ),
+                      )}
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    {t.purchaseNetTotal}:{' '}
+                    <span className="font-bold text-lg">
+                      ₼
+                      {formatFinanceMoney(
+                        computePurchaseTotalCost(
+                          purchaseFormData.quantity,
+                          purchaseFormData.unit_cost,
+                          purchaseFormData.discount_percent,
+                        ),
+                      )}
+                    </span>
+                  </p>
                 </div>
               )}
 

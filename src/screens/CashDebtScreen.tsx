@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Banknote, ArrowRight, CreditCard, Landmark, Loader2, Plus, SlidersHorizontal, Trash2, Wallet } from 'lucide-react';
+import { Banknote, ArrowRight, CreditCard, Landmark, Loader2, Plus, SlidersHorizontal, Trash2, Wallet, Edit2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
-import { supabase, type BankWithdrawal, type CashMovement, type FinanceAccount, type Liability } from '../lib/supabase';
+import { supabase, type BankWithdrawal, type CashMovement, type FinanceAccount, type Liability, type LiabilityPayment } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate, adminUpsert } from '../lib/adminApi';
 import { PageHeader } from '../components/cockpit';
 import { SingleDatePicker } from '../components/SingleDatePicker';
+import { IconActionButton } from '../components/ui/IconActionButton';
+import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
+import { formatFinanceMoney, roundFinanceMoney } from '../lib/money';
 import { displayName, isTestRecord } from '../lib/displayName';
 import { computeWithdrawalFee, type WithdrawalMethod } from '../services/finance/withdrawalFees';
 import { fetchLiabilitiesSummary } from '../services/finance/supplierFinanceService';
@@ -35,6 +38,12 @@ export function CashDebtScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [showLiabilityForm, setShowLiabilityForm] = useState(false);
+  const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(null);
+  const [deleteLiabilityId, setDeleteLiabilityId] = useState<string | null>(null);
+  const [expandedLiabilityId, setExpandedLiabilityId] = useState<string | null>(null);
+  const [liabilityPayments, setLiabilityPayments] = useState<LiabilityPayment[]>([]);
+  const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [liabilityForm, setLiabilityForm] = useState({
     type: 'loan' as 'loan' | 'other',
     counterparty: '',
@@ -138,13 +147,14 @@ export function CashDebtScreen() {
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [liabRes, withdrawalsRes] = await Promise.all([
+    const [liabRes, withdrawalsRes, paymentsRes] = await Promise.all([
       fetchLiabilitiesSummary(),
       supabase
         .from('bank_withdrawals')
         .select('*')
         .order('withdrawal_date', { ascending: false })
         .limit(100),
+      supabase.from('liability_payments').select('*').order('paid_date', { ascending: false }),
     ]);
 
     if (liabRes.error) {
@@ -154,6 +164,11 @@ export function CashDebtScreen() {
     }
     if (withdrawalsRes.error) {
       setError(withdrawalsRes.error.message);
+      setLoading(false);
+      return;
+    }
+    if (paymentsRes.error) {
+      setError(paymentsRes.error.message);
       setLoading(false);
       return;
     }
@@ -177,6 +192,7 @@ export function CashDebtScreen() {
       })),
     );
     setWithdrawals((withdrawalsRes.data ?? []) as BankWithdrawal[]);
+    setLiabilityPayments((paymentsRes.data ?? []) as LiabilityPayment[]);
     await loadAccountBalances();
     setLoading(false);
   }, [loadAccountBalances]);
@@ -185,27 +201,8 @@ export function CashDebtScreen() {
     void loadData();
   }, [loadData]);
 
-  const handleCreateLiability = async () => {
-    const principal = Number(liabilityForm.principal_amount);
-    if (!liabilityForm.counterparty.trim() || principal <= 0 || saving) return;
-    setSaving(true);
-    const result = await adminInsert('liabilities', {
-      type: liabilityForm.type,
-      counterparty: liabilityForm.counterparty.trim(),
-      principal_amount: principal,
-      incurred_date: liabilityForm.incurred_date,
-      due_date: liabilityForm.due_date || null,
-      notes: liabilityForm.notes,
-      status: 'open',
-    });
-    setSaving(false);
-    if (!result.ok) {
-      setError(result.error ?? t.errorOccurred);
-      toast.error(result.error ?? t.errorOccurred);
-      return;
-    }
-    toast.success(t.savedSuccessfully);
-    setShowLiabilityForm(false);
+
+  const resetLiabilityForm = () => {
     setLiabilityForm({
       type: 'loan',
       counterparty: '',
@@ -214,12 +211,130 @@ export function CashDebtScreen() {
       due_date: '',
       notes: '',
     });
+    setEditingLiabilityId(null);
+    setShowLiabilityForm(false);
+  };
+
+  const openEditLiability = (row: LiabilityRow) => {
+    setEditingLiabilityId(row.id);
+    setLiabilityForm({
+      type: row.type,
+      counterparty: row.counterparty,
+      principal_amount: String(row.principal_amount),
+      incurred_date: row.incurred_date.split('T')[0],
+      due_date: row.due_date?.split('T')[0] ?? '',
+      notes: row.notes ?? '',
+    });
+    setShowLiabilityForm(true);
+  };
+
+  const handleSaveLiability = async () => {
+    const principal = roundFinanceMoney(Number(liabilityForm.principal_amount));
+    if (!liabilityForm.counterparty.trim() || principal <= 0 || saving) return;
+    setSaving(true);
+    const payload = {
+      type: liabilityForm.type,
+      counterparty: liabilityForm.counterparty.trim(),
+      principal_amount: principal,
+      incurred_date: liabilityForm.incurred_date,
+      due_date: liabilityForm.due_date || null,
+      notes: liabilityForm.notes,
+    };
+    const result = editingLiabilityId
+      ? await adminUpdate('liabilities', editingLiabilityId, payload)
+      : await adminInsert('liabilities', { ...payload, status: 'open' });
+    setSaving(false);
+    if (!result.ok) {
+      setError(result.error ?? t.errorOccurred);
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.savedSuccessfully);
+    resetLiabilityForm();
     await loadData();
   };
 
+  const handleDeleteLiability = async (id: string) => {
+    if (saving) return;
+    setSaving(true);
+    const result = await adminDelete('liabilities', id);
+    setSaving(false);
+    setDeleteLiabilityId(null);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
+    await loadData();
+  };
+
+  const handleDeletePayment = async (paymentId: string, liabilityId: string) => {
+    if (saving) return;
+    setSaving(true);
+    const result = await adminDelete('liability_payments', paymentId);
+    if (result.ok) {
+      const remaining = liabilityPayments.filter((p) => p.liability_id === liabilityId && p.id !== paymentId);
+      const paid = remaining.reduce((sum, p) => sum + Number(p.amount), 0);
+      const row = liabilities.find((l) => l.id === liabilityId);
+      if (row) {
+        const newStatus =
+          paid >= row.principal_amount ? 'settled' : paid > 0 ? 'partially_paid' : 'open';
+        await adminUpdate('liabilities', liabilityId, { status: newStatus });
+      }
+    }
+    setSaving(false);
+    setDeletePaymentId(null);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.deletedSuccessfully);
+    await loadData();
+  };
+
+  const handleUpdatePayment = async () => {
+    if (!editingPaymentId || !payLiabilityId) return;
+    const amount = roundFinanceMoney(Number(payForm.amount));
+    if (amount <= 0 || saving) return;
+    setSaving(true);
+    const result = await adminUpdate('liability_payments', editingPaymentId, {
+      amount,
+      paid_date: payForm.paid_date,
+      payment_method: payForm.payment_method,
+      notes: payForm.notes,
+    });
+    if (result.ok) {
+      const row = liabilities.find((l) => l.id === payLiabilityId);
+      if (row) {
+        const otherPaid = liabilityPayments
+          .filter((p) => p.liability_id === payLiabilityId && p.id !== editingPaymentId)
+          .reduce((sum, p) => sum + Number(p.amount), 0);
+        const newPaid = otherPaid + amount;
+        const newStatus =
+          newPaid >= row.principal_amount ? 'settled' : newPaid > 0 ? 'partially_paid' : 'open';
+        await adminUpdate('liabilities', payLiabilityId, { status: newStatus });
+      }
+    }
+    setSaving(false);
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+    toast.success(t.savedSuccessfully);
+    setEditingPaymentId(null);
+    setPayLiabilityId(null);
+    setPayForm({ amount: '', paid_date: new Date().toISOString().split('T')[0], payment_method: '', notes: '' });
+    await loadData();
+  };
+
+
   const handlePayLiability = async () => {
     if (!payLiabilityId) return;
-    const amount = Number(payForm.amount);
+    if (editingPaymentId) {
+      await handleUpdatePayment();
+      return;
+    }
+    const amount = roundFinanceMoney(Number(payForm.amount));
     if (amount <= 0 || saving) return;
     setSaving(true);
     const result = await adminInsert('liability_payments', {
@@ -566,7 +681,7 @@ export function CashDebtScreen() {
                           <input
                             type="number"
                             min="0"
-                            step="0.01"
+                            step="0.001"
                             className="cockpit-input-lg"
                             placeholder="0.00"
                             value={openingForm[key].balance}
@@ -625,7 +740,7 @@ export function CashDebtScreen() {
                     <input
                       type="number"
                       min="0"
-                      step="0.01"
+                      step="0.001"
                       className="cockpit-input-lg"
                       placeholder="0.00"
                       value={transferForm.amount}
@@ -807,6 +922,7 @@ export function CashDebtScreen() {
 
           {showLiabilityForm ? (
             <div className="cockpit-panel space-y-3 p-5">
+              <h3 className="font-semibold">{editingLiabilityId ? t.liabilityEdit : t.liabilityAdd}</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 <select
                   value={liabilityForm.type}
@@ -828,7 +944,7 @@ export function CashDebtScreen() {
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="0.001"
                   className="cockpit-input"
                   placeholder={t.amount}
                   value={liabilityForm.principal_amount}
@@ -839,6 +955,14 @@ export function CashDebtScreen() {
                   onChange={(date) => setLiabilityForm((p) => ({ ...p, incurred_date: date }))}
                   placeholder={t.date}
                 />
+                <label className="block sm:col-span-2">
+                  <span className="text-xs text-slate-500">{t.liabilityDueDate}</span>
+                  <SingleDatePicker
+                    value={liabilityForm.due_date}
+                    onChange={(date) => setLiabilityForm((p) => ({ ...p, due_date: date }))}
+                    placeholder={t.liabilityDueDate}
+                  />
+                </label>
               </div>
               <textarea
                 className="cockpit-input resize-none"
@@ -848,10 +972,10 @@ export function CashDebtScreen() {
                 onChange={(e) => setLiabilityForm((p) => ({ ...p, notes: e.target.value }))}
               />
               <div className="flex gap-2">
-                <button type="button" disabled={saving} onClick={() => void handleCreateLiability()} className="cockpit-btn-primary">
+                <button type="button" disabled={saving} onClick={() => void handleSaveLiability()} className="cockpit-btn-primary">
                   {t.save}
                 </button>
-                <button type="button" onClick={() => setShowLiabilityForm(false)} className="cockpit-btn-ghost">
+                <button type="button" onClick={resetLiabilityForm} className="cockpit-btn-ghost">
                   {t.cancel}
                 </button>
               </div>
@@ -862,43 +986,81 @@ export function CashDebtScreen() {
             <p className="text-sm text-slate-500">{t.liabilityEmpty}</p>
           ) : (
             <div className="space-y-2">
-              {liabilities.filter((row) => !isTestRecord(row.counterparty)).map((row) => (
-                <div key={row.id} className="cockpit-panel flex flex-wrap items-center justify-between gap-3 p-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-slate-900 dark:text-white">
-                        {displayName(row.counterparty, t.cockpitTestRecordLabel)}
+              {liabilities.filter((row) => !isTestRecord(row.counterparty)).map((row) => {
+                const expanded = expandedLiabilityId === row.id;
+                const rowPayments = liabilityPayments.filter((p) => p.liability_id === row.id);
+                return (
+                <div key={row.id} className="cockpit-panel overflow-hidden">
+                  <div className="flex flex-wrap items-center gap-3 p-4">
+                    <button
+                      type="button"
+                      className="text-slate-500"
+                      onClick={() => setExpandedLiabilityId(expanded ? null : row.id)}
+                    >
+                      {expanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-slate-900 dark:text-white">
+                          {displayName(row.counterparty, t.cockpitTestRecordLabel)}
+                        </p>
+                        <span
+                          className={`neon-badge ${
+                            row.status === 'settled'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                              : row.status === 'partially_paid'
+                                ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                : ''
+                          }`}
+                        >
+                          {liabilityStatusLabel(row.status)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {row.type === 'loan' ? t.liabilityTypeLoan : t.liabilityTypeOther} · {row.incurred_date}
+                        {row.due_date ? ` · ${t.liabilityDueDate}: ${row.due_date.split('T')[0]}` : ''}
                       </p>
-                      <span
-                        className={`neon-badge ${
-                          row.status === 'settled'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                            : row.status === 'partially_paid'
-                              ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                              : ''
-                        }`}
-                      >
-                        {liabilityStatusLabel(row.status)}
-                      </span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {row.type === 'loan' ? t.liabilityTypeLoan : t.liabilityTypeOther} · {row.incurred_date}
-                    </p>
+                    <div className="text-right">
+                      <p className="font-mono text-lg font-bold tabular-nums text-amber-600 dark:text-amber-300">
+                        ₼{formatFinanceMoney(row.outstanding)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        / ₼{formatFinanceMoney(row.principal_amount)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <IconActionButton
+                        icon={<Plus className="h-4 w-4" />}
+                        label={t.liabilityRecordPayment}
+                        onClick={() => {
+                          setPayLiabilityId(row.id);
+                          setEditingPaymentId(null);
+                          setPayForm({ amount: '', paid_date: new Date().toISOString().split('T')[0], payment_method: '', notes: '' });
+                        }}
+                      />
+                      <IconActionButton icon={<Edit2 className="h-4 w-4" />} tone="edit" label={t.liabilityEdit} onClick={() => openEditLiability(row)} />
+                      <IconActionButton icon={<Trash2 className="h-4 w-4" />} tone="danger" label={t.delete} onClick={() => setDeleteLiabilityId(row.id)} />
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-mono text-lg font-bold tabular-nums text-amber-600 dark:text-amber-300">
-                      ₼{row.outstanding.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      / ₼{Number(row.principal_amount).toFixed(2)}
-                    </p>
-                  </div>
-                  {payLiabilityId === row.id ? (
-                    <div className="flex w-full flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-700">
+
+                  {deleteLiabilityId === row.id && (
+                    <div className="border-t px-4 py-3">
+                      <DangerConfirmRow
+                        message={t.liabilityDeleteConfirm}
+                        onConfirm={() => void handleDeleteLiability(row.id)}
+                        onCancel={() => setDeleteLiabilityId(null)}
+                        confirmDisabled={saving}
+                      />
+                    </div>
+                  )}
+
+                  {payLiabilityId === row.id && (
+                    <div className="flex w-full flex-wrap gap-2 border-t border-slate-200 px-4 py-3 dark:border-slate-700">
                       <input
                         type="number"
                         min="0"
-                        step="0.01"
+                        step="0.001"
                         className="cockpit-input min-w-[120px] flex-1"
                         placeholder={t.amount}
                         value={payForm.amount}
@@ -909,20 +1071,102 @@ export function CashDebtScreen() {
                         onChange={(date) => setPayForm((p) => ({ ...p, paid_date: date }))}
                         placeholder={t.date}
                       />
+                      <input
+                        className="cockpit-input min-w-[120px] flex-1"
+                        placeholder={t.paymentMethod}
+                        value={payForm.payment_method}
+                        onChange={(e) => setPayForm((p) => ({ ...p, payment_method: e.target.value }))}
+                      />
+                      <input
+                        className="cockpit-input min-w-[120px] flex-1"
+                        placeholder={t.notes}
+                        value={payForm.notes}
+                        onChange={(e) => setPayForm((p) => ({ ...p, notes: e.target.value }))}
+                      />
                       <button type="button" disabled={saving} onClick={() => void handlePayLiability()} className="cockpit-btn-primary">
-                        {t.liabilityRecordPayment}
+                        {editingPaymentId ? t.save : t.liabilityRecordPayment}
                       </button>
-                      <button type="button" onClick={() => setPayLiabilityId(null)} className="cockpit-btn-ghost">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPayLiabilityId(null);
+                          setEditingPaymentId(null);
+                        }}
+                        className="cockpit-btn-ghost"
+                      >
                         {t.cancel}
                       </button>
                     </div>
-                  ) : (
-                    <button type="button" onClick={() => setPayLiabilityId(row.id)} className="cockpit-btn-ghost text-sm">
-                      {t.liabilityRecordPayment}
-                    </button>
+                  )}
+
+                  {expanded && (
+                    <div className="border-t bg-slate-50/50 dark:bg-slate-900/30">
+                      <p className="px-4 pt-3 text-xs font-semibold uppercase text-slate-500">{t.liabilityPaymentHistory}</p>
+                      {rowPayments.length === 0 ? (
+                        <p className="p-4 text-sm text-slate-500">{t.liabilityEmpty}</p>
+                      ) : (
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b text-left text-xs uppercase text-slate-500">
+                              <th className="px-4 py-2">{t.date}</th>
+                              <th className="px-4 py-2">{t.amount}</th>
+                              <th className="px-4 py-2">{t.paymentMethod}</th>
+                              <th className="px-4 py-2">{t.notes}</th>
+                              <th className="px-4 py-2" />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rowPayments.map((payment) => (
+                              <tr key={payment.id} className="border-b border-slate-100 dark:border-slate-800">
+                                <td className="px-4 py-2">{payment.paid_date.split('T')[0]}</td>
+                                <td className="px-4 py-2 font-medium">₼{formatFinanceMoney(payment.amount)}</td>
+                                <td className="px-4 py-2">{payment.payment_method || '—'}</td>
+                                <td className="px-4 py-2 text-slate-500">{payment.notes || '—'}</td>
+                                <td className="px-4 py-2">
+                                  <div className="flex gap-1">
+                                    <IconActionButton
+                                      icon={<Edit2 className="h-4 w-4" />}
+                                      tone="edit"
+                                      label={t.liabilityEditPayment}
+                                      onClick={() => {
+                                        setPayLiabilityId(row.id);
+                                        setEditingPaymentId(payment.id);
+                                        setPayForm({
+                                          amount: String(payment.amount),
+                                          paid_date: payment.paid_date.split('T')[0],
+                                          payment_method: payment.payment_method ?? '',
+                                          notes: payment.notes ?? '',
+                                        });
+                                      }}
+                                    />
+                                    <IconActionButton
+                                      icon={<Trash2 className="h-4 w-4" />}
+                                      tone="danger"
+                                      label={t.delete}
+                                      onClick={() => setDeletePaymentId(payment.id)}
+                                    />
+                                  </div>
+                                  {deletePaymentId === payment.id && (
+                                    <div className="mt-2">
+                                      <DangerConfirmRow
+                                        message={t.liabilityDeletePaymentConfirm}
+                                        onConfirm={() => void handleDeletePayment(payment.id, row.id)}
+                                        onCancel={() => setDeletePaymentId(null)}
+                                        confirmDisabled={saving}
+                                      />
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -934,7 +1178,7 @@ export function CashDebtScreen() {
               <input
                 type="number"
                 min="0"
-                step="0.01"
+                step="0.001"
                 className="cockpit-input"
                 placeholder={t.amount}
                 value={withdrawForm.amount}
@@ -1179,7 +1423,7 @@ export function CashDebtScreen() {
               <input
                 type="number"
                 min="0"
-                step="0.01"
+                step="0.001"
                 className="cockpit-input"
                 placeholder={t.amount}
                 value={cashForm.amount}

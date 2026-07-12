@@ -135,6 +135,60 @@ async function kdsWithoutSecret() {
   return { status: res.status, body: text.slice(0, 200) };
 }
 
+async function anonInsertSaleItem() {
+  const res = await fetch(`${supabaseUrl}/rest/v1/sale_items`, {
+    method: 'POST',
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify({
+      sale_id: '00000000-0000-0000-0000-000000000001',
+      product_name: 'rls-probe',
+      quantity: 1,
+      unit_price: 1,
+      total_price: 1,
+    }),
+  });
+  const text = await res.text();
+  return { status: res.status, body: text.slice(0, 200) };
+}
+
+async function anonAllocateDirectNumber() {
+  const res = await fetch(`${supabaseUrl}/rest/v1/rpc/allocate_direct_display_number`, {
+    method: 'POST',
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: '{}',
+  });
+  const text = await res.text();
+  return { status: res.status, body: text.slice(0, 200) };
+}
+
+async function staffSalesFinancialPatch(token) {
+  const res = await fetch(`${supabaseUrl}/functions/v1/admin-api`, {
+    method: 'POST',
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      table: 'sales',
+      operation: 'update',
+      id: '00000000-0000-0000-0000-000000000001',
+      payload: { total_price: 0.01 },
+    }),
+  });
+  const text = await res.text();
+  return { status: res.status, body: text.slice(0, 300) };
+}
+
 const productId = await getProductId();
 const results = [];
 
@@ -168,6 +222,14 @@ if (staffToken) {
     status: adminApi.status,
     detail: adminApi.body,
   });
+
+  const salesFinancial = await staffSalesFinancialPatch(staffToken);
+  results.push({
+    check: 'staff admin-api rejects crafted sales financial patch',
+    pass: salesFinancial.status === 403 || salesFinancial.status === 404,
+    status: salesFinancial.status,
+    detail: salesFinancial.body,
+  });
 } else {
   results.push({
     check: 'staff JWT checks',
@@ -187,6 +249,22 @@ results.push({
     kds.body.includes('Staff access'),
   status: kds.status,
   detail: kds.body,
+});
+
+const anonSaleItem = await anonInsertSaleItem();
+results.push({
+  check: 'anon INSERT sale_items',
+  pass: anonSaleItem.status >= 400,
+  status: anonSaleItem.status,
+  detail: anonSaleItem.body,
+});
+
+const anonAllocator = await anonAllocateDirectNumber();
+results.push({
+  check: 'anon EXECUTE allocate_direct_display_number',
+  pass: anonAllocator.status >= 400 || anonAllocator.body.toLowerCase().includes('permission'),
+  status: anonAllocator.status,
+  detail: anonAllocator.body,
 });
 
 console.log(JSON.stringify({ productId, results }, null, 2));

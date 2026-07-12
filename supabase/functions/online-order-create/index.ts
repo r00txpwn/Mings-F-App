@@ -7,6 +7,13 @@ import {
   type PersistedOnlinePaymentMethod,
 } from '../_shared/onlinePaymentMethod.ts';
 import { acceptingKitchen, type KitchenSettings } from '../_shared/kitchenAcceptance.ts';
+import {
+  assertDirectOrderRequestLimits,
+  cartStats,
+  hashDirectOrderRequest,
+  isValidUuid,
+} from '../_shared/directOrderValidation.ts';
+import { invokePersistDirectOrder, resolvedLineToPersistLine } from '../_shared/persistDirectOrder.ts';
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
@@ -44,14 +51,11 @@ interface Body {
   deliveryFloor?: string;
   /** Buzzer / courier-visible instructions — stored on `sales.delivery_notes`. */
   deliveryNotes?: string;
-  /** QR/table context (e.g. `?table=` or `?ref=`) — stored on the sale `notes` field for kitchen. */
+  /** Table/ref label from QR context. */
   tableLabel?: string;
+  /** Client UUID reused on retry for the same checkout attempt. */
+  clientRequestId?: string;
 }
-
-type AllocatedDisplayNumberRow = {
-  daily_order_number: number;
-  display_number: string;
-};
 
 function errorResponse(code: string, error: string, status = 400): Response {
   return jsonResponse({ code, error }, status);
@@ -95,60 +99,6 @@ function effectiveMaxSelectForValidation(g: { name: string; max_select?: number 
     return 1;
   }
   return maxSel;
-}
-
-function isPoolExhaustedRpcError(error: unknown): boolean {
-  const message =
-    typeof error === 'object' && error !== null && 'message' in error
-      ? String((error as { message?: unknown }).message ?? '')
-      : '';
-  return message.includes('DIRECT_NUMBER_POOL_EXHAUSTED');
-}
-
-function isActiveDisplayNumberUniqueViolation(error: unknown): boolean {
-  if (typeof error !== 'object' || error == null) return false;
-  const e = error as { code?: string; message?: string };
-  if (e.code === '23505') return true;
-  return (e.message ?? '').includes('ux_sales_active_direct_display_number');
-}
-
-async function allocateDirectDisplayNumber(
-  supabase: ReturnType<typeof createClient>
-): Promise<
-  | { ok: true; value: AllocatedDisplayNumberRow }
-  | { ok: false; status: number; code: string; message: string }
-> {
-  const { data, error } = await supabase.rpc('allocate_direct_display_number');
-  if (error || !data) {
-    if (isPoolExhaustedRpcError(error)) {
-      return {
-        ok: false,
-        status: 503,
-        code: 'ORDER_NUMBER_POOL_EXHAUSTED',
-        message: 'All direct order numbers are currently in use. Please try again shortly.',
-      };
-    }
-    return {
-      ok: false,
-      status: 500,
-      code: 'ORDER_NUMBER_FAILED',
-      message: error?.message ?? 'Order number failed',
-    };
-  }
-
-  const row = (Array.isArray(data) ? data[0] : data) as Partial<AllocatedDisplayNumberRow>;
-  const daily = Number(row.daily_order_number);
-  const display = String(row.display_number ?? '');
-  if (!Number.isFinite(daily) || daily < 1 || !/^M\d{3}$/.test(display)) {
-    return {
-      ok: false,
-      status: 500,
-      code: 'ORDER_NUMBER_INVALID',
-      message: 'Allocated order number payload was invalid',
-    };
-  }
-
-  return { ok: true, value: { daily_order_number: daily, display_number: display } };
 }
 
 Deno.serve(async (req: Request) => {
@@ -197,11 +147,35 @@ async function handleRequest(req: Request): Promise<Response> {
     return errorResponse('AUTH_REQUIRED', 'Authentication required to place order', 401);
   }
 
+  let rawBody = '';
   let body: Body;
   try {
-    body = (await req.json()) as Body;
+    rawBody = await req.text();
+    body = JSON.parse(rawBody) as Body;
   } catch {
     return errorResponse('INVALID_JSON', 'Invalid JSON', 400);
+  }
+
+  const earlyStats = cartStats(
+    Array.isArray(body.cart)
+      ? body.cart.map((l) => ({
+          quantity: l.quantity,
+          modifierOptionIds: l.modifierOptionIds,
+        }))
+      : []
+  );
+  const earlyLimits = assertDirectOrderRequestLimits(
+    rawBody,
+    earlyStats.lineCount,
+    earlyStats.totalItems,
+    earlyStats.maxModifiers
+  );
+  if (!earlyLimits.ok) {
+    return errorResponse(earlyLimits.code, earlyLimits.message, 400);
+  }
+
+  if (!body.clientRequestId || !isValidUuid(body.clientRequestId)) {
+    return errorResponse('CLIENT_REQUEST_ID_REQUIRED', 'Valid clientRequestId (UUID) required', 400);
   }
 
   const {
@@ -639,8 +613,28 @@ async function handleRequest(req: Request): Promise<Response> {
       ? deliveryNotes.trim()
       : '';
 
-  const saleInsertBase: Record<string, unknown> = {
-    source,
+  const clientRequestHash = await hashDirectOrderRequest({
+    fulfillmentType,
+    paymentMethod: persistedPaymentMethod,
+    cart,
+    promoCode: promoCode?.trim() || null,
+    tipAmount: tip,
+    orderNotes: orderNotes?.trim() || null,
+    isScheduled,
+    scheduledFor: scheduledAtIso,
+    customerName: customerName?.trim() || null,
+    customerPhone: normalizedPhone,
+    deliveryAddress: fulfillmentType === 'delivery' ? deliveryAddress?.trim() ?? null : null,
+    deliveryApartment:
+      fulfillmentType === 'delivery' ? deliveryApartment?.trim() || null : null,
+    deliveryFloor: fulfillmentType === 'delivery' ? deliveryFloor?.trim() || null : null,
+    deliveryNotes: courierNote || null,
+    deliveryLat: fulfillmentType === 'delivery' ? deliveryLat ?? null : null,
+    deliveryLng: fulfillmentType === 'delivery' ? deliveryLng ?? null : null,
+    tableLabel: tableLabel?.trim() || null,
+  });
+
+  const persistSale: Record<string, unknown> = {
     order_status: 'pending',
     payment_status: paymentStatus,
     sales_channel_id: channel.id,
@@ -668,173 +662,27 @@ async function handleRequest(req: Request): Promise<Response> {
     delivery_zone_id: zoneId,
     customer_user_id: customerUserId,
     payment_init_token: paymentInitToken,
-  };
-
-  const saleInsertWithDiscount: Record<string, unknown> = {
-    ...saleInsertBase,
     discount_amount: discount,
     tip_amount: tip,
     promo_code: promoCodeApplied,
   };
 
-  // Backward-compatible insert for environments where some sales columns
-  // are not yet present or schema cache is stale.
-  let insertPayload: Record<string, unknown> = { ...saleInsertWithDiscount };
-  let saleRow: { id: string } | null = null;
-  let saleErr: { message?: string } | null = null;
+  const persistLines = resolvedLines.map((line) => resolvedLineToPersistLine(line));
 
-  let allocatorTries = 0;
-  const maxAllocatorTries = 4;
-  while (allocatorTries < maxAllocatorTries) {
-    allocatorTries += 1;
+  const persisted = await invokePersistDirectOrder(supabase, {
+    source,
+    client_request_id: body.clientRequestId!,
+    client_request_hash: clientRequestHash,
+    sale: persistSale,
+    lines: persistLines,
+  });
 
-    const allocated = await allocateDirectDisplayNumber(supabase);
-    if (!allocated.ok) {
-      return errorResponse(allocated.code, allocated.message, allocated.status);
-    }
-
-    insertPayload = {
-      ...insertPayload,
-      daily_order_number: allocated.value.daily_order_number,
-      display_number: allocated.value.display_number,
-    };
-
-    let missingColumnAttempts = 0;
-    const maxMissingColumnAttempts = 12;
-    while (missingColumnAttempts < maxMissingColumnAttempts) {
-      missingColumnAttempts += 1;
-
-      const { data, error } = await supabase
-        .from('sales')
-        .insert(insertPayload)
-        .select('id')
-        .single();
-
-      if (!error && data) {
-        saleRow = data as { id: string };
-        saleErr = null;
-        break;
-      }
-
-      saleErr = error as { message?: string } | null;
-
-      // Another concurrent insert may have claimed the same active M number between
-      // allocation and insert commit. Re-allocate and retry a bounded number of times.
-      if (isActiveDisplayNumberUniqueViolation(error)) {
-        break;
-      }
-
-      const msg = error?.message ?? '';
-      const missingColMatch = /Could not find the '([^']+)' column of 'sales'/.exec(msg);
-      if (!missingColMatch) break;
-
-      const missingCol = missingColMatch[1];
-      if (!(missingCol in insertPayload)) break;
-      delete insertPayload[missingCol];
-    }
-
-    if (saleRow) break;
-
-    if (!isActiveDisplayNumberUniqueViolation(saleErr)) {
-      break;
-    }
+  if (!persisted.ok) {
+    return errorResponse(persisted.code, persisted.message, persisted.status);
   }
 
-  if (saleErr || !saleRow) {
-    if (isActiveDisplayNumberUniqueViolation(saleErr)) {
-      return errorResponse(
-        'ORDER_NUMBER_CONFLICT',
-        'Could not reserve an active order number. Please try again.',
-        503
-      );
-    }
-
-    return jsonResponse({ error: saleErr?.message ?? 'Failed to create sale' }, 500);
-  }
-
-  const dailyNumber = Number(insertPayload.daily_order_number);
-  const displayNumber = String(insertPayload.display_number ?? '');
-
-  if (!Number.isFinite(dailyNumber) || !/^M\d{3}$/.test(displayNumber)) {
-    await supabase.from('sales').delete().eq('id', saleRow.id);
-    return errorResponse('ORDER_NUMBER_INVALID', 'Allocated order number was invalid', 500);
-  }
-
-  const saleId = saleRow.id as string;
-
-  for (const line of resolvedLines) {
-    if (line.kind === 'combo') {
-      const { data: saleItem, error: siErr } = await supabase
-        .from('sale_items')
-        .insert({
-          sale_id: saleId,
-          product_id: null,
-          product_name: line.comboName,
-          quantity: line.quantity,
-          unit_price: line.unitPrice,
-          total_price: line.unitPrice * line.quantity,
-          notes: line.lineNotes || null,
-          is_combo: true,
-          combo_id: line.comboId,
-          combo_selections: line.comboSelectionsJson,
-        })
-        .select('id')
-        .single();
-
-      if (siErr || !saleItem) {
-        await supabase.from('sales').delete().eq('id', saleId);
-        return jsonResponse({ error: siErr?.message ?? 'Failed to create combo line' }, 500);
-      }
-      if (line.comboComponentModifiers.length > 0) {
-        const comboModifierRows = line.comboComponentModifiers.map((mod) => ({
-          sale_item_id: saleItem.id,
-          modifier_group_name: mod.comboGroupName,
-          modifier_option_name: mod.optionName,
-          price_adjustment: mod.priceAdjustment,
-        }));
-        const { error: comboModErr } = await supabase.from('sale_item_modifiers').insert(comboModifierRows);
-        if (comboModErr) {
-          await supabase.from('sales').delete().eq('id', saleId);
-          return jsonResponse({ error: comboModErr.message }, 500);
-        }
-      }
-      continue;
-    }
-
-    const p = line.product as { id: string; name: string };
-    const { data: saleItem, error: siErr } = await supabase
-      .from('sale_items')
-      .insert({
-        sale_id: saleId,
-        product_id: p.id,
-        product_name: p.name,
-        quantity: line.quantity,
-        unit_price: line.unitPrice,
-        total_price: line.unitPrice * line.quantity,
-        notes: line.notes || null,
-      })
-      .select('id')
-      .single();
-
-    if (siErr || !saleItem) {
-      await supabase.from('sales').delete().eq('id', saleId);
-      return jsonResponse({ error: siErr?.message ?? 'Failed to create line item' }, 500);
-    }
-
-    if (line.modifierRows.length > 0) {
-      const rows = line.modifierRows.map((m) => ({
-        sale_item_id: saleItem.id,
-        modifier_group_name: m.groupName,
-        modifier_option_name: m.optionName,
-        price_adjustment: m.priceAdjustment,
-      }));
-      const { error: modErr } = await supabase.from('sale_item_modifiers').insert(rows);
-      if (modErr) {
-        await supabase.from('sales').delete().eq('id', saleId);
-        return jsonResponse({ error: modErr.message }, 500);
-      }
-    }
-  }
+  const saleId = persisted.data.sale_id;
+  const displayNumber = persisted.data.display_number;
 
   if (fulfillmentType === 'delivery' && Deno.env.get('WOLT_API_TOKEN')) {
     EdgeRuntime.waitUntil(
@@ -868,12 +716,13 @@ async function handleRequest(req: Request): Promise<Response> {
 
   return jsonResponse({
     saleId,
-    trackToken,
+    trackToken: persisted.data.track_token ?? trackToken,
     displayNumber,
     total: totalWithAdjustments,
     deliveryFee,
     paymentMethod: persistedPaymentMethod,
-    paymentInitToken,
+    paymentInitToken: persisted.data.payment_init_token ?? paymentInitToken,
     nextStep: cardPayment ? 'united-payment-create-payment' : 'track',
+    idempotent: persisted.data.idempotent,
   });
 }

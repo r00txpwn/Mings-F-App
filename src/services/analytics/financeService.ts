@@ -1,5 +1,12 @@
 import { applyAnalyticsSourceFilter } from '../../lib/analyticsSourceFilter';
+import { fetchAllRows } from '../../lib/supabasePaginate';
 import { supabase } from '../../lib/supabase';
+import {
+  addRowToGroupOrderCount,
+  computeEffectiveOrderCount,
+  getGroupOrderCount,
+  type OrderCountAccumulator,
+} from './orderCount';
 import type {
   AnalyticsServiceResponse,
   ChannelPerformance,
@@ -25,10 +32,10 @@ import type {
 
 type SaleRow = {
   id?: string;
-  sale_date: string;
-  total_price: number | string | null;
-  quantity: number | string | null;
-  sales_channel_id: string | null;
+  sale_date?: string;
+  total_price?: number | string | null;
+  quantity?: number | string | null;
+  sales_channel_id?: string | null;
   source?: string | null;
   discount_amount?: number | string | null;
   payment_status?: string | null;
@@ -129,16 +136,22 @@ export async function fetchRevenueCostTrend(
 ): Promise<AnalyticsServiceResponse<RevenueCostTrendPoint[]>> {
   const granularity = params.granularity ?? 'day';
 
-  let salesQuery = supabase
-    .from('sales')
-    .select('id, sale_date, total_price, quantity')
-    .gte('sale_date', params.startDate)
-    .lte('sale_date', `${params.endDate}T23:59:59`);
-
-  salesQuery = applyAnalyticsSourceFilter(salesQuery, params.source);
+  const salesFilter = {
+    startDate: params.startDate,
+    endDate: params.endDate,
+    source: params.source,
+  };
 
   const [salesRes, opexRes, purchasesRes] = await Promise.all([
-    salesQuery,
+    fetchAllRows<SaleRow>(() => {
+      let q = supabase
+        .from('sales')
+        .select('id, sale_date, total_price, quantity, source')
+        .gte('sale_date', salesFilter.startDate)
+        .lte('sale_date', `${salesFilter.endDate}T23:59:59`);
+      q = applyAnalyticsSourceFilter(q, salesFilter.source);
+      return q as never;
+    }),
     supabase
       .from('operational_expenses')
       .select('expense_date, amount')
@@ -157,7 +170,7 @@ export async function fetchRevenueCostTrend(
   }
 
   const buckets = new Map<string, RevenueCostTrendPoint>();
-  const orderIdsByBucket = new Map<string, Set<string>>();
+  const bucketOrderAccumulators = new Map<string, OrderCountAccumulator>();
   const getOrCreate = (bucket: string): RevenueCostTrendPoint => {
     const existing = buckets.get(bucket);
     if (existing) return existing;
@@ -173,18 +186,12 @@ export async function fetchRevenueCostTrend(
     return next;
   };
 
-  for (const row of (salesRes.data ?? []) as SaleRow[]) {
-    const bucket = formatBucket(row.sale_date, granularity);
+  for (const row of salesRes.data) {
+    const bucket = formatBucket(row.sale_date ?? '', granularity);
     const point = getOrCreate(bucket);
     point.revenue += safeNumber(row.total_price);
-    if (row.id) {
-      const ids = orderIdsByBucket.get(bucket) ?? new Set<string>();
-      ids.add(row.id);
-      orderIdsByBucket.set(bucket, ids);
-      point.orders = ids.size;
-    } else {
-      point.orders += 1;
-    }
+    addRowToGroupOrderCount(bucketOrderAccumulators, bucket, row);
+    point.orders = getGroupOrderCount(bucketOrderAccumulators, bucket);
   }
 
   for (const row of (opexRes.data ?? []) as Pick<ExpenseRow, 'expense_date' | 'amount'>[]) {
@@ -361,7 +368,7 @@ export async function fetchPayoutReconciliation(
   const items = payouts.map((payout) => {
     const grossSales = salesRows
       .filter((sale) => {
-        const saleDate = toIsoDate(sale.sale_date);
+        const saleDate = toIsoDate(sale.sale_date ?? '');
         return (
           sale.sales_channel_id === payout.sales_channel_id &&
           saleDate >= payout.period_start &&
@@ -423,26 +430,29 @@ export async function fetchChannelPerformance(
     channelsQuery = channelsQuery.eq('is_active', true);
   }
 
-  let salesQuery = supabase
-    .from('sales')
-    .select('id, sales_channel_id, total_price, quantity, sale_date')
-    .gte('sale_date', params.startDate)
-    .lte('sale_date', `${params.endDate}T23:59:59`);
-
-  salesQuery = applyAnalyticsSourceFilter(salesQuery, params.source);
-
-  const [channelsRes, salesRes] = await Promise.all([channelsQuery, salesQuery]);
+  const [channelsRes, salesRes] = await Promise.all([
+    channelsQuery,
+    fetchAllRows<SaleRow>(() => {
+      let q = supabase
+        .from('sales')
+        .select('id, sales_channel_id, total_price, quantity, sale_date, source')
+        .gte('sale_date', params.startDate)
+        .lte('sale_date', `${params.endDate}T23:59:59`);
+      q = applyAnalyticsSourceFilter(q, params.source);
+      return q as never;
+    }),
+  ]);
   const firstError = channelsRes.error ?? salesRes.error;
   if (firstError) {
     return { data: null, error: firstError.message };
   }
 
   const channels = (channelsRes.data ?? []) as SalesChannelRow[];
-  const sales = (salesRes.data ?? []) as SaleRow[];
+  const sales = salesRes.data;
   const channelById = new Map(channels.map((c) => [c.id, c]));
 
   const performance = new Map<string, ChannelPerformance>();
-  const orderIdsByChannel = new Map<string, Set<string>>();
+  const channelOrderAccumulators = new Map<string, OrderCountAccumulator>();
   const ensure = (channelId: string | null): ChannelPerformance => {
     const key = channelId ?? 'unknown';
     const existing = performance.get(key);
@@ -462,17 +472,11 @@ export async function fetchChannelPerformance(
   };
 
   for (const sale of sales) {
-    const item = ensure(sale.sales_channel_id);
+    const item = ensure(sale.sales_channel_id ?? null);
     item.grossSales += safeNumber(sale.total_price);
     const channelKey = sale.sales_channel_id ?? 'unknown';
-    if (sale.id) {
-      const ids = orderIdsByChannel.get(channelKey) ?? new Set<string>();
-      ids.add(sale.id);
-      orderIdsByChannel.set(channelKey, ids);
-      item.orderCount = ids.size;
-    } else {
-      item.orderCount += 1;
-    }
+    addRowToGroupOrderCount(channelOrderAccumulators, channelKey, sale);
+    item.orderCount = getGroupOrderCount(channelOrderAccumulators, channelKey);
   }
 
   // Keep visible channels in output even with zero sales.
@@ -500,16 +504,16 @@ export async function fetchChannelPerformance(
 export async function fetchPeriodSummary(
   params: PeriodSummaryParams,
 ): Promise<AnalyticsServiceResponse<PeriodSummary>> {
-  let salesQuery = supabase
-    .from('sales')
-    .select('id, total_price, discount_amount, online_payment_method')
-    .gte('sale_date', params.startDate)
-    .lte('sale_date', `${params.endDate}T23:59:59`);
-
-  salesQuery = applyAnalyticsSourceFilter(salesQuery, params.source);
-
   const [salesRes, opexRes, purchasesRes, withdrawalsRes, payrollRes] = await Promise.all([
-    salesQuery,
+    fetchAllRows<SaleRow>(() => {
+      let q = supabase
+        .from('sales')
+        .select('id, total_price, discount_amount, online_payment_method, quantity, source')
+        .gte('sale_date', params.startDate)
+        .lte('sale_date', `${params.endDate}T23:59:59`);
+      q = applyAnalyticsSourceFilter(q, params.source);
+      return q as never;
+    }),
     supabase
       .from('operational_expenses')
       .select('amount')
@@ -538,18 +542,16 @@ export async function fetchPeriodSummary(
     return { data: null, error: firstError.message };
   }
 
-  const sales = (salesRes.data ?? []) as SaleRow[];
-  const orderIds = new Set<string>();
+  const sales = salesRes.data;
   let grossSales = 0;
   let discounts = 0;
 
   for (const row of sales) {
     grossSales += safeNumber(row.total_price);
     discounts += safeNumber(row.discount_amount);
-    if (row.id) {
-      orderIds.add(row.id);
-    }
   }
+
+  const orderCount = computeEffectiveOrderCount(sales);
 
   const opex = ((opexRes.data ?? []) as Pick<ExpenseRow, 'amount'>[]).reduce(
     (sum, row) => sum + safeNumber(row.amount),
@@ -578,7 +580,7 @@ export async function fetchPeriodSummary(
       discounts,
       refunds: 0,
       tips: 0,
-      orderCount: orderIds.size > 0 ? orderIds.size : sales.length,
+      orderCount,
       cogs,
       opex,
       bankFees,
@@ -591,35 +593,40 @@ export async function fetchPeriodSummary(
 export async function fetchOrderSourceMix(
   params: PeriodSummaryParams,
 ): Promise<AnalyticsServiceResponse<OrderSourceMixItem[]>> {
-  let salesQuery = supabase
-    .from('sales')
-    .select('id, source, total_price')
-    .gte('sale_date', params.startDate)
-    .lte('sale_date', `${params.endDate}T23:59:59`);
-
-  salesQuery = applyAnalyticsSourceFilter(salesQuery, params.source);
-
-  const salesRes = await salesQuery;
+  const salesRes = await fetchAllRows<SaleRow>(() => {
+    let q = supabase
+      .from('sales')
+      .select('id, source, total_price, quantity')
+      .gte('sale_date', params.startDate)
+      .lte('sale_date', `${params.endDate}T23:59:59`);
+    q = applyAnalyticsSourceFilter(q, params.source);
+    return q as never;
+  });
   if (salesRes.error) {
     return { data: null, error: salesRes.error.message };
   }
 
-  const grouped = new Map<string, { orderIds: Set<string>; revenue: number }>();
-  for (const row of (salesRes.data ?? []) as SaleRow[]) {
+  const grouped = new Map<string, SaleRow[]>();
+  for (const row of salesRes.data) {
     const source = row.source ?? 'manual';
-    const entry = grouped.get(source) ?? { orderIds: new Set<string>(), revenue: 0 };
-    if (row.id) entry.orderIds.add(row.id);
-    entry.revenue += safeNumber(row.total_price);
-    grouped.set(source, entry);
+    const rows = grouped.get(source) ?? [];
+    rows.push(row);
+    grouped.set(source, rows);
   }
 
-  const totalOrders = [...grouped.values()].reduce((sum, item) => sum + item.orderIds.size, 0);
-  const data = [...grouped.entries()]
-    .map(([source, item]) => ({
-      source,
-      orderCount: item.orderIds.size,
+  const sourceStats = [...grouped.entries()].map(([source, rows]) => ({
+    source,
+    orderCount: computeEffectiveOrderCount(rows),
+    revenue: rows.reduce((sum, row) => sum + safeNumber(row.total_price), 0),
+  }));
+
+  const totalOrders = sourceStats.reduce((sum, item) => sum + item.orderCount, 0);
+  const data = sourceStats
+    .map((item) => ({
+      source: item.source,
+      orderCount: item.orderCount,
       revenue: item.revenue,
-      sharePct: totalOrders > 0 ? (item.orderIds.size / totalOrders) * 100 : 0,
+      sharePct: totalOrders > 0 ? (item.orderCount / totalOrders) * 100 : 0,
     }))
     .sort((a, b) => b.revenue - a.revenue);
 
@@ -741,37 +748,38 @@ export async function fetchPrepTimeStats(
 export async function fetchHourlyDemand(
   params: PeriodSummaryParams,
 ): Promise<AnalyticsServiceResponse<HourlyDemandPoint[]>> {
-  let salesQuery = supabase
-    .from('sales')
-    .select('id, sale_date, total_price')
-    .gte('sale_date', params.startDate)
-    .lte('sale_date', `${params.endDate}T23:59:59`);
-
-  salesQuery = applyAnalyticsSourceFilter(salesQuery, params.source);
-  const salesRes = await salesQuery;
+  const salesRes = await fetchAllRows<SaleRow>(() => {
+    let q = supabase
+      .from('sales')
+      .select('id, sale_date, total_price, quantity, source')
+      .gte('sale_date', params.startDate)
+      .lte('sale_date', `${params.endDate}T23:59:59`);
+    q = applyAnalyticsSourceFilter(q, params.source);
+    return q as never;
+  });
   if (salesRes.error) {
     return { data: null, error: salesRes.error.message };
   }
 
-  const hourly = new Map<number, { orderIds: Set<string>; revenue: number }>();
+  const hourlyRevenue = new Map<number, number>();
+  const hourlyOrderAccumulators = new Map<string, OrderCountAccumulator>();
   for (let h = 0; h < 24; h += 1) {
-    hourly.set(h, { orderIds: new Set<string>(), revenue: 0 });
+    hourlyRevenue.set(h, 0);
   }
 
-  for (const row of (salesRes.data ?? []) as SaleRow[]) {
-    const date = new Date(row.sale_date);
+  for (const row of salesRes.data) {
+    const date = new Date(row.sale_date ?? '');
     if (Number.isNaN(date.getTime())) continue;
     const hour = date.getHours();
-    const entry = hourly.get(hour)!;
-    if (row.id) entry.orderIds.add(row.id);
-    entry.revenue += safeNumber(row.total_price);
+    hourlyRevenue.set(hour, (hourlyRevenue.get(hour) ?? 0) + safeNumber(row.total_price));
+    addRowToGroupOrderCount(hourlyOrderAccumulators, String(hour), row);
   }
 
-  const data = [...hourly.entries()]
-    .map(([hour, stats]) => ({
+  const data = [...hourlyRevenue.entries()]
+    .map(([hour, revenue]) => ({
       hour,
-      orderCount: stats.orderIds.size,
-      revenue: stats.revenue,
+      orderCount: getGroupOrderCount(hourlyOrderAccumulators, String(hour)),
+      revenue,
     }))
     .sort((a, b) => a.hour - b.hour);
 

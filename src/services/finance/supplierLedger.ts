@@ -1,3 +1,5 @@
+import { roundFinanceMoney } from '../../lib/money';
+
 export type DerivedPurchasePaymentStatus = 'paid' | 'partial' | 'unpaid';
 
 export interface CreditPurchaseInput {
@@ -151,5 +153,5 @@ function safeAmount(value: number): number {
 }
 
 function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
+  return roundFinanceMoney(value);
 }

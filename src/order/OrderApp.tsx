@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { CheckCircle2, Loader2, ShoppingBag, XCircle, X } from 'lucide-react';
 import { Analytics, track } from '@vercel/analytics/react';
 import { ThemeProvider } from '../contexts/ThemeContext';
@@ -123,6 +123,11 @@ function OrderContent() {
   const [zones, setZones] = useState<DeliveryZoneRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const checkoutRequestIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    checkoutRequestIdRef.current = null;
+  }, [cart]);
 
   const [fulfillment, setFulfillment] = useState<OnlineFulfillmentType>('takeaway');
   const [paymentMethod, setPaymentMethod] = useState<OnlinePaymentMethod>('cash_pickup');
@@ -858,10 +863,15 @@ function OrderContent() {
       });
 
       const selectedAddressConfig = ORDER_ADDRESS_TYPE_CONFIG[deliveryAddressType];
+      if (!checkoutRequestIdRef.current) {
+        checkoutRequestIdRef.current = crypto.randomUUID();
+      }
+
       const body = {
         fulfillmentType: fulfillment,
         paymentMethod,
         cart: lines,
+        clientRequestId: checkoutRequestIdRef.current,
         promoCode: promoCode.trim() || undefined,
         tipAmount: tipAmount > 0 ? tipAmount : undefined,
         orderNotes: orderNotes.trim() || undefined,

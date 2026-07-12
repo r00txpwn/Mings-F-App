@@ -801,7 +801,7 @@ export function SuppliersScreen() {
                       <input
                         type="number"
                         min="0"
-                        step="0.01"
+                        step="0.001"
                         className="cockpit-input w-full text-sm"
                         placeholder={t.amount}
                         value={payForm.amount}
@@ -847,7 +847,7 @@ export function SuppliersScreen() {
                       <input
                         type="number"
                         min="0"
-                        step="0.01"
+                        step="0.001"
                         className="cockpit-input w-full text-sm"
                         placeholder={t.amount}
                         value={debtForm.amount}

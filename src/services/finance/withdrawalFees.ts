@@ -1,3 +1,5 @@
+import { roundFinanceMoney } from '../../lib/money';
+
 export type WithdrawalMethod = 'cashier' | 'abb_atm';
 
 export interface WithdrawalFeeConfig {
@@ -20,5 +22,5 @@ export function computeWithdrawalFee(amount: number, method: WithdrawalMethod): 
   const config = WITHDRAWAL_FEE_CONFIG[method];
   const rawFee = safeAmount * config.rate;
   const fee = Math.max(rawFee, config.minFee);
-  return { rate: config.rate, fee: Math.round(fee * 100) / 100 };
+  return { rate: config.rate, fee: roundFinanceMoney(fee) };
 }

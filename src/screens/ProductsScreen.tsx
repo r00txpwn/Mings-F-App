@@ -9,6 +9,8 @@ import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
 import { IconActionButton } from '../components/ui/IconActionButton';
 import { SingleDatePicker } from '../components/SingleDatePicker';
 import { isOnCreditFromPurchase, purchaseCreditFields } from '../services/finance/purchaseCredit';
+import { computePurchaseTotalCost, getCogsDefaultDiscountPercent } from '../lib/cogsDiscount';
+import { formatFinanceMoney, roundFinanceMoney, FINANCE_AMOUNT_STEP } from '../lib/money';
 
 interface Category {
   id: string;
@@ -23,6 +25,7 @@ interface Purchase {
   quantity: number;
   unit_cost: number;
   total_cost: number;
+  discount_percent?: number;
   purchase_date: string;
   payment_status: 'pending' | 'partial' | 'paid';
   is_on_credit?: boolean;
@@ -39,6 +42,7 @@ interface PurchaseFormData {
   supplier_id: string;
   quantity: string;
   unit_cost: string;
+  discount_percent: number;
   purchase_date: string;
   is_on_credit: boolean;
   notes: string;
@@ -90,6 +94,7 @@ export function ProductsScreen() {
     supplier_id: '',
     quantity: '',
     unit_cost: '',
+    discount_percent: getCogsDefaultDiscountPercent(),
     purchase_date: new Date().toISOString().split('T')[0],
     is_on_credit: true,
     notes: ''
@@ -219,15 +224,17 @@ export function ProductsScreen() {
     e.preventDefault();
     if (savingPurchase) return;
 
-    const quantity = Number(purchaseFormData.quantity) || 0;
-    const unitCost = Number(purchaseFormData.unit_cost) || 0;
+    const quantity = roundFinanceMoney(Number(purchaseFormData.quantity) || 0);
+    const unitCost = roundFinanceMoney(Number(purchaseFormData.unit_cost) || 0);
+    const discountPercent = Number(purchaseFormData.discount_percent) || 0;
 
     const purchaseData = {
       product_id: purchaseFormData.product_id || (viewingProduct?.id || null),
       supplier_id: purchaseFormData.supplier_id || null,
       quantity,
       unit_cost: unitCost,
-      total_cost: quantity * unitCost,
+      discount_percent: roundFinanceMoney(discountPercent),
+      total_cost: computePurchaseTotalCost(quantity, unitCost, discountPercent),
       purchase_date: purchaseFormData.purchase_date,
       notes: purchaseFormData.notes,
       ...purchaseCreditFields(purchaseFormData.is_on_credit),
@@ -364,6 +371,7 @@ export function ProductsScreen() {
       supplier_id: '',
       quantity: '',
       unit_cost: '',
+      discount_percent: getCogsDefaultDiscountPercent(),
       purchase_date: new Date().toISOString().split('T')[0],
       is_on_credit: true,
       notes: ''
@@ -421,6 +429,7 @@ export function ProductsScreen() {
       supplier_id: purchase.supplier_id || '',
       quantity: purchase.quantity.toString(),
       unit_cost: purchase.unit_cost.toString(),
+      discount_percent: purchase.discount_percent ?? getCogsDefaultDiscountPercent(),
       purchase_date: purchase.purchase_date.split('T')[0],
       is_on_credit: isOnCreditFromPurchase(purchase),
       notes: purchase.notes
@@ -859,7 +868,7 @@ export function ProductsScreen() {
                   </label>
                   <input
                     type="number"
-                    step="0.01"
+                    step={FINANCE_AMOUNT_STEP}
                     min="0"
                     value={purchaseFormData.quantity}
                     onChange={(e) => setPurchaseFormData({ ...purchaseFormData, quantity: e.target.value })}
@@ -874,11 +883,31 @@ export function ProductsScreen() {
                   </label>
                   <input
                     type="number"
-                    step="0.01"
+                    step={FINANCE_AMOUNT_STEP}
                     min="0"
                     value={purchaseFormData.unit_cost}
                     onChange={(e) => setPurchaseFormData({ ...purchaseFormData, unit_cost: e.target.value })}
                     required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    {t.purchaseDiscountPercent}
+                  </label>
+                  <input
+                    type="number"
+                    step={FINANCE_AMOUNT_STEP}
+                    min="0"
+                    max="100"
+                    value={purchaseFormData.discount_percent}
+                    onChange={(e) =>
+                      setPurchaseFormData({
+                        ...purchaseFormData,
+                        discount_percent: parseFloat(e.target.value) || 0,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
@@ -941,7 +970,14 @@ export function ProductsScreen() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-300">Total Cost:</span>
                     <span className="text-xl font-bold text-gray-900 dark:text-white">
-                      ₼{((Number(purchaseFormData.quantity) || 0) * (Number(purchaseFormData.unit_cost) || 0)).toFixed(2)}
+                      ₼
+                      {formatFinanceMoney(
+                        computePurchaseTotalCost(
+                          Number(purchaseFormData.quantity) || 0,
+                          Number(purchaseFormData.unit_cost) || 0,
+                          purchaseFormData.discount_percent,
+                        ),
+                      )}
                     </span>
                   </div>
                 </div>

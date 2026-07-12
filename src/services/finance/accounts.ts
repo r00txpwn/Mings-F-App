@@ -6,6 +6,7 @@
  * withdrawals, deposits, and routed operational expenses.
  */
 
+import { roundFinanceMoney } from '../../lib/money';
 import type { FinanceAccountKey } from '../../lib/supabase';
 
 export interface AccountEntry {
@@ -50,7 +51,7 @@ export interface AccountBalances {
 export type AccountBalancesByKey = Record<FinanceAccountKey, number>;
 
 function roundMoney(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
+  return roundFinanceMoney(value);
 }
 
 function safe(n: number): number {
