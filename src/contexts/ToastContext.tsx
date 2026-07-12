@@ -123,24 +123,22 @@ function ToastViewport({
             key={toast.id}
             role="status"
             aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
-            className={`pointer-events-auto overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl shadow-black/40 backdrop-blur-xl transition-all duration-200 ${
+            className={`pointer-events-auto overflow-hidden rounded-xl border border-border bg-card shadow-lg transition-all duration-200 ${
               toast.leaving ? 'translate-y-2 opacity-0' : 'animate-scaleIn opacity-100'
             }`}
           >
             <div className={`h-1 bg-gradient-to-r ${tone.accent}`} />
             <div className="flex items-center justify-between gap-3 px-4 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone.iconWrap}`}
-                >
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone.iconWrap}`}>
                   {tone.icon}
                 </div>
-                <p className="min-w-0 text-sm font-medium text-white">{toast.message}</p>
+                <p className="min-w-0 text-sm font-medium text-foreground">{toast.message}</p>
               </div>
               <button
                 type="button"
                 onClick={() => onDismiss(toast.id)}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Dismiss"
               >
                 <X className="h-4 w-4" />

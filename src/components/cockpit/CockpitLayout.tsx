@@ -1,9 +1,14 @@
-import { useState, type ReactNode } from 'react';
-import { Menu } from 'lucide-react';
-import { useTheme } from '../../contexts/ThemeContext';
-import { MingsWordmark } from '../MingsWordmark';
+import type { ReactNode } from 'react';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/shadcn/sidebar';
+import { Separator } from '@/components/shadcn/separator';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { CockpitSidebar } from './CockpitSidebar';
-import type { CockpitScreen } from './cockpitNav';
+import {
+  hubForScreen,
+  navItemForScreen,
+  type CockpitScreen,
+} from './cockpitNav';
+import type { Translations } from '../../translations';
 
 interface CockpitLayoutProps {
   currentScreen: CockpitScreen;
@@ -14,6 +19,16 @@ interface CockpitLayoutProps {
   children: ReactNode;
 }
 
+function getScreenTitle(screen: CockpitScreen, t: Translations): string {
+  const navItem = navItemForScreen(screen);
+  if (navItem) return t[navItem.labelKey];
+
+  const hub = hubForScreen(screen);
+  if (hub) return t[hub.labelKey];
+
+  return screen;
+}
+
 export function CockpitLayout({
   currentScreen,
   onNavigate,
@@ -22,68 +37,30 @@ export function CockpitLayout({
   onSignOut,
   children,
 }: CockpitLayoutProps) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  const mainOffset = sidebarCollapsed ? 'lg:pl-[4.5rem]' : 'lg:pl-[17rem]';
+  const { t } = useLanguage();
+  const screenTitle = getScreenTitle(currentScreen, t);
 
   return (
-    <div
-      className={`cockpit-app min-h-screen font-sans transition-colors ${
-        isDark ? 'neon-shell text-slate-100' : 'cockpit-bg-light text-slate-900'
-      }`}
-    >
-      {isMobileMenuOpen ? (
-        <div
-          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-          aria-hidden
-        />
-      ) : null}
-
+    <SidebarProvider className="cockpit-app min-h-svh w-full">
       <CockpitSidebar
         currentScreen={currentScreen}
-        onNavigate={(screen) => {
-          onNavigate(screen);
-          setIsMobileMenuOpen(false);
-        }}
+        onNavigate={onNavigate}
         isAdminUser={isAdminUser}
         userEmail={userEmail}
         onSignOut={onSignOut}
-        collapsed={sidebarCollapsed}
-        onToggleCollapsed={() => setSidebarCollapsed((prev) => !prev)}
-        isMobileOpen={isMobileMenuOpen}
-        onMobileClose={() => setIsMobileMenuOpen(false)}
       />
-
-      <div className={`flex min-h-screen flex-1 flex-col transition-all duration-200 ${mainOffset}`}>
-        <header
-          className={`sticky top-0 z-30 border-b backdrop-blur-md lg:hidden ${
-            isDark ? 'border-slate-800 bg-slate-950/90' : 'border-slate-200 bg-white/90'
-          }`}
-        >
-          <div className="flex items-center justify-between px-4 py-3">
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="rounded-lg p-2 text-slate-600 dark:text-slate-300"
-              aria-label="Open menu"
-            >
-              <Menu className="h-6 w-6" />
-            </button>
-            <div className="flex min-w-0 max-w-[min(220px,60vw)] items-center justify-center">
-              <MingsWordmark className="h-8 w-auto max-w-[150px] object-contain" />
-            </div>
-            <div className="w-10" />
+      <SidebarInset className="min-h-svh bg-muted/40">
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/90 px-4 backdrop-blur-md">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-1 h-4" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-foreground">{screenTitle}</p>
           </div>
         </header>
-
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <div className="mx-auto max-w-[1600px]">{children}</div>
-        </main>
-      </div>
-    </div>
+        <div className="flex flex-1 flex-col p-4 md:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

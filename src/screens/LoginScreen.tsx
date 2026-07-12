@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Lock, Mail, AlertCircle } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Sparkles } from 'lucide-react';
 import { MingsWordmark } from '../components/MingsWordmark';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -10,6 +10,11 @@ import {
   getLockRemainingMs,
   registerLoginFailure,
 } from '../lib/loginRateLimit';
+import { Alert, AlertDescription } from '@/components/shadcn/alert';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/shadcn/input';
+import { Label } from '@/components/shadcn/label';
+import { Separator } from '@/components/shadcn/separator';
 
 export function LoginScreen() {
   const { signIn, signInWithGoogle } = useAuth();
@@ -21,8 +26,7 @@ export function LoginScreen() {
   const [lockRemainingMs, setLockRemainingMs] = useState(0);
 
   useEffect(() => {
-    const next = getLockRemainingMs(email);
-    setLockRemainingMs(next);
+    setLockRemainingMs(getLockRemainingMs(email));
   }, [email]);
 
   useEffect(() => {
@@ -30,9 +34,7 @@ export function LoginScreen() {
     const timer = window.setInterval(() => {
       const next = getLockRemainingMs(email);
       setLockRemainingMs(next);
-      if (next <= 0) {
-        window.clearInterval(timer);
-      }
+      if (next <= 0) window.clearInterval(timer);
     }, 1000);
     return () => window.clearInterval(timer);
   }, [email, lockRemainingMs]);
@@ -65,11 +67,10 @@ export function LoginScreen() {
     }
 
     setLoading(true);
+    const { error: signInError } = await signIn(nextEmail, nextPassword);
 
-    const { error } = await signIn(nextEmail, nextPassword);
-
-    if (error) {
-      const message = error.message || 'Sign in failed';
+    if (signInError) {
+      const message = signInError.message || 'Sign in failed';
       const normalized = message.toLowerCase();
       const isCredentialFailure =
         normalized.includes('invalid login credentials') ||
@@ -95,115 +96,110 @@ export function LoginScreen() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-12">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(20,184,166,0.18),transparent)]" />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.35]"
-        style={{
-          backgroundImage: `linear-gradient(to right, rgba(51, 65, 85, 0.4) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(51, 65, 85, 0.4) 1px, transparent 1px)`,
-          backgroundSize: '32px 32px',
-        }}
-      />
+    <div className="cockpit-app grid min-h-screen lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+      <section className="relative hidden overflow-hidden bg-gradient-to-br from-primary via-amber-600 to-amber-900 px-10 py-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 left-8 h-56 w-56 rounded-full bg-black/15 blur-3xl" />
 
-      <div className="relative w-full max-w-md">
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-cockpit-glow backdrop-blur-xl">
-          <div className="border-b border-white/5 bg-gradient-to-r from-cockpit-950/50 to-transparent px-8 py-8">
-            <div className="mb-6 flex justify-center">
-              <div className="rounded-2xl bg-black px-6 py-4 shadow-lg shadow-black/50 ring-1 ring-white/10">
-                <MingsWordmark className="mx-auto h-12 w-auto max-w-[220px] object-contain object-center" />
-              </div>
-            </div>
-            <p className="text-center text-[10px] font-bold uppercase tracking-[0.25em] text-cockpit-400">
-              {t.signInToAccount}
-            </p>
-            <h1 className="mt-2 text-center text-2xl font-bold tracking-tight text-white">{t.welcomeBack}</h1>
-            <p className="mt-2 text-center text-sm text-slate-400">{t.signInToAccount}</p>
-          </div>
-
-          <div className="px-8 pb-8 pt-8">
-            {error && (
-              <div className="mb-6 flex items-start gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-rose-100">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-400" />
-                <p className="text-sm">{error}</p>
-              </div>
-            )}
-
-            {lockRemainingMs > 0 && !error && (
-              <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-amber-100">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
-                <p className="text-sm">
-                  Too many failed attempts. Try again in {formatLockout(lockRemainingMs)}.
-                </p>
-              </div>
-            )}
-
-            <div className="mb-6 space-y-4">
-              <GoogleSignInButton
-                onClick={() => signInWithGoogle()}
-                label={t.orderSignInGoogle}
-                redirectingLabel={t.orderSignInGoogleRedirecting}
-                onError={(msg) => setError(msg)}
-              />
-              <div className="relative flex items-center">
-                <div className="flex-1 border-t border-white/10" />
-                <span className="px-3 text-[10px] uppercase tracking-[0.2em] text-slate-500">
-                  {t.emailAddress}
-                </span>
-                <div className="flex-1 border-t border-white/10" />
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  {t.emailAddress}
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="email"
-                    name="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t.emailPlaceholder}
-                    autoComplete="email"
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/50 py-3 pl-10 pr-4 font-mono text-sm text-white placeholder:text-slate-600 focus:border-cockpit-500/50 focus:outline-none focus:ring-2 focus:ring-cockpit-500/20"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  {t.password}
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="password"
-                    name="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/50 py-3 pl-10 pr-4 font-mono text-sm text-white placeholder:text-slate-600 focus:border-cockpit-500/50 focus:outline-none focus:ring-2 focus:ring-cockpit-500/20"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || lockRemainingMs > 0}
-                className="w-full rounded-xl bg-gradient-to-r from-cockpit-600 to-cockpit-700 py-3.5 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-cockpit-500/25 transition hover:from-cockpit-500 hover:to-cockpit-600 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loading ? t.pleaseWait : lockRemainingMs > 0 ? 'Temporarily locked' : t.signIn}
-              </button>
-            </form>
-          </div>
+        <div className="relative">
+          <MingsWordmark className="h-11 w-auto max-w-[240px] object-contain brightness-0 invert" />
         </div>
 
-        <p className="mt-8 text-center text-xs text-slate-500">{t.businessManagement}</p>
-      </div>
+        <div className="relative max-w-md space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            Spec Ops
+          </div>
+          <h1 className="text-4xl font-bold leading-tight tracking-tight">{t.welcomeBack}</h1>
+          <p className="text-base text-white/85">{t.businessManagement}</p>
+        </div>
+
+        <p className="relative text-xs text-white/60">{t.signInToAccount}</p>
+      </section>
+
+      <section className="flex min-h-screen flex-col justify-center bg-background px-6 py-10 sm:px-10 lg:px-14">
+        <div className="mx-auto w-full max-w-md">
+          <div className="mb-8 lg:hidden">
+            <MingsWordmark className="mx-auto h-10 w-auto max-w-[200px] object-contain" />
+          </div>
+
+          <div className="mb-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{t.signInToAccount}</p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground">{t.welcomeBack}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{t.businessManagement}</p>
+          </div>
+
+          {error ? (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {lockRemainingMs > 0 && !error ? (
+            <Alert className="mb-6 border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Too many failed attempts. Try again in {formatLockout(lockRemainingMs)}.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          <div className="mb-6 space-y-4">
+            <GoogleSignInButton
+              onClick={() => signInWithGoogle()}
+              label={t.orderSignInGoogle}
+              redirectingLabel={t.orderSignInGoogleRedirecting}
+              onError={(msg) => setError(msg)}
+            />
+            <div className="relative flex items-center gap-3">
+              <Separator className="flex-1" />
+              <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{t.emailAddress}</span>
+              <Separator className="flex-1" />
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="login-email">{t.emailAddress}</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="login-email"
+                  type="email"
+                  name="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t.emailPlaceholder}
+                  autoComplete="email"
+                  className="h-11 pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="login-password">{t.password}</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="login-password"
+                  type="password"
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="h-11 pl-10"
+                />
+              </div>
+            </div>
+
+            <Button type="submit" className="h-11 w-full" loading={loading} disabled={lockRemainingMs > 0}>
+              {loading ? t.pleaseWait : lockRemainingMs > 0 ? 'Temporarily locked' : t.signIn}
+            </Button>
+          </form>
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react';
+import { Card as ShadCard } from '@/components/shadcn/card';
+import { cn } from '@/lib/utils';
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
@@ -7,7 +9,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const paddingClass = {
-  none: '',
+  none: 'p-0',
   sm: 'p-3',
   md: 'p-4',
   lg: 'p-5 sm:p-6',
@@ -20,10 +22,16 @@ export function Card({
   className = '',
   ...props
 }: CardProps) {
-  const base = variant === 'inset' ? 'cockpit-inset' : 'neon-card';
   return (
-    <div className={`${base} ${paddingClass[padding]} ${className}`.trim()} {...props}>
+    <ShadCard
+      className={cn(
+        variant === 'inset' && 'bg-muted/40',
+        paddingClass[padding],
+        className,
+      )}
+      {...props}
+    >
       {children}
-    </div>
+    </ShadCard>
   );
 }

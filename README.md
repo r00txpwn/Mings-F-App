@@ -10,7 +10,7 @@ Mings-F-App
 npm run deploy:local
 ```
 
-Serves **`dist-staff/`** on **http://127.0.0.1:4175/** — cockpit at **`/spec-ops`**. Stops any process already on port **4175** first (`--strictPort`; no fallback port).
+Serves **`dist-staff/`** on **http://127.0.0.1:4175/** — cockpit at **`/spec-ops`**. Staff UI uses **shadcn/ui** (amber accent on zinc surfaces); primitives live in `src/components/shadcn/`, with stable adapters in `src/components/ui/`.
 
 **Staff bundle on the LAN (access from other devices):**
 

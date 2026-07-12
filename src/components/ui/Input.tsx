@@ -1,4 +1,7 @@
 import type { InputHTMLAttributes } from 'react';
+import { Input as ShadInput } from '@/components/shadcn/input';
+import { Label } from '@/components/shadcn/label';
+import { cn } from '@/lib/utils';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -7,16 +10,15 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export function Input({ label, large = false, className = '', id, ...props }: InputProps) {
   const inputId = id ?? (label ? label.replace(/\s+/g, '-').toLowerCase() : undefined);
-  const inputClass = large ? 'cockpit-input-lg' : 'cockpit-input';
 
   return (
-    <div>
-      {label ? (
-        <label htmlFor={inputId} className="cockpit-label">
-          {label}
-        </label>
-      ) : null}
-      <input id={inputId} className={`${inputClass} ${className}`.trim()} {...props} />
+    <div className="space-y-2">
+      {label ? <Label htmlFor={inputId}>{label}</Label> : null}
+      <ShadInput
+        id={inputId}
+        className={cn(large && 'h-11 text-base font-mono tabular-nums', className)}
+        {...props}
+      />
     </div>
   );
 }

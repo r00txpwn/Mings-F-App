@@ -1,5 +1,15 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { Modal } from './Modal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/shadcn/alert-dialog';
+import { cn } from '@/lib/utils';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -32,52 +42,47 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const locked = confirmLoading || disableClose;
 
-  const handleCancel = () => {
-    if (locked) return;
-    onCancel();
-  };
-
-  const confirmButtonClass =
-    tone === 'danger'
-      ? 'inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60'
-      : 'cockpit-btn-primary disabled:cursor-not-allowed disabled:opacity-60';
-
   return (
-    <Modal
+    <AlertDialog
       open={open}
-      onClose={handleCancel}
-      titleId="confirm-dialog-title"
-      widthClassName="max-w-md"
-      allowClose={!locked}
+      onOpenChange={(next) => {
+        if (!next && !locked) onCancel();
+      }}
     >
-      <div className="space-y-4">
-        <div className="flex items-start gap-3">
-          <div
-            className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-              tone === 'danger'
-                ? 'bg-rose-500/15 text-rose-500 dark:text-rose-300'
-                : 'bg-cockpit-500/15 text-cockpit-600 dark:text-cockpit-300'
-            }`}
-          >
-            <AlertTriangle className="h-4 w-4" />
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                'mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                tone === 'danger' ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary',
+              )}
+            >
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1 text-left">
+              <AlertDialogTitle>{title}</AlertDialogTitle>
+              <AlertDialogDescription className="mt-1">{message}</AlertDialogDescription>
+              {errorMessage ? (
+                <p className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {errorMessage}
+                </p>
+              ) : null}
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <h3 id="confirm-dialog-title" className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              {title}
-            </h3>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{message}</p>
-            {errorMessage ? (
-              <p className="mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-700 dark:text-rose-200">
-                {errorMessage}
-              </p>
-            ) : null}
-          </div>
-        </div>
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={handleCancel} disabled={locked} className="cockpit-btn-ghost disabled:cursor-not-allowed disabled:opacity-50">
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={locked} onClick={onCancel}>
             {cancelLabel}
-          </button>
-          <button type="button" onClick={onConfirm} disabled={confirmLoading} className={confirmButtonClass}>
+          </AlertDialogCancel>
+          <AlertDialogAction
+            disabled={confirmLoading}
+            onClick={(e) => {
+              e.preventDefault();
+              onConfirm();
+            }}
+            className={cn(tone === 'danger' && 'bg-destructive text-destructive-foreground hover:bg-destructive/90')}
+          >
             {confirmLoading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -86,9 +91,9 @@ export function ConfirmDialog({
             ) : (
               confirmLabel
             )}
-          </button>
-        </div>
-      </div>
-    </Modal>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

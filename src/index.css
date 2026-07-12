@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&display=swap');
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @tailwind base;
 @tailwind components;
@@ -226,24 +228,23 @@
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
+    @apply border-border;
   }
 
   html {
     scroll-behavior: smooth;
+    @apply font-sans;
   }
 
   body {
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    @apply bg-background text-foreground;
   }
 
   .dark body {
     color-scheme: dark;
-  }
-
-  body {
-    @apply bg-slate-950 text-slate-100;
   }
 
   /* Bold data cockpit: subtle grid + radial wash in dark mode */
@@ -292,20 +293,92 @@
     outline: 2px solid rgba(251, 191, 36, 0.95);
     outline-offset: 2px;
   }
+  .theme {
+    --font-heading: "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  }
+  :root {
+    --background: oklch(0.985 0.002 286);
+    --foreground: oklch(0.21 0.006 286);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.21 0.006 286);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.21 0.006 286);
+    --primary: oklch(0.68 0.19 55);
+    --primary-foreground: oklch(0.99 0.01 95);
+    --secondary: oklch(0.96 0.006 286);
+    --secondary-foreground: oklch(0.21 0.006 286);
+    --muted: oklch(0.96 0.006 286);
+    --muted-foreground: oklch(0.52 0.015 286);
+    --accent: oklch(0.96 0.03 85);
+    --accent-foreground: oklch(0.35 0.08 55);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.91 0.006 286);
+    --input: oklch(0.91 0.006 286);
+    --ring: oklch(0.68 0.19 55);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.99 0.002 286);
+    --sidebar-foreground: oklch(0.21 0.006 286);
+    --sidebar-primary: oklch(0.68 0.19 55);
+    --sidebar-primary-foreground: oklch(0.99 0.01 95);
+    --sidebar-accent: oklch(0.96 0.03 85);
+    --sidebar-accent-foreground: oklch(0.35 0.08 55);
+    --sidebar-border: oklch(0.91 0.006 286);
+    --sidebar-ring: oklch(0.68 0.19 55);
+  }
+  .dark {
+    --background: oklch(0.16 0.006 286);
+    --foreground: oklch(0.98 0.002 286);
+    --card: oklch(0.21 0.008 286);
+    --card-foreground: oklch(0.98 0.002 286);
+    --popover: oklch(0.21 0.008 286);
+    --popover-foreground: oklch(0.98 0.002 286);
+    --primary: oklch(0.75 0.18 70);
+    --primary-foreground: oklch(0.2 0.02 55);
+    --secondary: oklch(0.27 0.008 286);
+    --secondary-foreground: oklch(0.98 0.002 286);
+    --muted: oklch(0.27 0.008 286);
+    --muted-foreground: oklch(0.68 0.015 286);
+    --accent: oklch(0.27 0.03 70);
+    --accent-foreground: oklch(0.92 0.06 85);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 12%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.75 0.18 70);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.19 0.008 286);
+    --sidebar-foreground: oklch(0.98 0.002 286);
+    --sidebar-primary: oklch(0.75 0.18 70);
+    --sidebar-primary-foreground: oklch(0.2 0.02 55);
+    --sidebar-accent: oklch(0.27 0.03 70);
+    --sidebar-accent-foreground: oklch(0.92 0.06 85);
+    --sidebar-border: oklch(1 0 0 / 12%);
+    --sidebar-ring: oklch(0.75 0.18 70);
+  }
 }
 
 /* Shared “bold data cockpit” surfaces — use with dark: variants via parent .dark */
 @layer components {
   .cockpit-panel {
-    @apply rounded-xl border border-slate-200/90 bg-white shadow-none dark:border-slate-700/80 dark:bg-slate-900;
+    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm;
   }
 
   .cockpit-panel-solid {
-    @apply rounded-xl border border-slate-200/90 bg-white shadow-none dark:border-slate-700/80 dark:bg-slate-900;
+    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm;
   }
 
   .cockpit-inset {
-    @apply rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/80;
+    @apply rounded-xl border border-border;
+    background-color: color-mix(in oklch, var(--muted) 50%, transparent);
   }
 
   .cockpit-label {
@@ -313,15 +386,18 @@
   }
 
   .cockpit-input {
-    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:border-cockpit-500 focus:outline-none focus:ring-2 focus:ring-cockpit-500/20 dark:border-slate-600 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500;
+    @apply w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2;
+    --tw-ring-color: color-mix(in oklch, var(--ring) 30%, transparent);
   }
 
   .cockpit-input-lg {
-    @apply w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base font-mono tabular-nums text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-cockpit-500 focus:outline-none focus:ring-2 focus:ring-cockpit-500/20 dark:border-slate-600 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500;
+    @apply w-full rounded-lg border border-input bg-background px-4 py-3 text-base font-mono tabular-nums text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2;
+    --tw-ring-color: color-mix(in oklch, var(--ring) 30%, transparent);
   }
 
   .cockpit-select {
-    @apply w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-10 text-sm text-slate-900 shadow-sm transition-colors focus:border-cockpit-500 focus:outline-none focus:ring-2 focus:ring-cockpit-500/20 dark:border-slate-600 dark:bg-slate-950 dark:text-white;
+    @apply w-full appearance-none rounded-lg border border-input bg-background px-3 py-2.5 pr-10 text-sm text-foreground shadow-sm transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2;
+    --tw-ring-color: color-mix(in oklch, var(--ring) 30%, transparent);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364758B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
@@ -329,7 +405,8 @@
   }
 
   .cockpit-select-compact {
-    @apply appearance-none rounded-lg border border-slate-300 bg-white px-2 py-1.5 pr-8 text-xs font-medium text-slate-800 transition-colors focus:border-cockpit-500 focus:outline-none focus:ring-2 focus:ring-cockpit-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100;
+    @apply appearance-none rounded-lg border border-input bg-background px-2 py-1.5 pr-8 text-xs font-medium text-foreground transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2;
+    --tw-ring-color: color-mix(in oklch, var(--ring) 30%, transparent);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364758B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
@@ -349,12 +426,7 @@
   }
 
   .neon-shell {
-    @apply min-h-screen bg-slate-950 text-slate-100;
-    background-image: radial-gradient(
-      ellipse 80% 50% at 50% -20%,
-      rgba(251, 191, 36, 0.04),
-      transparent 55%
-    );
+    @apply min-h-screen bg-background text-foreground;
   }
 
   .neon-topbar {
@@ -362,7 +434,7 @@
   }
 
   .neon-card {
-    @apply rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900;
+    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm;
   }
 
   .neon-badge {
@@ -370,11 +442,15 @@
   }
 
   .neon-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-cockpit-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-cockpit-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-cockpit-500 dark:hover:bg-cockpit-400;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .neon-btn-primary:hover:not(:disabled) {
+    filter: brightness(0.95);
   }
 
   .neon-btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   .cockpit-eyebrow {
@@ -386,19 +462,24 @@
   }
 
   .cockpit-thead {
-    @apply border-b border-slate-200 bg-slate-50/90 dark:border-white/10 dark:bg-slate-950/50;
+    @apply border-b border-border;
+    background-color: color-mix(in oklch, var(--muted) 50%, transparent);
   }
 
   .cockpit-th {
-    @apply px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400;
+    @apply px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground;
   }
 
   .cockpit-td {
-    @apply px-4 py-3 text-sm text-slate-700 dark:text-slate-200;
+    @apply px-4 py-3 text-sm text-foreground;
   }
 
   .cockpit-tr {
-    @apply border-b border-slate-100 transition-colors hover:bg-slate-50/80 dark:border-white/5 dark:hover:bg-white/[0.03];
+    @apply border-b border-border transition-colors;
+  }
+
+  .cockpit-tr:hover {
+    background-color: color-mix(in oklch, var(--muted) 40%, transparent);
   }
 
   .cockpit-btn-primary {
@@ -410,7 +491,7 @@
   }
 
   .cockpit-btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground;
   }
 
   .cockpit-alert-error {
@@ -422,11 +503,11 @@
   }
 
   .cockpit-tab {
-    @apply border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-slate-500 transition-colors hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200;
+    @apply border-b-2 border-transparent px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground;
   }
 
   .cockpit-tab-active {
-    @apply border-cockpit-500 text-slate-900 dark:border-cockpit-400 dark:text-white;
+    @apply border-primary text-foreground;
   }
 
   /* ============================================================

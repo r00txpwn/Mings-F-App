@@ -35,9 +35,9 @@ export function FilterBar({
   const showCustomInputs = selectedPreset === 'custom' && onStartDateChange && onEndDateChange;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
       <div className="mb-1 flex items-center gap-2 px-1">
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-cockpit-600 dark:text-cockpit-400">
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
           {t.period}
         </span>
       </div>

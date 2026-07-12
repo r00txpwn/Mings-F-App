@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Activity } from 'lucide-react';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { TooltipProvider } from '@/components/shadcn/tooltip';
+import { Skeleton } from '@/components/shadcn/skeleton';
 import { HomeScreen } from './screens/HomeScreen';
 import { SalesScreen } from './screens/SalesScreen';
 import { MoneyScreen } from './screens/MoneyScreen';
@@ -38,10 +40,8 @@ import {
 
 function AppContent() {
   const { t } = useLanguage();
-  const { theme } = useTheme();
   const { user, loading, signOut, isStaff, isAdminUser, staffRole } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<CockpitScreen>(() => readCockpitScreenFromUrl());
-  const isDark = theme === 'dark';
 
   useEffect(() => {
     const onPopState = () => {
@@ -67,20 +67,11 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div
-        className={`cockpit-app min-h-screen flex items-center justify-center font-sans ${
-          isDark ? 'neon-shell text-slate-100' : 'cockpit-bg-light text-slate-900'
-        }`}
-      >
-        <div className="text-center">
-          <div className="relative mx-auto mb-6 h-14 w-14">
-            <div className="absolute inset-0 rounded-full border-2 border-cockpit-500/30" />
-            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-cockpit-400 border-r-cockpit-500/50" />
-            <Activity className="absolute inset-0 m-auto h-6 w-6 text-cockpit-400" />
-          </div>
-          <p className="text-sm font-medium tracking-wide text-slate-500 dark:text-slate-400">
-            {t.pleaseWait}
-          </p>
+      <div className="cockpit-app flex min-h-screen items-center justify-center bg-background">
+        <div className="w-full max-w-sm space-y-4 px-6 text-center">
+          <Activity className="mx-auto h-8 w-8 animate-pulse text-primary" />
+          <Skeleton className="mx-auto h-4 w-40" />
+          <p className="text-sm text-muted-foreground">{t.pleaseWait}</p>
         </div>
       </div>
     );
@@ -166,9 +157,11 @@ function App() {
     <ThemeProvider>
       <LanguageProvider>
         <AuthProvider>
-          <ToastProvider>
-            <AppContent />
-          </ToastProvider>
+          <TooltipProvider>
+            <ToastProvider>
+              <AppContent />
+            </ToastProvider>
+          </TooltipProvider>
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>

@@ -121,6 +121,40 @@ export interface Translations {
   revenueShare: string;
   dashboardOrdersHint: string;
   dashboardAovHint: string;
+  dashboardTabOverview: string;
+  dashboardTabKitchen: string;
+  dashboardTabFinance: string;
+  dashboardTabCustomers: string;
+  dashboardHeatmapHint: string;
+  dashboardEmptyHint: string;
+  dashboardEmptyKitchenOps: string;
+  dashboardEmptyCustomers: string;
+  dashboardCustomersHint: string;
+  dashboardSlaHint: string;
+  dashboardBusiestHourHint: string;
+  spendBySupplier: string;
+  cogsByCategory: string;
+  opexByCategory: string;
+  purchasePaymentSplit: string;
+  creditPurchases: string;
+  cashPurchases: string;
+  commissionByChannel: string;
+  payrollTrend: string;
+  weekdayDemand: string;
+  demandHeatmap: string;
+  aovDistribution: string;
+  channelMix: string;
+  discountTipTrend: string;
+  payrollAdvance: string;
+  discountsLabel: string;
+  tipsLabel: string;
+  dashboardWeekdayMon: string;
+  dashboardWeekdayTue: string;
+  dashboardWeekdayWed: string;
+  dashboardWeekdayThu: string;
+  dashboardWeekdayFri: string;
+  dashboardWeekdaySat: string;
+  dashboardWeekdaySun: string;
   dataConsistencyWarning: string;
   pos: string;
 
@@ -1669,6 +1703,40 @@ export const translations: Record<Language, Translations> = {
     revenueShare: 'share',
     dashboardOrdersHint: 'Distinct orders in period',
     dashboardAovHint: 'Net revenue per order',
+    dashboardTabOverview: 'Overview',
+    dashboardTabKitchen: 'Kitchen ops',
+    dashboardTabFinance: 'Finance',
+    dashboardTabCustomers: 'Customers',
+    dashboardHeatmapHint: 'Darker = more orders. Based on sale entry time until digital orders dominate.',
+    dashboardEmptyHint: 'Charts fill automatically as online, kiosk, and POS orders flow in.',
+    dashboardEmptyKitchenOps: 'Prep time and SLA charts need digital orders (online, kiosk, POS).',
+    dashboardEmptyCustomers: 'Customer analytics need logged-in online orders.',
+    dashboardCustomersHint: 'New vs repeat, order frequency, and delivery zones will appear here.',
+    dashboardSlaHint: 'Orders ready on or before estimate',
+    dashboardBusiestHourHint: 'Peak hour by order count',
+    spendBySupplier: 'Spend by supplier',
+    cogsByCategory: 'COGS by category',
+    opexByCategory: 'OpEx by category',
+    purchasePaymentSplit: 'Purchase payment split',
+    creditPurchases: 'On credit',
+    cashPurchases: 'Cash paid',
+    commissionByChannel: 'Platform commission by channel',
+    payrollTrend: 'Payroll trend',
+    weekdayDemand: 'Demand by weekday',
+    demandHeatmap: 'Demand heatmap (hour × day)',
+    aovDistribution: 'Order value distribution',
+    channelMix: 'Revenue by channel',
+    discountTipTrend: 'Discounts & tips',
+    payrollAdvance: 'Advances',
+    discountsLabel: 'Discounts',
+    tipsLabel: 'Tips',
+    dashboardWeekdayMon: 'Mon',
+    dashboardWeekdayTue: 'Tue',
+    dashboardWeekdayWed: 'Wed',
+    dashboardWeekdayThu: 'Thu',
+    dashboardWeekdayFri: 'Fri',
+    dashboardWeekdaySat: 'Sat',
+    dashboardWeekdaySun: 'Sun',
     dataConsistencyWarning: 'Detected {count} consistency issue(s) in aggregated KPI data.',
     pos: 'POS',
 
@@ -3186,6 +3254,40 @@ export const translations: Record<Language, Translations> = {
     revenueShare: 'pay',
     dashboardOrdersHint: 'Period üzrə unikal sifarişlər',
     dashboardAovHint: 'Sifariş başına xalis gəlir',
+    dashboardTabOverview: 'İcmal',
+    dashboardTabKitchen: 'Mətbəx',
+    dashboardTabFinance: 'Maliyyə',
+    dashboardTabCustomers: 'Müştərilər',
+    dashboardHeatmapHint: 'Tünd rəng = daha çox sifariş. Rəqəmsal sifarişlər artana qədər satış qeyd vaxtına əsaslanır.',
+    dashboardEmptyHint: 'Onlayn, kiosk və POS sifarişləri gəldikcə qrafiklər avtomatik dolacaq.',
+    dashboardEmptyKitchenOps: 'Hazırlıq vaxtı və SLA qrafikləri rəqəmsal sifarişlər tələb edir (onlayn, kiosk, POS).',
+    dashboardEmptyCustomers: 'Müştəri analitikası daxil olmuş onlayn sifarişlər tələb edir.',
+    dashboardCustomersHint: 'Yeni/təkrar, sifariş tezliyi və çatdırılma zonaları burada görünəcək.',
+    dashboardSlaHint: 'Təxminə vaxtında və ya əvvəl hazır olan sifarişlər',
+    dashboardBusiestHourHint: 'Sifariş sayına görə pik saat',
+    spendBySupplier: 'Təchizatçıya xərclər',
+    cogsByCategory: 'COGS kateqoriyaya görə',
+    opexByCategory: 'OpEx kateqoriyaya görə',
+    purchasePaymentSplit: 'Alış ödəniş bölgüsü',
+    creditPurchases: 'Kreditlə',
+    cashPurchases: 'Nağd ödənilib',
+    commissionByChannel: 'Kanala görə platforma komissiyası',
+    payrollTrend: 'Maaş trendi',
+    weekdayDemand: 'Həftə gününə görə tələb',
+    demandHeatmap: 'Tələb xəritəsi (saat × gün)',
+    aovDistribution: 'Sifariş dəyəri paylanması',
+    channelMix: 'Kanala görə gəlir',
+    discountTipTrend: 'Endirimlər və çaypulu',
+    payrollAdvance: 'Avanslar',
+    discountsLabel: 'Endirimlər',
+    tipsLabel: 'Çaypulu',
+    dashboardWeekdayMon: 'B.e.',
+    dashboardWeekdayTue: 'Ç.a.',
+    dashboardWeekdayWed: 'Ç.',
+    dashboardWeekdayThu: 'C.a.',
+    dashboardWeekdayFri: 'C.',
+    dashboardWeekdaySat: 'Ş.',
+    dashboardWeekdaySun: 'B.',
     dataConsistencyWarning: 'Agregat KPI məlumatında {count} uyğunsuzluq aşkarlandı.',
     pos: 'POS',
 
@@ -4706,6 +4808,40 @@ export const translations: Record<Language, Translations> = {
     revenueShare: 'доля',
     dashboardOrdersHint: 'Уникальные заказы за период',
     dashboardAovHint: 'Чистая выручка на заказ',
+    dashboardTabOverview: 'Обзор',
+    dashboardTabKitchen: 'Кухня',
+    dashboardTabFinance: 'Финансы',
+    dashboardTabCustomers: 'Клиенты',
+    dashboardHeatmapHint: 'Темнее = больше заказов. По времени записи продажи, пока не доминируют цифровые заказы.',
+    dashboardEmptyHint: 'Графики заполнятся автоматически по мере поступления онлайн, киоск и POS заказов.',
+    dashboardEmptyKitchenOps: 'Графики времени приготовления и SLA требуют цифровых заказов (онлайн, киоск, POS).',
+    dashboardEmptyCustomers: 'Аналитика клиентов требует авторизованных онлайн-заказов.',
+    dashboardCustomersHint: 'Новые/повторные, частота заказов и зоны доставки появятся здесь.',
+    dashboardSlaHint: 'Заказы готовы в срок или раньше',
+    dashboardBusiestHourHint: 'Пиковый час по количеству заказов',
+    spendBySupplier: 'Расходы по поставщикам',
+    cogsByCategory: 'COGS по категориям',
+    opexByCategory: 'OpEx по категориям',
+    purchasePaymentSplit: 'Разбивка оплат закупок',
+    creditPurchases: 'В кредит',
+    cashPurchases: 'Наличные',
+    commissionByChannel: 'Комиссия платформы по каналам',
+    payrollTrend: 'Динамика зарплат',
+    weekdayDemand: 'Спрос по дням недели',
+    demandHeatmap: 'Тепловая карта спроса (час × день)',
+    aovDistribution: 'Распределение суммы заказа',
+    channelMix: 'Выручка по каналам',
+    discountTipTrend: 'Скидки и чаевые',
+    payrollAdvance: 'Авансы',
+    discountsLabel: 'Скидки',
+    tipsLabel: 'Чаевые',
+    dashboardWeekdayMon: 'Пн',
+    dashboardWeekdayTue: 'Вт',
+    dashboardWeekdayWed: 'Ср',
+    dashboardWeekdayThu: 'Чт',
+    dashboardWeekdayFri: 'Пт',
+    dashboardWeekdaySat: 'Сб',
+    dashboardWeekdaySun: 'Вс',
     dataConsistencyWarning: 'Обнаружено {count} несоответствий в агрегированных KPI.',
     pos: 'POS',
 
