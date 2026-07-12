@@ -20,6 +20,11 @@ export default defineConfig(({ mode, command }) => {
   const prodInput = path.resolve(rootDir, isStorefront ? 'index-storefront.html' : 'index-staff.html');
 
   return {
+    resolve: {
+      alias: {
+        '@': path.resolve(rootDir, 'src'),
+      },
+    },
     plugins: [react()],
     define: {
       'import.meta.env.VITE_BUILD_TARGET': JSON.stringify(buildTarget),

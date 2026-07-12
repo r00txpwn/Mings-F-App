@@ -255,3 +255,65 @@ export interface DashboardOperationalData {
   topProducts: TopProductItem[];
   hourlyDemand: HourlyDemandPoint[];
 }
+
+export interface RankedAmountItem {
+  label: string;
+  value: number;
+  color?: string;
+}
+
+export interface WeekdayDemandPoint {
+  /** 0 = Monday … 6 = Sunday */
+  weekday: number;
+  orderCount: number;
+  revenue: number;
+}
+
+export interface HeatmapDemandCell {
+  weekday: number;
+  hour: number;
+  orderCount: number;
+}
+
+export interface PurchasePaymentSplit {
+  creditAmount: number;
+  cashAmount: number;
+  cardAmount: number;
+  bankAmount: number;
+  otherAmount: number;
+}
+
+export interface PayrollTrendPoint {
+  bucket: string;
+  salary: number;
+  advance: number;
+  bonus: number;
+  partial: number;
+}
+
+export interface AovBucket {
+  label: string;
+  count: number;
+}
+
+export interface DiscountTipTrendPoint {
+  bucket: string;
+  discounts: number;
+  tips: number;
+}
+
+export interface DashboardGroupAData {
+  spendBySupplier: RankedAmountItem[];
+  cogsByCategory: RankedAmountItem[];
+  opexByCategory: RankedAmountItem[];
+  purchasePaymentSplit: PurchasePaymentSplit;
+  commissionByChannel: RankedAmountItem[];
+  payrollTrend: PayrollTrendPoint[];
+  weekdayDemand: WeekdayDemandPoint[];
+  demandHeatmap: HeatmapDemandCell[];
+  aovBuckets: AovBucket[];
+  channelMix: RankedAmountItem[];
+  discountTipTrend: DiscountTipTrendPoint[];
+}
+
+export type DashboardTabId = 'overview' | 'kitchen' | 'finance' | 'customers';

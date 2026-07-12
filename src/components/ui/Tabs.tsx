@@ -1,3 +1,10 @@
+import {
+  Tabs as ShadTabs,
+  TabsList,
+  TabsTrigger,
+} from '@/components/shadcn/tabs';
+import { cn } from '@/lib/utils';
+
 interface TabItem {
   id: string;
   label: string;
@@ -12,20 +19,18 @@ interface TabsProps {
 
 export function Tabs({ tabs, activeId, onChange, className = '' }: TabsProps) {
   return (
-    <div className={`flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-700 ${className}`.trim()}>
-      {tabs.map((tab) => {
-        const active = tab.id === activeId;
-        return (
-          <button
+    <ShadTabs value={activeId} onValueChange={onChange} className={cn(className)}>
+      <TabsList variant="line" className="h-auto w-full justify-start rounded-none border-b bg-transparent p-0">
+        {tabs.map((tab) => (
+          <TabsTrigger
             key={tab.id}
-            type="button"
-            onClick={() => onChange(tab.id)}
-            className={active ? 'cockpit-tab cockpit-tab-active' : 'cockpit-tab'}
+            value={tab.id}
+            className="flex-none rounded-none px-4 py-3"
           >
             {tab.label}
-          </button>
-        );
-      })}
-    </div>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </ShadTabs>
   );
 }

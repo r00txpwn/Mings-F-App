@@ -14,7 +14,7 @@ Mings Financial Automation is a business management system for small to medium-s
 |-------------|------------|
 | Framework   | React 18 + TypeScript |
 | Build tool  | Vite 5 |
-| Styling     | Tailwind CSS 3 (`cockpit-*` / `neon-*` Clean Ops tokens, light-first staff UI) |
+| Styling     | Tailwind CSS 3 + [shadcn/ui](https://ui.shadcn.com) for `/spec-ops` (amber primary, zinc surfaces); `cockpit-*` tokens shared with legacy class names |
 | Icons       | Lucide React |
 | Drag & drop | @dnd-kit/core (Kiosk orders Kanban) |
 | Backend     | Supabase (PostgreSQL + Auth + Realtime + Edge Functions) |
@@ -84,7 +84,7 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 ├── /src
 │   ├── main.tsx                  # Path-based entry (App vs Kiosk vs KDS)
 │   ├── App.tsx                   # Auth gate + screen router (delegates shell to CockpitLayout)
-│   ├── index.css                 # Tailwind + cockpit utilities
+│   ├── index.css                 # Tailwind + shadcn CSS variables + cockpit utilities
 │   ├── translations.ts           # i18n (en, az, ru)
 │   ├── ConfigCheck.tsx           # Blocks app if Supabase env missing
 │   ├── ErrorBoundary.tsx
@@ -109,9 +109,10 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 │   │   └── types.ts
 │   │
 │   ├── /components
+│   │   ├── /shadcn               # shadcn/ui primitives (button, card, dialog, …) — staff cockpit only
 │   │   ├── /analytics            # KpiCard, FilterBar, ChartCard, InsightPanel
 │   │   ├── /cockpit              # CockpitLayout, CockpitSidebar, PageHeader, cockpitNav
-│   │   ├── /ui                   # Button, Card, StatCard, Table, Input, Tabs, Badge
+│   │   ├── /ui                   # PascalCase adapters (Button, Card, Table, …) wrapping /shadcn
 │   │   ├── /home                 # SourceFilterChips, OperationalStrip, HomeDetailsSection
 │   │   ├── /kiosk
 │   │   │   ├── KioskOrdersBoard.tsx   # Kanban + @dnd-kit
