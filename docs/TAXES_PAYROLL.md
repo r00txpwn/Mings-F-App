@@ -24,12 +24,16 @@ Do **not** drop these tables without an explicit owner decision and backup.
 ## Net profit formula (current)
 
 ```
-netProfit = operatingProfit - bankFees - payroll
+netProfit = operatingProfit - bankFees - payroll - platformCommissions
+foodCostPct = COGS / netRevenue × 100
+netProfitPct = netProfit / netRevenue × 100
 ```
 
 - **payroll** = sum of `salary_payments` in the selected period
+- **platformCommissions** = implied from entered `platform_payouts`: `max(0, channel_period_gross − payout_amount)` (0 when no payouts recorded)
 - Tax is **not** estimated; if logged as an operational expense it is already inside **opex** / **operatingProfit**
 
+Home and Reports both use this shared formula via `computeExecutiveKpis`.
 Do **not** also enter salaries under Expenses → “Salaries” — that double-counts (see warning on the Staff screen).
 
 ## Removed code (reference)

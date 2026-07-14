@@ -188,6 +188,7 @@ export function HomeScreen() {
       opex: summary.opex,
       bankFees: summary.bankFees ?? 0,
       payroll: summary.payroll ?? 0,
+      platformCommissions: summary.platformCommissions ?? 0,
       orderCount: summary.orderCount,
     });
   }, [currentSummary, trendData]);
@@ -202,6 +203,7 @@ export function HomeScreen() {
       opex: previousSummary.opex,
       bankFees: previousSummary.bankFees ?? 0,
       payroll: previousSummary.payroll ?? 0,
+      platformCommissions: previousSummary.platformCommissions ?? 0,
       orderCount: previousSummary.orderCount,
     });
   }, [previousSummary]);
@@ -246,6 +248,14 @@ export function HomeScreen() {
         trendOverride: kpis.grossMarginPct >= 35 ? 'up' : kpis.grossMarginPct >= 20 ? 'neutral' : 'down',
       },
       {
+        label: t.foodCost,
+        value: `${kpis.foodCostPct.toFixed(1)}%`,
+        subtitle: `COGS ₼${kpis.cogs.toFixed(2)}`,
+        delta: deltaFor(kpis.foodCostPct, prev?.foodCostPct),
+        // Lower food cost is better
+        trendOverride: kpis.foodCostPct <= 30 ? 'up' : kpis.foodCostPct <= 40 ? 'neutral' : 'down',
+      },
+      {
         label: t.operatingProfitLabel,
         value: `₼${kpis.operatingProfit.toFixed(2)}`,
         subtitle: t.kpiOperatingProfitHint,
@@ -262,10 +272,16 @@ export function HomeScreen() {
       {
         label: t.netProfitLabel,
         value: `₼${kpis.netProfit.toFixed(2)}`,
-        subtitle: t.kpiNetProfitHintExtended
-          .replace('{fees}', kpis.bankFees.toFixed(2))
-          .replace('{payroll}', kpis.payroll.toFixed(2)),
-        delta: deltaFor(kpis.netProfit, prev?.netProfit),
+        subtitle: (() => {
+          const base = t.kpiNetProfitHintExtended
+            .replace('{fees}', kpis.bankFees.toFixed(2))
+            .replace('{commissions}', kpis.platformCommissions.toFixed(2))
+            .replace('{payroll}', kpis.payroll.toFixed(2));
+          const compare = deltaFor(kpis.netProfit, prev?.netProfit);
+          return compare ? `${base} · ${compare.text}` : base;
+        })(),
+        // Top-right badge: net profit % (green profit / red loss)
+        delta: { text: `${kpis.netProfitPct.toFixed(1)}%`, trend: kpis.netProfit >= 0 ? 'up' : 'down' },
         trendOverride: kpis.netProfit >= 0 ? 'up' : 'down',
       },
       ...(accountBalances != null

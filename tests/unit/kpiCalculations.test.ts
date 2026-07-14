@@ -40,10 +40,13 @@ describe('computeExecutiveKpis', () => {
     expect(result.opex).toBe(2000);
     expect(result.operatingProfit).toBe(4300);  // 9300 - 3000 - 2000
     expect(result.bankFees).toBe(0);
+    expect(result.platformCommissions).toBe(0);
     expect(result.netProfit).toBe(4300);
     expect(result.avgOrderValue).toBe(186);     // 9300 / 50
     expect(result.orderCount).toBe(50);
     expect(result.grossMarginPct).toBeCloseTo(safePct(9300 - 3000, 9300), 5);
+    expect(result.foodCostPct).toBeCloseTo(safePct(3000, 9300), 5);
+    expect(result.netProfitPct).toBeCloseTo(safePct(4300, 9300), 5);
   });
 
   it('defaults discounts and refunds to 0 when omitted', () => {
@@ -91,6 +94,32 @@ describe('computeExecutiveKpis', () => {
     expect(result.netProfit).toBe(4450);
   });
 
+  it('deducts platform commissions for net profit', () => {
+    const result = computeExecutiveKpis({
+      grossSales: 10000,
+      cogs: 3000,
+      opex: 2000,
+      bankFees: 50,
+      payroll: 500,
+      platformCommissions: 800,
+      orderCount: 10,
+    });
+    expect(result.operatingProfit).toBe(5000);
+    expect(result.platformCommissions).toBe(800);
+    expect(result.netProfit).toBe(3650);
+    expect(result.netProfitPct).toBeCloseTo(safePct(3650, 10000), 5);
+  });
+
+  it('foodCostPct complements grossMarginPct', () => {
+    const result = computeExecutiveKpis({
+      grossSales: 10000,
+      cogs: 3500,
+      opex: 1000,
+      orderCount: 20,
+    });
+    expect(result.foodCostPct + result.grossMarginPct).toBeCloseTo(100, 5);
+  });
+
   it('handles negative operating profit (loss scenario)', () => {
     const result = computeExecutiveKpis({
       grossSales: 1000,
@@ -100,6 +129,7 @@ describe('computeExecutiveKpis', () => {
     });
     expect(result.operatingProfit).toBe(-200);
     expect(result.netProfit).toBe(-200);
+    expect(result.netProfitPct).toBeCloseTo(safePct(-200, 1000), 5);
   });
 });
 
