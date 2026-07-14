@@ -2224,7 +2224,7 @@ export const translations: Record<Language, Translations> = {
     staffDoubleEntryWarning: 'Record salaries here instead of the Expenses “Salaries” category to avoid double-counting in reports.',
     staffSalariesLabel: 'Salaries paid',
     staffSalariesHint: 'Salary payments recorded in the Staff module',
-    kpiNetProfitHintExtended: 'After bank fees ₼{fees} and salaries ₼{payroll}',
+    kpiNetProfitHintExtended: 'After bank fees ₼{fees}, platform commissions ₼{commissions}, and salaries ₼{payroll}',
 
     weatherUnavailable: 'Weather unavailable',
     cached: 'cached',
@@ -3741,7 +3741,7 @@ export const translations: Record<Language, Translations> = {
     staffDoubleEntryWarning: 'Hesabatlarda təkrar sayılmasın deyə maaşları Xərclər “Maaşlar” kateqoriyası əvəzinə burada qeyd edin.',
     staffSalariesLabel: 'Ödənilən maaşlar',
     staffSalariesHint: 'Maaş modulunda qeyd edilən ödənişlər',
-    kpiNetProfitHintExtended: 'Bank haqları ₼{fees} və maaşlar ₼{payroll} çıxıldıqdan sonra',
+    kpiNetProfitHintExtended: 'Bank haqları ₼{fees}, platform komissiyaları ₼{commissions} və maaşlar ₼{payroll} çıxıldıqdan sonra',
 
     weatherUnavailable: 'Hava məlumatı mövcud deyil',
     cached: 'keş',
@@ -5261,7 +5261,7 @@ export const translations: Record<Language, Translations> = {
     staffDoubleEntryWarning: 'Записывайте зарплаты здесь, а не в категории «Зарплаты» в расходах, чтобы избежать двойного учёта.',
     staffSalariesLabel: 'Выплаченные зарплаты',
     staffSalariesHint: 'Выплаты, записанные в модуле «Персонал»',
-    kpiNetProfitHintExtended: 'После комиссий ₼{fees} и зарплат ₼{payroll}',
+    kpiNetProfitHintExtended: 'После банковских комиссий ₼{fees}, комиссий платформ ₼{commissions} и зарплат ₼{payroll}',
 
     weatherUnavailable: 'Погода недоступна',
     cached: 'кэш',

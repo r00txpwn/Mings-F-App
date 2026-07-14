@@ -504,7 +504,7 @@ export async function fetchChannelPerformance(
 export async function fetchPeriodSummary(
   params: PeriodSummaryParams,
 ): Promise<AnalyticsServiceResponse<PeriodSummary>> {
-  const [salesRes, opexRes, purchasesRes, withdrawalsRes, payrollRes] = await Promise.all([
+  const [salesRes, opexRes, purchasesRes, withdrawalsRes, payrollRes, payoutsRes] = await Promise.all([
     fetchAllRows<SaleRow>(() => {
       let q = supabase
         .from('sales')
@@ -534,6 +534,10 @@ export async function fetchPeriodSummary(
       .select('amount')
       .gte('payment_date', params.startDate)
       .lte('payment_date', params.endDate),
+    fetchPayoutReconciliation({
+      startDate: params.startDate,
+      endDate: params.endDate,
+    }),
   ]);
 
   const firstError =
@@ -574,6 +578,12 @@ export async function fetchPeriodSummary(
     0,
   );
 
+  // Implied commission only for entered payouts (no invented % when missing).
+  const platformCommissions = (payoutsRes.data?.items ?? []).reduce(
+    (sum, item) => sum + Math.max(0, item.expectedAmount - item.actualAmount),
+    0,
+  );
+
   return {
     data: {
       grossSales,
@@ -585,6 +595,7 @@ export async function fetchPeriodSummary(
       opex,
       bankFees,
       payroll,
+      platformCommissions,
     },
     error: null,
   };

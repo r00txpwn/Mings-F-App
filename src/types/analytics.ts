@@ -17,10 +17,16 @@ export interface ExecutiveKpis {
   cogs: number;
   opex: number;
   grossMarginPct: number;
+  /** COGS ÷ net revenue × 100 */
+  foodCostPct: number;
   operatingProfit: number;
   bankFees: number;
   payroll: number;
+  /** Implied platform commissions deducted from net profit */
+  platformCommissions: number;
   netProfit: number;
+  /** netProfit ÷ net revenue × 100 */
+  netProfitPct: number;
   avgOrderValue: number;
   orderCount: number;
 }
@@ -208,6 +214,8 @@ export interface PeriodSummary {
   opex: number;
   bankFees: number;
   payroll: number;
+  /** Implied platform commissions from overlapping platform_payouts */
+  platformCommissions: number;
 }
 
 export interface PeriodSummaryParams extends DateRangeParams {

@@ -80,6 +80,8 @@ export function ReportsScreen() {
     totalCommissions: 0,
     payroll: 0,
     netProfit: 0,
+    foodCostPct: 0,
+    netProfitPct: 0,
   });
   const [channelStats, setChannelStats] = useState<Array<{ name: string; sales: number; orders: number; aov: number; share: number }>>([]);
   const [opexCategoryStats, setOpexCategoryStats] = useState<Array<{ name: string; total: number; count: number; percentage: number; color: string }>>([]);
@@ -175,6 +177,8 @@ export function ReportsScreen() {
         totalCommissions: 0,
         payroll: 0,
         netProfit: 0,
+        foodCostPct: 0,
+        netProfitPct: 0,
       });
       setChannelStats([]);
       setOpexCategoryStats([]);
@@ -214,6 +218,7 @@ export function ReportsScreen() {
           opex: summary.opex,
           bankFees: summary.bankFees ?? 0,
           payroll: summary.payroll ?? 0,
+          platformCommissions: summary.platformCommissions ?? 0,
           orderCount: summary.orderCount,
         })
       : null;
@@ -226,8 +231,12 @@ export function ReportsScreen() {
       totalCommissions,
       payroll: summary?.payroll ?? 0,
       netProfit: executiveKpis
-        ? executiveKpis.netProfit - totalCommissions
+        ? executiveKpis.netProfit
         : revenue - purchasesTotal - operationalTotal - totalCommissions,
+      foodCostPct: executiveKpis?.foodCostPct ?? (revenue > 0 ? (purchasesTotal / revenue) * 100 : 0),
+      netProfitPct: executiveKpis?.netProfitPct ?? (revenue > 0
+        ? ((revenue - purchasesTotal - operationalTotal - totalCommissions) / revenue) * 100
+        : 0),
     });
 
     const channelData = channelRes.data ?? [];
@@ -311,8 +320,7 @@ export function ReportsScreen() {
 
   const netProfit = totals.netProfit;
   const aov = totals.totalOrders > 0 ? totals.totalSales / totals.totalOrders : 0;
-  const profitMargin = totals.totalSales > 0 ? (netProfit / totals.totalSales) * 100 : 0;
-  const foodCostPercentage = totals.totalSales > 0 ? (totals.totalPurchases / totals.totalSales) * 100 : 0;
+  const foodCostPercentage = totals.foodCostPct;
   const commissionPercentage = totals.totalSales > 0 ? (totals.totalCommissions / totals.totalSales) * 100 : 0;
   const isEmpty = useMemo(
     () =>
@@ -389,7 +397,11 @@ export function ReportsScreen() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8">
             <KpiCard label={t.totalSales} value={toCurrency(totals.totalSales)} />
             <KpiCard label={t.orders} value={totals.totalOrders} />
-            <KpiCard label={t.cogs} value={toCurrency(totals.totalPurchases)} subtitle={`${foodCostPercentage.toFixed(1)}% ${t.ofSales}`} />
+            <KpiCard
+              label={t.cogs}
+              value={toCurrency(totals.totalPurchases)}
+              subtitle={`${t.foodCost}: ${foodCostPercentage.toFixed(1)}% ${t.ofSales}`}
+            />
             <KpiCard label={t.operationalExpenses} value={toCurrency(totals.totalExpenses)} />
             <KpiCard label={t.platformCosts} value={toCurrency(totals.totalCommissions)} subtitle={`${commissionPercentage.toFixed(1)}% ${t.ofSales}`} />
             <KpiCard
@@ -400,8 +412,9 @@ export function ReportsScreen() {
             <KpiCard
               label={t.netProfit}
               value={toCurrency(netProfit)}
-              subtitle={`${profitMargin.toFixed(1)}% | ${t.aov}: ${toCurrency(aov)}`}
-              trend={netProfit > 0 ? 'up' : netProfit < 0 ? 'down' : 'neutral'}
+              subtitle={`${t.aov}: ${toCurrency(aov)}`}
+              delta={`${totals.netProfitPct.toFixed(1)}%`}
+              trend={netProfit >= 0 ? 'up' : 'down'}
             />
           </div>
 
@@ -523,6 +536,7 @@ export function ReportsScreen() {
           <InsightPanel title={t.netProfit} severity={netProfit >= 0 ? 'success' : 'critical'}>
             <p>
               {t.netProfit} = {t.totalSales} - {t.cogs} - {t.operationalExpenses}
+              {` - ${t.staffSalariesLabel}`}
               {totals.totalCommissions > 0 ? ` - ${t.platformCosts}` : ''}
             </p>
           </InsightPanel>
