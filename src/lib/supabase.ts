@@ -426,6 +426,10 @@ export interface SalaryPayment {
   employee_id: string;
   amount: number;
   payment_date: string;
+  /** First day of the pay period this payment covers (nullable). */
+  period_start: string | null;
+  /** Last day of the pay period this payment covers (nullable). */
+  period_end: string | null;
   payment_type: SalaryPaymentType;
   note: string;
   created_by: string | null;

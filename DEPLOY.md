@@ -113,6 +113,33 @@ supabase login
 supabase link --project-ref YOUR_PROJECT_REF
 ```
 
+### Sandbox vs production (required workflow)
+
+Two Supabase projects in org `kyzxkktlzkpzxtukuffl`:
+
+| Project | Ref | Use |
+|---------|-----|-----|
+| **Sandbox_mings_os** | `glpdpkozvmfzgoewquxi` | Local dev, Cursor agents, `npm run supabase:push`, Edge deploys |
+| **Prod_mings_os** | `dmrvycswdteuhfydchdr` | Live `sp.mings.az` / `order.mings.az` only — intentional releases |
+
+**Default local target is sandbox.** Credentials live in gitignored `.env.sandbox` (sandbox) and `.env.production-new` (prod DB/service role — never commit).
+
+```bash
+# Point .env, .env.local, CLI link, and Cursor MCP at sandbox (default)
+npm run env:sandbox
+
+# Point back at production (requires explicit confirm)
+npm run env:prod
+```
+
+**Production mutation guard:** `npm run supabase:push` and `functions deploy` are **blocked** when the CLI is linked to prod unless you set `SUPABASE_ALLOW_PROD=1` (PowerShell: `$env:SUPABASE_ALLOW_PROD=1`).
+
+**Vercel production** still uses prod `VITE_SUPABASE_*` in the dashboard — do not point Vercel at the sandbox.
+
+**Edge Function secrets** on sandbox are separate from prod. Copy payment/Wolt/`APP_BASE_URL` secrets in Supabase Dashboard → **Sandbox_mings_os** → Edge Functions → Secrets (use United Payment **test** gateway URLs for sandbox; see [.env.example](.env.example)).
+
+**Refreshing sandbox data from prod** (schema + data clone; read-only on prod): portable `pg_dump`/`psql` in `tools/pgsql/` (download Postgres 17 binaries zip into `tools/` — gitignored). Re-apply grant migrations after a full public schema restore: `20260426223000_grant_storefront_read_access.sql`, `20260426224500_grant_staff_cockpit_read_access.sql`.
+
 ### Migrations
 
 ```bash

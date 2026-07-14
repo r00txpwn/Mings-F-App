@@ -118,23 +118,28 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ ok: false, error: 'MISSING_PROVIDER_REFERENCE' }, 400);
   }
 
-  const token = await UnitedPayment.getAuthToken();
-  const statusResult = payment.epoint_transaction
-    ? await UnitedPayment.statusByTransactionId(token, payment.epoint_transaction)
-    : await UnitedPayment.statusByClientOrderId(token, payment.external_id!);
-  if (!statusResult.ok) {
+  const confirmed = await UnitedPayment.confirmProviderStatus({
+    clientOrderId: payment.external_id,
+    transactionId: payment.epoint_transaction,
+  });
+  if (!confirmed.ok || !confirmed.result) {
     return jsonResponse(
-      { ok: false, error: 'PROVIDER_ERROR', detail: statusResult.message, provider_response: statusResult.raw },
+      {
+        ok: false,
+        error: 'PROVIDER_ERROR',
+        detail: confirmed.message,
+        provider_response: confirmed.result?.raw ?? null,
+      },
       502
     );
   }
 
-  const providerStatus = UnitedPayment.extractConfirmedStatus(statusResult);
+  const providerStatus = confirmed.status;
   const mapped = await applyPaymentStatus(supabase, payment, providerStatus, {
     source: 'united-payment-status-check',
-    status_check: statusResult.raw,
+    status_check: confirmed.result.raw,
   });
-  return new Response(JSON.stringify({ ok: true, mapped, providerStatus, provider_response: statusResult.raw }), {
+  return new Response(JSON.stringify({ ok: true, mapped, providerStatus, provider_response: confirmed.result.raw }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

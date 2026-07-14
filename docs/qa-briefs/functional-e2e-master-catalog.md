@@ -3,11 +3,13 @@
 **Version:** 1.0  
 **Created:** 2026-06-26  
 **Purpose:** Exhaustive runnable catalog — every screen, every mutating function, all surfaces.  
-**Related:** [Phase 1 results](./functional-e2e-usecases.md) · [Missing catalog — detailed specs](./functional-e2e-missing-catalog-detailed.md) · [Dynamic/adversarial cases](./functional-e2e-dynamic-cases.md) · [Chrome re-run results](./functional-e2e-phase-chrome-results.md) · [Test ledger](./functional-e2e-test-ledger.md)
+**Related:** [E2E Chrome DevTools policy](./E2E_CHROME_DEVTOOLS_POLICY.md) · [Phase 1 results](./functional-e2e-usecases.md) · [Missing catalog — detailed specs](./functional-e2e-missing-catalog-detailed.md) · [Dynamic/adversarial cases](./functional-e2e-dynamic-cases.md) · [Chrome re-run results](./functional-e2e-phase-chrome-results.md) · [Test ledger](./functional-e2e-test-ledger.md)
 
 ## How to use this catalog
 
-1. Run against local production preview: staff `http://127.0.0.1:4175/spec-ops`, storefront `http://127.0.0.1:4176/order`, kiosk `/kiosk`, KDS `/kds`, order-manager `/order-manager`.
+> **Driver (mandatory):** Run every case via **`user-chrome-devtools` MCP** (Google Chrome DevTools). Not Playwright, not `cursor-ide-browser`. See [E2E_CHROME_DEVTOOLS_POLICY.md](./E2E_CHROME_DEVTOOLS_POLICY.md).
+
+1. Run against local preview on **sandbox** (`npm run env:sandbox`): staff `http://127.0.0.1:4175/spec-ops`, storefront `http://127.0.0.1:4176/order`, kiosk `/kiosk`, KDS `/kds`, order-manager `/order-manager`.
 2. Prefix all created labels: `E2E-YYYYMMDD-<group>-<short>` (e.g. `E2E-20260626-D-PROD-01`).
 3. **Ledger every row** in [functional-e2e-test-ledger.md](./functional-e2e-test-ledger.md). **Delete nothing** until owner says *"clean up E2E test data"*.
 4. Mark result in the **Phase 1 / Run status** column after each execution.

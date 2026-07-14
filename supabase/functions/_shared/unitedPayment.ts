@@ -82,18 +82,28 @@ function checkoutUrl(): string {
   return endpoint('CHECKOUT', '/transactions/checkout');
 }
 
-function statusByOrderUrl(clientOrderId: string): string {
+function statusByOrderUrl(_clientOrderId: string): string {
   const explicit = env('UNITED_PAYMENT_STATUS_BY_ORDER_URL');
-  if (explicit) return explicit.replace('{clientOrderId}', encodeURIComponent(clientOrderId));
+  if (explicit) {
+    if (explicit.includes('{clientOrderId}')) {
+      return explicit.replace('{clientOrderId}', encodeURIComponent(_clientOrderId));
+    }
+    return explicit;
+  }
   const base = env('UNITED_PAYMENT_API_BASE');
-  return base ? joinUrl(base, `/transactions/status/order/${encodeURIComponent(clientOrderId)}`) : '';
+  return base ? joinUrl(base, '/transactions/transaction-status-by-order-id-detailed') : '';
 }
 
-function statusByTransactionUrl(transactionId: string): string {
+function statusByTransactionUrl(_transactionId: string): string {
   const explicit = env('UNITED_PAYMENT_STATUS_BY_TRANSACTION_URL');
-  if (explicit) return explicit.replace('{transactionId}', encodeURIComponent(transactionId));
+  if (explicit) {
+    if (explicit.includes('{transactionId}')) {
+      return explicit.replace('{transactionId}', encodeURIComponent(_transactionId));
+    }
+    return explicit;
+  }
   const base = env('UNITED_PAYMENT_API_BASE');
-  return base ? joinUrl(base, `/transactions/status/${encodeURIComponent(transactionId)}`) : '';
+  return base ? joinUrl(base, '/transactions/transaction-status-by-trx-id-detailed') : '';
 }
 
 function asObject(raw: unknown): Record<string, unknown> {
@@ -265,12 +275,22 @@ export async function statusByTransactionId(
   return fetchStatus(token, url, { transactionId });
 }
 
+function statusRequestBody(fallbackBody: Record<string, string>): Record<string, string | number> {
+  const { clientOrderId, transactionId } = fallbackBody;
+  if (clientOrderId) return { clientOrderId };
+  if (transactionId) {
+    const asNumber = Number(transactionId);
+    return Number.isFinite(asNumber) ? { transactionId: asNumber } : { transactionId };
+  }
+  return fallbackBody;
+}
+
 async function fetchStatus(
   token: string,
   url: string,
   fallbackBody: Record<string, string>
 ): Promise<UnitedPaymentStatusResult> {
-  const method = env('UNITED_PAYMENT_STATUS_METHOD').toUpperCase() || 'GET';
+  const method = env('UNITED_PAYMENT_STATUS_METHOD').toUpperCase() || 'POST';
   const init: RequestInit = {
     method,
     headers: {
@@ -278,7 +298,7 @@ async function fetchStatus(
       'x-auth-token': token,
     },
   };
-  if (method !== 'GET') init.body = JSON.stringify(fallbackBody);
+  if (method !== 'GET') init.body = JSON.stringify(statusRequestBody(fallbackBody));
   const response = await fetch(url, init);
   const raw = await readJsonResponse(response);
   const obj = asObject(raw);
@@ -297,6 +317,18 @@ async function fetchStatus(
 
 /** Best-effort provider status string from a status-check API response. */
 export function extractConfirmedStatus(result: UnitedPaymentStatusResult): string {
+  const obj = asObject(result.raw);
+  const nested = asObject(obj.data ?? obj.result);
+  const source = Object.keys(nested).length ? nested : obj;
+
+  if (source.isReversed === true) return 'REVERSED';
+  if (source.isSuccess === true) {
+    return firstString(source, ['status', 'Status', 'orderStatus', 'OrderStatus']) ?? 'APPROVED';
+  }
+
+  const external = firstString(source, ['externalStatusCode', 'ExternalStatusCode']);
+  if (external && external.toUpperCase() === 'FULLYPAID') return 'APPROVED';
+
   return result.orderStatus ?? result.status ?? 'PENDING';
 }
 
@@ -315,9 +347,16 @@ export async function confirmProviderStatus(refs: {
 
   try {
     const token = await getAuthToken();
-    const result = tx
-      ? await statusByTransactionId(token, tx)
-      : await statusByClientOrderId(token, order!);
+    let result: UnitedPaymentStatusResult | null = null;
+    if (order) {
+      result = await statusByClientOrderId(token, order);
+    }
+    if ((!result || !result.ok) && tx) {
+      result = await statusByTransactionId(token, tx);
+    }
+    if (!result) {
+      return { ok: false, status: 'PENDING', result: null, message: 'No provider reference' };
+    }
     if (!result.ok) {
       return {
         ok: false,

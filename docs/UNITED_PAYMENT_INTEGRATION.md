@@ -71,9 +71,32 @@ Per United Payment (May 2026), the webhook sends the **same shape** as the redir
 | Auth | `POST /auth/` body `{ "email", "password" }` |
 | Checkout | `POST /transactions/checkout` header `x-auth-token` |
 | Dashboard | `https://test-vpos.unitedpayment.az/client/login` |
-| Postman | [TEST EN](https://documenter.getpostman.com/view/28991745/2sAYBRFYxp), [Webhook](https://documenter.getpostman.com/view/30976704/2sBXqFMhmY) |
+| Postman | [All APIs](https://documenter.getpostman.com/view/17619441/2s93Xu3644), [Webhook](https://documenter.getpostman.com/view/30976704/2sBXqFMhmY) |
 
 Test cards (from Postman): PAN `4169 7413 3015 1778`, exp `06/27`, CVV `591`.
+
+Public sandbox login (Postman collection): `support@unitedpayment.com` — use only for gateway smoke tests (`npm run up:smoke`).
+
+## CheckStatus (confirmed via Postman + live smoke)
+
+| Lookup | Method | URL (test) | Body |
+|--------|--------|------------|------|
+| By client order id (detailed, **primary**) | `POST` | `…/transactions/transaction-status-by-order-id-detailed` | `{ "clientOrderId": "…" }` |
+| By transaction id (detailed, fallback) | `POST` | `…/transactions/transaction-status-by-trx-id-detailed` | `{ "transactionId": 12345 }` |
+
+Header: `x-auth-token: <jwt>` (same as checkout). Defaults in code match the table above when `UNITED_PAYMENT_API_BASE` is set.
+
+Detailed response includes `status`, `isSuccess`, `isReversed`, `transactionId`, `clientOrderId`, `amount`, `bankName`. We map `isSuccess: true` or `externalStatusCode: FullyPaid` → paid; `isReversed` / `CANCELED` / `DECLINED` → failed.
+
+## Smoke test
+
+```bash
+npm run up:smoke              # Postman public sandbox creds
+npm run up:smoke -- --public  # same (explicit)
+node scripts/up-smoke.mjs   # uses UNITED_PAYMENT_* from .env.local when set
+```
+
+Runs auth → checkout → both CheckStatus endpoints against `test-vpos`. Does not complete a card payment or verify webhook delivery (webhook must be enabled by United Payment).
 
 ## Supabase Edge secrets
 
@@ -84,11 +107,11 @@ See [`.env.example`](../.env.example) `UNITED_PAYMENT_*` block. Minimum for chec
 - `APP_BASE_URL`, `UNITED_PAYMENT_FUNCTIONS_PUBLIC_URL`
 - `UNITED_PAYMENT_WEBHOOK_URL` (included in checkout body when set)
 
-**CheckStatus URLs** default to `/transactions/status/order/{clientOrderId}` and `/transactions/status/{transactionId}` — **confirm exact paths with United Payment** before production.
+**CheckStatus URLs** default to the Postman **detailed** endpoints on `UNITED_PAYMENT_API_BASE` with `POST` + JSON body. Override with `UNITED_PAYMENT_STATUS_BY_*_URL` if needed.
 
 ## Refunds
 
-No refund/reverse API is documented in the United Payment checkout collections. Treat refunds as **dashboard-only** until United Payment confirms an API.
+Refund API: `POST /transactions/refund` body `{ "amount": "100", "transactionId": 555 }` header `x-auth-token`. Reversal: `POST /transactions/reverse`. **Not implemented** in Ming's OS yet (dashboard / future edge function).
 
 ## Manual QA checklist (test gateway)
 
@@ -96,27 +119,11 @@ No refund/reverse API is documented in the United Payment checkout collections. 
 2. Confirm redirect to United Payment hosted page.
 3. Pay with test card → return URL shows `?paid=1`, sale `payment_status=paid`, KDS can accept order.
 4. Decline/cancel path → `?payment_error=1`, sale stays unpaid, KDS blocks prep.
-5. If webhook configured, confirm `online_payments.raw_payload` shows `status_check_ok: true`.
+5. If webhook enabled by United Payment, confirm `online_payments.raw_payload` shows `status_check_ok: true`.
 
-## Open questions for United Payment (Ilqar)
+## Remaining blockers (admin, not API docs)
 
-Copy-paste for WhatsApp/email:
+1. **Webhook enablement** for our Supabase URL (United Payment must configure on their side).
+2. **Manta Group merchant test creds** / `memberId` for production-like E2E (public sandbox is enough for API smoke only).
 
----
-
-Hello Ilqar,
-
-We resumed integration on our side. A few items to confirm before go-live:
-
-1. **CheckStatus** — What is the exact endpoint path and HTTP method to query status by `clientOrderId` and by `transactionId`? (We currently assume `GET /transactions/status/order/{clientOrderId}` and `GET /transactions/status/{transactionId}`.)
-
-2. **Webhook body** — Does the webhook POST the same base64 `up` payload as the browser redirect, or raw JSON? What are the exact `Status` values for success, decline, and cancel?
-
-3. **Refunds** — Is reverse/refund API available for our merchant, or dashboard-only?
-
-4. **Go-live** — Please share production API base URL, merchant credentials, and confirm our webhook URL:
-   `https://<project-ref>.supabase.co/functions/v1/united-payment-webhook`
-
-Thank you.
-
----
+Postman collections from Ilqar (Jun 2026): [All APIs](https://documenter.getpostman.com/view/17619441/2s93Xu3644), [Webhook](https://documenter.getpostman.com/view/30976704/2sBXqFMhmY). Run `npm run up:smoke` before contacting Ilqar again.

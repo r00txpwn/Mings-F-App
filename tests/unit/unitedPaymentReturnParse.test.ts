@@ -60,6 +60,11 @@ describe('mapProviderStatus', () => {
     expect(mapProviderStatus('CANCELLED')).toBe('failed');
   });
 
+  it('maps FullyPaid to success', () => {
+    expect(mapProviderStatus('FullyPaid')).toBe('success');
+    expect(mapProviderStatus('FULLYPAID')).toBe('success');
+  });
+
   it('maps unknown to pending', () => {
     expect(mapProviderStatus('Pending')).toBe('pending');
     expect(mapProviderStatus('')).toBe('pending');

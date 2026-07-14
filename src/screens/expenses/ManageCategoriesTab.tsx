@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Tag, ShoppingCart, DollarSign, Check } from 'lucide-react';
 import { adminDelete, adminInsert, adminUpdate } from '../../lib/adminApi';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { DangerConfirmRow } from '../../components/ui/DangerConfirmRow';
@@ -26,6 +27,42 @@ interface ManageCategoriesTabProps {
   categories: MasterCategory[];
   subItems: SubItem[];
   onDataChanged: () => void;
+}
+
+async function countExact(table: string, column: string, value: string): Promise<number> {
+  const { count, error } = await supabase
+    .from(table)
+    .select('id', { count: 'exact', head: true })
+    .eq(column, value);
+  if (error) return 0;
+  return count ?? 0;
+}
+
+async function countExactIn(table: string, column: string, values: string[]): Promise<number> {
+  if (values.length === 0) return 0;
+  const { count, error } = await supabase
+    .from(table)
+    .select('id', { count: 'exact', head: true })
+    .in(column, values);
+  if (error) return 0;
+  return count ?? 0;
+}
+
+/** Returns how many expense/purchase/product rows block deleting this category. */
+async function countCategoryUsage(categoryId: string, itemIds: string[]): Promise<number> {
+  const [expenses, purchases, products, expensesByItem, purchasesByItem] = await Promise.all([
+    countExact('operational_expenses', 'master_category_id', categoryId),
+    countExact('purchases', 'master_category_id', categoryId),
+    countExact('products', 'master_category_id', categoryId),
+    countExactIn('operational_expenses', 'expense_item_id', itemIds),
+    countExactIn('purchases', 'expense_item_id', itemIds),
+  ]);
+  return expenses + purchases + products + expensesByItem + purchasesByItem;
+}
+
+function isForeignKeyError(message: string | undefined): boolean {
+  const m = String(message ?? '').toLowerCase();
+  return m.includes('foreign key') || m.includes('violates foreign key');
 }
 
 export function ManageCategoriesTab({ categories, subItems, onDataChanged }: ManageCategoriesTabProps) {
@@ -143,17 +180,83 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
     flashSuccess();
   };
 
+  // Proactive guard: block the destructive confirm from even opening when the
+  // category (or any of its sub-items) is referenced by real records.
+  const requestDeleteCategory = async (id: string) => {
+    if (deletingId) return;
+    setDeletingId(id);
+    setActionError(null);
+
+    const itemIds = subItems.filter((si) => si.master_category_id === id).map((si) => si.id);
+    const usageCount = await countCategoryUsage(id, itemIds);
+    setDeletingId(null);
+
+    if (usageCount > 0) {
+      flashError(t.categoryDeleteBlockedInUse.replace('{count}', String(usageCount)));
+      return;
+    }
+    setDeleteConfirm({ type: 'category', id });
+  };
+
+  const requestDeleteSubItem = async (id: string) => {
+    if (deletingId) return;
+    setDeletingId(id);
+    setActionError(null);
+
+    const [expenses, purchases] = await Promise.all([
+      countExact('operational_expenses', 'expense_item_id', id),
+      countExact('purchases', 'expense_item_id', id),
+    ]);
+    setDeletingId(null);
+
+    const usageCount = expenses + purchases;
+    if (usageCount > 0) {
+      flashError(t.categoryDeleteBlockedInUse.replace('{count}', String(usageCount)));
+      return;
+    }
+    setDeleteConfirm({ type: 'subitem', id });
+  };
+
   const handleDeleteCategory = async (id: string) => {
     if (deletingId) return;
     setDeletingId(id);
     setActionError(null);
+
+    const catSubItems = subItems.filter((si) => si.master_category_id === id);
+    const itemIds = catSubItems.map((si) => si.id);
+
+    const usageCount = await countCategoryUsage(id, itemIds);
+    if (usageCount > 0) {
+      setDeletingId(null);
+      setDeleteConfirm(null);
+      flashError(t.categoryDeleteBlockedInUse.replace('{count}', String(usageCount)));
+      return;
+    }
+
+    for (const si of catSubItems) {
+      const delItem = await adminDelete('expense_items', si.id);
+      if (!delItem.ok) {
+        setDeletingId(null);
+        setDeleteConfirm(null);
+        flashError(
+          isForeignKeyError(delItem.error)
+            ? t.categoryDeleteBlockedInUse.replace('{count}', '1+')
+            : delItem.error ?? t.errorOccurred,
+        );
+        return;
+      }
+    }
 
     const result = await adminDelete('master_categories', id);
     setDeletingId(null);
 
     if (!result.ok) {
       setDeleteConfirm(null);
-      flashError(result.error ?? t.errorOccurred);
+      flashError(
+        isForeignKeyError(result.error)
+          ? t.categoryDeleteBlockedInUse.replace('{count}', '1+')
+          : result.error ?? t.errorOccurred,
+      );
       return;
     }
 
@@ -167,12 +270,28 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
     setDeletingId(id);
     setActionError(null);
 
+    const [expenses, purchases] = await Promise.all([
+      countExact('operational_expenses', 'expense_item_id', id),
+      countExact('purchases', 'expense_item_id', id),
+    ]);
+    const usageCount = expenses + purchases;
+    if (usageCount > 0) {
+      setDeletingId(null);
+      setDeleteConfirm(null);
+      flashError(t.categoryDeleteBlockedInUse.replace('{count}', String(usageCount)));
+      return;
+    }
+
     const result = await adminDelete('expense_items', id);
     setDeletingId(null);
 
     if (!result.ok) {
       setDeleteConfirm(null);
-      flashError(result.error ?? t.errorOccurred);
+      flashError(
+        isForeignKeyError(result.error)
+          ? t.categoryDeleteBlockedInUse.replace('{count}', '1+')
+          : result.error ?? t.errorOccurred,
+      );
       return;
     }
 
@@ -443,7 +562,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                           label={t.edit}
                         />
                         <IconActionButton
-                          onClick={() => setDeleteConfirm({ type: 'category', id: cat.id })}
+                          onClick={() => void requestDeleteCategory(cat.id)}
                           icon={<Trash2 className="h-3.5 w-3.5" />}
                           tone="danger"
                           label={t.delete}
@@ -535,7 +654,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                                         className="h-7 w-7"
                                       />
                                       <IconActionButton
-                                        onClick={() => setDeleteConfirm({ type: 'subitem', id: si.id })}
+                                        onClick={() => void requestDeleteSubItem(si.id)}
                                         icon={<Trash2 className="h-3 w-3" />}
                                         tone="danger"
                                         label={t.delete}

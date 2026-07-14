@@ -1,6 +1,8 @@
 # Full App Smoke — Use Case Catalog
 
-Chrome DevTools MCP (or Playwright) smoke pass covering **every staff cockpit screen** and **every surface route**.
+Chrome DevTools MCP (`user-chrome-devtools`) smoke pass covering **every staff cockpit screen** and **every surface route**.
+
+> **Policy:** Functional E2E **must** use [Chrome DevTools MCP](./E2E_CHROME_DEVTOOLS_POLICY.md). Playwright is not an approved substitute for these smoke/catalog runs.
 
 ## Prerequisites
 

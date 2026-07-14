@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, Fragment } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Plus,
   Users,
@@ -76,6 +76,8 @@ export function StaffScreen() {
 
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(toLocalDateInput(new Date()));
+  const [periodStart, setPeriodStart] = useState('');
+  const [periodEnd, setPeriodEnd] = useState('');
   const [paymentType, setPaymentType] = useState<SalaryPaymentType>('salary');
   const [paymentNote, setPaymentNote] = useState('');
 
@@ -117,8 +119,11 @@ export function StaffScreen() {
   };
 
   const resetPaymentForm = () => {
+    const { start, end } = getCurrentMonthRange();
     setPaymentAmount('');
     setPaymentDate(toLocalDateInput(new Date()));
+    setPeriodStart(start);
+    setPeriodEnd(end);
     setPaymentType('salary');
     setPaymentNote('');
     setPaymentEmployeeId('');
@@ -146,6 +151,8 @@ export function StaffScreen() {
     setPaymentEmployeeId(payment.employee_id);
     setPaymentAmount(String(payment.amount));
     setPaymentDate(payment.payment_date);
+    setPeriodStart(payment.period_start ?? '');
+    setPeriodEnd(payment.period_end ?? '');
     setPaymentType(payment.payment_type);
     setPaymentNote(payment.note);
     setShowPaymentForm(true);
@@ -212,12 +219,18 @@ export function StaffScreen() {
       toast.error(t.staffInvalidPaymentAmount);
       return;
     }
+    if (periodStart && periodEnd && periodEnd < periodStart) {
+      toast.error(t.staffInvalidPayPeriod);
+      return;
+    }
 
     setSaving(true);
     const payload = {
       employee_id: paymentEmployeeId,
       amount,
       payment_date: paymentDate,
+      period_start: periodStart || null,
+      period_end: periodEnd || null,
       payment_type: paymentType,
       note: paymentNote.trim(),
     };
@@ -396,6 +409,20 @@ export function StaffScreen() {
               <span className="text-sm text-slate-600 dark:text-slate-300">{t.date}</span>
               <SingleDatePicker value={paymentDate} onChange={setPaymentDate} />
             </label>
+            <div className="block md:col-span-2">
+              <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffPayPeriod}</span>
+              <div className="mt-1">
+                <DateRangePicker
+                  startDate={periodStart}
+                  endDate={periodEnd}
+                  onStartChange={setPeriodStart}
+                  onEndChange={setPeriodEnd}
+                  startLabel={t.startDate}
+                  endLabel={t.endDate}
+                />
+              </div>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t.staffPayPeriodHint}</p>
+            </div>
             <label className="block">
               <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffPaymentType}</span>
               <select className="cockpit-input mt-1 w-full" value={paymentType} onChange={(e) => setPaymentType(e.target.value as SalaryPaymentType)}>
@@ -522,6 +549,7 @@ export function StaffScreen() {
                         <thead>
                           <tr className="border-b text-left text-xs uppercase text-slate-500">
                             <th className="px-4 py-2">{t.date}</th>
+                            <th className="px-4 py-2">{t.staffPayPeriod}</th>
                             <th className="px-4 py-2">{t.staffPaymentType}</th>
                             <th className="px-4 py-2">{t.amount}</th>
                             <th className="px-4 py-2">{t.notes}</th>
@@ -534,6 +562,11 @@ export function StaffScreen() {
                             return (
                             <tr key={payment.id} className="border-b border-slate-100 dark:border-slate-800">
                               <td className="px-4 py-2">{payment.payment_date}</td>
+                              <td className="px-4 py-2 whitespace-nowrap text-slate-500">
+                                {payment.period_start && payment.period_end
+                                  ? `${payment.period_start} → ${payment.period_end}`
+                                  : '—'}
+                              </td>
                               <td className="px-4 py-2">{paymentTypeLabel(payment.payment_type)}</td>
                               <td className="px-4 py-2 font-medium">
                                 <span className="inline-flex items-center gap-2">

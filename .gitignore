@@ -28,6 +28,9 @@ dist-ssr
 supabase/.temp/
 tools/supabase*
 !tools/.gitkeep
+# Local-only Postgres client binaries (used for prod->sandbox clone)
+tools/pgsql/
+tools/pg-binaries.zip
 .vercel
 .playwright-mcp/
 pw-*.png

@@ -119,7 +119,16 @@ export function parseUnitedPaymentReturn(
 
 export function mapProviderStatus(rawStatus: string | null | undefined): 'success' | 'failed' | 'pending' {
   const s = String(rawStatus ?? '').trim().toUpperCase();
-  if (s === '00' || s === '001' || s === 'APPROVED' || s === 'SUCCESS' || s === 'SUCCESSFUL' || s === 'COMPLETED') {
+  if (
+    s === '00' ||
+    s === '001' ||
+    s === 'APPROVED' ||
+    s === 'SUCCESS' ||
+    s === 'SUCCESSFUL' ||
+    s === 'COMPLETED' ||
+    s === 'FULLYPAID' ||
+    s === 'FULLY_PAID'
+  ) {
     return 'success';
   }
   if (
