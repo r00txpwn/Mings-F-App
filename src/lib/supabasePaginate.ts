@@ -1,8 +1,11 @@
 import type { PostgrestError } from '@supabase/supabase-js';
 
-const PAGE_SIZE = 1000;
+const FETCH_ALL_PAGE_SIZE = 1000;
 
-type PaginatedQuery = {
+/** Default page size for cockpit history lists (Load more / infinite scroll). */
+export const LIST_PAGE_SIZE = 50;
+
+export type PaginatedQuery = {
   range: (
     from: number,
     to: number,
@@ -17,17 +20,44 @@ export async function fetchAllRows<T>(
   let offset = 0;
 
   while (true) {
-    const { data, error } = await buildQuery().range(offset, offset + PAGE_SIZE - 1);
+    const { data, error } = await buildQuery().range(offset, offset + FETCH_ALL_PAGE_SIZE - 1);
     if (error) {
       return { data: [], error };
     }
     const page = (data ?? []) as T[];
     all.push(...page);
-    if (page.length < PAGE_SIZE) {
+    if (page.length < FETCH_ALL_PAGE_SIZE) {
       break;
     }
-    offset += PAGE_SIZE;
+    offset += FETCH_ALL_PAGE_SIZE;
   }
 
   return { data: all, error: null };
+}
+
+/** Fetch one page via `.range()`. `hasMore` is true when the page is full. */
+export async function fetchPage<T>(
+  buildQuery: () => PaginatedQuery,
+  options: { offset: number; pageSize?: number },
+): Promise<{ data: T[]; error: PostgrestError | null; hasMore: boolean }> {
+  const pageSize = options.pageSize ?? LIST_PAGE_SIZE;
+  const { data, error } = await buildQuery().range(options.offset, options.offset + pageSize - 1);
+  if (error) {
+    return { data: [], error, hasMore: false };
+  }
+  const page = (data ?? []) as T[];
+  return { data: page, error: null, hasMore: page.length >= pageSize };
+}
+
+/** Append pages while skipping duplicate ids (rows can shift between fetches). */
+export function mergeById<T extends { id: string }>(existing: T[], incoming: T[]): T[] {
+  if (incoming.length === 0) return existing;
+  const seen = new Set(existing.map((row) => row.id));
+  const merged = [...existing];
+  for (const row of incoming) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    merged.push(row);
+  }
+  return merged;
 }

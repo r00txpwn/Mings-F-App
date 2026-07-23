@@ -3,6 +3,7 @@ import { BarChart3 } from 'lucide-react';
 import { applyAnalyticsSourceFilter } from '../lib/analyticsSourceFilter';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
+import { LIST_PAGE_SIZE, fetchPage, mergeById } from '../lib/supabasePaginate';
 import {
   ChartCard,
   FilterBar,
@@ -21,6 +22,7 @@ import {
   type AnalyticsSourceFilter,
 } from '../services/analytics';
 import { PageHeader } from '../components/cockpit';
+import { ListPagerFooter } from '../components/ListPagerFooter';
 import { EmptyState } from '../components/ui/EmptyState';
 import { SkeletonCard } from '../components/ui/Skeleton';
 
@@ -88,6 +90,9 @@ export function ReportsScreen() {
   const [cogsCategoryStats, setCogsCategoryStats] = useState<Array<{ name: string; total: number; count: number; percentage: number; color: string }>>([]);
   const [commissionByChannel, setCommissionByChannel] = useState<Array<{ name: string; commission: number }>>([]);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
+  const [activityOffset, setActivityOffset] = useState(0);
+  const [activityHasMore, setActivityHasMore] = useState(false);
+  const [activityLoadingMore, setActivityLoadingMore] = useState(false);
 
   const loadReports = useCallback(async () => {
     setLoading(true);
@@ -125,26 +130,49 @@ export function ReportsScreen() {
       .select('id, sale_date, total_price, sales_channels(name)')
       .gte('sale_date', startDate)
       .lte('sale_date', `${endDate}T23:59:59`)
-      .order('sale_date', { ascending: false })
-      .limit(50);
+      .order('sale_date', { ascending: false });
     salesQuery = applyAnalyticsSourceFilter(salesQuery, sourceFilter);
 
     const activityPromise = Promise.all([
-      salesQuery,
-      supabase
-        .from('operational_expenses')
-        .select('id, expense_date, amount, description, expense_items(name), master_categories(name)')
-        .gte('expense_date', startDate)
-        .lte('expense_date', endDate)
-        .order('expense_date', { ascending: false })
-        .limit(50),
-      supabase
-        .from('purchases')
-        .select('id, purchase_date, total_cost, products(name), master_categories(name)')
-        .gte('purchase_date', startDate)
-        .lte('purchase_date', endDate)
-        .order('purchase_date', { ascending: false })
-        .limit(50),
+      fetchPage<{
+        id: string;
+        sale_date: string;
+        total_price: number | string | null;
+        sales_channels?: { name: string } | { name: string }[] | null;
+      }>(() => salesQuery as never, { offset: 0, pageSize: LIST_PAGE_SIZE }),
+      fetchPage<{
+        id: string;
+        expense_date: string;
+        amount: number | string | null;
+        description: string | null;
+        expense_items?: { name: string } | { name: string }[] | null;
+        master_categories?: { name: string } | { name: string }[] | null;
+      }>(
+        () =>
+          supabase
+            .from('operational_expenses')
+            .select('id, expense_date, amount, description, expense_items(name), master_categories(name)')
+            .gte('expense_date', startDate)
+            .lte('expense_date', endDate)
+            .order('expense_date', { ascending: false }),
+        { offset: 0, pageSize: LIST_PAGE_SIZE },
+      ),
+      fetchPage<{
+        id: string;
+        purchase_date: string;
+        total_cost: number | string | null;
+        products?: { name: string } | { name: string }[] | null;
+        master_categories?: { name: string } | { name: string }[] | null;
+      }>(
+        () =>
+          supabase
+            .from('purchases')
+            .select('id, purchase_date, total_cost, products(name), master_categories(name)')
+            .gte('purchase_date', startDate)
+            .lte('purchase_date', endDate)
+            .order('purchase_date', { ascending: false }),
+        { offset: 0, pageSize: LIST_PAGE_SIZE },
+      ),
     ]);
 
     const [trendRes, channelRes, expensesRes, payoutsRes, summaryRes, activityRes] = await Promise.all([
@@ -185,6 +213,8 @@ export function ReportsScreen() {
       setCogsCategoryStats([]);
       setCommissionByChannel([]);
       setActivityItems([]);
+      setActivityOffset(0);
+      setActivityHasMore(false);
       setLoading(false);
       return;
     }
@@ -277,32 +307,32 @@ export function ReportsScreen() {
 
     const [salesActivityRes, expenseActivityRes, purchaseActivityRes] = activityRes;
     const activity: ActivityItem[] = [];
-    for (const row of salesActivityRes.data ?? []) {
+    for (const row of salesActivityRes.data) {
       const channel = Array.isArray(row.sales_channels) ? row.sales_channels[0] : row.sales_channels;
       activity.push({
-        id: row.id,
+        id: `sale:${row.id}`,
         date: row.sale_date,
         type: 'sale',
         description: channel?.name || t.sales,
         amount: safeNumber(row.total_price),
       });
     }
-    for (const row of expenseActivityRes.data ?? []) {
+    for (const row of expenseActivityRes.data) {
       const expenseItem = Array.isArray(row.expense_items) ? row.expense_items[0] : row.expense_items;
       const category = Array.isArray(row.master_categories) ? row.master_categories[0] : row.master_categories;
       activity.push({
-        id: row.id,
+        id: `expense:${row.id}`,
         date: row.expense_date,
         type: 'expense',
         description: expenseItem?.name || category?.name || row.description || t.operationalExpenses,
         amount: safeNumber(row.amount),
       });
     }
-    for (const row of purchaseActivityRes.data ?? []) {
+    for (const row of purchaseActivityRes.data) {
       const product = Array.isArray(row.products) ? row.products[0] : row.products;
       const category = Array.isArray(row.master_categories) ? row.master_categories[0] : row.master_categories;
       activity.push({
-        id: row.id,
+        id: `purchase:${row.id}`,
         date: row.purchase_date,
         type: 'purchase',
         description: product?.name || category?.name || t.purchases,
@@ -310,9 +340,133 @@ export function ReportsScreen() {
       });
     }
     activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    setActivityItems(activity.slice(0, 50));
+    setActivityItems(activity);
+    setActivityOffset(LIST_PAGE_SIZE);
+    setActivityHasMore(
+      salesActivityRes.hasMore || expenseActivityRes.hasMore || purchaseActivityRes.hasMore,
+    );
     setLoading(false);
   }, [endDate, sourceFilter, startDate, t.noCategory, t.operationalExpenses, t.purchases, t.sales]);
+
+  const loadMoreActivity = useCallback(async () => {
+    if (!activityHasMore || activityLoadingMore) return;
+    setActivityLoadingMore(true);
+
+    let salesQuery = supabase
+      .from('sales')
+      .select('id, sale_date, total_price, sales_channels(name)')
+      .gte('sale_date', startDate)
+      .lte('sale_date', `${endDate}T23:59:59`)
+      .order('sale_date', { ascending: false });
+    salesQuery = applyAnalyticsSourceFilter(salesQuery, sourceFilter);
+
+    const [salesActivityRes, expenseActivityRes, purchaseActivityRes] = await Promise.all([
+      fetchPage<{
+        id: string;
+        sale_date: string;
+        total_price: number | string | null;
+        sales_channels?: { name: string } | { name: string }[] | null;
+      }>(() => salesQuery as never, { offset: activityOffset, pageSize: LIST_PAGE_SIZE }),
+      fetchPage<{
+        id: string;
+        expense_date: string;
+        amount: number | string | null;
+        description: string | null;
+        expense_items?: { name: string } | { name: string }[] | null;
+        master_categories?: { name: string } | { name: string }[] | null;
+      }>(
+        () =>
+          supabase
+            .from('operational_expenses')
+            .select('id, expense_date, amount, description, expense_items(name), master_categories(name)')
+            .gte('expense_date', startDate)
+            .lte('expense_date', endDate)
+            .order('expense_date', { ascending: false }),
+        { offset: activityOffset, pageSize: LIST_PAGE_SIZE },
+      ),
+      fetchPage<{
+        id: string;
+        purchase_date: string;
+        total_cost: number | string | null;
+        products?: { name: string } | { name: string }[] | null;
+        master_categories?: { name: string } | { name: string }[] | null;
+      }>(
+        () =>
+          supabase
+            .from('purchases')
+            .select('id, purchase_date, total_cost, products(name), master_categories(name)')
+            .gte('purchase_date', startDate)
+            .lte('purchase_date', endDate)
+            .order('purchase_date', { ascending: false }),
+        { offset: activityOffset, pageSize: LIST_PAGE_SIZE },
+      ),
+    ]);
+
+    const err =
+      salesActivityRes.error?.message ||
+      expenseActivityRes.error?.message ||
+      purchaseActivityRes.error?.message;
+    if (err) {
+      setError(err);
+      setActivityLoadingMore(false);
+      return;
+    }
+
+    const activity: ActivityItem[] = [];
+    for (const row of salesActivityRes.data) {
+      const channel = Array.isArray(row.sales_channels) ? row.sales_channels[0] : row.sales_channels;
+      activity.push({
+        id: `sale:${row.id}`,
+        date: row.sale_date,
+        type: 'sale',
+        description: channel?.name || t.sales,
+        amount: safeNumber(row.total_price),
+      });
+    }
+    for (const row of expenseActivityRes.data) {
+      const expenseItem = Array.isArray(row.expense_items) ? row.expense_items[0] : row.expense_items;
+      const category = Array.isArray(row.master_categories) ? row.master_categories[0] : row.master_categories;
+      activity.push({
+        id: `expense:${row.id}`,
+        date: row.expense_date,
+        type: 'expense',
+        description: expenseItem?.name || category?.name || row.description || t.operationalExpenses,
+        amount: safeNumber(row.amount),
+      });
+    }
+    for (const row of purchaseActivityRes.data) {
+      const product = Array.isArray(row.products) ? row.products[0] : row.products;
+      const category = Array.isArray(row.master_categories) ? row.master_categories[0] : row.master_categories;
+      activity.push({
+        id: `purchase:${row.id}`,
+        date: row.purchase_date,
+        type: 'purchase',
+        description: product?.name || category?.name || t.purchases,
+        amount: safeNumber(row.total_cost),
+      });
+    }
+    activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setActivityItems((prev) => {
+      const merged = mergeById(prev, activity);
+      merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      return merged;
+    });
+    setActivityOffset((prev) => prev + LIST_PAGE_SIZE);
+    setActivityHasMore(
+      salesActivityRes.hasMore || expenseActivityRes.hasMore || purchaseActivityRes.hasMore,
+    );
+    setActivityLoadingMore(false);
+  }, [
+    activityHasMore,
+    activityLoadingMore,
+    activityOffset,
+    endDate,
+    sourceFilter,
+    startDate,
+    t.operationalExpenses,
+    t.purchases,
+    t.sales,
+  ]);
 
   useEffect(() => {
     loadReports();
@@ -529,6 +683,11 @@ export function ReportsScreen() {
                     ))}
                   </tbody>
                 </table>
+                <ListPagerFooter
+                  hasMore={activityHasMore}
+                  loadingMore={activityLoadingMore}
+                  onLoadMore={loadMoreActivity}
+                />
               </div>
             )}
           </ChartCard>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Plus, DollarSign, ShoppingCart, Search, X, ChevronDown, Settings2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
@@ -9,9 +9,11 @@ import { ExpensesSummaryBar } from './expenses/ExpensesSummaryBar';
 import { CategoryGroupedView } from './expenses/CategoryGroupedView';
 import { ManageCategoriesTab } from './expenses/ManageCategoriesTab';
 import { PageHeader } from '../components/cockpit';
+import { ListPagerFooter } from '../components/ListPagerFooter';
 import { displayName, isTestRecord } from '../lib/displayName';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { SingleDatePicker } from '../components/SingleDatePicker';
+import { LIST_PAGE_SIZE, fetchPage, mergeById } from '../lib/supabasePaginate';
 import { isOnCreditFromPurchase, purchaseCreditFields } from '../services/finance/purchaseCredit';
 import {
   BANK_TRANSFER_PAYMENT_METHOD,
@@ -174,9 +176,13 @@ export function ExpensesScreen() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState(() => getCurrentMonthRange());
+  const [expensesHasMore, setExpensesHasMore] = useState(false);
+  const [purchasesHasMore, setPurchasesHasMore] = useState(false);
+  const [expensesLoadingMore, setExpensesLoadingMore] = useState(false);
+  const [purchasesLoadingMore, setPurchasesLoadingMore] = useState(false);
 
-  const [savingExpense, setSavingExpense] = useState(false);
   const [savingPurchase, setSavingPurchase] = useState(false);
+  const expenseSaveInFlight = useRef(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expenseFormError, setExpenseFormError] = useState<string | null>(null);
   const [purchaseFormError, setPurchaseFormError] = useState<string | null>(null);
@@ -190,26 +196,118 @@ export function ExpensesScreen() {
     toast.error(message);
   };
 
-  useEffect(() => {
-    loadAllData(true);
-  }, []);
-
-  const loadAllData = async (isInitial = false) => {
-    if (isInitial) setLoading(true);
-    const [catRes, itemsRes, expRes, purRes, suppRes] = await Promise.all([
+  const loadLookups = useCallback(async () => {
+    const [catRes, itemsRes, suppRes] = await Promise.all([
       supabase.from('master_categories').select('*').in('type', ['purchase', 'expense']).order('name'),
       supabase.from('expense_items').select('*').order('name'),
-      supabase.from('operational_expenses').select('*, master_categories(name, color), expense_items(name)').order('expense_date', { ascending: false }),
-      supabase.from('purchases').select('*, products(name, unit), suppliers(name), master_categories(name, color), expense_items(name)').order('purchase_date', { ascending: false }),
       supabase.from('suppliers').select('id, name').eq('is_active', true).order('name'),
     ]);
-
     if (catRes.data) setCategories(catRes.data as MasterCategory[]);
     if (itemsRes.data) setSubItems(itemsRes.data);
-    if (expRes.data) setExpenses(expRes.data as OperationalExpense[]);
-    if (purRes.data) setPurchases(purRes.data as Purchase[]);
     if (suppRes.data) setSuppliers(suppRes.data);
-    if (isInitial) setLoading(false);
+  }, []);
+
+  const reloadExpenses = useCallback(async () => {
+    const res = await fetchPage<OperationalExpense>(
+      () =>
+        supabase
+          .from('operational_expenses')
+          .select('*, master_categories(name, color), expense_items(name)')
+          .gte('expense_date', dateFilter.start)
+          .lte('expense_date', dateFilter.end)
+          .order('expense_date', { ascending: false }),
+      { offset: 0, pageSize: LIST_PAGE_SIZE },
+    );
+    if (res.error) {
+      toast.error(res.error.message);
+      return;
+    }
+    setExpenses(res.data);
+    setExpensesHasMore(res.hasMore);
+  }, [dateFilter.end, dateFilter.start, toast]);
+
+  const reloadPurchases = useCallback(async () => {
+    const res = await fetchPage<Purchase>(
+      () =>
+        supabase
+          .from('purchases')
+          .select(
+            '*, products(name, unit), suppliers(name), master_categories(name, color), expense_items(name)',
+          )
+          .gte('purchase_date', dateFilter.start)
+          .lte('purchase_date', `${dateFilter.end}T23:59:59`)
+          .order('purchase_date', { ascending: false }),
+      { offset: 0, pageSize: LIST_PAGE_SIZE },
+    );
+    if (res.error) {
+      toast.error(res.error.message);
+      return;
+    }
+    setPurchases(res.data);
+    setPurchasesHasMore(res.hasMore);
+  }, [dateFilter.end, dateFilter.start, toast]);
+
+  const loadAllData = useCallback(
+    async (isInitial = false) => {
+      if (isInitial) setLoading(true);
+      await Promise.all([loadLookups(), reloadExpenses(), reloadPurchases()]);
+      if (isInitial) setLoading(false);
+    },
+    [loadLookups, reloadExpenses, reloadPurchases],
+  );
+
+  useEffect(() => {
+    void loadAllData(true);
+    // Initial + whenever date range changes (reloadExpenses/Purchases close over dateFilter).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFilter.start, dateFilter.end]);
+
+  const loadMoreExpenses = async () => {
+    if (!expensesHasMore || expensesLoadingMore) return;
+    setExpensesLoadingMore(true);
+    const res = await fetchPage<OperationalExpense>(
+      () =>
+        supabase
+          .from('operational_expenses')
+          .select('*, master_categories(name, color), expense_items(name)')
+          .gte('expense_date', dateFilter.start)
+          .lte('expense_date', dateFilter.end)
+          .order('expense_date', { ascending: false }),
+      { offset: expenses.length, pageSize: LIST_PAGE_SIZE },
+    );
+    if (res.error) {
+      flashError(res.error.message);
+      setExpensesLoadingMore(false);
+      return;
+    }
+    setExpenses((prev) => mergeById(prev, res.data));
+    setExpensesHasMore(res.hasMore);
+    setExpensesLoadingMore(false);
+  };
+
+  const loadMorePurchases = async () => {
+    if (!purchasesHasMore || purchasesLoadingMore) return;
+    setPurchasesLoadingMore(true);
+    const res = await fetchPage<Purchase>(
+      () =>
+        supabase
+          .from('purchases')
+          .select(
+            '*, products(name, unit), suppliers(name), master_categories(name, color), expense_items(name)',
+          )
+          .gte('purchase_date', dateFilter.start)
+          .lte('purchase_date', `${dateFilter.end}T23:59:59`)
+          .order('purchase_date', { ascending: false }),
+      { offset: purchases.length, pageSize: LIST_PAGE_SIZE },
+    );
+    if (res.error) {
+      flashError(res.error.message);
+      setPurchasesLoadingMore(false);
+      return;
+    }
+    setPurchases((prev) => mergeById(prev, res.data));
+    setPurchasesHasMore(res.hasMore);
+    setPurchasesLoadingMore(false);
   };
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
@@ -854,7 +952,7 @@ export function ExpensesScreen() {
 
   const handleSubmitExpense = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (savingExpense) return;
+    if (expenseSaveInFlight.current) return;
 
     if (!expenseFormData.expense_item_id) {
       setExpenseFormError(t.expenseItemRequired);
@@ -876,12 +974,8 @@ export function ExpensesScreen() {
       setExpenseFormError(t.paymentMethodRequired);
       return;
     }
-    if (!expenseFormData.description?.trim()) {
-      setExpenseFormError(t.descriptionRequired);
-      return;
-    }
 
-    setSavingExpense(true);
+    expenseSaveInFlight.current = true;
     setExpenseFormError(null);
 
     const payload = {
@@ -890,23 +984,69 @@ export function ExpensesScreen() {
       amount: roundFinanceMoney(Number(expenseFormData.amount)),
       expense_date: expenseFormData.expense_date,
       payment_method: expenseFormData.payment_method,
-      description: expenseFormData.description.trim(),
+      description: expenseFormData.description.trim() || null,
     };
 
-    const result = editingExpense
-      ? await adminUpdate('operational_expenses', editingExpense.id, payload)
-      : await adminInsert('operational_expenses', payload);
+    const category = categories.find((c) => c.id === expenseFormData.master_category_id);
+    const item = subItems.find((s) => s.id === expenseFormData.expense_item_id);
+    const editingId = editingExpense?.id ?? null;
+    const tempId = editingId ?? `temp-${crypto.randomUUID()}`;
+    const pendingRow: OperationalExpense = {
+      id: tempId,
+      master_category_id: payload.master_category_id,
+      expense_item_id: payload.expense_item_id,
+      amount: payload.amount,
+      expense_date: payload.expense_date,
+      payment_method: payload.payment_method,
+      description: payload.description ?? '',
+      master_categories: category
+        ? { name: category.name, color: category.color }
+        : editingExpense?.master_categories,
+      expense_items: item ? { name: item.name } : editingExpense?.expense_items,
+    };
 
-    setSavingExpense(false);
-
-    if (!result.ok) {
-      setExpenseFormError(result.error ?? t.errorOccurred);
-      return;
+    const previousExpenses = expenses;
+    if (editingId) {
+      setExpenses((prev) => prev.map((row) => (row.id === editingId ? pendingRow : row)));
+    } else {
+      setExpenses((prev) => [pendingRow, ...prev]);
     }
 
     resetExpenseForm();
-    await loadAllData();
     flashSuccess(t.savedSuccessfully);
+
+    void (async () => {
+      try {
+        const result = editingId
+          ? await adminUpdate('operational_expenses', editingId, payload)
+          : await adminInsert('operational_expenses', payload);
+
+        if (!result.ok) {
+          setExpenses(previousExpenses);
+          flashError(result.error ?? t.errorOccurred);
+          return;
+        }
+
+        const serverRow = result.data as OperationalExpense | null;
+        if (serverRow?.id) {
+          setExpenses((prev) =>
+            prev.map((row) =>
+              row.id === tempId
+                ? {
+                    ...pendingRow,
+                    ...serverRow,
+                    id: serverRow.id,
+                    master_categories: pendingRow.master_categories,
+                    expense_items: pendingRow.expense_items,
+                  }
+                : row,
+            ),
+          );
+        }
+      } finally {
+        expenseSaveInFlight.current = false;
+      }
+    })();
   };
 
   const reconcileProductStock = async (productId: string | null | undefined, deltaQuantity: number) => {
@@ -965,31 +1105,84 @@ export function ExpensesScreen() {
       ...purchaseCreditFields(purchaseFormData.is_on_credit),
     };
 
-    if (editingPurchase) {
-      const oldProductId = editingPurchase.product_id || null;
-      const oldQuantity = Number(editingPurchase.quantity) || 0;
-      const newQuantity = Number(purchaseFormData.quantity) || 0;
+    const category = categories.find((c) => c.id === purchaseFormData.master_category_id);
+    const item = subItems.find((s) => s.id === purchaseFormData.expense_item_id);
+    const supplier = suppliers.find((s) => s.id === purchaseFormData.supplier_id);
+    const editingId = editingPurchase?.id ?? null;
+    const tempId = editingId ?? `temp-${crypto.randomUUID()}`;
+    const creditFields = purchaseCreditFields(purchaseFormData.is_on_credit);
+    const pendingRow: Purchase = {
+      id: tempId,
+      product_id: editingPurchase?.product_id ?? null,
+      supplier_id: payload.supplier_id,
+      master_category_id: payload.master_category_id,
+      expense_item_id: payload.expense_item_id,
+      quantity: payload.quantity,
+      unit_cost: payload.unit_cost,
+      total_cost,
+      discount_percent: payload.discount_percent,
+      purchase_date: payload.purchase_date,
+      payment_status: (creditFields.payment_status as Purchase['payment_status']) || 'paid',
+      is_on_credit: purchaseFormData.is_on_credit,
+      payment_method: payload.payment_method,
+      notes: payload.notes,
+      master_categories: category
+        ? { name: category.name, color: category.color }
+        : editingPurchase?.master_categories,
+      expense_items: item ? { name: item.name } : editingPurchase?.expense_items,
+      suppliers: supplier ? { name: supplier.name } : editingPurchase?.suppliers,
+      products: editingPurchase?.products,
+    };
 
-      const result = await adminUpdate('purchases', editingPurchase.id, payload);
-      if (!result.ok) {
-        setSavingPurchase(false);
-        setPurchaseFormError(result.error ?? t.errorOccurred);
-        return;
-      }
-      await reconcileProductStock(oldProductId, newQuantity - oldQuantity);
+    const previousPurchases = purchases;
+    const oldProductId = editingPurchase?.product_id || null;
+    const oldQuantity = Number(editingPurchase?.quantity) || 0;
+    const newQuantity = qty;
+
+    if (editingId) {
+      setPurchases((prev) => prev.map((row) => (row.id === editingId ? pendingRow : row)));
     } else {
-      const result = await adminInsert('purchases', payload);
-      if (!result.ok) {
-        setSavingPurchase(false);
-        setPurchaseFormError(result.error ?? t.errorOccurred);
-        return;
-      }
+      setPurchases((prev) => [pendingRow, ...prev]);
     }
 
     setSavingPurchase(false);
     resetPurchaseForm();
-    await loadAllData();
     flashSuccess(t.savedSuccessfully);
+
+    void (async () => {
+      const result = editingId
+        ? await adminUpdate('purchases', editingId, payload)
+        : await adminInsert('purchases', payload);
+
+      if (!result.ok) {
+        setPurchases(previousPurchases);
+        flashError(result.error ?? t.errorOccurred);
+        return;
+      }
+
+      if (editingId) {
+        await reconcileProductStock(oldProductId, newQuantity - oldQuantity);
+      }
+
+      const serverRow = result.data as Purchase | null;
+      if (serverRow?.id) {
+        setPurchases((prev) =>
+          prev.map((row) =>
+            row.id === tempId
+              ? {
+                  ...pendingRow,
+                  ...serverRow,
+                  id: serverRow.id,
+                  master_categories: pendingRow.master_categories,
+                  expense_items: pendingRow.expense_items,
+                  suppliers: pendingRow.suppliers,
+                  products: pendingRow.products,
+                }
+              : row,
+          ),
+        );
+      }
+    })();
   };
 
   const openExpenseForm = () => {
@@ -1005,7 +1198,7 @@ export function ExpensesScreen() {
   };
 
   const closeExpenseForm = () => {
-    if (savingExpense) return;
+    if (expenseSaveInFlight.current) return;
     resetExpenseForm();
   };
 
@@ -1075,8 +1268,7 @@ export function ExpensesScreen() {
             {activeTab === 'operational' && (
               <button
                 onClick={openExpenseForm}
-                disabled={savingExpense}
-                className="neon-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+                className="neon-btn-primary"
               >
                 <Plus className="h-4 w-4" />
                 {t.newExpense}
@@ -1166,13 +1358,20 @@ export function ExpensesScreen() {
               </button>
             </div>
           ) : (
-            <CategoryGroupedView
-              groups={opexGroups}
-              type="operational"
-              onEdit={handleEditExpense}
-              onDelete={handleDeleteExpense}
-              deletingId={deletingId}
-            />
+            <>
+              <CategoryGroupedView
+                groups={opexGroups}
+                type="operational"
+                onEdit={handleEditExpense}
+                onDelete={handleDeleteExpense}
+                deletingId={deletingId}
+              />
+              <ListPagerFooter
+                hasMore={expensesHasMore}
+                loadingMore={expensesLoadingMore}
+                onLoadMore={loadMoreExpenses}
+              />
+            </>
           )}
         </>
       )}
@@ -1198,13 +1397,20 @@ export function ExpensesScreen() {
               </button>
             </div>
           ) : (
-            <CategoryGroupedView
-              groups={cogsGroups}
-              type="cogs"
-              onEdit={handleEditPurchase}
-              onDelete={handleDeletePurchase}
-              deletingId={deletingId}
-            />
+            <>
+              <CategoryGroupedView
+                groups={cogsGroups}
+                type="cogs"
+                onEdit={handleEditPurchase}
+                onDelete={handleDeletePurchase}
+                deletingId={deletingId}
+              />
+              <ListPagerFooter
+                hasMore={purchasesHasMore}
+                loadingMore={purchasesLoadingMore}
+                onLoadMore={loadMorePurchases}
+              />
+            </>
           )}
         </>
       )}
@@ -1224,7 +1430,7 @@ export function ExpensesScreen() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {editingExpense ? t.editExpense : t.newExpense}
               </h2>
-              <button onClick={closeExpenseForm} disabled={savingExpense} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50">
+              <button onClick={closeExpenseForm} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1422,7 +1628,6 @@ export function ExpensesScreen() {
                   value={expenseFormData.description}
                   onChange={(e) => setExpenseFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={2}
-                  required
                   className="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white resize-none"
                   placeholder={t.describeExpense}
                 />
@@ -1431,16 +1636,14 @@ export function ExpensesScreen() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  disabled={savingExpense}
-                  className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  {savingExpense ? t.saving : editingExpense ? t.updateExpense : t.createExpense}
+                  {editingExpense ? t.updateExpense : t.createExpense}
                 </button>
                 <button
                   type="button"
                   onClick={closeExpenseForm}
-                  disabled={savingExpense}
-                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   {t.cancel}
                 </button>

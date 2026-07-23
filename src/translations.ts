@@ -379,6 +379,9 @@ export interface Translations {
   paymentMethodRequired: string;
   descriptionRequired: string;
   expenseDateRequired: string;
+  loadMore: string;
+  loadingMore: string;
+  endOfList: string;
   quantityMustBePositive: string;
   foodCost: string;
   cogs: string;
@@ -1918,6 +1921,9 @@ export const translations: Record<Language, Translations> = {
     paymentMethodRequired: 'Please select a payment method',
     descriptionRequired: 'Please enter a description',
     expenseDateRequired: 'Please select a date',
+    loadMore: 'Load more',
+    loadingMore: 'Loading…',
+    endOfList: 'End of list',
     quantityMustBePositive: 'Quantity must be greater than zero',
     foodCost: 'Food Cost %',
     cogs: 'COGS',
@@ -3435,6 +3441,9 @@ export const translations: Record<Language, Translations> = {
     paymentMethodRequired: 'Ödəniş üsulu seçin',
     descriptionRequired: 'Təsvir daxil edin',
     expenseDateRequired: 'Tarix seçin',
+    loadMore: 'Daha çox yüklə',
+    loadingMore: 'Yüklənir…',
+    endOfList: 'Siyahının sonu',
     quantityMustBePositive: 'Miqdar sıfırdan böyük olmalıdır',
     foodCost: 'Ərzaq Dəyəri %',
     cogs: 'Maya Dəyəri',
@@ -4955,6 +4964,9 @@ export const translations: Record<Language, Translations> = {
     paymentMethodRequired: 'Выберите способ оплаты',
     descriptionRequired: 'Введите описание',
     expenseDateRequired: 'Выберите дату',
+    loadMore: 'Загрузить ещё',
+    loadingMore: 'Загрузка…',
+    endOfList: 'Конец списка',
     quantityMustBePositive: 'Количество должно быть больше нуля',
     foodCost: 'Себестоимость Еды %',
     cogs: 'Себестоимость',
