@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Loader2, ScrollText } from 'lucide-react';
+import { ListPagerFooter } from '../components/ListPagerFooter';
 import { PageHeader } from '../components/cockpit';
 import { useLanguage } from '../contexts/LanguageContext';
+import { usePagedQuery } from '../hooks/usePagedQuery';
 import { supabase } from '../lib/supabase';
 import type { StaffSurface } from '../lib/logAuthEvent';
 
@@ -38,8 +40,6 @@ interface AuthEventRow {
   created_at: string;
 }
 
-const PAGE_SIZE = 50;
-
 function formatWhen(iso: string): string {
   try {
     return new Date(iso).toLocaleString();
@@ -66,12 +66,31 @@ function payloadPreview(payload: unknown): string {
 export function AuditLogScreen() {
   const { t } = useLanguage();
   const [tab, setTab] = useState<AuditTab>('actions');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [adminRows, setAdminRows] = useState<AdminAuditRow[]>([]);
-  const [changeRows, setChangeRows] = useState<AuditLogRow[]>([]);
-  const [authRows, setAuthRows] = useState<AuthEventRow[]>([]);
   const [emailByUserId, setEmailByUserId] = useState<Record<string, string>>({});
+
+  const adminPager = usePagedQuery<AdminAuditRow>({
+    buildQuery: () =>
+      supabase
+        .from('admin_audit_log')
+        .select('id, actor_id, actor_role, action, resource_table, resource_id, payload, created_at')
+        .order('created_at', { ascending: false }),
+  });
+
+  const changePager = usePagedQuery<AuditLogRow>({
+    buildQuery: () =>
+      supabase
+        .from('audit_logs')
+        .select('id, user_id, table_name, record_id, action, old_data, new_data, created_at')
+        .order('created_at', { ascending: false }),
+  });
+
+  const authPager = usePagedQuery<AuthEventRow>({
+    buildQuery: () =>
+      supabase
+        .from('auth_events')
+        .select('id, user_id, event_type, surface, device_type, created_at')
+        .order('created_at', { ascending: false }),
+  });
 
   const surfaceLabel = useCallback(
     (surface: string | null | undefined) => {
@@ -91,80 +110,53 @@ export function AuditLogScreen() {
           return surface ?? '—';
       }
     },
-    [t]
+    [t],
   );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const adminRows = adminPager.rows;
+  const changeRows = changePager.rows;
+  const authRows = authPager.rows;
 
-    const [adminRes, changeRes, authRes] = await Promise.all([
-      supabase
-        .from('admin_audit_log')
-        .select('id, actor_id, actor_role, action, resource_table, resource_id, payload, created_at')
-        .order('created_at', { ascending: false })
-        .limit(PAGE_SIZE),
-      supabase
-        .from('audit_logs')
-        .select('id, user_id, table_name, record_id, action, old_data, new_data, created_at')
-        .order('created_at', { ascending: false })
-        .limit(PAGE_SIZE),
-      supabase
-        .from('auth_events')
-        .select('id, user_id, event_type, surface, device_type, created_at')
-        .order('created_at', { ascending: false })
-        .limit(PAGE_SIZE),
-    ]);
-
-    if (adminRes.error || changeRes.error || authRes.error) {
-      setError(
-        adminRes.error?.message ?? changeRes.error?.message ?? authRes.error?.message ?? t.errorOccurred
-      );
-      setLoading(false);
+  useEffect(() => {
+    const ids = new Set<string>();
+    for (const r of adminRows) if (r.actor_id) ids.add(r.actor_id);
+    for (const r of changeRows) if (r.user_id) ids.add(r.user_id);
+    for (const r of authRows) if (r.user_id) ids.add(r.user_id);
+    if (ids.size === 0) {
+      setEmailByUserId({});
       return;
     }
-
-    const admin = (adminRes.data ?? []) as AdminAuditRow[];
-    const changes = (changeRes.data ?? []) as AuditLogRow[];
-    const auth = (authRes.data ?? []) as AuthEventRow[];
-
-    setAdminRows(admin);
-    setChangeRows(changes);
-    setAuthRows(auth);
-
-    const ids = new Set<string>();
-    for (const r of admin) if (r.actor_id) ids.add(r.actor_id);
-    for (const r of changes) if (r.user_id) ids.add(r.user_id);
-    for (const r of auth) if (r.user_id) ids.add(r.user_id);
-
-    if (ids.size > 0) {
+    let cancelled = false;
+    void (async () => {
       const { data: profiles } = await supabase
         .from('users')
         .select('id, username')
         .in('id', Array.from(ids));
+      if (cancelled) return;
       const map: Record<string, string> = {};
       for (const p of profiles ?? []) {
         if (p.id && p.username) map[p.id] = p.username;
       }
-      setEmailByUserId(map);
-    } else {
-      setEmailByUserId({});
-    }
-
-    setLoading(false);
-  }, [t.errorOccurred]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+      setEmailByUserId((prev) => ({ ...prev, ...map }));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [adminRows, changeRows, authRows]);
 
   const who = useCallback(
     (userId: string | null | undefined) => {
       if (!userId) return '—';
       return emailByUserId[userId] ?? shortId(userId);
     },
-    [emailByUserId]
+    [emailByUserId],
   );
+
+  const loading = adminPager.loading || changePager.loading || authPager.loading;
+  const error = adminPager.error || changePager.error || authPager.error;
+
+  const activePager =
+    tab === 'actions' ? adminPager : tab === 'changes' ? changePager : authPager;
 
   const tabs = useMemo(
     () =>
@@ -173,16 +165,12 @@ export function AuditLogScreen() {
         { id: 'changes' as const, label: t.auditLogTabChanges, count: changeRows.length },
         { id: 'signins' as const, label: t.auditLogTabSignIns, count: authRows.length },
       ],
-    [adminRows.length, authRows.length, changeRows.length, t]
+    [adminRows.length, authRows.length, changeRows.length, t],
   );
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t.auditLogTitle}
-        description={t.auditLogSubtitle}
-        icon={ScrollText}
-      />
+      <PageHeader title={t.auditLogTitle} description={t.auditLogSubtitle} icon={ScrollText} />
 
       <div className="flex flex-wrap gap-2">
         {tabs.map((item) => (
@@ -219,11 +207,21 @@ export function AuditLogScreen() {
             <table className="min-w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColWhen}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColWho}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColAction}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColResource}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColDetails}</th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColWhen}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColWho}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColAction}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColResource}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColDetails}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -236,19 +234,25 @@ export function AuditLogScreen() {
                 ) : (
                   adminRows.map((row) => (
                     <tr key={row.id} className="border-b border-slate-100 dark:border-slate-800">
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">{formatWhen(row.created_at)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
+                        {formatWhen(row.created_at)}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-slate-900 dark:text-white">{who(row.actor_id)}</div>
                         {row.actor_role ? (
                           <div className="text-xs text-slate-500">{row.actor_role}</div>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-cockpit-600 dark:text-cockpit-400">{row.action}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-cockpit-600 dark:text-cockpit-400">
+                        {row.action}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="font-medium">{row.resource_table}</div>
                         <div className="font-mono text-xs text-slate-500">{shortId(row.resource_id)}</div>
                       </td>
-                      <td className="max-w-xs truncate px-4 py-3 font-mono text-xs text-slate-500">{payloadPreview(row.payload)}</td>
+                      <td className="max-w-xs truncate px-4 py-3 font-mono text-xs text-slate-500">
+                        {payloadPreview(row.payload)}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -260,11 +264,21 @@ export function AuditLogScreen() {
             <table className="min-w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColWhen}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColWho}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColAction}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColResource}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColDetails}</th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColWhen}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColWho}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColAction}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColResource}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColDetails}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -277,7 +291,9 @@ export function AuditLogScreen() {
                 ) : (
                   changeRows.map((row) => (
                     <tr key={row.id} className="border-b border-slate-100 dark:border-slate-800">
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">{formatWhen(row.created_at)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
+                        {formatWhen(row.created_at)}
+                      </td>
                       <td className="px-4 py-3">{who(row.user_id)}</td>
                       <td className="px-4 py-3 font-mono text-xs">{row.action}</td>
                       <td className="px-4 py-3">
@@ -298,11 +314,21 @@ export function AuditLogScreen() {
             <table className="min-w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColWhen}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColWho}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColAction}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColSurface}</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.auditLogColDevice}</th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColWhen}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColWho}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColAction}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColSurface}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t.auditLogColDevice}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -315,7 +341,9 @@ export function AuditLogScreen() {
                 ) : (
                   authRows.map((row) => (
                     <tr key={row.id} className="border-b border-slate-100 dark:border-slate-800">
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">{formatWhen(row.created_at)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
+                        {formatWhen(row.created_at)}
+                      </td>
                       <td className="px-4 py-3">{who(row.user_id)}</td>
                       <td className="px-4 py-3 font-mono text-xs">{row.event_type}</td>
                       <td className="px-4 py-3">{surfaceLabel(row.surface)}</td>
@@ -326,6 +354,12 @@ export function AuditLogScreen() {
               </tbody>
             </table>
           )}
+
+          <ListPagerFooter
+            hasMore={activePager.hasMore}
+            loadingMore={activePager.loadingMore}
+            onLoadMore={activePager.loadMore}
+          />
         </div>
       )}
     </div>

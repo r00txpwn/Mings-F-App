@@ -7,7 +7,9 @@ import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
 import { isPartnerManualSaleChannel } from '../lib/partnerSalesChannels';
 import { useAuth } from '../contexts/AuthContext';
 import { PageHeader } from '../components/cockpit';
+import { ListPagerFooter } from '../components/ListPagerFooter';
 import { SingleDatePicker } from '../components/SingleDatePicker';
+import { usePagedQuery } from '../hooks/usePagedQuery';
 
 interface GroupedSale {
   date: string;
@@ -32,17 +34,26 @@ export function SalesScreen() {
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [channels, setChannels] = useState<SalesChannel[]>([]);
-  const [sales, setSales] = useState<Sale[]>([]);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const aov = (Number(amount) / Number(orderCount)) || 0;
+  const salesPager = usePagedQuery<Sale>({
+    buildQuery: () =>
+      supabase
+        .from('sales')
+        .select('*, sales_channels(*)')
+        .order('sale_date', { ascending: false })
+        .order('created_at', { ascending: false }),
+  });
+
+  const sales = salesPager.rows;
+  const loading = salesPager.loading;
+  const aov = Number(amount) / Number(orderCount) || 0;
 
   const manualChannels = useMemo(
     () => channels.filter(isManualSaleChannel).sort((a, b) => a.name.localeCompare(b.name)),
@@ -57,9 +68,12 @@ export function SalesScreen() {
   }, [channels, editingSale?.sales_channel_id, manualChannels]);
 
   useEffect(() => {
-    loadChannels();
-    loadSales();
+    void loadChannels();
   }, []);
+
+  useEffect(() => {
+    if (salesPager.error) setError(salesPager.error);
+  }, [salesPager.error]);
 
   useEffect(() => {
     if (manualChannels.length === 0) {
@@ -86,24 +100,6 @@ export function SalesScreen() {
     if (data) {
       setChannels(data);
     }
-  };
-
-  const loadSales = async () => {
-    setLoading(true);
-    const { data, error: err } = await supabase
-      .from('sales')
-      .select('*, sales_channels(*)')
-      .order('sale_date', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (err) {
-      setError(err.message);
-    }
-    if (data) {
-      setSales(data);
-    }
-    setLoading(false);
   };
 
   const handleSave = async () => {
@@ -144,7 +140,7 @@ export function SalesScreen() {
     setOrderCount('1');
     setDescription('');
     setTransactionDate(new Date().toISOString().split('T')[0]);
-    loadSales();
+    void salesPager.reload();
   };
 
   const getGroupedSales = (): GroupedSale[] => {
@@ -219,7 +215,7 @@ export function SalesScreen() {
 
     toast.success(t.updatedSuccessfully);
     setEditingSale(null);
-    loadSales();
+    void salesPager.reload();
   };
 
   const handleDelete = async (id: string) => {
@@ -237,7 +233,7 @@ export function SalesScreen() {
 
     toast.success(t.deletedSuccessfully);
     setDeleteConfirm(null);
-    loadSales();
+    void salesPager.reload();
   };
 
   return (
@@ -602,6 +598,13 @@ export function SalesScreen() {
               </table>
             </div>
           )}
+          {!loading && sales.length > 0 ? (
+            <ListPagerFooter
+              hasMore={salesPager.hasMore}
+              loadingMore={salesPager.loadingMore}
+              onLoadMore={salesPager.loadMore}
+            />
+          ) : null}
         </div>
       </div>
     </div>
