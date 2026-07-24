@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-07-24T06:24:57.515Z
+## Last Run: 2026-07-24T17:19:35.428Z
 
 | Check | Status |
 |-------|--------|
@@ -55,7 +55,7 @@
 
 [1m[46m RUN [49m[22m [36mv3.2.4 [39m[90m/home/runner/work/Mings-F-App/Mings-F-App[39m
 
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns correct percentage[32m 2[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns correct percentage[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 when denominator is zero[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 for non-finite inputs[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mcomputes all KPIs correctly[32m 1[2mms[22m[39m
@@ -70,7 +70,7 @@
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeDelta[2m > [22mcorrectly detects down direction[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeDelta[2m > [22mcorrectly detects flat direction[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeDelta[2m > [22mreturns null pctChange when previous is 0[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22maggregateByDay[2m > [22mgroups records by UTC date and sums amounts[32m 8[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22maggregateByDay[2m > [22mgroups records by UTC date and sums amounts[32m 9[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22maggregateByDay[2m > [22mreturns sorted ascending result[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22maggregateByDay[2m > [22mskips records with null/undefined date or amount[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22maggregateByDay[2m > [22mreturns empty array for empty input[32m 0[2mms[22m[39m
