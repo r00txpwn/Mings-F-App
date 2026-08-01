@@ -49,6 +49,25 @@ export function toLocalDateKey(date: Date): string {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
 
+function dateKeyOnly(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const key = value.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(key) ? key : null;
+}
+
+/** Inclusive employment day within the month (hired_at / left_at bounds). */
+export function isEmploymentDay(
+  dateKey: string,
+  hiredAt: string | null | undefined,
+  leftAt: string | null | undefined,
+): boolean {
+  const hired = dateKeyOnly(hiredAt);
+  const left = dateKeyOnly(leftAt);
+  if (hired && dateKey < hired) return false;
+  if (left && dateKey > left) return false;
+  return true;
+}
+
 export function resolveDayStatus(
   dateKey: string,
   weeklyOffWeekday: number,
@@ -79,6 +98,7 @@ export function marksByDate(marks: DayMarkInput[]): Map<string, EmployeeDayMarkT
 export type MonthPayableResult = {
   calendarDays: number;
   dailyRate: number;
+  employmentDays: number;
   absentDays: number;
   weeklyOffDays: number;
   workDays: number;
@@ -92,27 +112,35 @@ export function computeMonthPayable(input: {
   monthIndex0: number;
   weeklyOffWeekday: number;
   marks: DayMarkInput[];
+  hiredAt?: string | null;
+  leftAt?: string | null;
 }): MonthPayableResult {
   const calendarDays = daysInMonth(input.year, input.monthIndex0);
   const rate = dailyRate(input.monthlySalary, calendarDays);
   const byDate = marksByDate(input.marks);
+  let employmentDays = 0;
   let absentDays = 0;
   let weeklyOffDays = 0;
   let workDays = 0;
 
   for (const dateKey of buildMonthDays(input.year, input.monthIndex0)) {
+    if (!isEmploymentDay(dateKey, input.hiredAt, input.leftAt)) continue;
+    employmentDays += 1;
     const status = resolveDayStatus(dateKey, input.weeklyOffWeekday, byDate.get(dateKey));
     if (status === 'absent') absentDays += 1;
     else if (status === 'weekly_off') weeklyOffDays += 1;
     else workDays += 1;
   }
 
-  const deduction = absentDays * rate;
-  const payable = Math.max(0, (Number.isFinite(input.monthlySalary) ? input.monthlySalary : 0) - deduction);
+  const paidDays = Math.max(0, employmentDays - absentDays);
+  const payable = paidDays * rate;
+  const fullSalary = Number.isFinite(input.monthlySalary) ? input.monthlySalary : 0;
+  const deduction = Math.max(0, fullSalary - payable);
 
   return {
     calendarDays,
     dailyRate: rate,
+    employmentDays,
     absentDays,
     weeklyOffDays,
     workDays,
@@ -144,10 +172,14 @@ export function employeeVisibleInMonth(
   hiredAt: string | null | undefined,
   year: number,
   monthIndex0: number,
+  leftAt?: string | null,
 ): boolean {
-  if (!hiredAt) return true;
-  const { end } = monthDateRange(year, monthIndex0);
-  return hiredAt.slice(0, 10) <= end;
+  const { start, end } = monthDateRange(year, monthIndex0);
+  const hired = dateKeyOnly(hiredAt);
+  const left = dateKeyOnly(leftAt);
+  if (hired && hired > end) return false;
+  if (left && left < start) return false;
+  return true;
 }
 
 export function roundMoney3(n: number): number {

@@ -48,6 +48,11 @@ When running QA, prioritise:
 7. **Route coverage** — all documented routes still exist in source
 8. **Env vars** — `.env.example` keys match `scripts/verify-env.mjs` checks
 
+## TestSprite + Trello bug tracking
+- **TestSprite** runs automated UI checks; **Trello** board **Mings Bug Tracker** (`6a6db3ab84342974325b38e1`) is the product bug tracker (MCP `user-trello`).
+- After TestSprite (or `test initiate`) failures: file/update cards on **Reported**; move through In Progress → Confirm Fix; **Done** only after owner/QA confirm.
+- Details: `.cursor/rules/testsprite-trello-bug-tracker.mdc`.
+
 ## Running the Project
 ```bash
 npm run dev          # Dev server

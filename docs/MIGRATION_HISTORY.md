@@ -143,3 +143,4 @@ npm run supabase:deploy:web
 - `20260712151000_purchases_discount_percent.sql` — adds **`purchases.discount_percent`** (0–100). COGS forms store list **`unit_cost`** and compute **`total_cost = qty × unit_cost × (1 − discount/100)`**.
 - `20260712152000_user_preferences_per_user.sql` — adds **`user_preferences.user_id`** (unique per auth user), removes legacy global rows, and scopes RLS to **`auth.uid()`** so language choice persists per user instead of resetting to English.
 - `20260801120000_employee_attendance_marks.sql` — **additive** payroll attendance: `employees.weekly_off_weekday` (default Sunday) + `employee_day_marks` (`weekly_off` / `absent` / `work`). No drops or data deletes.
+- `20260801140000_employee_left_at.sql` — **additive** `employees.left_at` for leave-day proration. No drops.

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { DateRangePicker } from '../DateRangePicker';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-export type DatePreset = 'today' | '7d' | '30d' | 'mtd' | 'qtd' | 'custom';
+export type DatePreset = 'this_month' | 'last_month' | 'custom';
 
 export interface FilterBarProps {
   selectedPreset: DatePreset;
@@ -12,6 +12,32 @@ export interface FilterBarProps {
   onStartDateChange?: (value: string) => void;
   onEndDateChange?: (value: string) => void;
   channelFilter?: ReactNode;
+}
+
+/** Local calendar YYYY-MM-DD (avoids UTC shift from toISOString). */
+export function toLocalDateISO(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function getPresetDateRange(preset: Exclude<DatePreset, 'custom'>): {
+  startDate: string;
+  endDate: string;
+} {
+  const now = new Date();
+  const today = toLocalDateISO(now);
+
+  if (preset === 'last_month') {
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+    return { startDate: toLocalDateISO(start), endDate: toLocalDateISO(end) };
+  }
+
+  // this_month — month-to-date (1st → today)
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  return { startDate: toLocalDateISO(monthStart), endDate: today };
 }
 
 export function FilterBar({
@@ -25,11 +51,8 @@ export function FilterBar({
 }: FilterBarProps) {
   const { t } = useLanguage();
   const PRESET_OPTIONS: Array<{ value: DatePreset; label: string }> = [
-    { value: 'today', label: t.today },
-    { value: '7d', label: '7D' },
-    { value: '30d', label: '30D' },
-    { value: 'mtd', label: 'MTD' },
-    { value: 'qtd', label: 'QTD' },
+    { value: 'this_month', label: t.thisMonth },
+    { value: 'last_month', label: t.lastMonth },
     { value: 'custom', label: t.custom },
   ];
   const showCustomInputs = selectedPreset === 'custom' && onStartDateChange && onEndDateChange;

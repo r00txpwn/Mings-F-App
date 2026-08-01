@@ -1,5 +1,5 @@
 export { KpiCard } from './KpiCard';
-export { FilterBar } from './FilterBar';
+export { FilterBar, getPresetDateRange, toLocalDateISO } from './FilterBar';
 export type { DatePreset, FilterBarProps } from './FilterBar';
 export { InsightPanel } from './InsightPanel';
 export { ChartCard } from './ChartCard';

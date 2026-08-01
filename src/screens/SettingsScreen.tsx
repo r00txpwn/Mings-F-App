@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Globe, Trash2, Plus, Check, Moon, Sun, Store, Loader2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Globe, Trash2, Plus, Check, Moon, Sun, Store, Loader2, Wallet } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Language } from '../translations';
 import { supabase } from '../lib/supabase';
 import { adminInsert, adminUpdate } from '../lib/adminApi';
@@ -15,6 +16,15 @@ import {
 } from '../lib/salesChannelPolicy';
 import { PageHeader } from '../components/cockpit';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import {
+  computeWithdrawalFee,
+  defaultWithdrawalFeeSettings,
+  MAX_WITHDRAWAL_FEE_RATE,
+  percentInputToRate,
+  rateToPercentInput,
+  type WithdrawalFeeSettings,
+} from '../services/finance/withdrawalFees';
+import { fetchWithdrawalFeeSettings } from '../services/finance/withdrawalFeeSettingsService';
 
 interface SalesChannel {
   id: string;
@@ -31,6 +41,7 @@ export function SettingsScreen() {
   const { t, language, setLanguage } = useLanguage();
   const toast = useToast();
   const { theme, toggleTheme } = useTheme();
+  const { isAdminUser } = useAuth();
   const [salesChannels, setSalesChannels] = useState<SalesChannel[]>([]);
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelDescription, setNewChannelDescription] = useState('');
@@ -38,6 +49,16 @@ export function SettingsScreen() {
   const [deleteChannelConfirm, setDeleteChannelConfirm] = useState<SalesChannel | null>(null);
   const [deleteChannelError, setDeleteChannelError] = useState<string | null>(null);
   const [deleteChannelLoading, setDeleteChannelLoading] = useState(false);
+
+  const [feeSettings, setFeeSettings] = useState<WithdrawalFeeSettings>(defaultWithdrawalFeeSettings);
+  const [feeForm, setFeeForm] = useState({
+    bankRatePct: rateToPercentInput(0.005),
+    bankMinFee: '0',
+    cardRatePct: rateToPercentInput(0.01),
+    cardMinFee: '1',
+  });
+  const [feeLoading, setFeeLoading] = useState(true);
+  const [feeSaving, setFeeSaving] = useState(false);
 
   const languageNames: Record<Language, Record<Language, string>> = {
     en: { en: 'English', az: 'Azerbaijani', ru: 'Russian' },
@@ -49,6 +70,19 @@ export function SettingsScreen() {
     { code: 'az', name: languageNames[language].az, flag: '🇦🇿' },
     { code: 'ru', name: languageNames[language].ru, flag: '🇷🇺' },
   ];
+
+  const feeExamplePreview = useMemo(() => {
+    const exampleAmount = 100;
+    const bank = computeWithdrawalFee(exampleAmount, 'cashier', {
+      rate: percentInputToRate(feeForm.bankRatePct),
+      minFee: Math.max(0, Number(feeForm.bankMinFee) || 0),
+    });
+    const card = computeWithdrawalFee(exampleAmount, 'abb_atm', {
+      rate: percentInputToRate(feeForm.cardRatePct),
+      minFee: Math.max(0, Number(feeForm.cardMinFee) || 0),
+    });
+    return { bank, card, exampleAmount };
+  }, [feeForm]);
 
   const localizeChannelDescription = (channel: SalesChannel) => {
     const base = channel.description?.trim();
@@ -88,7 +122,61 @@ export function SettingsScreen() {
 
   useEffect(() => {
     void fetchSalesChannels();
+    void loadFeeSettings();
   }, []);
+
+  const loadFeeSettings = async () => {
+    setFeeLoading(true);
+    const { data } = await fetchWithdrawalFeeSettings();
+    setFeeSettings(data);
+    setFeeForm({
+      bankRatePct: rateToPercentInput(data.bank.rate),
+      bankMinFee: String(data.bank.minFee),
+      cardRatePct: rateToPercentInput(data.card.rate),
+      cardMinFee: String(data.card.minFee),
+    });
+    setFeeLoading(false);
+  };
+
+  const handleSaveFeeSettings = async () => {
+    if (!isAdminUser || feeSaving) return;
+    const bankRate = percentInputToRate(feeForm.bankRatePct);
+    const cardRate = percentInputToRate(feeForm.cardRatePct);
+    const bankMin = Math.max(0, Number(feeForm.bankMinFee) || 0);
+    const cardMin = Math.max(0, Number(feeForm.cardMinFee) || 0);
+
+    if (bankRate > MAX_WITHDRAWAL_FEE_RATE || cardRate > MAX_WITHDRAWAL_FEE_RATE) {
+      toast.error(t.withdrawalFeeRateInvalid);
+      return;
+    }
+
+    setFeeSaving(true);
+    const payload = {
+      bank_rate: bankRate,
+      bank_min_fee: bankMin,
+      card_rate: cardRate,
+      card_min_fee: cardMin,
+      updated_at: new Date().toISOString(),
+    };
+
+    let result = await adminUpdate('finance_withdrawal_fee_settings', '1', payload);
+    if (!result.ok) {
+      result = await adminInsert('finance_withdrawal_fee_settings', { id: 1, ...payload });
+    }
+    setFeeSaving(false);
+
+    if (!result.ok) {
+      toast.error(result.error ?? t.errorOccurred);
+      return;
+    }
+
+    const next = {
+      bank: { rate: bankRate, minFee: bankMin },
+      card: { rate: cardRate, minFee: cardMin },
+    };
+    setFeeSettings(next);
+    toast.success(t.withdrawalFeeSettingsSaved);
+  };
 
   const fetchSalesChannels = async () => {
     const primary = await supabase
@@ -381,6 +469,98 @@ export function SettingsScreen() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="cockpit-panel p-6">
+        <h2 className="cockpit-section-title mb-2 flex items-center gap-2">
+          <Wallet className="h-5 w-5 text-cockpit-600 dark:text-cockpit-400" />
+          {t.withdrawalFeeSettingsTitle}
+        </h2>
+        <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">{t.withdrawalFeeSettingsHint}</p>
+
+        {!isAdminUser ? (
+          <p className="text-sm text-amber-700 dark:text-amber-300">{t.withdrawalFeeSettingsAdminOnly}</p>
+        ) : feeLoading ? (
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {t.pleaseWait}
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+                <h3 className="mb-3 font-semibold text-slate-800 dark:text-slate-100">{t.withdrawalFeeBankLabel}</h3>
+                <label className="mb-1 block text-xs font-medium text-slate-500">{t.withdrawalFeeRatePercent}</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.01"
+                  className="cockpit-input mb-3"
+                  value={feeForm.bankRatePct}
+                  onChange={(e) => setFeeForm((p) => ({ ...p, bankRatePct: e.target.value }))}
+                />
+                <label className="mb-1 block text-xs font-medium text-slate-500">{t.withdrawalFeeMinAmount}</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  className="cockpit-input"
+                  value={feeForm.bankMinFee}
+                  onChange={(e) => setFeeForm((p) => ({ ...p, bankMinFee: e.target.value }))}
+                />
+                <p className="mt-2 text-xs text-slate-500">
+                  {t.withdrawalFeeExamplePreview
+                    .replace('{amount}', String(feeExamplePreview.exampleAmount))
+                    .replace('{fee}', feeExamplePreview.bank.fee.toFixed(2))}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+                <h3 className="mb-3 font-semibold text-slate-800 dark:text-slate-100">{t.withdrawalFeeCardLabel}</h3>
+                <label className="mb-1 block text-xs font-medium text-slate-500">{t.withdrawalFeeRatePercent}</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.01"
+                  className="cockpit-input mb-3"
+                  value={feeForm.cardRatePct}
+                  onChange={(e) => setFeeForm((p) => ({ ...p, cardRatePct: e.target.value }))}
+                />
+                <label className="mb-1 block text-xs font-medium text-slate-500">{t.withdrawalFeeMinAmount}</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  className="cockpit-input"
+                  value={feeForm.cardMinFee}
+                  onChange={(e) => setFeeForm((p) => ({ ...p, cardMinFee: e.target.value }))}
+                />
+                <p className="mt-2 text-xs text-slate-500">
+                  {t.withdrawalFeeExamplePreview
+                    .replace('{amount}', String(feeExamplePreview.exampleAmount))
+                    .replace('{fee}', feeExamplePreview.card.fee.toFixed(2))}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={feeSaving}
+              onClick={() => void handleSaveFeeSettings()}
+              className="cockpit-btn-primary"
+            >
+              {feeSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {t.save}
+            </button>
+            <p className="text-xs text-slate-400">
+              {t.withdrawalFeeBankLabel}: {(feeSettings.bank.rate * 100).toFixed(2)}% / min ₼
+              {feeSettings.bank.minFee.toFixed(2)} · {t.withdrawalFeeCardLabel}:{' '}
+              {(feeSettings.card.rate * 100).toFixed(2)}% / min ₼{feeSettings.card.minFee.toFixed(2)}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

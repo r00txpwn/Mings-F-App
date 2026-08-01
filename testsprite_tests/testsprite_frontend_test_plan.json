@@ -1,0 +1,332 @@
+[
+  {
+    "id": "TC001",
+    "title": "Record a salary payment from the suggested remaining amount",
+    "description": "This verifies that the payment form suggests the remaining payable amount and records a payment that updates paid, remaining, and status.",
+    "category": "Month payroll and attendance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /spec-ops?screen=staff"
+      },
+      {
+        "type": "action",
+        "description": "Open the payment form for an employee"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a suggested remaining payable amount is displayed"
+      },
+      {
+        "type": "action",
+        "description": "Enter the suggested remaining amount as the payment value"
+      },
+      {
+        "type": "action",
+        "description": "Submit the payment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the paid amount, remaining amount, and status are updated"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Sign in and reach the staff cockpit home",
+    "description": "This verifies that a staff user can authenticate and land on the internal cockpit home screen.",
+    "category": "Staff login",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /spec-ops"
+      },
+      {
+        "type": "action",
+        "description": "Fill in email with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign in form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the staff cockpit home is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Create an employee and see them in the payroll list",
+    "description": "This verifies that a staff user can add an employee and immediately find them in the current month payroll view.",
+    "category": "Month payroll and attendance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /spec-ops?screen=staff"
+      },
+      {
+        "type": "action",
+        "description": "Open the employee form"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the employee name with a unique test name"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the designation field with a test role"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the monthly salary field with a valid amount"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the start date field with a valid date"
+      },
+      {
+        "type": "action",
+        "description": "Select a default weekly off day"
+      },
+      {
+        "type": "action",
+        "description": "Save the employee"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new employee appears in the current month payroll list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "See payable update when attendance changes",
+    "description": "This verifies that marking absences changes the employee payable while weekly off days remain included.",
+    "category": "Month payroll and attendance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /spec-ops?screen=staff"
+      },
+      {
+        "type": "action",
+        "description": "Expand an employee row"
+      },
+      {
+        "type": "action",
+        "description": "Note the current payable amount"
+      },
+      {
+        "type": "action",
+        "description": "Mark one or more working days as absent"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payable amount decreases"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify weekly off days remain included in the payroll calculation"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Edit an employee and keep them visible in payroll",
+    "description": "This verifies that a saved employee can be edited and remains present in the month payroll list with updated details.",
+    "category": "Month payroll and attendance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /spec-ops?screen=staff"
+      },
+      {
+        "type": "action",
+        "description": "Open the employee form for an existing employee"
+      },
+      {
+        "type": "action",
+        "description": "Update the employee name with a unique edited name"
+      },
+      {
+        "type": "action",
+        "description": "Update the monthly salary field with a different valid amount"
+      },
+      {
+        "type": "action",
+        "description": "Save the employee"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the edited employee remains visible in the current month payroll list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Switch between cockpit sections",
+    "description": "This verifies that an authenticated user can navigate between cockpit sections and each requested screen loads.",
+    "category": "Cockpit navigation",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /spec-ops?screen=home"
+      },
+      {
+        "type": "action",
+        "description": "Select the staff section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the staff screen is displayed"
+      },
+      {
+        "type": "action",
+        "description": "Select the expenses section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the expenses screen is displayed"
+      },
+      {
+        "type": "action",
+        "description": "Select the money section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the money screen is displayed"
+      },
+      {
+        "type": "action",
+        "description": "Select the settings section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the settings screen is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Move between payroll months",
+    "description": "This verifies that switching months updates the payroll list to the selected month.",
+    "category": "Month payroll and attendance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /spec-ops?screen=staff"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the previous month"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payroll list updates for the previous month"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the next month"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payroll list updates for the next month"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Mark attendance across a single employee row",
+    "description": "This verifies that an employee row can be expanded and a day mark can be cycled through attendance states for that month.",
+    "category": "Month payroll and attendance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /spec-ops?screen=staff"
+      },
+      {
+        "type": "action",
+        "description": "Expand an employee row"
+      },
+      {
+        "type": "action",
+        "description": "Tap a calendar day mark once"
+      },
+      {
+        "type": "action",
+        "description": "Tap the same calendar day mark again"
+      },
+      {
+        "type": "action",
+        "description": "Tap the same calendar day mark a third time"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the day mark cycles through work, absent, and off states"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC009",
+    "title": "Open the executive home screen from cockpit navigation",
+    "description": "This verifies that the executive home view can be opened from the cockpit and loads its KPI-style content.",
+    "category": "Cockpit navigation",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /spec-ops?screen=staff"
+      },
+      {
+        "type": "action",
+        "description": "Select the home section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the home dashboard is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify KPI-style content is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC010",
+    "title": "Review salary history by month",
+    "description": "This verifies that monthly salary and payment history can be inspected from the staff payroll view.",
+    "category": "Month payroll and attendance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /spec-ops?screen=staff"
+      },
+      {
+        "type": "action",
+        "description": "Open an employee's monthly history view"
+      },
+      {
+        "type": "action",
+        "description": "Switch to a different month in the history view"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify salary or payment history for the selected month is displayed"
+      }
+    ],
+    "priority": "Medium"
+  }
+]

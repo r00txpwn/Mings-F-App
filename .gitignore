@@ -35,9 +35,15 @@ pw-*.png
 /screenshots/
 test-results/
 .cursor/skills/
+# Matt Pocock / npx skills local installs (keep slash cmds in .cursor/commands/)
+.agents/
+skills-lock.json
+
 **/__pycache__/
 .env*.local
 payments.md
 # Playwright stored auth state (session tokens) — never commit
 **/.auth/
 docs/qa-screenshots/.auth/
+
+testsprite_tests\tmp\config.json

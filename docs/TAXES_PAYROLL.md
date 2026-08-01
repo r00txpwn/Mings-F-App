@@ -12,12 +12,13 @@ Track tax payments as normal **operational expenses** (Expenses hub) with your o
 
 Staff screen is **month-based** (not a free date range):
 
-- Each employee has **`hired_at`** (start date) and **`weekly_off_weekday`** (0=Sunday … 6=Saturday; default Sunday).
-- Monthly salary **includes** the weekly off day. Only days marked **`absent`** deduct pay.
+- Each employee has **`hired_at`** (start date), optional **`left_at`** (last employed day, inclusive), and **`weekly_off_weekday`** (0=Sunday … 6=Saturday; default Sunday).
+- Monthly salary **includes** the weekly off day. Only days marked **`absent`** (during employment) deduct pay.
 - **Day rate** = `monthly_salary ÷ calendar days in that month` (28–31).
-- **Payable** = `monthly_salary − (absent_days × day_rate)` (floor at 0).
+- **Payable** = `dailyRate × (employmentDays − absentDays)` (floor at 0), where employment days run from `max(monthStart, hired_at)` through `min(monthEnd, left_at)`.
+- **Leave:** **Mark as left** sets `left_at` + `is_active = false` (do not delete). Leavers stay visible in the leave month; later months hide them unless “Show left” is on. **Rehire** clears `left_at` and reactivates.
 - Per-date overrides live in **`employee_day_marks`** (`weekly_off` | `absent` | `work`). Default weekly offs are suggested in the UI when no row exists.
-- Recording a payment still writes **`salary_payments`** (cash ledger). Home/Reports **payroll KPI stays cash-based** (`sum(salary_payments)`); absences only change suggested payable on the Staff screen.
+- Recording a payment still writes **`salary_payments`** (cash ledger). Home/Reports **payroll KPI stays cash-based** (`sum(salary_payments)`); absences / leave only change suggested payable on the Staff screen.
 
 Additive migration: `20260801120000_employee_attendance_marks.sql` (adds column + new table; no drops).
 

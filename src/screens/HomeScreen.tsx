@@ -6,6 +6,7 @@ import {
   FilterBar,
   InsightPanel,
   KpiCard,
+  getPresetDateRange,
   type DatePreset,
 } from '../components/analytics';
 import { HomeDetailsSection } from '../components/home/HomeDetailsSection';
@@ -42,32 +43,14 @@ function getDateRange(
   customStartDate: string,
   customEndDate: string,
 ): { startDate: string; endDate: string } {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  if (preset === 'today') return { startDate: todayStr, endDate: todayStr };
-  if (preset === '7d') {
-    const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 6);
-    return { startDate: weekAgo.toISOString().split('T')[0], endDate: todayStr };
+  if (preset === 'custom') {
+    const fallback = getPresetDateRange('this_month');
+    return {
+      startDate: customStartDate || fallback.startDate,
+      endDate: customEndDate || fallback.endDate,
+    };
   }
-  if (preset === '30d') {
-    const monthAgo = new Date(today);
-    monthAgo.setDate(monthAgo.getDate() - 29);
-    return { startDate: monthAgo.toISOString().split('T')[0], endDate: todayStr };
-  }
-  if (preset === 'mtd') {
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    return { startDate: firstDayOfMonth.toISOString().split('T')[0], endDate: todayStr };
-  }
-  if (preset === 'qtd') {
-    const quarterStartMonth = Math.floor(today.getMonth() / 3) * 3;
-    const firstDayOfQuarter = new Date(today.getFullYear(), quarterStartMonth, 1);
-    return { startDate: firstDayOfQuarter.toISOString().split('T')[0], endDate: todayStr };
-  }
-  return {
-    startDate: customStartDate || todayStr,
-    endDate: customEndDate || todayStr,
-  };
+  return getPresetDateRange(preset);
 }
 
 function formatDeltaBadge(delta: MetricDelta<number>): { text: string; trend: 'up' | 'down' | 'neutral' } {
@@ -83,7 +66,7 @@ function formatDeltaBadge(delta: MetricDelta<number>): { text: string; trend: 'u
 
 export function HomeScreen() {
   const { t } = useLanguage();
-  const [preset, setPreset] = useState<DatePreset>('mtd');
+  const [preset, setPreset] = useState<DatePreset>('this_month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [sourceFilter, setSourceFilter] = useState<AnalyticsSourceFilter>('all');
@@ -395,7 +378,14 @@ export function HomeScreen() {
       <div className="mb-4 space-y-3">
         <FilterBar
           selectedPreset={preset}
-          onPresetChange={setPreset}
+          onPresetChange={(next) => {
+            setPreset(next);
+            if (next === 'custom' && (!customStartDate || !customEndDate)) {
+              const range = getPresetDateRange('this_month');
+              setCustomStartDate(range.startDate);
+              setCustomEndDate(range.endDate);
+            }
+          }}
           startDate={customStartDate}
           endDate={customEndDate}
           onStartDateChange={setCustomStartDate}

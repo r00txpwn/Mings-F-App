@@ -17,16 +17,16 @@ describe('payrollMonth', () => {
   });
 
   it('Mashallah 1200: Sunday offs included; one Monday absent deducts one day', () => {
-    // August 2026 has 31 days; Sundays are weekly off (weekday 0)
     const result = computeMonthPayable({
       monthlySalary: 1200,
       year: 2026,
       monthIndex0: 7,
       weeklyOffWeekday: 0,
-      marks: [{ work_date: '2026-08-03', mark_type: 'absent' }], // Monday
+      marks: [{ work_date: '2026-08-03', mark_type: 'absent' }],
     });
 
     expect(result.calendarDays).toBe(31);
+    expect(result.employmentDays).toBe(31);
     expect(result.absentDays).toBe(1);
     expect(result.weeklyOffDays).toBeGreaterThan(0);
     expect(result.deduction).toBeCloseTo(1200 / 31, 8);
@@ -45,13 +45,42 @@ describe('payrollMonth', () => {
     expect(result.payable).toBe(1200);
   });
 
+  it('leaves mid-month: payable covers days through left_at inclusive', () => {
+    const result = computeMonthPayable({
+      monthlySalary: 1200,
+      year: 2026,
+      monthIndex0: 7,
+      weeklyOffWeekday: 0,
+      marks: [],
+      leftAt: '2026-08-15',
+    });
+    expect(result.employmentDays).toBe(15);
+    expect(result.payable).toBeCloseTo(15 * (1200 / 31), 8);
+  });
+
+  it('leave + absence only counts absences during employment', () => {
+    const result = computeMonthPayable({
+      monthlySalary: 1200,
+      year: 2026,
+      monthIndex0: 7,
+      weeklyOffWeekday: 0,
+      leftAt: '2026-08-15',
+      marks: [
+        { work_date: '2026-08-03', mark_type: 'absent' }, // before leave
+        { work_date: '2026-08-20', mark_type: 'absent' }, // after leave — ignored
+      ],
+    });
+    expect(result.employmentDays).toBe(15);
+    expect(result.absentDays).toBe(1);
+    expect(result.payable).toBeCloseTo(14 * (1200 / 31), 8);
+  });
+
   it('work mark overrides default Sunday off', () => {
-    expect(resolveDayStatus('2026-08-02', 0, undefined)).toBe('weekly_off'); // Sunday
+    expect(resolveDayStatus('2026-08-02', 0, undefined)).toBe('weekly_off');
     expect(resolveDayStatus('2026-08-02', 0, 'work')).toBe('work');
   });
 
   it('tap cycle stores overrides and clears back to defaults', () => {
-    // Monday (work by default): work → absent → weekly_off → work(null)
     expect(nextDayMarkAfterTap({ dateKey: '2026-08-03', weeklyOffWeekday: 0, stored: undefined })).toBe(
       'absent',
     );
@@ -62,7 +91,6 @@ describe('payrollMonth', () => {
       nextDayMarkAfterTap({ dateKey: '2026-08-03', weeklyOffWeekday: 0, stored: 'weekly_off' }),
     ).toBeNull();
 
-    // Sunday (off by default): weekly_off → work → absent → weekly_off(null)
     expect(nextDayMarkAfterTap({ dateKey: '2026-08-02', weeklyOffWeekday: 0, stored: undefined })).toBe(
       'work',
     );
@@ -72,10 +100,12 @@ describe('payrollMonth', () => {
     expect(nextDayMarkAfterTap({ dateKey: '2026-08-02', weeklyOffWeekday: 0, stored: 'absent' })).toBeNull();
   });
 
-  it('hides employees hired after the selected month', () => {
+  it('hides employees outside the selected month employment window', () => {
     expect(employeeVisibleInMonth('2026-09-01', 2026, 7)).toBe(false);
     expect(employeeVisibleInMonth('2026-08-15', 2026, 7)).toBe(true);
     expect(employeeVisibleInMonth(null, 2026, 7)).toBe(true);
+    expect(employeeVisibleInMonth(null, 2026, 7, '2026-07-31')).toBe(false);
+    expect(employeeVisibleInMonth('2026-08-01', 2026, 7, '2026-08-15')).toBe(true);
   });
 
   it('roundMoney3 keeps three decimals', () => {

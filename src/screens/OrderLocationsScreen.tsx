@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { FilterBar, OrderLocationsMap, type DatePreset } from '../components/analytics';
+import { FilterBar, OrderLocationsMap, getPresetDateRange, type DatePreset } from '../components/analytics';
 import { StatCard } from '../components/ui';
 import { Skeleton } from '../components/ui/Skeleton';
 import {
@@ -9,37 +9,13 @@ import {
   type OrderLocationSourceFilter,
 } from '../services/analytics/orderLocationService';
 
-const toISO = (date: Date): string => date.toISOString().split('T')[0];
-
-function getPresetRange(preset: DatePreset): { startDate: string; endDate: string } {
-  const now = new Date();
-  const endDate = toISO(now);
-
-  if (preset === 'today') return { startDate: endDate, endDate };
-  if (preset === '7d') {
-    const start = new Date(now);
-    start.setDate(now.getDate() - 6);
-    return { startDate: toISO(start), endDate };
-  }
-  if (preset === '30d') {
-    const start = new Date(now);
-    start.setDate(now.getDate() - 29);
-    return { startDate: toISO(start), endDate };
-  }
-  if (preset === 'qtd') {
-    const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
-    return { startDate: toISO(new Date(now.getFullYear(), quarterStartMonth, 1)), endDate };
-  }
-  return { startDate: toISO(new Date(now.getFullYear(), now.getMonth(), 1)), endDate };
-}
-
 const SOURCE_FILTERS: OrderLocationSourceFilter[] = ['all', 'online_delivery', 'pos_delivery'];
 
 export function OrderLocationsScreen() {
   const { t } = useLanguage();
   const mapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-  const [{ startDate, endDate }, setDateRange] = useState(() => getPresetRange('30d'));
-  const [preset, setPreset] = useState<DatePreset>('30d');
+  const [{ startDate, endDate }, setDateRange] = useState(() => getPresetDateRange('this_month'));
+  const [preset, setPreset] = useState<DatePreset>('this_month');
   const [sourceFilter, setSourceFilter] = useState<OrderLocationSourceFilter>('all');
   const [points, setPoints] = useState<OrderLocationPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +62,7 @@ export function OrderLocationsScreen() {
         selectedPreset={preset}
         onPresetChange={(next) => {
           setPreset(next);
-          if (next !== 'custom') setDateRange(getPresetRange(next));
+          if (next !== 'custom') setDateRange(getPresetDateRange(next));
         }}
         startDate={startDate}
         endDate={endDate}

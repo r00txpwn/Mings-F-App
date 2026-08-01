@@ -9,6 +9,7 @@ import {
   FilterBar,
   InsightPanel,
   KpiCard,
+  getPresetDateRange,
   type DatePreset,
 } from '../components/analytics';
 import { SourceFilterChips } from '../components/home/SourceFilterChips';
@@ -34,42 +35,16 @@ interface ActivityItem {
   amount: number;
 }
 
-const toISO = (date: Date): string => date.toISOString().split('T')[0];
 const toCurrency = (value: number): string => `₼${value.toFixed(2)}`;
 const safeNumber = (value: number | string | null | undefined): number => {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-function getPresetRange(preset: DatePreset): { startDate: string; endDate: string } {
-  const now = new Date();
-  const endDate = toISO(now);
-
-  if (preset === 'today') {
-    return { startDate: endDate, endDate };
-  }
-  if (preset === '7d') {
-    const start = new Date(now);
-    start.setDate(now.getDate() - 6);
-    return { startDate: toISO(start), endDate };
-  }
-  if (preset === '30d') {
-    const start = new Date(now);
-    start.setDate(now.getDate() - 29);
-    return { startDate: toISO(start), endDate };
-  }
-  if (preset === 'qtd') {
-    const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
-    return { startDate: toISO(new Date(now.getFullYear(), quarterStartMonth, 1)), endDate };
-  }
-
-  return { startDate: toISO(new Date(now.getFullYear(), now.getMonth(), 1)), endDate };
-}
-
 export function ReportsScreen() {
   const { t } = useLanguage();
-  const [{ startDate, endDate }, setDateRange] = useState(() => getPresetRange('mtd'));
-  const [preset, setPreset] = useState<DatePreset>('mtd');
+  const [{ startDate, endDate }, setDateRange] = useState(() => getPresetDateRange('this_month'));
+  const [preset, setPreset] = useState<DatePreset>('this_month');
   const [sourceFilter, setSourceFilter] = useState<AnalyticsSourceFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -497,7 +472,7 @@ export function ReportsScreen() {
           onPresetChange={(nextPreset) => {
             setPreset(nextPreset);
             if (nextPreset !== 'custom') {
-              setDateRange(getPresetRange(nextPreset));
+              setDateRange(getPresetDateRange(nextPreset));
             }
           }}
           startDate={startDate}

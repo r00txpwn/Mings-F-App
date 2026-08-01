@@ -59,12 +59,15 @@ function getQuickRanges() {
   weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
   return {
     today: { start: today, end: today },
     yesterday: { start: yesterday, end: yesterday },
     thisWeek: { start: toISO(weekStart), end: today },
     tomorrow: { start: tomorrow, end: tomorrow },
     thisMonth: { start: toISO(monthStart), end: toISO(monthEnd) },
+    lastMonth: { start: toISO(lastMonthStart), end: toISO(lastMonthEnd) },
   };
 }
 
@@ -402,6 +405,17 @@ export function DateRangePicker({
                     className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
                   >
                     {t.thisMonth}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onStartChange(quick.lastMonth.start);
+                      onEndChange(quick.lastMonth.end);
+                      setOpen(false);
+                    }}
+                    className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
+                  >
+                    {t.lastMonth}
                   </button>
                   </div>
                 )}

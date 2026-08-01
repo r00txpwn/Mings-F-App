@@ -81,6 +81,7 @@ export interface Translations {
   thisWeek: string;
   tomorrow: string;
   thisMonth: string;
+  lastMonth: string;
   week: string;
   month: string;
   custom: string;
@@ -691,6 +692,17 @@ export interface Translations {
   staffAbsentCount: string;
   staffOffCount: string;
   staffStartDate: string;
+  staffLeftDate: string;
+  staffLeftDateHint: string;
+  staffLeftBadge: string;
+  staffMarkLeft: string;
+  staffMarkLeftConfirm: string;
+  staffLeaveDateRequired: string;
+  staffMarkedLeft: string;
+  staffRehire: string;
+  staffRehired: string;
+  staffShowLeftEmployees: string;
+  staffOutsideEmployment: string;
   staffWeeklyOffDay: string;
   staffWeekdaySun: string;
   staffWeekdayMon: string;
@@ -1672,6 +1684,7 @@ export const translations: Record<Language, Translations> = {
     thisWeek: 'This week',
     tomorrow: 'Tomorrow',
     thisMonth: 'This month',
+    lastMonth: 'Last month',
     week: 'Week',
     month: 'Month',
     custom: 'Custom',
@@ -2259,6 +2272,17 @@ export const translations: Record<Language, Translations> = {
     staffAbsentCount: 'Absent',
     staffOffCount: 'Weekly off',
     staffStartDate: 'Start date',
+    staffLeftDate: 'Last day',
+    staffLeftDateHint: 'Last day employed (inclusive). Clears pay after this date in the month.',
+    staffLeftBadge: 'Left',
+    staffMarkLeft: 'Mark as left',
+    staffMarkLeftConfirm: 'Set the last working day. Payable stops after this date; history is kept.',
+    staffLeaveDateRequired: 'Choose a last day',
+    staffMarkedLeft: 'Employee marked as left',
+    staffRehire: 'Rehire',
+    staffRehired: 'Employee rehired',
+    staffShowLeftEmployees: 'Show employees who already left',
+    staffOutsideEmployment: 'Outside employment',
     staffWeeklyOffDay: 'Default weekly off',
     staffWeekdaySun: 'Sunday',
     staffWeekdayMon: 'Monday',
@@ -2270,7 +2294,7 @@ export const translations: Record<Language, Translations> = {
     staffDayWork: 'Work',
     staffDayAbsent: 'Absent',
     staffDayWeeklyOff: 'Off',
-    staffDayLegend: 'Off (included in salary) · Absent (−1 day) · Work',
+    staffDayLegend: 'Colors: Work (plain) · Absent (red, −1 day) · Off (grey, in salary)',
     staffMarkDayHint: 'Tap a day to cycle: Work → Absent → Off',
     staffAbsenceDeductionHint: '{count} absent × ₼{rate} = −₼{deduction}',
     staffSuggestedPayment: 'Suggested: ₼{amount} (payable minus paid)',
@@ -3230,6 +3254,7 @@ export const translations: Record<Language, Translations> = {
     thisWeek: 'Bu həftə',
     tomorrow: 'Sabah',
     thisMonth: 'Bu ay',
+    lastMonth: 'Keçən ay',
     week: 'Həftə',
     month: 'Ay',
     custom: 'Xüsusi',
@@ -3817,6 +3842,17 @@ export const translations: Record<Language, Translations> = {
     staffAbsentCount: 'Gəlməyib',
     staffOffCount: 'Həftəlik off',
     staffStartDate: 'İşə başlama',
+    staffLeftDate: 'Son gün',
+    staffLeftDateHint: 'İşdə olduğu son gün (daxil). Bu tarixdən sonra aylıq ödəniş dayanır.',
+    staffLeftBadge: 'Ayrılıb',
+    staffMarkLeft: 'Ayrılıb kimi qeyd et',
+    staffMarkLeftConfirm: 'Son iş gününü seçin. Ödəniş bu tarixdən sonra dayanır; tarixçə saxlanır.',
+    staffLeaveDateRequired: 'Son günü seçin',
+    staffMarkedLeft: 'İşçi ayrılıb kimi qeyd edildi',
+    staffRehire: 'Yenidən işə al',
+    staffRehired: 'İşçi yenidən işə alındı',
+    staffShowLeftEmployees: 'Artıq ayrılmış işçiləri göstər',
+    staffOutsideEmployment: 'İş dövründən kənar',
     staffWeeklyOffDay: 'Defolt həftəlik off',
     staffWeekdaySun: 'Bazar',
     staffWeekdayMon: 'Bazar ertəsi',
@@ -3828,7 +3864,7 @@ export const translations: Record<Language, Translations> = {
     staffDayWork: 'İş',
     staffDayAbsent: 'Gəlməyib',
     staffDayWeeklyOff: 'Off',
-    staffDayLegend: 'Off (maaşa daxil) · Gəlməyib (−1 gün) · İş',
+    staffDayLegend: 'Rənglər: İş (adi) · Gəlməyib (qırmızı, −1 gün) · Off (boz, maaşa daxil)',
     staffMarkDayHint: 'Günü toxunun: İş → Gəlməyib → Off',
     staffAbsenceDeductionHint: '{count} gəlməmə × ₼{rate} = −₼{deduction}',
     staffSuggestedPayment: 'Tövsiyə: ₼{amount} (ödəniləcək − ödənilib)',
@@ -4791,6 +4827,7 @@ export const translations: Record<Language, Translations> = {
     thisWeek: 'Эта неделя',
     tomorrow: 'Завтра',
     thisMonth: 'Этот месяц',
+    lastMonth: 'Прошлый месяц',
     week: 'Неделя',
     month: 'Месяц',
     custom: 'Настраиваемый',
@@ -5378,6 +5415,17 @@ export const translations: Record<Language, Translations> = {
     staffAbsentCount: 'Прогул',
     staffOffCount: 'Выходной',
     staffStartDate: 'Дата начала',
+    staffLeftDate: 'Последний день',
+    staffLeftDateHint: 'Последний день работы (включительно). Оплата после этой даты в месяце не начисляется.',
+    staffLeftBadge: 'Ушёл',
+    staffMarkLeft: 'Отметить уход',
+    staffMarkLeftConfirm: 'Укажите последний рабочий день. Начисление останавливается после этой даты; история сохраняется.',
+    staffLeaveDateRequired: 'Выберите последний день',
+    staffMarkedLeft: 'Сотрудник отмечен как ушедший',
+    staffRehire: 'Вернуть на работу',
+    staffRehired: 'Сотрудник снова активен',
+    staffShowLeftEmployees: 'Показать уже ушедших',
+    staffOutsideEmployment: 'Вне периода работы',
     staffWeeklyOffDay: 'Выходной по умолчанию',
     staffWeekdaySun: 'Воскресенье',
     staffWeekdayMon: 'Понедельник',
@@ -5389,7 +5437,7 @@ export const translations: Record<Language, Translations> = {
     staffDayWork: 'Работа',
     staffDayAbsent: 'Прогул',
     staffDayWeeklyOff: 'Выходной',
-    staffDayLegend: 'Выходной (в зарплате) · Прогул (−1 день) · Работа',
+    staffDayLegend: 'Цвета: Работа (обычно) · Прогул (красный, −1 день) · Выходной (серый, в зарплате)',
     staffMarkDayHint: 'Нажмите день: Работа → Прогул → Выходной',
     staffAbsenceDeductionHint: '{count} прогул × ₼{rate} = −₼{deduction}',
     staffSuggestedPayment: 'Рекомендуется: ₼{amount} (к выплате минус выплачено)',

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, Fragment } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import {
   Plus,
   Users,
@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   CircleDashed,
   AlertCircle,
+  LogOut,
+  UserCheck,
 } from 'lucide-react';
 import {
   supabase,
@@ -24,6 +26,7 @@ import {
   type WeekdayIndex,
 } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
+import { withOptimisticState } from '../lib/optimisticUpdate';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -40,6 +43,7 @@ import {
   buildMonthDays,
   computeMonthPayable,
   employeeVisibleInMonth,
+  isEmploymentDay,
   monthDateRange,
   nextDayMarkAfterTap,
   parseLocalDateKey,
@@ -96,6 +100,8 @@ export function StaffScreen() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [payments, setPayments] = useState<PaymentWithEmployee[]>([]);
   const [dayMarks, setDayMarks] = useState<EmployeeDayMark[]>([]);
+  const dayMarksRef = useRef<EmployeeDayMark[]>([]);
+  const markPersistTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [markSavingKey, setMarkSavingKey] = useState<string | null>(null);
@@ -114,8 +120,12 @@ export function StaffScreen() {
   const [designation, setDesignation] = useState('');
   const [totalSalary, setTotalSalary] = useState('');
   const [hiredAt, setHiredAt] = useState('');
+  const [leftAt, setLeftAt] = useState('');
   const [weeklyOffWeekday, setWeeklyOffWeekday] = useState<WeekdayIndex>(0);
   const [isActive, setIsActive] = useState(true);
+  const [showLeftEmployees, setShowLeftEmployees] = useState(false);
+  const [leaveConfirmId, setLeaveConfirmId] = useState<string | null>(null);
+  const [leaveDateDraft, setLeaveDateDraft] = useState('');
 
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(toLocalDateInput(new Date()));
@@ -173,8 +183,11 @@ export function StaffScreen() {
     if (markRes.error) {
       // Table may not exist until migration is applied — keep UI usable.
       setDayMarks([]);
+      dayMarksRef.current = [];
     } else if (markRes.data) {
-      setDayMarks(markRes.data as EmployeeDayMark[]);
+      const marks = markRes.data as EmployeeDayMark[];
+      setDayMarks(marks);
+      dayMarksRef.current = marks;
     }
     setLoading(false);
   }, [monthRange.end, monthRange.start]);
@@ -188,6 +201,7 @@ export function StaffScreen() {
     setDesignation('');
     setTotalSalary('');
     setHiredAt('');
+    setLeftAt('');
     setWeeklyOffWeekday(0);
     setIsActive(true);
     setEditingEmployee(null);
@@ -210,6 +224,7 @@ export function StaffScreen() {
     setDesignation(employee.designation);
     setTotalSalary(String(employee.total_salary));
     setHiredAt(employee.hired_at ?? '');
+    setLeftAt(employee.left_at ?? '');
     setWeeklyOffWeekday(normalizeWeekday(employee.weekly_off_weekday));
     setIsActive(employee.is_active);
     setShowEmployeeForm(true);
@@ -237,10 +252,16 @@ export function StaffScreen() {
 
   const visibleEmployees = useMemo(
     () =>
-      employees.filter(
-        (e) => !isTestRecord(e.full_name) && employeeVisibleInMonth(e.hired_at, year, monthIndex0),
-      ),
-    [employees, monthIndex0, year],
+      employees.filter((e) => {
+        if (isTestRecord(e.full_name)) return false;
+        if (!employeeVisibleInMonth(e.hired_at, year, monthIndex0, e.left_at)) return false;
+        const { start } = monthDateRange(year, monthIndex0);
+        const leftBeforeMonth = Boolean(e.left_at && e.left_at.slice(0, 10) < start);
+        if (!showLeftEmployees && leftBeforeMonth) return false;
+        if (!showLeftEmployees && !e.is_active && !e.left_at) return false;
+        return true;
+      }),
+    [employees, monthIndex0, showLeftEmployees, year],
   );
 
   const employeeMonthStats = useCallback(
@@ -256,6 +277,8 @@ export function StaffScreen() {
         monthIndex0,
         weeklyOffWeekday: weeklyOff,
         marks,
+        hiredAt: employee.hired_at,
+        leftAt: employee.left_at,
       });
       const employeePayments = paymentsByEmployee.get(employee.id) ?? [];
       const paid = employeePayments.reduce((sum, p) => sum + Number(p.amount), 0);
@@ -269,15 +292,14 @@ export function StaffScreen() {
     [marksByEmployee, monthIndex0, paymentsByEmployee, year],
   );
 
-  const openAddPayment = (employeeId?: string) => {
+  const openAddPayment = (employeeId: string) => {
     resetPaymentForm();
-    if (employeeId) {
-      setPaymentEmployeeId(employeeId);
-      const employee = employees.find((e) => e.id === employeeId);
-      if (employee) {
-        const { remaining } = employeeMonthStats(employee);
-        if (remaining > 0) setPaymentAmount(String(roundMoney3(remaining)));
-      }
+    setPaymentEmployeeId(employeeId);
+    setExpandedEmployeeId(employeeId);
+    const employee = employees.find((e) => e.id === employeeId);
+    if (employee) {
+      const { remaining } = employeeMonthStats(employee);
+      if (remaining > 0) setPaymentAmount(String(roundMoney3(remaining)));
     }
     const midMonth = new Date(year, monthIndex0, Math.min(now.getDate(), monthDays.length));
     setPaymentDate(toLocalDateKey(midMonth));
@@ -287,6 +309,7 @@ export function StaffScreen() {
   const openEditPayment = (payment: PaymentWithEmployee) => {
     setEditingPayment(payment);
     setPaymentEmployeeId(payment.employee_id);
+    setExpandedEmployeeId(payment.employee_id);
     setPaymentAmount(String(payment.amount));
     setPaymentDate(payment.payment_date);
     setPaymentType(payment.payment_type);
@@ -311,8 +334,9 @@ export function StaffScreen() {
       designation: designation.trim(),
       total_salary: total,
       official_salary: total,
-      is_active: isActive,
+      is_active: leftAt.trim() ? false : isActive,
       hired_at: hiredAt.trim() || null,
+      left_at: leftAt.trim() || null,
       weekly_off_weekday: weeklyOffWeekday,
       updated_at: new Date().toISOString(),
     };
@@ -345,6 +369,49 @@ export function StaffScreen() {
     void loadData();
   };
 
+  const openMarkLeft = (employee: Employee) => {
+    setLeaveConfirmId(employee.id);
+    setLeaveDateDraft(toLocalDateInput(new Date()));
+  };
+
+  const handleMarkLeft = async (employeeId: string) => {
+    const day = leaveDateDraft.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      toast.error(t.staffLeaveDateRequired);
+      return;
+    }
+    setSaving(true);
+    const result = await adminUpdate('employees', employeeId, {
+      left_at: day,
+      is_active: false,
+      updated_at: new Date().toISOString(),
+    });
+    setSaving(false);
+    setLeaveConfirmId(null);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success(t.staffMarkedLeft);
+    void loadData();
+  };
+
+  const handleRehire = async (employeeId: string) => {
+    setSaving(true);
+    const result = await adminUpdate('employees', employeeId, {
+      left_at: null,
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    });
+    setSaving(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success(t.staffRehired);
+    void loadData();
+  };
+
   const handleSavePayment = async () => {
     const amount = Number(paymentAmount);
     if (!paymentEmployeeId) {
@@ -356,7 +423,6 @@ export function StaffScreen() {
       return;
     }
 
-    setSaving(true);
     const payload = {
       employee_id: paymentEmployeeId,
       amount,
@@ -364,84 +430,199 @@ export function StaffScreen() {
       payment_type: paymentType,
       note: paymentNote.trim(),
     };
+    const emp = employees.find((e) => e.id === paymentEmployeeId);
+    const editingId = editingPayment?.id ?? null;
+    const tempId = editingId ?? `temp-${crypto.randomUUID()}`;
+    const pending: PaymentWithEmployee = {
+      id: tempId,
+      employee_id: paymentEmployeeId,
+      amount,
+      payment_date: paymentDate,
+      payment_type: paymentType,
+      note: paymentNote.trim(),
+      created_by: user?.id ?? null,
+      created_at: editingPayment?.created_at ?? new Date().toISOString(),
+      employees: emp
+        ? { full_name: emp.full_name, designation: emp.designation }
+        : editingPayment?.employees,
+    };
 
-    const result = editingPayment
-      ? await adminUpdate('salary_payments', editingPayment.id, payload)
-      : await adminInsert('salary_payments', { ...payload, created_by: user?.id ?? null });
-
+    setSaving(true);
+    const err = await withOptimisticState({
+      getPrevious: () => payments,
+      setState: setPayments,
+      nextState: (prev) => {
+        if (editingId) {
+          return prev.map((row) => (row.id === editingId ? { ...row, ...pending, id: editingId } : row));
+        }
+        return [pending, ...prev];
+      },
+      persist: () =>
+        editingId
+          ? adminUpdate('salary_payments', editingId, payload)
+          : adminInsert('salary_payments', { ...payload, created_by: user?.id ?? null }),
+      commit: (serverData, applied) => {
+        if (editingId || !serverData || typeof serverData !== 'object' || !('id' in serverData)) {
+          return undefined;
+        }
+        const row = serverData as SalaryPayment;
+        return applied.map((p) =>
+          p.id === tempId
+            ? {
+                ...pending,
+                ...row,
+                id: row.id,
+                employees: pending.employees,
+              }
+            : p,
+        );
+      },
+    });
     setSaving(false);
-    if (result.error) {
-      toast.error(result.error);
+
+    if (err) {
+      toast.error(err);
       return;
     }
 
-    toast.success(editingPayment ? t.staffPaymentUpdated : t.staffPaymentAdded);
+    toast.success(editingId ? t.staffPaymentUpdated : t.staffPaymentAdded);
     resetPaymentForm();
-    void loadData();
   };
 
   const handleDeletePayment = async (id: string) => {
     setSaving(true);
-    const result = await adminDelete('salary_payments', id);
+    const err = await withOptimisticState({
+      getPrevious: () => payments,
+      setState: setPayments,
+      nextState: (prev) => prev.filter((p) => p.id !== id),
+      persist: () => adminDelete('salary_payments', id),
+    });
     setSaving(false);
     setDeletePaymentId(null);
-    if (result.error) {
-      toast.error(result.error);
+    if (err) {
+      toast.error(err);
       return;
     }
     toast.success(t.staffPaymentDeleted);
-    void loadData();
   };
 
-  const handleCycleDayMark = async (employee: Employee, dateKey: string) => {
+  const flushDayMarkPersist = useCallback(
+    async (employeeId: string, dateKey: string, _weeklyOff: WeekdayIndex) => {
+      const key = `${employeeId}:${dateKey}`;
+      const marks = dayMarksRef.current;
+      const row = marks.find((m) => m.employee_id === employeeId && m.work_date === dateKey);
+      const serverRow = marks.find(
+        (m) => m.employee_id === employeeId && m.work_date === dateKey && !m.id.startsWith('temp-'),
+      );
+
+      setMarkSavingKey(key);
+      try {
+        // No local override → calendar default; delete any persisted row.
+        if (!row) {
+          if (serverRow) {
+            const result = await adminDelete('employee_day_marks', serverRow.id);
+            if (!result.ok) toast.error(result.error ?? t.errorOccurred);
+          }
+          return;
+        }
+
+        const desired = row.mark_type;
+        if (serverRow) {
+          const result = await adminUpdate('employee_day_marks', serverRow.id, {
+            mark_type: desired,
+            updated_at: new Date().toISOString(),
+          });
+          if (!result.ok) toast.error(result.error ?? t.errorOccurred);
+          return;
+        }
+
+        const result = await adminInsert('employee_day_marks', {
+          employee_id: employeeId,
+          work_date: dateKey,
+          mark_type: desired,
+          created_by: user?.id ?? null,
+        });
+        if (!result.ok) {
+          toast.error(result.error ?? t.errorOccurred);
+          return;
+        }
+        if (result.data && typeof result.data === 'object' && 'id' in result.data) {
+          const created = result.data as EmployeeDayMark;
+          const nextMarks = dayMarksRef.current.map((m) =>
+            m.employee_id === employeeId && m.work_date === dateKey
+              ? { ...m, ...created, id: created.id, mark_type: desired }
+              : m,
+          );
+          dayMarksRef.current = nextMarks;
+          setDayMarks(nextMarks);
+        }
+      } finally {
+        setMarkSavingKey((curr) => (curr === key ? null : curr));
+      }
+    },
+    [t.errorOccurred, user?.id],
+  );
+
+  const handleCycleDayMark = (employee: Employee, dateKey: string) => {
     const key = `${employee.id}:${dateKey}`;
-    if (markSavingKey) return;
     const weeklyOff = normalizeWeekday(employee.weekly_off_weekday);
-    const existing = (marksByEmployee.get(employee.id) ?? []).find((m) => m.work_date === dateKey);
+    const previous = dayMarksRef.current;
+    const existing = previous.find((m) => m.employee_id === employee.id && m.work_date === dateKey);
     const next = nextDayMarkAfterTap({
       dateKey,
       weeklyOffWeekday: weeklyOff,
       stored: existing?.mark_type,
     });
+    const tempId = existing?.id.startsWith('temp-') ? existing.id : `temp-${crypto.randomUUID()}`;
+    const nowIso = new Date().toISOString();
 
-    setMarkSavingKey(key);
-    let result;
+    let applied: EmployeeDayMark[];
     if (next === null) {
-      if (existing) result = await adminDelete('employee_day_marks', existing.id);
-      else result = { ok: true as const };
+      applied = previous.filter(
+        (m) => !(m.employee_id === employee.id && m.work_date === dateKey),
+      );
     } else if (existing) {
-      result = await adminUpdate('employee_day_marks', existing.id, {
-        mark_type: next,
-        updated_at: new Date().toISOString(),
-      });
+      applied = previous.map((m) =>
+        m.id === existing.id ? { ...m, mark_type: next, updated_at: nowIso } : m,
+      );
     } else {
-      result = await adminInsert('employee_day_marks', {
-        employee_id: employee.id,
-        work_date: dateKey,
-        mark_type: next as EmployeeDayMarkType,
-        created_by: user?.id ?? null,
-      });
+      applied = [
+        ...previous,
+        {
+          id: tempId,
+          employee_id: employee.id,
+          work_date: dateKey,
+          mark_type: next as EmployeeDayMarkType,
+          note: '',
+          created_by: user?.id ?? null,
+          created_at: nowIso,
+          updated_at: nowIso,
+        },
+      ];
     }
-    setMarkSavingKey(null);
 
-    if (result.error) {
-      toast.error(result.error);
-      return;
-    }
-    void loadData();
+    dayMarksRef.current = applied;
+    setDayMarks(applied);
+
+    const prior = markPersistTimersRef.current.get(key);
+    if (prior) clearTimeout(prior);
+    markPersistTimersRef.current.set(
+      key,
+      setTimeout(() => {
+        markPersistTimersRef.current.delete(key);
+        void flushDayMarkPersist(employee.id, dateKey, weeklyOff);
+      }, 280),
+    );
   };
 
   const summary = useMemo(() => {
     let monthPayable = 0;
-    let activeCount = 0;
     for (const employee of visibleEmployees) {
-      if (!employee.is_active) continue;
-      activeCount += 1;
       monthPayable += employeeMonthStats(employee).payableInfo.payable;
     }
     const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
     const remaining = Math.max(0, monthPayable - totalPaid);
-    return { totalPaid, activeCount, monthPayable, remaining };
+    return { totalPaid, monthPayable, remaining };
   }, [employeeMonthStats, payments, visibleEmployees]);
 
   const suggestedForPaymentForm = useMemo(() => {
@@ -466,68 +647,67 @@ export function StaffScreen() {
         title={t.staffScreenTitle}
         description={t.staffScreenDescription}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="cockpit-btn-secondary cursor-pointer" onClick={() => openAddPayment()}>
-              <Banknote className="h-4 w-4" />
-              {t.staffRecordPayment}
-            </button>
-            <button
-              type="button"
-              className="cockpit-btn-primary cursor-pointer"
-              onClick={() => {
-                resetEmployeeForm();
-                setShowEmployeeForm(true);
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              {t.staffAddEmployee}
-            </button>
-          </div>
+          <button
+            type="button"
+            className="cockpit-btn-primary cursor-pointer"
+            onClick={() => {
+              resetEmployeeForm();
+              setShowEmployeeForm(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            {t.staffAddEmployee}
+          </button>
         }
       />
 
-      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+      <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 sm:text-sm">
         {t.staffDoubleEntryWarning}
       </div>
 
-      <div className="mb-4 flex items-center justify-center gap-2">
-        <button
-          type="button"
-          className="cockpit-btn-secondary min-h-[44px] min-w-[44px] cursor-pointer px-3"
-          onClick={() => goMonth(-1)}
-          aria-label={t.staffPrevMonth}
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <p className="min-w-[10rem] text-center text-base font-semibold capitalize text-slate-800 dark:text-slate-100">
-          {monthLabel}
-        </p>
-        <button
-          type="button"
-          className="cockpit-btn-secondary min-h-[44px] min-w-[44px] cursor-pointer px-3"
-          onClick={() => goMonth(1)}
-          aria-label={t.staffNextMonth}
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
-
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="cockpit-card p-4">
-          <p className="text-xs uppercase tracking-wide text-slate-500">{t.staffActiveEmployees}</p>
-          <p className="text-2xl font-semibold tabular-nums">{summary.activeCount}</p>
+      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="cockpit-btn-secondary min-h-[44px] min-w-[44px] cursor-pointer px-3"
+            onClick={() => goMonth(-1)}
+            aria-label={t.staffPrevMonth}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <p className="min-w-[9rem] text-center text-sm font-semibold capitalize text-slate-800 dark:text-slate-100 sm:text-base">
+            {monthLabel}
+          </p>
+          <button
+            type="button"
+            className="cockpit-btn-secondary min-h-[44px] min-w-[44px] cursor-pointer px-3"
+            onClick={() => goMonth(1)}
+            aria-label={t.staffNextMonth}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
-        <div className="cockpit-card p-4">
-          <p className="text-xs uppercase tracking-wide text-slate-500">{t.staffMonthlyPayrollTarget}</p>
-          <p className="text-2xl font-semibold tabular-nums">₼{formatFinanceMoney(summary.monthPayable)}</p>
-        </div>
-        <div className="cockpit-card p-4">
-          <p className="text-xs uppercase tracking-wide text-slate-500">{t.staffPaidInPeriod}</p>
-          <p className="text-2xl font-semibold tabular-nums">₼{formatFinanceMoney(summary.totalPaid)}</p>
-        </div>
-        <div className="cockpit-card p-4">
-          <p className="text-xs uppercase tracking-wide text-slate-500">{t.staffRemaining}</p>
-          <p className="text-2xl font-semibold tabular-nums">₼{formatFinanceMoney(summary.remaining)}</p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm">
+          <span className="tabular-nums text-slate-600 dark:text-slate-300">
+            <span className="text-slate-500">{t.staffMonthlyPayrollTarget}: </span>
+            ₼{formatFinanceMoney(summary.monthPayable)}
+          </span>
+          <span className="tabular-nums text-slate-600 dark:text-slate-300">
+            <span className="text-slate-500">{t.staffPaidInPeriod}: </span>
+            ₼{formatFinanceMoney(summary.totalPaid)}
+          </span>
+          <span className="tabular-nums font-medium text-slate-800 dark:text-slate-100">
+            <span className="font-normal text-slate-500">{t.staffRemaining}: </span>
+            ₼{formatFinanceMoney(summary.remaining)}
+          </span>
+          <label className="flex cursor-pointer items-center gap-1.5 text-slate-600 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={showLeftEmployees}
+              onChange={(e) => setShowLeftEmployees(e.target.checked)}
+            />
+            {t.staffShowLeftEmployees}
+          </label>
         </div>
       </div>
 
@@ -569,6 +749,13 @@ export function StaffScreen() {
               </div>
             </label>
             <label className="block">
+              <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffLeftDate}</span>
+              <div className="mt-1">
+                <SingleDatePicker value={leftAt} onChange={setLeftAt} />
+              </div>
+              <span className="mt-1 block text-xs text-slate-500">{t.staffLeftDateHint}</span>
+            </label>
+            <label className="block">
               <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffWeeklyOffDay}</span>
               <select
                 className="cockpit-input mt-1 w-full"
@@ -593,88 +780,6 @@ export function StaffScreen() {
               {t.save}
             </button>
             <button type="button" className="cockpit-btn-secondary cursor-pointer" onClick={resetEmployeeForm}>
-              {t.cancel}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showPaymentForm && (
-        <div className="cockpit-card mb-6 p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold">
-              {editingPayment ? t.staffEditPayment : t.staffRecordPayment}
-            </h3>
-            <button type="button" onClick={resetPaymentForm} className="cursor-pointer text-slate-500 hover:text-slate-700">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <label className="block">
-              <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffEmployee}</span>
-              <select
-                className="cockpit-input mt-1 w-full"
-                value={paymentEmployeeId}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  setPaymentEmployeeId(id);
-                  const employee = employees.find((row) => row.id === id);
-                  if (employee && !editingPayment) {
-                    const { remaining } = employeeMonthStats(employee);
-                    setPaymentAmount(remaining > 0 ? String(roundMoney3(remaining)) : '');
-                  }
-                }}
-              >
-                <option value="">{t.staffSelectEmployee}</option>
-                {visibleEmployees.filter((e) => e.is_active).map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.full_name} — {employee.designation}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="text-sm text-slate-600 dark:text-slate-300">{t.amount}</span>
-              <input
-                className="cockpit-input mt-1 w-full"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.001"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-              />
-              {suggestedForPaymentForm != null && suggestedForPaymentForm > 0 ? (
-                <p className="mt-1 text-xs text-slate-500">
-                  {t.staffSuggestedPayment.replace('{amount}', formatFinanceMoney(suggestedForPaymentForm))}
-                </p>
-              ) : null}
-            </label>
-            <label className="block">
-              <span className="text-sm text-slate-600 dark:text-slate-300">{t.date}</span>
-              <SingleDatePicker value={paymentDate} onChange={setPaymentDate} />
-            </label>
-            <label className="block">
-              <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffPaymentType}</span>
-              <select className="cockpit-input mt-1 w-full" value={paymentType} onChange={(e) => setPaymentType(e.target.value as SalaryPaymentType)}>
-                {PAYMENT_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {paymentTypeLabel(type)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block md:col-span-2">
-              <span className="text-sm text-slate-600 dark:text-slate-300">{t.notes}</span>
-              <input className="cockpit-input mt-1 w-full" value={paymentNote} onChange={(e) => setPaymentNote(e.target.value)} />
-            </label>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button type="button" className="cockpit-btn-primary cursor-pointer" disabled={saving} onClick={() => void handleSavePayment()}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {t.save}
-            </button>
-            <button type="button" className="cockpit-btn-secondary cursor-pointer" onClick={resetPaymentForm}>
               {t.cancel}
             </button>
           </div>
@@ -741,7 +846,7 @@ export function StaffScreen() {
                           ) : null}
                           {!employee.is_active && (
                             <span className="rounded bg-slate-200 px-2 py-0.5 text-xs dark:bg-slate-700">
-                              {t.staffInactive}
+                              {employee.left_at ? t.staffLeftBadge : t.staffInactive}
                             </span>
                           )}
                         </span>
@@ -749,6 +854,7 @@ export function StaffScreen() {
                           {employee.designation || t.staffNoDesignation}
                           {' · '}
                           {weekdayLabel(weeklyOff)}
+                          {employee.left_at ? ` · ${t.staffLeftDate}: ${employee.left_at}` : ''}
                         </span>
                         <span className="mt-1 block text-xs text-slate-500">
                           {t.staffPaidInPeriod}: ₼{formatFinanceMoney(paid)}
@@ -771,6 +877,19 @@ export function StaffScreen() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
+                      {!employee.left_at ? (
+                        <IconActionButton
+                          icon={<LogOut className="h-4 w-4" />}
+                          label={t.staffMarkLeft}
+                          onClick={() => openMarkLeft(employee)}
+                        />
+                      ) : (
+                        <IconActionButton
+                          icon={<UserCheck className="h-4 w-4" />}
+                          label={t.staffRehire}
+                          onClick={() => void handleRehire(employee.id)}
+                        />
+                      )}
                       <IconActionButton
                         icon={<Banknote className="h-4 w-4" />}
                         label={t.staffRecordPayment}
@@ -791,6 +910,36 @@ export function StaffScreen() {
                     </div>
                   </div>
                 </div>
+
+                {leaveConfirmId === employee.id && (
+                  <div className="space-y-3 border-t border-slate-100 px-4 py-3 dark:border-slate-800">
+                    <p className="text-sm text-slate-600 dark:text-slate-300">{t.staffMarkLeftConfirm}</p>
+                    <label className="block max-w-xs">
+                      <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffLeftDate}</span>
+                      <div className="mt-1">
+                        <SingleDatePicker value={leaveDateDraft} onChange={setLeaveDateDraft} />
+                      </div>
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="cockpit-btn-primary cursor-pointer"
+                        disabled={saving}
+                        onClick={() => void handleMarkLeft(employee.id)}
+                      >
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                        {t.staffMarkLeft}
+                      </button>
+                      <button
+                        type="button"
+                        className="cockpit-btn-secondary cursor-pointer"
+                        onClick={() => setLeaveConfirmId(null)}
+                      >
+                        {t.cancel}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {deleteEmployeeId === employee.id && (
                   <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800">
@@ -826,6 +975,7 @@ export function StaffScreen() {
                           <div key={`pad-${i}`} className="min-h-[44px]" />
                         ))}
                         {monthDays.map((dateKey) => {
+                          const employed = isEmploymentDay(dateKey, employee.hired_at, employee.left_at);
                           const status = resolveDayStatus(dateKey, weeklyOff, markMap.get(dateKey));
                           const dayNum = Number(dateKey.slice(-2));
                           const busy = markSavingKey === `${employee.id}:${dateKey}`;
@@ -833,21 +983,32 @@ export function StaffScreen() {
                             <button
                               key={dateKey}
                               type="button"
-                              disabled={busy}
+                              disabled={!employed}
+                              aria-busy={busy || undefined}
                               onClick={() => void handleCycleDayMark(employee, dateKey)}
-                              className={`flex min-h-[44px] min-w-0 cursor-pointer flex-col items-center justify-center rounded-lg border px-0.5 py-1 text-center transition-colors duration-200 touch-manipulation disabled:opacity-60 ${dayCellClasses(status)}`}
-                              aria-label={`${dateKey}: ${statusLabel(status)}`}
-                              title={statusLabel(status)}
+                              className={`flex min-h-[44px] min-w-0 cursor-pointer flex-col items-center justify-center rounded-lg border px-0.5 py-1 text-center transition-colors duration-200 touch-manipulation disabled:cursor-not-allowed disabled:opacity-40 ${
+                                busy ? 'opacity-80' : ''
+                              } ${
+                                employed
+                                  ? dayCellClasses(status)
+                                  : 'border-slate-100 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-950/40'
+                              }`}
+                              aria-label={`${dateKey}: ${employed ? statusLabel(status) : t.staffOutsideEmployment}`}
+                              title={employed ? statusLabel(status) : t.staffOutsideEmployment}
                             >
                               <span className="text-sm font-semibold tabular-nums">{dayNum}</span>
                               <span className="max-w-full truncate text-[10px] leading-tight">
-                                {status === 'work' ? '' : statusLabel(status)}
+                                {!employed ? '—' : status === 'work' ? '' : statusLabel(status)}
                               </span>
                             </button>
                           );
                         })}
                       </div>
-                      <p className="mt-2 text-xs text-slate-500">{t.staffDayLegend}</p>
+                      <p className="mt-2 text-xs text-slate-500">
+                        {t.staffMarkDayHint}
+                        {' · '}
+                        {t.staffDayLegend}
+                      </p>
                       {payableInfo.absentDays > 0 ? (
                         <p className="mt-1 text-xs font-medium text-rose-700 dark:text-rose-300">
                           {t.staffAbsenceDeductionHint
@@ -857,6 +1018,91 @@ export function StaffScreen() {
                         </p>
                       ) : null}
                     </div>
+
+                    {showPaymentForm && paymentEmployeeId === employee.id ? (
+                      <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950/40">
+                        <div className="mb-3 flex items-center justify-between">
+                          <h4 className="text-sm font-semibold">
+                            {editingPayment ? t.staffEditPayment : t.staffRecordPayment}
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={resetPaymentForm}
+                            className="cursor-pointer text-slate-500 hover:text-slate-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <label className="block">
+                            <span className="text-sm text-slate-600 dark:text-slate-300">{t.amount}</span>
+                            <input
+                              className="cockpit-input mt-1 w-full"
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              step="0.001"
+                              value={paymentAmount}
+                              onChange={(e) => setPaymentAmount(e.target.value)}
+                            />
+                            {suggestedForPaymentForm != null && suggestedForPaymentForm > 0 ? (
+                              <p className="mt-1 text-xs text-slate-500">
+                                {t.staffSuggestedPayment.replace(
+                                  '{amount}',
+                                  formatFinanceMoney(suggestedForPaymentForm),
+                                )}
+                              </p>
+                            ) : null}
+                          </label>
+                          <label className="block">
+                            <span className="text-sm text-slate-600 dark:text-slate-300">{t.date}</span>
+                            <div className="mt-1">
+                              <SingleDatePicker value={paymentDate} onChange={setPaymentDate} />
+                            </div>
+                          </label>
+                          <label className="block">
+                            <span className="text-sm text-slate-600 dark:text-slate-300">{t.staffPaymentType}</span>
+                            <select
+                              className="cockpit-input mt-1 w-full"
+                              value={paymentType}
+                              onChange={(e) => setPaymentType(e.target.value as SalaryPaymentType)}
+                            >
+                              {PAYMENT_TYPES.map((type) => (
+                                <option key={type} value={type}>
+                                  {paymentTypeLabel(type)}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="block">
+                            <span className="text-sm text-slate-600 dark:text-slate-300">{t.notes}</span>
+                            <input
+                              className="cockpit-input mt-1 w-full"
+                              value={paymentNote}
+                              onChange={(e) => setPaymentNote(e.target.value)}
+                            />
+                          </label>
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            type="button"
+                            className="cockpit-btn-primary cursor-pointer"
+                            disabled={saving}
+                            onClick={() => void handleSavePayment()}
+                          >
+                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                            {t.save}
+                          </button>
+                          <button
+                            type="button"
+                            className="cockpit-btn-secondary cursor-pointer"
+                            onClick={resetPaymentForm}
+                          >
+                            {t.cancel}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
 
                     <div>
                       <h4 className="mb-2 text-sm font-semibold">{t.staffPaidInPeriod}</h4>

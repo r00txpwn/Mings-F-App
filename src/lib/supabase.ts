@@ -430,6 +430,8 @@ export interface Employee {
   official_salary: number;
   is_active: boolean;
   hired_at: string | null;
+  /** Last employed day (inclusive). Null = still employed. */
+  left_at?: string | null;
   /** Default weekly off weekday; salary includes this day. Absent until migration applied. */
   weekly_off_weekday?: WeekdayIndex;
   notes: string;

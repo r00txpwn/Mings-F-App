@@ -10,7 +10,15 @@ import { IconActionButton } from '../components/ui/IconActionButton';
 import { DangerConfirmRow } from '../components/ui/DangerConfirmRow';
 import { formatFinanceMoney, roundFinanceMoney } from '../lib/money';
 import { displayName, isTestRecord } from '../lib/displayName';
-import { computeWithdrawalFee, type WithdrawalMethod } from '../services/finance/withdrawalFees';
+import {
+  computeWithdrawalFee,
+  configForMethod,
+  defaultWithdrawalFeeSettings,
+  rateToPercentInput,
+  type WithdrawalFeeSettings,
+  type WithdrawalMethod,
+} from '../services/finance/withdrawalFees';
+import { fetchWithdrawalFeeSettings } from '../services/finance/withdrawalFeeSettingsService';
 import { fetchLiabilitiesSummary } from '../services/finance/supplierFinanceService';
 import { fetchCashDrawer } from '../services/finance/cashDrawerService';
 import { fetchAccountBalances } from '../services/finance/accountsService';
@@ -62,6 +70,7 @@ export function CashDebtScreen() {
     withdrawal_date: new Date().toISOString().split('T')[0],
     notes: '',
   });
+  const [feeSettings, setFeeSettings] = useState<WithdrawalFeeSettings>(defaultWithdrawalFeeSettings);
 
   const [cashStart, setCashStart] = useState(startOfMonth);
   const [cashEnd, setCashEnd] = useState(() => new Date().toLocaleDateString('en-CA'));
@@ -104,8 +113,8 @@ export function CashDebtScreen() {
   const withdrawPreview = useMemo(() => {
     const amount = Number(withdrawForm.amount) || 0;
     if (amount <= 0) return null;
-    return computeWithdrawalFee(amount, withdrawForm.method);
-  }, [withdrawForm.amount, withdrawForm.method]);
+    return computeWithdrawalFee(amount, withdrawForm.method, configForMethod(feeSettings, withdrawForm.method));
+  }, [withdrawForm.amount, withdrawForm.method, feeSettings]);
 
   // ATM withdrawals draw from the Card account; cashier withdrawals from the Bank account.
   const withdrawSource: 'bank' | 'card' = withdrawForm.method === 'abb_atm' ? 'card' : 'bank';
@@ -119,13 +128,15 @@ export function CashDebtScreen() {
   const withdrawExceeds = withdrawAvailable != null && withdrawAmountNum > withdrawAvailable;
 
   const loadAccountBalances = useCallback(async () => {
-    const [balancesRes, accountsRes, ledgerRes] = await Promise.all([
+    const [balancesRes, accountsRes, ledgerRes, feeRes] = await Promise.all([
       fetchAccountBalances(),
       supabase.from('finance_accounts').select('*').in('key', ['bank', 'card']),
       fetchAccountLedger(),
+      fetchWithdrawalFeeSettings(),
     ]);
     if (balancesRes.data) setAccountBalances(balancesRes.data);
     if (ledgerRes.data) setLedger(ledgerRes.data);
+    setFeeSettings(feeRes.data);
     if (!accountsRes.error && accountsRes.data) {
       const rows = accountsRes.data as FinanceAccount[];
       setFinanceAccounts(rows);
@@ -443,7 +454,11 @@ export function CashDebtScreen() {
       );
       return;
     }
-    const fee = computeWithdrawalFee(amount, withdrawForm.method);
+    const fee = computeWithdrawalFee(
+      amount,
+      withdrawForm.method,
+      configForMethod(feeSettings, withdrawForm.method),
+    );
     setSaving(true);
     const result = await adminInsert('bank_withdrawals', {
       amount,
@@ -1191,8 +1206,14 @@ export function CashDebtScreen() {
                 }
                 className="cockpit-select"
               >
-                <option value="cashier">{t.withdrawalMethodCashier}</option>
-                <option value="abb_atm">{t.withdrawalMethodCardAccount}</option>
+                <option value="cashier">
+                  {t.withdrawalMethodCashier} ({rateToPercentInput(feeSettings.bank.rate)}%
+                  {feeSettings.bank.minFee > 0 ? `, min ₼${feeSettings.bank.minFee}` : ''})
+                </option>
+                <option value="abb_atm">
+                  {t.withdrawalMethodCardAccount} ({rateToPercentInput(feeSettings.card.rate)}%
+                  {feeSettings.card.minFee > 0 ? `, min ₼${feeSettings.card.minFee}` : ''})
+                </option>
               </select>
               <SingleDatePicker
                 value={withdrawForm.withdrawal_date}

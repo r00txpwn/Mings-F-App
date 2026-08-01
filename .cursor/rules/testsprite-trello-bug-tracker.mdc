@@ -1,0 +1,78 @@
+# TestSprite + Trello bug tracker (seamless)
+
+Ming's OS uses **TestSprite** for automated web QA and **Trello MCP** (`user-trello`) for bug tracking. Agents must wire them together — do not leave TestSprite failures only in chat or HTML reports.
+
+## Standard QA routine (after product changes)
+
+Default loop for cockpit/UI work — keep everything **local + sandbox**:
+
+1. Confirm `.env` points at **sandbox** Supabase (`glpdpkozvmfzgoewquxi`), not production (`dmrvycswdteuhfydchdr`).
+2. **`npm run deploy:local`** — production build + preview on **`http://127.0.0.1:4175/`** (single instance; rebuild after code changes).
+3. Confirm **`http://127.0.0.1:4175/build-meta.json`** `gitSha` matches the commit/workspace under test.
+4. Run **TestSprite** against that local preview (`serverMode: production`, endpoint `/spec-ops` on port `4175`).
+5. Read the report; file each failure on **Mings Bug Tracker** (below).
+6. Do **not** push `main`, deploy production, or mutate prod DB as part of this routine unless the owner explicitly asks.
+
+## Canonical board
+
+| Field | Value |
+|---|---|
+| Board | **Mings Bug Tracker** |
+| Board id | `6a6db3ab84342974325b38e1` |
+| URL | https://trello.com/b/qN5gdguh/mings-bug-tracker |
+| MCP | `user-trello` — set active board to this id when filing/moving bugs |
+
+### Lists (use these ids)
+
+| List | List id | Use |
+|---|---|---|
+| Reported | `6a6db3ab84342974325b38da` | New bugs (default intake) |
+| Can't reproduce | `6a6db3ab84342974325b38db` | Failed retest / no longer visible |
+| Planned | `6a6db3ab84342974325b38dc` | Accepted, not started |
+| In Progress | `6a6db3ab84342974325b38dd` | Fix underway |
+| Confirm Fix | `6a6db3ab84342974325b38de` | Fix ready for owner/QA recheck |
+| Done | `6a6db3ab84342974325b38e0` | Confirmed fixed (owner/QA only) |
+| Won't fix | `6a6db3ab84342974325b38df` | Explicitly declined |
+
+## When TestSprite finishes (or any `test initiate` / MCP test run)
+
+1. Read the TestSprite report / pass-fail matrix (e.g. `testsprite_tests/testsprite-mcp-test-report.md` or MCP dashboard result).
+2. For **each failing check** (not warnings-only / flakes you already closed):
+   - Deduplicate: search open cards on this board for the same TC id or title before creating.
+   - Create a card on **Reported** (`add_card_to_list`) with:
+     - **Name:** `[TestSprite] <TC id or check name> — <short symptom>`
+     - **Description** (markdown):
+       - Surface / URL under test (prefer `http://127.0.0.1:4175/...` or cockpit `.../spec-ops?screen=...`)
+       - Expected vs actual
+       - Environment (**sandbox** Supabase ref `glpdpkozvmfzgoewquxi` for local QA; never claim prod unless that was the target)
+       - Evidence: report path, screenshot path, TestSprite run link if available
+       - `gitSha` / `build-meta.json` when local preview was used
+3. Summarize in chat: N cards filed + Trello board link. Do not only paste a fail matrix without filing.
+
+## Lifecycle (agent moves cards; owner confirms Done)
+
+| Event | List |
+|---|---|
+| New TestSprite / manual bug | → **Reported** |
+| Starting fix | → **In Progress** |
+| Fix in local preview / ready to recheck | → **Confirm Fix** + comment with SHA + preview URL |
+| Owner/QA confirms | → **Done** (do **not** auto-Done) |
+| Cannot reproduce on retest | → **Can't reproduce** + comment with evidence |
+
+## Rules
+
+- Prefer **Trello** for product bugs found by TestSprite or exploratory QA. Keep Linear/`npm run qa-result` for the existing Linear QA-pass workflow when that is what the user asked for — do not replace Linear silently.
+- One failing TestSprite case → one card (unless the user asks to batch).
+- Attach screenshots via Trello MCP when available; otherwise link file paths in the description.
+- Never put secrets (API keys, tokens, `.env`, passwords) on cards.
+- Template/example cards must not be recreated; the board starts clean of Bug-tracker template copy.
+- Local TestSprite runs must use **sandbox** data only; do not point local `.env` at production for this routine.
+
+## Quick agent checklist
+
+- [ ] `.env` = sandbox; `deploy:local` on 4175; `build-meta.json` matches SHA
+- [ ] TestSprite run finished against local preview
+- [ ] Active board = Mings Bug Tracker
+- [ ] Failures filed to **Reported** (or updated if duplicate)
+- [ ] Chat names the cards / counts filed
+- [ ] Fix path updates list + comments; Done only after human confirm

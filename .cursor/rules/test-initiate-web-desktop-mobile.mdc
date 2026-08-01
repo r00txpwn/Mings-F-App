@@ -30,3 +30,4 @@ When the user message includes the exact phrase `test initiate`, execute this te
 - If blocked, stop the affected check, document root cause, and continue remaining independent checks.
 - Do not claim completion without explicit pass/fail outcomes and artifacts.
 - If a fix is applied during testing, re-run the failed check and mark it as `retest: pass` or `retest: fail`.
+- After the pass/fail matrix, file each failure on **Mings Bug Tracker** (Trello MCP) per **testsprite-trello-bug-tracker** — do not leave failures only in chat.
