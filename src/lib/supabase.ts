@@ -286,6 +286,16 @@ export interface FinanceAccount {
   updated_at: string;
 }
 
+/** Singleton row (id = 1) — bank/card cash-out commission rates. */
+export interface FinanceWithdrawalFeeSettings {
+  id: number;
+  bank_rate: number;
+  bank_min_fee: number;
+  card_rate: number;
+  card_min_fee: number;
+  updated_at: string;
+}
+
 export interface AccountTransfer {
   id: string;
   from_account: FinanceAccountKey;
@@ -407,6 +417,11 @@ export interface PlatformPayout {
 
 export type SalaryPaymentType = 'salary' | 'advance' | 'bonus' | 'partial';
 
+/** 0=Sunday … 6=Saturday (JS Date.getDay()) */
+export type WeekdayIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export type EmployeeDayMarkType = 'weekly_off' | 'absent' | 'work';
+
 export interface Employee {
   id: string;
   full_name: string;
@@ -415,7 +430,20 @@ export interface Employee {
   official_salary: number;
   is_active: boolean;
   hired_at: string | null;
+  /** Default weekly off weekday; salary includes this day. Absent until migration applied. */
+  weekly_off_weekday?: WeekdayIndex;
   notes: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeDayMark {
+  id: string;
+  employee_id: string;
+  work_date: string;
+  mark_type: EmployeeDayMarkType;
+  note: string;
   created_by: string | null;
   created_at: string;
   updated_at: string;
