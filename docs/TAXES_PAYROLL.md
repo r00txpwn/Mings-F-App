@@ -8,14 +8,28 @@ The **Taxes** cockpit screen (`?screen=taxes`) and all tax estimation logic were
 
 Track tax payments as normal **operational expenses** (Expenses hub) with your own categories — the app no longer estimates sales tax or payroll tax liabilities.
 
+## Month payroll model (2026-08-01)
+
+Staff screen is **month-based** (not a free date range):
+
+- Each employee has **`hired_at`** (start date) and **`weekly_off_weekday`** (0=Sunday … 6=Saturday; default Sunday).
+- Monthly salary **includes** the weekly off day. Only days marked **`absent`** deduct pay.
+- **Day rate** = `monthly_salary ÷ calendar days in that month` (28–31).
+- **Payable** = `monthly_salary − (absent_days × day_rate)` (floor at 0).
+- Per-date overrides live in **`employee_day_marks`** (`weekly_off` | `absent` | `work`). Default weekly offs are suggested in the UI when no row exists.
+- Recording a payment still writes **`salary_payments`** (cash ledger). Home/Reports **payroll KPI stays cash-based** (`sum(salary_payments)`); absences only change suggested payable on the Staff screen.
+
+Additive migration: `20260801120000_employee_attendance_marks.sql` (adds column + new table; no drops).
+
 ## Database tables (preserved, orphaned)
 
 Migration `20260627120000_taxes_and_payroll.sql` created:
 
 | Table | Status |
 |-------|--------|
-| `employees` | **Active** — Staff / Payroll screen |
+| `employees` | **Active** — Staff / Payroll screen (+ `weekly_off_weekday`) |
 | `salary_payments` | **Active** — Staff / Payroll screen |
+| `employee_day_marks` | **Active** — month attendance / absence marks |
 | `tax_settings` | **Orphaned** — no UI; data kept for audit |
 | `tax_payments` | **Orphaned** — no UI; data kept for audit |
 
@@ -35,6 +49,15 @@ netProfitPct = netProfit / netRevenue × 100
 
 Home and Reports both use this shared formula via `computeExecutiveKpis`.
 Do **not** also enter salaries under Expenses → “Salaries” — that double-counts (see warning on the Staff screen).
+
+## Bank / card withdrawal fees
+
+Rates for cashier (bank) and ATM (card) cash-outs are editable in **Settings → Withdrawal fees**
+(`finance_withdrawal_fee_settings`). Defaults: bank **0.5%**, card **1%** (min ₼1).
+
+- Fees are **snapshotted** onto each `bank_withdrawals` row (`fee_rate`, `fee_amount`) at insert time.
+- Changing Settings does **not** rewrite historical Net Profit, cash drawer, or account balances.
+- New withdrawals use the current settings; fee is never greater than the withdrawal amount.
 
 ## Removed code (reference)
 

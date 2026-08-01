@@ -36,6 +36,7 @@ const TABLE_MIN_ROLE: Record<string, StaffRole[]> = {
   bank_withdrawals: ['admin', 'manager'],
   cash_movements: ['admin', 'manager'],
   finance_accounts: ['admin', 'manager'],
+  finance_withdrawal_fee_settings: ['admin'],
   account_transfers: ['admin', 'manager'],
   sales_channels: ['admin', 'manager'],
   platform_payouts: ['admin', 'manager'],
@@ -51,6 +52,7 @@ const TABLE_MIN_ROLE: Record<string, StaffRole[]> = {
   transactions: ['admin', 'manager'],
   employees: ['admin', 'manager'],
   salary_payments: ['admin', 'manager'],
+  employee_day_marks: ['admin', 'manager'],
 };
 
 const ALLOWED_TABLES = new Set(Object.keys(TABLE_MIN_ROLE));

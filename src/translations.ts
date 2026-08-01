@@ -29,6 +29,16 @@ export interface Translations {
   cockpitReviewHighCommission: string;
   cockpitReviewUnusualAmount: string;
   settingsAppearance: string;
+  withdrawalFeeSettingsTitle: string;
+  withdrawalFeeSettingsHint: string;
+  withdrawalFeeBankLabel: string;
+  withdrawalFeeCardLabel: string;
+  withdrawalFeeRatePercent: string;
+  withdrawalFeeMinAmount: string;
+  withdrawalFeeExamplePreview: string;
+  withdrawalFeeSettingsSaved: string;
+  withdrawalFeeSettingsAdminOnly: string;
+  withdrawalFeeRateInvalid: string;
   collapseSidebar: string;
   expandSidebar: string;
   system: string;
@@ -674,7 +684,34 @@ export interface Translations {
   staffActiveLabel: string;
   staffActiveEmployees: string;
   staffMonthlyPayrollTarget: string;
+  staffMonthPayable: string;
   staffPaidInPeriod: string;
+  staffRemaining: string;
+  staffDailyRate: string;
+  staffAbsentCount: string;
+  staffOffCount: string;
+  staffStartDate: string;
+  staffWeeklyOffDay: string;
+  staffWeekdaySun: string;
+  staffWeekdayMon: string;
+  staffWeekdayTue: string;
+  staffWeekdayWed: string;
+  staffWeekdayThu: string;
+  staffWeekdayFri: string;
+  staffWeekdaySat: string;
+  staffDayWork: string;
+  staffDayAbsent: string;
+  staffDayWeeklyOff: string;
+  staffDayLegend: string;
+  staffMarkDayHint: string;
+  staffAbsenceDeductionHint: string;
+  staffSuggestedPayment: string;
+  staffPayStatusPaid: string;
+  staffPayStatusPartial: string;
+  staffPayStatusUnpaid: string;
+  staffPrevMonth: string;
+  staffNextMonth: string;
+  staffAttendanceTitle: string;
   staffEmployee: string;
   staffSelectEmployee: string;
   staffPaymentType: string;
@@ -1584,6 +1621,17 @@ export const translations: Record<Language, Translations> = {
     cockpitReviewHighCommission: 'Commission rate looks unusually high — verify channel settings.',
     cockpitReviewUnusualAmount: 'This amount is unusually large — confirm before trusting totals.',
     settingsAppearance: 'Appearance',
+    withdrawalFeeSettingsTitle: 'Withdrawal fees',
+    withdrawalFeeSettingsHint:
+      'Applies to new bank and card cash-outs only. Existing withdrawals keep their saved fee.',
+    withdrawalFeeBankLabel: 'Bank (cashier)',
+    withdrawalFeeCardLabel: 'Card (ATM)',
+    withdrawalFeeRatePercent: 'Rate (%)',
+    withdrawalFeeMinAmount: 'Minimum fee (₼)',
+    withdrawalFeeExamplePreview: 'Example: ₼{amount} → fee ₼{fee}',
+    withdrawalFeeSettingsSaved: 'Withdrawal fees saved',
+    withdrawalFeeSettingsAdminOnly: 'Only admins can change withdrawal fees.',
+    withdrawalFeeRateInvalid: 'Rate must be between 0% and 10%.',
     collapseSidebar: 'Collapse sidebar',
     expandSidebar: 'Expand sidebar',
     system: 'System',
@@ -2193,7 +2241,7 @@ export const translations: Record<Language, Translations> = {
 
     staff: 'Staff & Salaries',
     staffScreenTitle: 'Staff & Salaries',
-    staffScreenDescription: 'Employee roster and dated salary payment ledger.',
+    staffScreenDescription: 'Month payroll: mark absences, weekly offs stay in salary, record payments.',
     staffAddEmployee: 'Add employee',
     staffEditEmployee: 'Edit employee',
     staffRecordPayment: 'Record payment',
@@ -2203,8 +2251,35 @@ export const translations: Record<Language, Translations> = {
     staffTotalSalary: 'Monthly salary',
     staffActiveLabel: 'Active employee',
     staffActiveEmployees: 'Active employees',
-    staffMonthlyPayrollTarget: 'Monthly payroll target',
-    staffPaidInPeriod: 'Paid in period',
+    staffMonthlyPayrollTarget: 'Month payable',
+    staffMonthPayable: 'Payable',
+    staffPaidInPeriod: 'Paid this month',
+    staffRemaining: 'Remaining',
+    staffDailyRate: 'Day rate',
+    staffAbsentCount: 'Absent',
+    staffOffCount: 'Weekly off',
+    staffStartDate: 'Start date',
+    staffWeeklyOffDay: 'Default weekly off',
+    staffWeekdaySun: 'Sunday',
+    staffWeekdayMon: 'Monday',
+    staffWeekdayTue: 'Tuesday',
+    staffWeekdayWed: 'Wednesday',
+    staffWeekdayThu: 'Thursday',
+    staffWeekdayFri: 'Friday',
+    staffWeekdaySat: 'Saturday',
+    staffDayWork: 'Work',
+    staffDayAbsent: 'Absent',
+    staffDayWeeklyOff: 'Off',
+    staffDayLegend: 'Off (included in salary) · Absent (−1 day) · Work',
+    staffMarkDayHint: 'Tap a day to cycle: Work → Absent → Off',
+    staffAbsenceDeductionHint: '{count} absent × ₼{rate} = −₼{deduction}',
+    staffSuggestedPayment: 'Suggested: ₼{amount} (payable minus paid)',
+    staffPayStatusPaid: 'Paid',
+    staffPayStatusPartial: 'Partial',
+    staffPayStatusUnpaid: 'Unpaid',
+    staffPrevMonth: 'Previous month',
+    staffNextMonth: 'Next month',
+    staffAttendanceTitle: 'Attendance',
     staffEmployee: 'Employee',
     staffSelectEmployee: 'Select employee',
     staffPaymentType: 'Payment type',
@@ -2858,8 +2933,8 @@ export const translations: Record<Language, Translations> = {
     liabilityStatusPartial: 'Partially paid',
     liabilityStatusSettled: 'Settled',
     withdrawalLog: 'Log withdrawal',
-    withdrawalMethodCashier: 'Cashier (0.5%)',
-    withdrawalMethodAbbAtm: 'ABB ATM (1%, min ₼1)',
+    withdrawalMethodCashier: 'Cashier',
+    withdrawalMethodAbbAtm: 'ABB ATM',
     withdrawalFeePreview: 'Bank fee',
     withdrawalFeesPeriodTotal: 'Fees in list',
     withdrawalEmpty: 'No withdrawals logged yet.',
@@ -2905,7 +2980,7 @@ export const translations: Record<Language, Translations> = {
     paymentCard: 'Card',
     paymentBankTransfer: 'Bank transfer',
     selectPaymentMethod: 'Select payment method',
-    withdrawalMethodCardAccount: 'Card account (ABB ATM, 1%, min ₼1)',
+    withdrawalMethodCardAccount: 'Card account (ABB ATM)',
     cashDrawerTitle: 'Cash drawer',
     cashDrawerSubtitle: 'Track physical cash to reconcile the drawer at month end.',
     cashOpeningBalance: 'Opening balance',
@@ -3104,6 +3179,17 @@ export const translations: Record<Language, Translations> = {
     cockpitReviewHighCommission: 'Komissiya faizi qeyri-adi yüksəkdir — kanal parametrlərini yoxlayın.',
     cockpitReviewUnusualAmount: 'Bu məbləğ qeyri-adi böyükdür — cəmlərə etibar etməzdən əvvəl təsdiqləyin.',
     settingsAppearance: 'Görünüş',
+    withdrawalFeeSettingsTitle: 'Çıxarış haqları',
+    withdrawalFeeSettingsHint:
+      'Yalnız yeni bank və kart çıxarışlarına tətbiq olunur. Mövcud çıxarışlar saxlanılmış haqqı saxlayır.',
+    withdrawalFeeBankLabel: 'Bank (kassir)',
+    withdrawalFeeCardLabel: 'Kart (ATM)',
+    withdrawalFeeRatePercent: 'Dərəcə (%)',
+    withdrawalFeeMinAmount: 'Minimum haqq (₼)',
+    withdrawalFeeExamplePreview: 'Nümunə: ₼{amount} → haqq ₼{fee}',
+    withdrawalFeeSettingsSaved: 'Çıxarış haqları yadda saxlanıldı',
+    withdrawalFeeSettingsAdminOnly: 'Çıxarış haqlarını yalnız adminlər dəyişə bilər.',
+    withdrawalFeeRateInvalid: 'Dərəcə 0% ilə 10% arasında olmalıdır.',
     collapseSidebar: 'Yan paneli yığ',
     expandSidebar: 'Yan paneli aç',
     system: 'Sistem',
@@ -3713,7 +3799,7 @@ export const translations: Record<Language, Translations> = {
 
     staff: 'Kadr və maaşlar',
     staffScreenTitle: 'Kadr və maaşlar',
-    staffScreenDescription: 'İşçi siyahısı və tarixli maaş ödənişləri.',
+    staffScreenDescription: 'Aylıq maaş: gəlməməni qeyd edin, həftəlik istirahət maaşa daxildir, ödəniş yazın.',
     staffAddEmployee: 'İşçi əlavə et',
     staffEditEmployee: 'İşçini redaktə et',
     staffRecordPayment: 'Ödəniş qeyd et',
@@ -3723,8 +3809,35 @@ export const translations: Record<Language, Translations> = {
     staffTotalSalary: 'Aylıq maaş',
     staffActiveLabel: 'Aktiv işçi',
     staffActiveEmployees: 'Aktiv işçilər',
-    staffMonthlyPayrollTarget: 'Aylıq maaş hədəfi',
-    staffPaidInPeriod: 'Dövr üzrə ödənilib',
+    staffMonthlyPayrollTarget: 'Aylıq ödəniləcək',
+    staffMonthPayable: 'Ödəniləcək',
+    staffPaidInPeriod: 'Bu ay ödənilib',
+    staffRemaining: 'Qalıq',
+    staffDailyRate: 'Günlük məbləğ',
+    staffAbsentCount: 'Gəlməyib',
+    staffOffCount: 'Həftəlik off',
+    staffStartDate: 'İşə başlama',
+    staffWeeklyOffDay: 'Defolt həftəlik off',
+    staffWeekdaySun: 'Bazar',
+    staffWeekdayMon: 'Bazar ertəsi',
+    staffWeekdayTue: 'Çərşənbə axşamı',
+    staffWeekdayWed: 'Çərşənbə',
+    staffWeekdayThu: 'Cümə axşamı',
+    staffWeekdayFri: 'Cümə',
+    staffWeekdaySat: 'Şənbə',
+    staffDayWork: 'İş',
+    staffDayAbsent: 'Gəlməyib',
+    staffDayWeeklyOff: 'Off',
+    staffDayLegend: 'Off (maaşa daxil) · Gəlməyib (−1 gün) · İş',
+    staffMarkDayHint: 'Günü toxunun: İş → Gəlməyib → Off',
+    staffAbsenceDeductionHint: '{count} gəlməmə × ₼{rate} = −₼{deduction}',
+    staffSuggestedPayment: 'Tövsiyə: ₼{amount} (ödəniləcək − ödənilib)',
+    staffPayStatusPaid: 'Ödənilib',
+    staffPayStatusPartial: 'Qismən',
+    staffPayStatusUnpaid: 'Ödənilməyib',
+    staffPrevMonth: 'Əvvəlki ay',
+    staffNextMonth: 'Növbəti ay',
+    staffAttendanceTitle: 'Davamiyyət',
     staffEmployee: 'İşçi',
     staffSelectEmployee: 'İşçi seçin',
     staffPaymentType: 'Ödəniş növü',
@@ -4380,8 +4493,8 @@ export const translations: Record<Language, Translations> = {
     liabilityStatusPartial: 'Qismən ödənilib',
     liabilityStatusSettled: 'Bağlanıb',
     withdrawalLog: 'Çıxarış qeyd et',
-    withdrawalMethodCashier: 'Kassir (0.5%)',
-    withdrawalMethodAbbAtm: 'ABB ATM (1%, min ₼1)',
+    withdrawalMethodCashier: 'Kassir',
+    withdrawalMethodAbbAtm: 'ABB ATM',
     withdrawalFeePreview: 'Bank haqqı',
     withdrawalFeesPeriodTotal: 'Siyahıdakı haqlar',
     withdrawalEmpty: 'Hələ çıxarış qeyd olunmayıb.',
@@ -4427,7 +4540,7 @@ export const translations: Record<Language, Translations> = {
     paymentCard: 'Kart',
     paymentBankTransfer: 'Bank köçürməsi',
     selectPaymentMethod: 'Ödəmə üsulunu seçin',
-    withdrawalMethodCardAccount: 'Kart hesabı (ABB ATM, 1%, min ₼1)',
+    withdrawalMethodCardAccount: 'Kart hesabı (ABB ATM)',
     cashDrawerTitle: 'Kassa',
     cashDrawerSubtitle: 'Ay sonunda kassanı tutuşdurmaq üçün nağd pulu izləyin.',
     cashOpeningBalance: 'Açılış qalığı',
@@ -4627,6 +4740,17 @@ export const translations: Record<Language, Translations> = {
     cockpitReviewHighCommission: 'Комиссия необычно высокая — проверьте настройки канала.',
     cockpitReviewUnusualAmount: 'Сумма необычно большая — подтвердите перед использованием в отчётах.',
     settingsAppearance: 'Оформление',
+    withdrawalFeeSettingsTitle: 'Комиссии за снятие',
+    withdrawalFeeSettingsHint:
+      'Применяется только к новым снятиям с банка и карты. Старые записи сохраняют сохранённую комиссию.',
+    withdrawalFeeBankLabel: 'Банк (касса)',
+    withdrawalFeeCardLabel: 'Карта (ATM)',
+    withdrawalFeeRatePercent: 'Ставка (%)',
+    withdrawalFeeMinAmount: 'Мин. комиссия (₼)',
+    withdrawalFeeExamplePreview: 'Пример: ₼{amount} → комиссия ₼{fee}',
+    withdrawalFeeSettingsSaved: 'Комиссии за снятие сохранены',
+    withdrawalFeeSettingsAdminOnly: 'Менять комиссии за снятие могут только админы.',
+    withdrawalFeeRateInvalid: 'Ставка должна быть от 0% до 10%.',
     collapseSidebar: 'Свернуть панель',
     expandSidebar: 'Развернуть панель',
     system: 'Система',
@@ -5236,7 +5360,7 @@ export const translations: Record<Language, Translations> = {
 
     staff: 'Персонал и зарплаты',
     staffScreenTitle: 'Персонал и зарплаты',
-    staffScreenDescription: 'Список сотрудников и журнал выплат с датами.',
+    staffScreenDescription: 'Месячный расчёт: отмечайте прогулы, выходной в зарплате, фиксируйте выплаты.',
     staffAddEmployee: 'Добавить сотрудника',
     staffEditEmployee: 'Редактировать сотрудника',
     staffRecordPayment: 'Записать выплату',
@@ -5246,8 +5370,35 @@ export const translations: Record<Language, Translations> = {
     staffTotalSalary: 'Месячная зарплата',
     staffActiveLabel: 'Активный сотрудник',
     staffActiveEmployees: 'Активные сотрудники',
-    staffMonthlyPayrollTarget: 'Целевой месячный фонд',
-    staffPaidInPeriod: 'Выплачено за период',
+    staffMonthlyPayrollTarget: 'К выплате за месяц',
+    staffMonthPayable: 'К выплате',
+    staffPaidInPeriod: 'Выплачено в этом месяце',
+    staffRemaining: 'Остаток',
+    staffDailyRate: 'Ставка за день',
+    staffAbsentCount: 'Прогул',
+    staffOffCount: 'Выходной',
+    staffStartDate: 'Дата начала',
+    staffWeeklyOffDay: 'Выходной по умолчанию',
+    staffWeekdaySun: 'Воскресенье',
+    staffWeekdayMon: 'Понедельник',
+    staffWeekdayTue: 'Вторник',
+    staffWeekdayWed: 'Среда',
+    staffWeekdayThu: 'Четверг',
+    staffWeekdayFri: 'Пятница',
+    staffWeekdaySat: 'Суббота',
+    staffDayWork: 'Работа',
+    staffDayAbsent: 'Прогул',
+    staffDayWeeklyOff: 'Выходной',
+    staffDayLegend: 'Выходной (в зарплате) · Прогул (−1 день) · Работа',
+    staffMarkDayHint: 'Нажмите день: Работа → Прогул → Выходной',
+    staffAbsenceDeductionHint: '{count} прогул × ₼{rate} = −₼{deduction}',
+    staffSuggestedPayment: 'Рекомендуется: ₼{amount} (к выплате минус выплачено)',
+    staffPayStatusPaid: 'Выплачено',
+    staffPayStatusPartial: 'Частично',
+    staffPayStatusUnpaid: 'Не выплачено',
+    staffPrevMonth: 'Предыдущий месяц',
+    staffNextMonth: 'Следующий месяц',
+    staffAttendanceTitle: 'Посещаемость',
     staffEmployee: 'Сотрудник',
     staffSelectEmployee: 'Выберите сотрудника',
     staffPaymentType: 'Тип выплаты',
@@ -5903,8 +6054,8 @@ export const translations: Record<Language, Translations> = {
     liabilityStatusPartial: 'Частично оплачено',
     liabilityStatusSettled: 'Закрыто',
     withdrawalLog: 'Записать снятие',
-    withdrawalMethodCashier: 'Касса (0.5%)',
-    withdrawalMethodAbbAtm: 'ABB ATM (1%, мин. ₼1)',
+    withdrawalMethodCashier: 'Касса',
+    withdrawalMethodAbbAtm: 'ABB ATM',
     withdrawalFeePreview: 'Банковская комиссия',
     withdrawalFeesPeriodTotal: 'Комиссии в списке',
     withdrawalEmpty: 'Снятий пока не записано.',
@@ -5950,7 +6101,7 @@ export const translations: Record<Language, Translations> = {
     paymentCard: 'Карта',
     paymentBankTransfer: 'Банковский перевод',
     selectPaymentMethod: 'Выберите способ оплаты',
-    withdrawalMethodCardAccount: 'Карточный счёт (ABB ATM, 1%, мин. ₼1)',
+    withdrawalMethodCardAccount: 'Карточный счёт (ABB ATM)',
     cashDrawerTitle: 'Касса',
     cashDrawerSubtitle: 'Учитывайте наличные, чтобы сверять кассу в конце месяца.',
     cashOpeningBalance: 'Начальный остаток',
