@@ -204,6 +204,10 @@ export interface Translations {
   addMasterCategory: string;
   noCategorySelected: string;
   deleteCategoryConfirm: string;
+  categoryInUseCannotDelete: string;
+  expenseItemInUseCannotDelete: string;
+  deleteCategoryAndItemsConfirm: string;
+  deleteExpenseItemConfirm: string;
   deleteMasterCategoryConfirm: string;
   applicationPreferences: string;
   theme: string;
@@ -1802,6 +1806,12 @@ export const translations: Record<Language, Translations> = {
     addMasterCategory: 'Add Master Category',
     noCategorySelected: 'No Master Category',
     deleteCategoryConfirm: 'Are you sure you want to delete this category?',
+    categoryInUseCannotDelete:
+      'Cannot delete: used by {count} expense or purchase record(s). Reassign or keep it.',
+    expenseItemInUseCannotDelete:
+      'Cannot delete: used by {count} expense or purchase record(s). Reassign or keep it.',
+    deleteCategoryAndItemsConfirm: 'Delete "{name}" and all its items?',
+    deleteExpenseItemConfirm: 'Delete "{name}"?',
     deleteMasterCategoryConfirm: 'Are you sure you want to delete this master category?',
     applicationPreferences: 'Application preferences',
     theme: 'Theme',
@@ -3372,6 +3382,12 @@ export const translations: Record<Language, Translations> = {
     addMasterCategory: 'Ana Kateqoriya Əlavə Et',
     noCategorySelected: 'Ana Kateqoriya Yoxdur',
     deleteCategoryConfirm: 'Bu kateqoriyanı silmək istədiyinizə əminsiniz?',
+    categoryInUseCannotDelete:
+      'Silinə bilməz: {count} xərc və ya alış qeydində istifadə olunur. Yenidən təyin edin və ya saxlayın.',
+    expenseItemInUseCannotDelete:
+      'Silinə bilməz: {count} xərc və ya alış qeydində istifadə olunur. Yenidən təyin edin və ya saxlayın.',
+    deleteCategoryAndItemsConfirm: '"{name}" və bütün elementləri silinsin?',
+    deleteExpenseItemConfirm: '"{name}" silinsin?',
     deleteMasterCategoryConfirm: 'Bu ana kateqoriyanı silmək istədiyinizə əminsiniz?',
     applicationPreferences: 'Tətbiq tənzimləmələri',
     theme: 'Tema',
@@ -4945,6 +4961,12 @@ export const translations: Record<Language, Translations> = {
     addMasterCategory: 'Добавить Главную Категорию',
     noCategorySelected: 'Без Главной Категории',
     deleteCategoryConfirm: 'Вы уверены, что хотите удалить эту категорию?',
+    categoryInUseCannotDelete:
+      'Нельзя удалить: используется в {count} расходах или закупках. Переназначьте или оставьте.',
+    expenseItemInUseCannotDelete:
+      'Нельзя удалить: используется в {count} расходах или закупках. Переназначьте или оставьте.',
+    deleteCategoryAndItemsConfirm: 'Удалить «{name}» и все позиции?',
+    deleteExpenseItemConfirm: 'Удалить «{name}»?',
     deleteMasterCategoryConfirm: 'Вы уверены, что хотите удалить эту главную категорию?',
     applicationPreferences: 'Настройки приложения',
     theme: 'Тема',

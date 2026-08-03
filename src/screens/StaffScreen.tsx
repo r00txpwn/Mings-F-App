@@ -42,7 +42,7 @@ import { formatFinanceMoney } from '../lib/money';
 import {
   buildMonthDays,
   computeMonthPayable,
-  employeeVisibleInMonth,
+  employeeOnRosterForMonth,
   isEmploymentDay,
   monthDateRange,
   nextDayMarkAfterTap,
@@ -178,7 +178,16 @@ export function StaffScreen() {
         .lte('work_date', monthRange.end),
     ]);
 
-    if (empRes.data) setEmployees(empRes.data as Employee[]);
+    if (empRes.data) {
+      // Normalize date keys so ISO timestamps never break leave-month filters.
+      setEmployees(
+        (empRes.data as Employee[]).map((row) => ({
+          ...row,
+          hired_at: row.hired_at ? String(row.hired_at).slice(0, 10) : null,
+          left_at: row.left_at ? String(row.left_at).slice(0, 10) : null,
+        })),
+      );
+    }
     if (payRes.data) setPayments(payRes.data as PaymentWithEmployee[]);
     if (markRes.error) {
       // Table may not exist until migration is applied — keep UI usable.
@@ -254,12 +263,14 @@ export function StaffScreen() {
     () =>
       employees.filter((e) => {
         if (isTestRecord(e.full_name)) return false;
-        if (!employeeVisibleInMonth(e.hired_at, year, monthIndex0, e.left_at)) return false;
-        const { start } = monthDateRange(year, monthIndex0);
-        const leftBeforeMonth = Boolean(e.left_at && e.left_at.slice(0, 10) < start);
-        if (!showLeftEmployees && leftBeforeMonth) return false;
-        if (!showLeftEmployees && !e.is_active && !e.left_at) return false;
-        return true;
+        return employeeOnRosterForMonth({
+          hiredAt: e.hired_at,
+          leftAt: e.left_at,
+          isActive: e.is_active,
+          year,
+          monthIndex0,
+          showLeft: showLeftEmployees,
+        });
       }),
     [employees, monthIndex0, showLeftEmployees, year],
   );
@@ -329,14 +340,17 @@ export function StaffScreen() {
     }
 
     setSaving(true);
+    const leftValue =
+      leftAt.trim() || (!isActive ? toLocalDateInput(new Date()) : '');
     const payload = {
       full_name: fullName.trim(),
       designation: designation.trim(),
       total_salary: total,
       official_salary: total,
-      is_active: leftAt.trim() ? false : isActive,
+      // Deactivate stamps left_at so they vanish from months after exit by default.
+      is_active: leftValue ? false : isActive,
       hired_at: hiredAt.trim() || null,
-      left_at: leftAt.trim() || null,
+      left_at: leftValue || null,
       weekly_off_weekday: weeklyOffWeekday,
       updated_at: new Date().toISOString(),
     };
@@ -770,7 +784,17 @@ export function StaffScreen() {
               </select>
             </label>
             <label className="flex items-center gap-2 pt-6">
-              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => {
+                  const next = e.target.checked;
+                  setIsActive(next);
+                  if (!next && !leftAt.trim()) {
+                    setLeftAt(toLocalDateInput(new Date()));
+                  }
+                }}
+              />
               <span className="text-sm">{t.staffActiveLabel}</span>
             </label>
           </div>

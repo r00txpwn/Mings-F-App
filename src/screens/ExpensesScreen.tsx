@@ -13,7 +13,7 @@ import { ListPagerFooter } from '../components/ListPagerFooter';
 import { displayName, isTestRecord } from '../lib/displayName';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { SingleDatePicker } from '../components/SingleDatePicker';
-import { LIST_PAGE_SIZE, fetchPage, mergeById } from '../lib/supabasePaginate';
+import { LIST_PAGE_SIZE, fetchAllRows, fetchPage, mergeById } from '../lib/supabasePaginate';
 import { isOnCreditFromPurchase, purchaseCreditFields } from '../services/finance/purchaseCredit';
 import {
   BANK_TRANSFER_PAYMENT_METHOD,
@@ -180,6 +180,15 @@ export function ExpensesScreen() {
   const [purchasesHasMore, setPurchasesHasMore] = useState(false);
   const [expensesLoadingMore, setExpensesLoadingMore] = useState(false);
   const [purchasesLoadingMore, setPurchasesLoadingMore] = useState(false);
+  /** Full-period totals for the summary bar (not limited to loaded list pages). */
+  const [opexPeriodTotal, setOpexPeriodTotal] = useState(0);
+  const [cogsPeriodTotal, setCogsPeriodTotal] = useState(0);
+  const [opexPeriodByCategory, setOpexPeriodByCategory] = useState<
+    Array<{ id: string; name: string; color: string; total: number }>
+  >([]);
+  const [cogsPeriodByCategory, setCogsPeriodByCategory] = useState<
+    Array<{ id: string; name: string; color: string; total: number }>
+  >([]);
 
   const [savingPurchase, setSavingPurchase] = useState(false);
   const expenseSaveInFlight = useRef(false);
@@ -247,13 +256,111 @@ export function ExpensesScreen() {
     setPurchasesHasMore(res.hasMore);
   }, [dateFilter.end, dateFilter.start, toast]);
 
+  const reloadPeriodStats = useCallback(async () => {
+    type AmountRow = { amount: number; master_category_id: string | null; description?: string | null };
+    type CostRow = {
+      total_cost: number;
+      master_category_id: string | null;
+      notes?: string | null;
+      products?: { name?: string } | null;
+      suppliers?: { name?: string } | null;
+    };
+
+    const [opexRes, cogsRes, catRes] = await Promise.all([
+      fetchAllRows<AmountRow>(() =>
+        supabase
+          .from('operational_expenses')
+          .select('amount, master_category_id, description')
+          .gte('expense_date', dateFilter.start)
+          .lte('expense_date', dateFilter.end),
+      ),
+      fetchAllRows<CostRow>(() =>
+        supabase
+          .from('purchases')
+          .select('total_cost, master_category_id, notes, products(name), suppliers(name)')
+          .gte('purchase_date', dateFilter.start)
+          .lte('purchase_date', `${dateFilter.end}T23:59:59`),
+      ),
+      supabase
+        .from('master_categories')
+        .select('id, name, color, type')
+        .in('type', ['purchase', 'expense']),
+    ]);
+
+    if (opexRes.error) {
+      toast.error(opexRes.error.message);
+      return;
+    }
+    if (cogsRes.error) {
+      toast.error(cogsRes.error.message);
+      return;
+    }
+
+    const cats = (catRes.data ?? []) as Array<{
+      id: string;
+      name: string;
+      color: string;
+      type: 'expense' | 'purchase';
+    }>;
+
+    const opexRows = opexRes.data.filter((row) => !isTestRecord(row.description));
+    const cogsRows = cogsRes.data.filter(
+      (row) =>
+        !isTestRecord(row.notes) &&
+        !isTestRecord(row.products?.name) &&
+        !isTestRecord(row.suppliers?.name),
+    );
+
+    const sumByCategory = (
+      rows: Array<{ master_category_id: string | null; value: number }>,
+      type: 'expense' | 'purchase',
+    ) => {
+      const totals = new Map<string, number>();
+      for (const row of rows) {
+        if (!row.master_category_id) continue;
+        totals.set(row.master_category_id, (totals.get(row.master_category_id) ?? 0) + row.value);
+      }
+      return cats
+        .filter((c) => c.type === type)
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          color: c.color,
+          total: totals.get(c.id) ?? 0,
+        }))
+        .filter((c) => c.total > 0)
+        .sort((a, b) => b.total - a.total);
+    };
+
+    setOpexPeriodTotal(opexRows.reduce((sum, row) => sum + Number(row.amount), 0));
+    setCogsPeriodTotal(cogsRows.reduce((sum, row) => sum + Number(row.total_cost), 0));
+    setOpexPeriodByCategory(
+      sumByCategory(
+        opexRows.map((row) => ({
+          master_category_id: row.master_category_id,
+          value: Number(row.amount),
+        })),
+        'expense',
+      ),
+    );
+    setCogsPeriodByCategory(
+      sumByCategory(
+        cogsRows.map((row) => ({
+          master_category_id: row.master_category_id,
+          value: Number(row.total_cost),
+        })),
+        'purchase',
+      ),
+    );
+  }, [dateFilter.end, dateFilter.start, toast]);
+
   const loadAllData = useCallback(
     async (isInitial = false) => {
       if (isInitial) setLoading(true);
-      await Promise.all([loadLookups(), reloadExpenses(), reloadPurchases()]);
+      await Promise.all([loadLookups(), reloadExpenses(), reloadPurchases(), reloadPeriodStats()]);
       if (isInitial) setLoading(false);
     },
-    [loadLookups, reloadExpenses, reloadPurchases],
+    [loadLookups, reloadExpenses, reloadPeriodStats, reloadPurchases],
   );
 
   useEffect(() => {
@@ -340,23 +447,6 @@ export function ExpensesScreen() {
       (p.notes || '').toLowerCase().includes(s)
     );
   });
-
-  const opexTotal = filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
-  const cogsTotal = filteredPurchases.reduce((sum, p) => sum + Number(p.total_cost), 0);
-
-  const opexCategorySummary = expenseCategories.map(cat => ({
-    id: cat.id,
-    name: cat.name,
-    color: cat.color,
-    total: filteredExpenses.filter(e => e.master_category_id === cat.id).reduce((s, e) => s + Number(e.amount), 0),
-  })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
-
-  const cogsCategorySummary = cogsCategories.map(cat => ({
-    id: cat.id,
-    name: cat.name,
-    color: cat.color,
-    total: filteredPurchases.filter(p => p.master_category_id === cat.id).reduce((s, p) => s + Number(p.total_cost), 0),
-  })).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
 
   const opexGroups = expenseCategories.map(cat => {
     const catExpenses = filteredExpenses.filter(e => e.master_category_id === cat.id);
@@ -1043,6 +1133,7 @@ export function ExpensesScreen() {
             ),
           );
         }
+        void reloadPeriodStats();
       } finally {
         expenseSaveInFlight.current = false;
       }
@@ -1182,6 +1273,7 @@ export function ExpensesScreen() {
           ),
         );
       }
+      void reloadPeriodStats();
     })();
   };
 
@@ -1340,8 +1432,8 @@ export function ExpensesScreen() {
       {activeTab === 'operational' && (
         <>
           <ExpensesSummaryBar
-            categories={opexCategorySummary}
-            totalAmount={opexTotal}
+            categories={opexPeriodByCategory}
+            totalAmount={opexPeriodTotal}
             label={t.operationalExpenses}
           />
           {opexGroups.length === 0 ? (
@@ -1379,8 +1471,8 @@ export function ExpensesScreen() {
       {activeTab === 'cogs' && (
         <>
           <ExpensesSummaryBar
-            categories={cogsCategorySummary}
-            totalAmount={cogsTotal}
+            categories={cogsPeriodByCategory}
+            totalAmount={cogsPeriodTotal}
             label={t.cogs}
           />
           {cogsGroups.length === 0 ? (

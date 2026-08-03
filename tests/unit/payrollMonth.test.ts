@@ -6,6 +6,7 @@ import {
   nextDayMarkAfterTap,
   resolveDayStatus,
   employeeVisibleInMonth,
+  employeeOnRosterForMonth,
   roundMoney3,
 } from '../../src/services/finance/payrollMonth';
 
@@ -106,6 +107,53 @@ describe('payrollMonth', () => {
     expect(employeeVisibleInMonth(null, 2026, 7)).toBe(true);
     expect(employeeVisibleInMonth(null, 2026, 7, '2026-07-31')).toBe(false);
     expect(employeeVisibleInMonth('2026-08-01', 2026, 7, '2026-08-15')).toBe(true);
+  });
+
+  it('roster: left in July is hidden in August by default, visible with showLeft', () => {
+    // Mirrors real data: aydan left 2026-07-31
+    expect(
+      employeeOnRosterForMonth({
+        hiredAt: null,
+        leftAt: '2026-07-31',
+        isActive: false,
+        year: 2026,
+        monthIndex0: 7, // August
+        showLeft: false,
+      }),
+    ).toBe(false);
+    expect(
+      employeeOnRosterForMonth({
+        hiredAt: null,
+        leftAt: '2026-07-31',
+        isActive: false,
+        year: 2026,
+        monthIndex0: 6, // July — exit month still listed for payroll
+        showLeft: false,
+      }),
+    ).toBe(true);
+    expect(
+      employeeOnRosterForMonth({
+        hiredAt: null,
+        leftAt: '2026-07-31',
+        isActive: false,
+        year: 2026,
+        monthIndex0: 7,
+        showLeft: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('roster: still-active employee without left_at stays visible', () => {
+    expect(
+      employeeOnRosterForMonth({
+        hiredAt: null,
+        leftAt: null,
+        isActive: true,
+        year: 2026,
+        monthIndex0: 7,
+        showLeft: false,
+      }),
+    ).toBe(true);
   });
 
   it('roundMoney3 keeps three decimals', () => {

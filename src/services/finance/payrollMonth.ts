@@ -50,9 +50,11 @@ export function toLocalDateKey(date: Date): string {
 }
 
 function dateKeyOnly(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const key = value.slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(key) ? key : null;
+  if (value == null || value === '') return null;
+  const s = String(value).trim();
+  // Accept YYYY-MM-DD or ISO datetime; reject other formats.
+  const match = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1]! : null;
 }
 
 /** Inclusive employment day within the month (hired_at / left_at bounds). */
@@ -168,6 +170,10 @@ export function nextDayMarkAfterTap(input: {
   return next;
 }
 
+/**
+ * Pure employment-window check (no "show left" audit toggle).
+ * Overlaps the month if hire ≤ month end and (no leave or leave ≥ month start).
+ */
 export function employeeVisibleInMonth(
   hiredAt: string | null | undefined,
   year: number,
@@ -179,6 +185,36 @@ export function employeeVisibleInMonth(
   const left = dateKeyOnly(leftAt);
   if (hired && hired > end) return false;
   if (left && left < start) return false;
+  return true;
+}
+
+/**
+ * Staff roster filter for a calendar month.
+ * - Hired after month ends → hide
+ * - Left before month starts → hide unless showLeft (audit)
+ * - Inactive with no left_at (legacy) → hide unless showLeft
+ * - Exit month (left during month) stays visible so payroll can finish
+ */
+export function employeeOnRosterForMonth(input: {
+  hiredAt?: string | null;
+  leftAt?: string | null;
+  isActive: boolean;
+  year: number;
+  monthIndex0: number;
+  showLeft: boolean;
+}): boolean {
+  const { start, end } = monthDateRange(input.year, input.monthIndex0);
+  const hired = dateKeyOnly(input.hiredAt);
+  const left = dateKeyOnly(input.leftAt);
+
+  if (hired && hired > end) return false;
+
+  // Departed in a previous month — only audit toggle brings them back.
+  if (left && left < start) return input.showLeft;
+
+  // Legacy inactive with no leave stamp: not on default roster.
+  if (!input.isActive && !left) return input.showLeft;
+
   return true;
 }
 
