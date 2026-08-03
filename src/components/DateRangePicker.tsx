@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { nextDateRangePick } from '../lib/dateRangePick';
 
 interface DateRangePickerProps {
   startDate: string;
@@ -71,6 +72,21 @@ function getQuickRanges() {
   };
 }
 
+function commitRange(
+  start: string,
+  end: string,
+  onStartChange: (date: string) => void,
+  onEndChange: (date: string) => void,
+) {
+  onStartChange(start);
+  onEndChange(end);
+}
+
+/**
+ * Two-click range picker.
+ * Parent `startDate`/`endDate` stay committed until both ends are chosen
+ * (or a quick range is applied). Mid-selection uses a local draft only.
+ */
 export function DateRangePicker({
   startDate,
   endDate,
@@ -86,31 +102,51 @@ export function DateRangePicker({
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [open, setOpen] = useState(false);
   const [selecting, setSelecting] = useState<'start' | 'end'>('start');
+  // Draft stays local until start+end are both set — parent keeps previous range.
+  const [draftStart, setDraftStart] = useState(startDate);
+  const [draftEnd, setDraftEnd] = useState(endDate);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [desktopPosition, setDesktopPosition] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
+  const closeWithoutCommit = () => {
+    setOpen(false);
+    setDraftStart(startDate);
+    setDraftEnd(endDate);
+    setSelecting('start');
+  };
+
   useEffect(() => {
+    if (!open) return;
+    setDraftStart(startDate);
+    setDraftEnd(endDate);
+    setSelecting('start');
+    if (startDate) {
+      const { year, month } = parseDate(startDate);
+      setViewYear(year);
+      setViewMonth(month);
+    }
+    // ponytail: only reset draft when popover opens; startDate/endDate must not re-sync mid-pick
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     function handleClick(e: MouseEvent) {
       const target = e.target as Node;
       const clickedTrigger = ref.current?.contains(target);
       const clickedPopover = popoverRef.current?.contains(target);
       if (!clickedTrigger && !clickedPopover) {
         setOpen(false);
+        setDraftStart(startDate);
+        setDraftEnd(endDate);
+        setSelecting('start');
       }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
-
-  useEffect(() => {
-    if (startDate) {
-      const { year, month } = parseDate(startDate);
-      setViewYear(year);
-      setViewMonth(month);
-    }
-  }, [open]);
+  }, [open, startDate, endDate]);
 
   useEffect(() => {
     if (!open) return;
@@ -161,23 +197,25 @@ export function DateRangePicker({
   };
 
   const handleDayClick = (dateStr: string) => {
-    if (selecting === 'start') {
-      onStartChange(dateStr);
-      if (endDate && dateStr > endDate) {
-        onEndChange('');
-      }
-      setSelecting('end');
-    } else {
-      if (startDate && dateStr < startDate) {
-        onStartChange(dateStr);
-        onEndChange('');
-        setSelecting('end');
-      } else {
-        onEndChange(dateStr);
-        setSelecting('start');
-        setOpen(false);
-      }
+    const next = nextDateRangePick(
+      { selecting, draftStart, draftEnd },
+      dateStr,
+    );
+    setSelecting(next.selecting);
+    setDraftStart(next.draftStart);
+    setDraftEnd(next.draftEnd);
+    if (next.committed) {
+      commitRange(next.committed.start, next.committed.end, onStartChange, onEndChange);
+      setOpen(false);
     }
+  };
+
+  const applyQuick = (range: { start: string; end: string }) => {
+    setDraftStart(range.start);
+    setDraftEnd(range.end);
+    commitRange(range.start, range.end, onStartChange, onEndChange);
+    setSelecting('start');
+    setOpen(false);
   };
 
   const firstDay = new Date(viewYear, viewMonth, 1);
@@ -191,12 +229,12 @@ export function DateRangePicker({
   while (cells.length % 7 !== 0) cells.push(null);
 
   const isInRange = (dateStr: string) => {
-    if (!startDate || !endDate) return false;
-    return dateStr > startDate && dateStr < endDate;
+    if (!draftStart || !draftEnd) return false;
+    return dateStr > draftStart && dateStr < draftEnd;
   };
 
-  const isRangeStart = (dateStr: string) => startDate && isSame(dateStr, startDate);
-  const isRangeEnd = (dateStr: string) => endDate && isSame(dateStr, endDate);
+  const isRangeStart = (dateStr: string) => draftStart && isSame(dateStr, draftStart);
+  const isRangeEnd = (dateStr: string) => draftEnd && isSame(dateStr, draftEnd);
   const quick = getQuickRanges();
 
   return (
@@ -226,7 +264,7 @@ export function DateRangePicker({
                 type="button"
                 aria-label="Close date picker"
                 className="fixed inset-0 z-[90] bg-black/35 backdrop-blur-[1px] md:hidden"
-                onClick={() => setOpen(false)}
+                onClick={closeWithoutCommit}
               />
               <div
                 ref={popoverRef}
@@ -271,7 +309,7 @@ export function DateRangePicker({
                       : 'text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-white/10'
                   }`}
                 >
-                  {startDate ? formatDisplay(startDate) : startLabel}
+                  {draftStart ? formatDisplay(draftStart) : startLabel}
                 </button>
                 <span className="px-1 text-[10px] text-slate-300 dark:text-slate-600">→</span>
                 <button
@@ -283,7 +321,7 @@ export function DateRangePicker({
                       : 'text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-white/10'
                   }`}
                 >
-                  {endDate ? formatDisplay(endDate) : endLabel}
+                  {draftEnd ? formatDisplay(draftEnd) : endLabel}
                 </button>
                 </div>
 
@@ -318,7 +356,7 @@ export function DateRangePicker({
                   } else if (isStart) {
                     cellBg = 'bg-blue-500 dark:bg-blue-500';
                     textClass = 'text-white';
-                    roundedClass = endDate ? 'rounded-l-lg' : 'rounded-lg';
+                    roundedClass = draftEnd ? 'rounded-l-lg' : 'rounded-lg';
                   } else if (isEnd) {
                     cellBg = 'bg-blue-500 dark:bg-blue-500';
                     textClass = 'text-white';
@@ -353,66 +391,42 @@ export function DateRangePicker({
                   <div className="mt-4 grid gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      onStartChange(quick.today.start);
-                      onEndChange(quick.today.end);
-                      setOpen(false);
-                    }}
+                    onClick={() => applyQuick(quick.today)}
                     className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
                   >
                     {t.today}
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      onStartChange(quick.yesterday.start);
-                      onEndChange(quick.yesterday.end);
-                      setOpen(false);
-                    }}
+                    onClick={() => applyQuick(quick.yesterday)}
                     className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
                   >
                     {t.yesterday}
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      onStartChange(quick.thisWeek.start);
-                      onEndChange(quick.thisWeek.end);
-                      setOpen(false);
-                    }}
+                    onClick={() => applyQuick(quick.thisWeek)}
                     className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
                   >
                     {t.thisWeek}
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      onStartChange(quick.tomorrow.start);
-                      onEndChange(quick.tomorrow.end);
-                      setOpen(false);
-                    }}
+                    onClick={() => applyQuick(quick.tomorrow)}
                     className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
                   >
                     {t.tomorrow}
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      onStartChange(quick.thisMonth.start);
-                      onEndChange(quick.thisMonth.end);
-                      setOpen(false);
-                    }}
+                    onClick={() => applyQuick(quick.thisMonth)}
                     className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
                   >
                     {t.thisMonth}
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      onStartChange(quick.lastMonth.start);
-                      onEndChange(quick.lastMonth.end);
-                      setOpen(false);
-                    }}
+                    onClick={() => applyQuick(quick.lastMonth)}
                     className="rounded-2xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
                   >
                     {t.lastMonth}

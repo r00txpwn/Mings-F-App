@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Tag, ShoppingCart, DollarSign, Check } from 'lucide-react';
 import { adminDelete, adminInsert, adminUpdate } from '../../lib/adminApi';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { DangerConfirmRow } from '../../components/ui/DangerConfirmRow';
@@ -148,6 +149,68 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
     setDeletingId(id);
     setActionError(null);
 
+    const catSubItems = subItems.filter((si) => si.master_category_id === id);
+    const itemIds = catSubItems.map((si) => si.id);
+
+    const [opexByCat, purByCat, opexByItem, purByItem] = await Promise.all([
+      supabase
+        .from('operational_expenses')
+        .select('id', { count: 'exact', head: true })
+        .eq('master_category_id', id),
+      supabase
+        .from('purchases')
+        .select('id', { count: 'exact', head: true })
+        .eq('master_category_id', id),
+      itemIds.length > 0
+        ? supabase
+            .from('operational_expenses')
+            .select('id', { count: 'exact', head: true })
+            .in('expense_item_id', itemIds)
+        : Promise.resolve({ count: 0, error: null }),
+      itemIds.length > 0
+        ? supabase
+            .from('purchases')
+            .select('id', { count: 'exact', head: true })
+            .in('expense_item_id', itemIds)
+        : Promise.resolve({ count: 0, error: null }),
+    ]);
+
+    if (opexByCat.error || purByCat.error || opexByItem.error || purByItem.error) {
+      setDeletingId(null);
+      setDeleteConfirm(null);
+      flashError(
+        opexByCat.error?.message ??
+          purByCat.error?.message ??
+          opexByItem.error?.message ??
+          purByItem.error?.message ??
+          t.errorOccurred,
+      );
+      return;
+    }
+
+    const usedCount =
+      (opexByCat.count ?? 0) +
+      (purByCat.count ?? 0) +
+      (opexByItem.count ?? 0) +
+      (purByItem.count ?? 0);
+
+    if (usedCount > 0) {
+      setDeletingId(null);
+      setDeleteConfirm(null);
+      flashError(t.categoryInUseCannotDelete.replace('{count}', String(usedCount)));
+      return;
+    }
+
+    for (const item of catSubItems) {
+      const itemResult = await adminDelete('expense_items', item.id);
+      if (!itemResult.ok) {
+        setDeletingId(null);
+        setDeleteConfirm(null);
+        flashError(itemResult.error ?? t.errorOccurred);
+        return;
+      }
+    }
+
     const result = await adminDelete('master_categories', id);
     setDeletingId(null);
 
@@ -166,6 +229,32 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
     if (deletingId) return;
     setDeletingId(id);
     setActionError(null);
+
+    const [opexRes, purRes] = await Promise.all([
+      supabase
+        .from('operational_expenses')
+        .select('id', { count: 'exact', head: true })
+        .eq('expense_item_id', id),
+      supabase
+        .from('purchases')
+        .select('id', { count: 'exact', head: true })
+        .eq('expense_item_id', id),
+    ]);
+
+    if (opexRes.error || purRes.error) {
+      setDeletingId(null);
+      setDeleteConfirm(null);
+      flashError(opexRes.error?.message ?? purRes.error?.message ?? t.errorOccurred);
+      return;
+    }
+
+    const usedCount = (opexRes.count ?? 0) + (purRes.count ?? 0);
+    if (usedCount > 0) {
+      setDeletingId(null);
+      setDeleteConfirm(null);
+      flashError(t.expenseItemInUseCannotDelete.replace('{count}', String(usedCount)));
+      return;
+    }
 
     const result = await adminDelete('expense_items', id);
     setDeletingId(null);
@@ -401,7 +490,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                 {deleteConfirm?.type === 'category' && deleteConfirm.id === cat.id ? (
                   <div className="p-4 bg-red-50 dark:bg-red-900/20">
                     <DangerConfirmRow
-                      message={`Delete "${cat.name}" and all its sub-items?`}
+                      message={t.deleteCategoryAndItemsConfirm.replace('{name}', cat.name)}
                       onConfirm={() => void handleDeleteCategory(cat.id)}
                       onCancel={() => { if (deletingId !== cat.id) setDeleteConfirm(null); }}
                       confirmDisabled={deletingId === cat.id}
@@ -516,7 +605,7 @@ export function ManageCategoriesTab({ categories, subItems, onDataChanged }: Man
                                 {deleteConfirm?.type === 'subitem' && deleteConfirm.id === si.id ? (
                                   <div className="flex-1 flex items-center justify-between">
                                     <DangerConfirmRow
-                                      message={`Delete "${si.name}"?`}
+                                      message={t.deleteExpenseItemConfirm.replace('{name}', si.name)}
                                       onConfirm={() => void handleDeleteSubItem(si.id)}
                                       onCancel={() => { if (deletingId !== si.id) setDeleteConfirm(null); }}
                                       confirmDisabled={deletingId === si.id}
