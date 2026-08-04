@@ -5,6 +5,42 @@ export interface Translations {
   [key: string]: string;
   // Navigation
   home: string;
+  /** Task Master cockpit board (internal ops). */
+  taskMaster: string;
+  taskMasterSubtitle: string;
+  taskMasterNewTask: string;
+  taskMasterEditTask: string;
+  taskMasterTitle: string;
+  taskMasterNotes: string;
+  taskMasterAssignee: string;
+  taskMasterUnassigned: string;
+  taskMasterFormerAssignee: string;
+  taskMasterDeadline: string;
+  taskMasterPriority: string;
+  taskMasterPriorityNone: string;
+  taskMasterPriorityLow: string;
+  taskMasterPriorityMedium: string;
+  taskMasterPriorityHigh: string;
+  taskMasterStatusBacklog: string;
+  taskMasterStatusTodo: string;
+  taskMasterStatusInProgress: string;
+  taskMasterStatusDone: string;
+  taskMasterColumnEmpty: string;
+  taskMasterOverdue: string;
+  taskMasterArchive: string;
+  taskMasterArchived: string;
+  taskMasterUnarchive: string;
+  taskMasterUnarchived: string;
+  taskMasterShowArchived: string;
+  taskMasterHideArchived: string;
+  taskMasterArchivedList: string;
+  taskMasterNoArchived: string;
+  taskMasterDeleteConfirm: string;
+  taskMasterDeleted: string;
+  taskMasterCreated: string;
+  taskMasterUpdated: string;
+  taskMasterTitleRequired: string;
+  taskMasterSaveFailed: string;
   sales: string;
   money: string;
   reports: string;
@@ -1613,6 +1649,41 @@ export interface Translations {
 export const translations: Record<Language, Translations> = {
   en: {
     home: 'Home',
+    taskMaster: 'Task Master',
+    taskMasterSubtitle: 'Internal ops board — assign work, deadlines, and priority.',
+    taskMasterNewTask: 'New task',
+    taskMasterEditTask: 'Edit task',
+    taskMasterTitle: 'Title',
+    taskMasterNotes: 'Notes',
+    taskMasterAssignee: 'Assignee',
+    taskMasterUnassigned: 'Unassigned',
+    taskMasterFormerAssignee: 'Former team member',
+    taskMasterDeadline: 'Deadline',
+    taskMasterPriority: 'Priority',
+    taskMasterPriorityNone: 'None',
+    taskMasterPriorityLow: 'Low',
+    taskMasterPriorityMedium: 'Medium',
+    taskMasterPriorityHigh: 'High',
+    taskMasterStatusBacklog: 'Backlog',
+    taskMasterStatusTodo: 'To Do',
+    taskMasterStatusInProgress: 'In Progress',
+    taskMasterStatusDone: 'Done',
+    taskMasterColumnEmpty: 'No tasks',
+    taskMasterOverdue: 'Overdue',
+    taskMasterArchive: 'Archive',
+    taskMasterArchived: 'Task archived',
+    taskMasterUnarchive: 'Unarchive',
+    taskMasterUnarchived: 'Task restored to board',
+    taskMasterShowArchived: 'Archived',
+    taskMasterHideArchived: 'Hide archived',
+    taskMasterArchivedList: 'Archived tasks',
+    taskMasterNoArchived: 'No archived tasks',
+    taskMasterDeleteConfirm: 'Delete “{title}”? This cannot be undone in the app.',
+    taskMasterDeleted: 'Task deleted',
+    taskMasterCreated: 'Task created',
+    taskMasterUpdated: 'Task updated',
+    taskMasterTitleRequired: 'Title is required',
+    taskMasterSaveFailed: 'Could not save task',
     sales: 'Sales',
     money: 'Money',
     reports: 'Reports',
@@ -3189,6 +3260,41 @@ export const translations: Record<Language, Translations> = {
 
   az: {
     home: 'Əsas',
+    taskMaster: 'Task Master',
+    taskMasterSubtitle: 'Daxili iş lövhəsi — tapşırıq, son tarix və prioritet.',
+    taskMasterNewTask: 'Yeni tapşırıq',
+    taskMasterEditTask: 'Tapşırığı redaktə et',
+    taskMasterTitle: 'Başlıq',
+    taskMasterNotes: 'Qeydlər',
+    taskMasterAssignee: 'İcraçı',
+    taskMasterUnassigned: 'Təyin olunmayıb',
+    taskMasterFormerAssignee: 'Keçmiş əməkdaş',
+    taskMasterDeadline: 'Son tarix',
+    taskMasterPriority: 'Prioritet',
+    taskMasterPriorityNone: 'Yox',
+    taskMasterPriorityLow: 'Aşağı',
+    taskMasterPriorityMedium: 'Orta',
+    taskMasterPriorityHigh: 'Yüksək',
+    taskMasterStatusBacklog: 'Backlog',
+    taskMasterStatusTodo: 'Gözləyir',
+    taskMasterStatusInProgress: 'Davam edir',
+    taskMasterStatusDone: 'Bitib',
+    taskMasterColumnEmpty: 'Tapşırıq yoxdur',
+    taskMasterOverdue: 'Gecikib',
+    taskMasterArchive: 'Arxivlə',
+    taskMasterArchived: 'Tapşırıq arxivləndi',
+    taskMasterUnarchive: 'Arxivdən çıxar',
+    taskMasterUnarchived: 'Tapşırıq lövhəyə qaytarıldı',
+    taskMasterShowArchived: 'Arxiv',
+    taskMasterHideArchived: 'Arxivi gizlət',
+    taskMasterArchivedList: 'Arxivlənmiş tapşırıqlar',
+    taskMasterNoArchived: 'Arxivdə tapşırıq yoxdur',
+    taskMasterDeleteConfirm: '“{title}” silinsin? Tətbiqdə bərpa yoxdur.',
+    taskMasterDeleted: 'Tapşırıq silindi',
+    taskMasterCreated: 'Tapşırıq yaradıldı',
+    taskMasterUpdated: 'Tapşırıq yeniləndi',
+    taskMasterTitleRequired: 'Başlıq mütləqdir',
+    taskMasterSaveFailed: 'Tapşırıq yadda saxlanılmadı',
     sales: 'Satışlar',
     money: 'Pul',
     reports: 'Hesabatlar',
@@ -4768,6 +4874,41 @@ export const translations: Record<Language, Translations> = {
 
   ru: {
     home: 'Главная',
+    taskMaster: 'Task Master',
+    taskMasterSubtitle: 'Внутренняя доска задач — исполнитель, срок и приоритет.',
+    taskMasterNewTask: 'Новая задача',
+    taskMasterEditTask: 'Редактировать задачу',
+    taskMasterTitle: 'Название',
+    taskMasterNotes: 'Заметки',
+    taskMasterAssignee: 'Исполнитель',
+    taskMasterUnassigned: 'Не назначен',
+    taskMasterFormerAssignee: 'Бывший сотрудник',
+    taskMasterDeadline: 'Срок',
+    taskMasterPriority: 'Приоритет',
+    taskMasterPriorityNone: 'Нет',
+    taskMasterPriorityLow: 'Низкий',
+    taskMasterPriorityMedium: 'Средний',
+    taskMasterPriorityHigh: 'Высокий',
+    taskMasterStatusBacklog: 'Бэклог',
+    taskMasterStatusTodo: 'К выполнению',
+    taskMasterStatusInProgress: 'В работе',
+    taskMasterStatusDone: 'Готово',
+    taskMasterColumnEmpty: 'Нет задач',
+    taskMasterOverdue: 'Просрочено',
+    taskMasterArchive: 'В архив',
+    taskMasterArchived: 'Задача в архиве',
+    taskMasterUnarchive: 'Вернуть',
+    taskMasterUnarchived: 'Задача возвращена на доску',
+    taskMasterShowArchived: 'Архив',
+    taskMasterHideArchived: 'Скрыть архив',
+    taskMasterArchivedList: 'Архив задач',
+    taskMasterNoArchived: 'Архив пуст',
+    taskMasterDeleteConfirm: 'Удалить «{title}»? В приложении восстановить нельзя.',
+    taskMasterDeleted: 'Задача удалена',
+    taskMasterCreated: 'Задача создана',
+    taskMasterUpdated: 'Задача обновлена',
+    taskMasterTitleRequired: 'Нужно название',
+    taskMasterSaveFailed: 'Не удалось сохранить задачу',
     sales: 'Продажи',
     money: 'Деньги',
     reports: 'Отчёты',

@@ -144,3 +144,4 @@ npm run supabase:deploy:web
 - `20260712152000_user_preferences_per_user.sql` — adds **`user_preferences.user_id`** (unique per auth user), removes legacy global rows, and scopes RLS to **`auth.uid()`** so language choice persists per user instead of resetting to English.
 - `20260801120000_employee_attendance_marks.sql` — **additive** payroll attendance: `employees.weekly_off_weekday` (default Sunday) + `employee_day_marks` (`weekly_off` / `absent` / `work`). No drops or data deletes.
 - `20260801140000_employee_left_at.sql` — **additive** `employees.left_at` for leave-day proration. No drops.
+- `20260804120000_ops_tasks.sql` — **Task Master** internal ops board: **`ops_tasks`** (status, priority, assignee → employees, due_date, soft delete + archive, realtime publication). RLS manager/admin. Redeploy **`admin-api`** (`ops_tasks` allowlist). Cockpit: **`?screen=task-master`**.

@@ -1,5 +1,6 @@
 export type CockpitScreen =
   | 'home'
+  | 'task-master'
   | 'sales'
   | 'order-support'
   | 'delivery'
@@ -24,6 +25,7 @@ export const COCKPIT_DEFAULT_SCREEN: CockpitScreen = 'home';
 
 export const ALL_COCKPIT_SCREENS: CockpitScreen[] = [
   'home',
+  'task-master',
   'sales',
   'order-support',
   'delivery',
@@ -51,6 +53,7 @@ export interface CockpitNavItem {
   section: CockpitNavSection;
   labelKey:
     | 'home'
+    | 'taskMaster'
     | 'sales'
     | 'orderSupport'
     | 'deliveryScreenTitle'
@@ -76,6 +79,7 @@ export interface CockpitNavItem {
 
 export const COCKPIT_NAV_ITEMS: CockpitNavItem[] = [
   { id: 'home', section: 'overview', labelKey: 'home' },
+  { id: 'task-master', section: 'overview', labelKey: 'taskMaster' },
   { id: 'order-support', section: 'orders', labelKey: 'orderSupport' },
   { id: 'delivery', section: 'orders', labelKey: 'deliveryScreenTitle' },
   { id: 'order-locations', section: 'orders', labelKey: 'orderLocations' },
