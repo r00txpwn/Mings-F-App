@@ -466,3 +466,23 @@ export interface SalaryPayment {
   created_at: string;
   employees?: Pick<Employee, 'full_name' | 'designation'>;
 }
+
+/** Task Master — internal ops board (`ops_tasks`). */
+export type OpsTaskStatus = 'backlog' | 'todo' | 'in_progress' | 'done';
+export type OpsTaskPriority = 'none' | 'low' | 'medium' | 'high';
+
+export interface OpsTask {
+  id: string;
+  title: string;
+  description: string;
+  status: OpsTaskStatus;
+  priority: OpsTaskPriority;
+  assignee_employee_id: string | null;
+  due_date: string | null;
+  archived_at: string | null;
+  is_deleted: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  employees?: Pick<Employee, 'id' | 'full_name' | 'is_active' | 'left_at'> | null;
+}

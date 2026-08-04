@@ -27,6 +27,7 @@ import { AdminOrderSupportScreen } from './screens/AdminOrderSupportScreen';
 import { PaymentsScreen } from './screens/PaymentsScreen';
 import { CashDebtScreen } from './screens/CashDebtScreen';
 import { AuditLogScreen } from './screens/AuditLogScreen';
+import { TaskMasterScreen } from './screens/TaskMasterScreen';
 import {
   CockpitLayout,
   CockpitHubTabs,
@@ -104,6 +105,8 @@ function AppContent() {
     switch (currentScreen) {
       case 'home':
         return <HomeScreen />;
+      case 'task-master':
+        return <TaskMasterScreen />;
       case 'sales':
         return <SalesScreen />;
       case 'order-support':

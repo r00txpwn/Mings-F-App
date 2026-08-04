@@ -5,6 +5,7 @@ import {
   DollarSign,
   Flame,
   Home,
+  KanbanSquare,
   LogOut,
   MapPin,
   Moon,
@@ -52,6 +53,7 @@ const HUB_ICONS: Record<CockpitHubId, ReactNode> = {
 
 const NAV_ICONS: Record<CockpitScreen, ReactNode> = {
   home: <Home className="h-5 w-5 shrink-0" />,
+  'task-master': <KanbanSquare className="h-5 w-5 shrink-0" />,
   sales: <ShoppingCart className="h-5 w-5 shrink-0" />,
   'order-support': <ClipboardList className="h-5 w-5 shrink-0" />,
   delivery: <Truck className="h-5 w-5 shrink-0" />,

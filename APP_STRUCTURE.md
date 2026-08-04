@@ -213,6 +213,7 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 | MoneyScreen | Sales / expenses / purchases views |
 | PayoutsScreen | Third-party payouts vs expected revenue |
 | StaffScreen | Employee roster + dated salary payments (advance/partial/bonus) |
+| TaskMasterScreen | Internal ops kanban (`ops_tasks`) — assign, deadline, priority; optimistic drag |
 | TaxesScreen | Sales + payroll tax liabilities, AZ rate settings, tax payment log |
 | MenuScreen | Kiosk menu categories & products, modifiers |
 | CombosScreen | Combo deals, group/item setup, upsell mapping |
