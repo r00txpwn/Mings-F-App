@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { getAuthStorageKey } from './buildTarget';
+import { resilientFetch } from './resilientFetch';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -11,6 +12,9 @@ export const supabase = createClient(
   hasSupabaseConfig ? supabaseUrl : 'http://127.0.0.1:54321',
   hasSupabaseConfig ? supabaseAnonKey : 'dev-placeholder-anon-key',
   {
+    global: {
+      fetch: resilientFetch,
+    },
     auth: {
       persistSession: true,
       storageKey: getAuthStorageKey(),

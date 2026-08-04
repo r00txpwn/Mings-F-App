@@ -19,6 +19,11 @@ interface AuthContextType {
   isAdminUser: boolean;
   /** Parsed `public.users.role` for the current staff user; `null` when not staff. */
   staffRole: StaffRole | null;
+  /**
+   * Set when staff membership could not be verified due to a network/API error
+   * (not the same as “confirmed non-staff”).
+   */
+  staffLookupError: string | null;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null | Error }>;
   /** SMS OTP via Supabase Auth (Twilio configured in project dashboard). */
@@ -36,18 +41,82 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function fetchStaffRow(userId: string): Promise<{ isStaff: boolean; role: string | null }> {
-  const { data, error } = await supabase.from('users').select('id, role').eq('id', userId).maybeSingle();
-  if (error) {
-    if (import.meta.env.DEV) {
-      console.warn('[auth] fetchStaffRow failed:', error.message);
-    }
-    return { isStaff: false, role: null };
+const STAFF_CACHE_PREFIX = 'mings:staff-profile:';
+const STAFF_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+type StaffFetchResult =
+  | { kind: 'staff'; role: string }
+  | { kind: 'not_staff' }
+  | { kind: 'error'; message: string };
+
+function staffCacheKey(userId: string): string {
+  return `${STAFF_CACHE_PREFIX}${userId}`;
+}
+
+function readStaffCache(userId: string): { role: string } | null {
+  try {
+    const raw = localStorage.getItem(staffCacheKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { role?: string; at?: number };
+    if (!parsed.role || typeof parsed.at !== 'number') return null;
+    if (Date.now() - parsed.at > STAFF_CACHE_TTL_MS) return null;
+    return { role: parsed.role };
+  } catch {
+    return null;
   }
-  if (!data) return { isStaff: false, role: null };
-  const roleRaw = (data as { role?: string | null }).role;
-  const role = typeof roleRaw === 'string' && roleRaw.length > 0 ? roleRaw : 'staff';
-  return { isStaff: true, role };
+}
+
+function writeStaffCache(userId: string, role: string): void {
+  try {
+    localStorage.setItem(staffCacheKey(userId), JSON.stringify({ role, at: Date.now() }));
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+function clearStaffCache(userId: string): void {
+  try {
+    localStorage.removeItem(staffCacheKey(userId));
+  } catch {
+    // ignore
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchStaffRow(userId: string): Promise<StaffFetchResult> {
+  const maxAttempts = 3;
+  let lastMessage = 'Network error';
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (attempt > 0) await sleep(400 * 2 ** (attempt - 1));
+
+    const { data, error } = await supabase.from('users').select('id, role').eq('id', userId).maybeSingle();
+
+    if (error) {
+      lastMessage = error.message || 'Network error';
+      if (import.meta.env.DEV) {
+        console.warn('[auth] fetchStaffRow failed:', lastMessage, `(attempt ${attempt + 1})`);
+      }
+      continue;
+    }
+
+    if (!data) return { kind: 'not_staff' };
+
+    const roleRaw = (data as { role?: string | null }).role;
+    const role = typeof roleRaw === 'string' && roleRaw.length > 0 ? roleRaw : 'staff';
+    writeStaffCache(userId, role);
+    return { kind: 'staff', role };
+  }
+
+  const cached = readStaffCache(userId);
+  if (cached) {
+    return { kind: 'staff', role: cached.role };
+  }
+
+  return { kind: 'error', message: lastMessage };
 }
 
 /** Mirrors `supabase/functions/user-management` admin gate (JWT claim first, then DB role). */
@@ -67,12 +136,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isStaff, setIsStaff] = useState(false);
   const [staffDbRole, setStaffDbRole] = useState<string | null>(null);
+  const [staffLookupError, setStaffLookupError] = useState<string | null>(null);
 
   const isAdminUser = useMemo(() => isAdminForUserManagement(user, staffDbRole), [user, staffDbRole]);
   const staffRole = useMemo<StaffRole | null>(
     () => (staffDbRole ? parseStaffRole(staffDbRole) : null),
     [staffDbRole]
   );
+
+  const applyStaffResult = useCallback((result: StaffFetchResult) => {
+    if (result.kind === 'staff') {
+      setIsStaff(true);
+      setStaffDbRole(result.role);
+      setStaffLookupError(null);
+      return;
+    }
+    if (result.kind === 'not_staff') {
+      setIsStaff(false);
+      setStaffDbRole(null);
+      setStaffLookupError(null);
+      return;
+    }
+    // Network/API error: never impersonate a confirmed non-staff user without cache.
+    setIsStaff(false);
+    setStaffDbRole(null);
+    setStaffLookupError(result.message);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,14 +171,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const nextUser = nextSession?.user ?? null;
       setUser(nextUser);
       if (nextUser) {
-        const row = await fetchStaffRow(nextUser.id);
-        if (!cancelled) {
-          setIsStaff(row.isStaff);
-          setStaffDbRole(row.isStaff ? row.role : null);
+        // Warm from last successful check so a flaky first paint does not flash "not staff".
+        const warm = readStaffCache(nextUser.id);
+        if (warm && !cancelled) {
+          setIsStaff(true);
+          setStaffDbRole(warm.role);
+          setStaffLookupError(null);
         }
+        const row = await fetchStaffRow(nextUser.id);
+        if (!cancelled) applyStaffResult(row);
       } else if (!cancelled) {
         setIsStaff(false);
         setStaffDbRole(null);
+        setStaffLookupError(null);
       }
       if (!cancelled) setLoading(false);
     };
@@ -111,7 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [applyStaffResult]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -200,21 +294,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (uid && isStaffBuild()) {
       await logStaffAuthEvent('logout', uid);
     }
+    if (uid) clearStaffCache(uid);
     await supabase.auth.signOut();
   };
 
   const refetchIsStaff = useCallback(async () => {
-    const { data: { session: s } } = await supabase.auth.getSession();
+    const {
+      data: { session: s },
+    } = await supabase.auth.getSession();
     const uid = s?.user?.id;
     if (!uid) {
       setIsStaff(false);
       setStaffDbRole(null);
+      setStaffLookupError(null);
       return;
     }
     const row = await fetchStaffRow(uid);
-    setIsStaff(row.isStaff);
-    setStaffDbRole(row.isStaff ? row.role : null);
-  }, []);
+    applyStaffResult(row);
+  }, [applyStaffResult]);
 
   return (
     <AuthContext.Provider
@@ -225,6 +322,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isStaff,
         isAdminUser,
         staffRole,
+        staffLookupError,
         signIn,
         signUp,
         sendPhoneOtp,

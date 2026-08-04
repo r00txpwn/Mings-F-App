@@ -399,6 +399,8 @@ export interface Translations {
   businessManagement: string;
   staffAccessDeniedTitle: string;
   staffAccessDeniedBody: string;
+  staffConnectivityTitle: string;
+  staffConnectivityBody: string;
   staffAccessRetry: string;
   staffGoToOrder: string;
   staffSignOut: string;
@@ -2032,6 +2034,9 @@ export const translations: Record<Language, Translations> = {
     staffAccessDeniedTitle: 'Staff access required',
     staffAccessDeniedBody:
       'This account is not set up as staff yet. Ask an admin to add you in Command Center → Users (Add New User), or use Order online if you are a customer only.',
+    staffConnectivityTitle: 'Cannot reach server',
+    staffConnectivityBody:
+      'Your login is fine, but staff access could not be verified because the connection to the database failed. Check your network, then press Check again. This is not a missing user-permission setting.',
     staffAccessRetry: 'Check again',
     staffGoToOrder: 'Order online',
     staffSignOut: 'Sign out',
@@ -3643,6 +3648,9 @@ export const translations: Record<Language, Translations> = {
     staffAccessDeniedTitle: 'Staff girişi tələb olunur',
     staffAccessDeniedBody:
       'Bu hesab hələ staff kimi təyin edilməyib. Admin-dən Command Center → İstifadəçilər (Yeni istifadəçi) ilə əlavə etməsini istəyin; yalnız müştəriyənsə Onlayn sifarişdən istifadə edin.',
+    staffConnectivityTitle: 'Serverə qoşulmaq mümkün deyil',
+    staffConnectivityBody:
+      'Girişiniz qaydasındadır, amma staff girişi yoxlanılarkən məlumat bazasına bağlantı kəsildi. Şəbəkəni yoxlayın və «Yenidən yoxla»ya basın. Bu, istifadəçi icazəsinin silinməsi demək deyil.',
     staffAccessRetry: 'Yenidən yoxla',
     staffGoToOrder: 'Onlayn sifariş',
     staffSignOut: 'Çıxış',
@@ -5257,6 +5265,9 @@ export const translations: Record<Language, Translations> = {
     staffAccessDeniedTitle: 'Нужен доступ сотрудника',
     staffAccessDeniedBody:
       'Этот аккаунт ещё не добавлен как сотрудник. Попросите администратора создать вас в Command Center → Пользователи (Новый пользователь), или заказывайте как клиент.',
+    staffConnectivityTitle: 'Нет связи с сервером',
+    staffConnectivityBody:
+      'Вход в аккаунт есть, но не удалось проверить доступ сотрудника из‑за сбоя связи с базой. Проверьте сеть и нажмите «Проверить снова». Это не значит, что доступ в Users удалён.',
     staffAccessRetry: 'Проверить снова',
     staffGoToOrder: 'Заказать онлайн',
     staffSignOut: 'Выйти',
