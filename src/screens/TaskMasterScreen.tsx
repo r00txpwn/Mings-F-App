@@ -288,7 +288,7 @@ function StatusColumn({
         </span>
       </div>
       <div
-        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-2.5"
+        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5"
         data-column-dropzone={status}
       >
         {tasks.map((task) => (
@@ -342,7 +342,8 @@ export function TaskMasterScreen() {
 
   /**
    * Trackpads often only emit vertical wheel (deltaY). Map that to horizontal
-   * board scroll when the column's own list can't use the gesture.
+   * board scroll while the pointer is anywhere over the board — including
+   * card areas — unless a column list has real vertical range left to use.
    */
   useEffect(() => {
     const el = boardScrollRef.current;
@@ -353,38 +354,47 @@ export function TaskMasterScreen() {
 
       const deltaX = e.deltaX;
       const deltaY = e.deltaY;
+      // Trackpad horizontal swipe already has |deltaX| dominant — leave alone.
+      if (!e.shiftKey && Math.abs(deltaX) > Math.abs(deltaY)) return;
 
-      // Native horizontal swipe / shift+wheel — let the browser scroll, or apply both.
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        return;
-      }
+      // Shift+wheel always pans the board sideways.
+      const forceHorizontal = e.shiftKey;
 
-      const columnList = (e.target as HTMLElement | null)?.closest?.(
-        '[data-column-dropzone]'
-      ) as HTMLElement | null;
-      if (columnList) {
-        const canScrollUp = columnList.scrollTop > 0;
-        const canScrollDown =
-          columnList.scrollTop + columnList.clientHeight < columnList.scrollHeight - 1;
-        if ((deltaY < 0 && canScrollUp) || (deltaY > 0 && canScrollDown)) {
-          return;
+      if (!forceHorizontal) {
+        const columnList = (e.target as HTMLElement | null)?.closest?.(
+          '[data-column-dropzone]'
+        ) as HTMLElement | null;
+        if (columnList) {
+          // Ignore 1–2px subpixel “overflow” that blocked horizontal pan before.
+          const maxY = columnList.scrollHeight - columnList.clientHeight;
+          if (maxY > 12) {
+            const canScrollUp = columnList.scrollTop > 1;
+            const canScrollDown = columnList.scrollTop < maxY - 1;
+            if ((deltaY < 0 && canScrollUp) || (deltaY > 0 && canScrollDown)) {
+              return;
+            }
+          }
         }
       }
 
-      // Convert vertical wheel / two-finger up-down into horizontal pan.
-      const next = el.scrollLeft + deltaY;
-      const max = el.scrollWidth - el.clientWidth;
-      if (max <= 0) return;
-      // Only take over if we can still move in that direction.
-      if ((deltaY < 0 && el.scrollLeft <= 0) || (deltaY > 0 && el.scrollLeft >= max - 1)) {
+      const maxX = el.scrollWidth - el.clientWidth;
+      if (maxX <= 0) return;
+      const amount = forceHorizontal ? deltaY || deltaX : deltaY + deltaX;
+      if (
+        (amount < 0 && el.scrollLeft <= 0) ||
+        (amount > 0 && el.scrollLeft >= maxX - 1)
+      ) {
         return;
       }
+
+      // Capture + preventDefault so overflow-y columns/overscroll-contain don't eat the gesture.
       e.preventDefault();
-      el.scrollLeft = Math.max(0, Math.min(max, next));
+      e.stopPropagation();
+      el.scrollLeft = Math.max(0, Math.min(maxX, el.scrollLeft + amount));
     };
 
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    el.addEventListener('wheel', onWheel, { passive: false, capture: true });
+    return () => el.removeEventListener('wheel', onWheel, { capture: true } as EventListenerOptions);
   }, [loading]);
 
   const nameById = useMemo(() => {
