@@ -24,10 +24,21 @@ dist-ssr
 *.sw?
 .env
 .env.*
+# Catch-all so no credentials file can be staged (e.g. tmp/testsprite-creds.env)
+*.env
 !.env.example
 supabase/.temp/
 tools/supabase*
+tools/pgsql/
+tools/*.zip
 !tools/.gitkeep
+tmp/
+output/
+testsprite_tests/tmp/
+# Generated TestSprite report; the .md sibling is the committed one
+testsprite_tests/testsprite-mcp-test-report.html
+# Scratch file `npm run release` hands you to edit; folded into CHANGELOG.md
+RELEASE_NOTES.draft.md
 .vercel
 .playwright-mcp/
 pw-*.png
@@ -45,5 +56,3 @@ payments.md
 # Playwright stored auth state (session tokens) — never commit
 **/.auth/
 docs/qa-screenshots/.auth/
-
-testsprite_tests\tmp\config.json
