@@ -1,9 +1,14 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
+
+const appVersion = (
+  JSON.parse(readFileSync(path.join(rootDir, 'package.json'), 'utf8')) as { version: string }
+).version;
 
 function resolveBuildTarget(mode: string): 'staff' | 'storefront' {
   if (mode === 'storefront') return 'storefront';
@@ -23,6 +28,7 @@ export default defineConfig(({ mode, command }) => {
     plugins: [react()],
     define: {
       'import.meta.env.VITE_BUILD_TARGET': JSON.stringify(buildTarget),
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
     },
     build: {
       outDir,

@@ -277,6 +277,11 @@ export function CockpitSidebar({
             <LogOut className="h-5 w-5 shrink-0" />
             {!collapsed ? <span>{t.staffSignOut}</span> : null}
           </button>
+          {!collapsed ? (
+            <p className="px-3 pt-1 text-[10px] font-medium tabular-nums text-slate-400 dark:text-slate-600">
+              v{import.meta.env.VITE_APP_VERSION ?? '0.0.0'}
+            </p>
+          ) : null}
         </div>
     </aside>
   );

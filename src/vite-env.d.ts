@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   /** Build target inlined at compile time: `staff` (sp.mings.az) or `storefront` (order.mings.az). */
   readonly VITE_BUILD_TARGET?: 'staff' | 'storefront';
+  /** Release version inlined from package.json at build time (see `npm run release`). */
+  readonly VITE_APP_VERSION?: string;
   readonly VITE_GOOGLE_MAPS_API_KEY?: string;
   /** Override staff cockpit path (default `/spec-ops`). */
   readonly VITE_ADMIN_APP_PATH?: string;
