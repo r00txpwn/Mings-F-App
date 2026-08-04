@@ -5,7 +5,21 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist'] },
+  // Without these, `eslint .` walks the vendored Postgres tree in tools/ and
+  // exhausts the V8 heap before it reaches src/.
+  {
+    ignores: [
+      'dist',
+      'dist-staff',
+      'dist-storefront',
+      'tools',
+      'tmp',
+      'output',
+      'testsprite_tests',
+      'test-results',
+      'playwright-report',
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
