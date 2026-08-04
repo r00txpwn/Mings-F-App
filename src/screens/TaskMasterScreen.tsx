@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -332,12 +332,60 @@ export function TaskMasterScreen() {
   const [form, setForm] = useState<TaskFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const boardScrollRef = useRef<HTMLDivElement | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
     })
   );
+
+  /**
+   * Trackpads often only emit vertical wheel (deltaY). Map that to horizontal
+   * board scroll when the column's own list can't use the gesture.
+   */
+  useEffect(() => {
+    const el = boardScrollRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth + 1) return;
+
+      const deltaX = e.deltaX;
+      const deltaY = e.deltaY;
+
+      // Native horizontal swipe / shift+wheel — let the browser scroll, or apply both.
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        return;
+      }
+
+      const columnList = (e.target as HTMLElement | null)?.closest?.(
+        '[data-column-dropzone]'
+      ) as HTMLElement | null;
+      if (columnList) {
+        const canScrollUp = columnList.scrollTop > 0;
+        const canScrollDown =
+          columnList.scrollTop + columnList.clientHeight < columnList.scrollHeight - 1;
+        if ((deltaY < 0 && canScrollUp) || (deltaY > 0 && canScrollDown)) {
+          return;
+        }
+      }
+
+      // Convert vertical wheel / two-finger up-down into horizontal pan.
+      const next = el.scrollLeft + deltaY;
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 0) return;
+      // Only take over if we can still move in that direction.
+      if ((deltaY < 0 && el.scrollLeft <= 0) || (deltaY > 0 && el.scrollLeft >= max - 1)) {
+        return;
+      }
+      e.preventDefault();
+      el.scrollLeft = Math.max(0, Math.min(max, next));
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [loading]);
 
   const nameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -674,7 +722,11 @@ export function TaskMasterScreen() {
         onDragStart={onDragStart}
         onDragEnd={(ev) => void onDragEnd(ev)}
       >
-        <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-1">
+        <div
+          ref={boardScrollRef}
+          className="flex min-h-0 flex-1 gap-3 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1"
+          style={{ touchAction: 'pan-x pan-y' }}
+        >
           {OPS_TASK_STATUSES.map((status) => (
             <StatusColumn
               key={status}
