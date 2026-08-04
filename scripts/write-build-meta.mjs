@@ -1,10 +1,10 @@
 /**
  * Writes build-meta.json after `vite build` so local preview QA can confirm
- * the served bundle matches the workspace (git SHA + build time + target).
+ * the served bundle matches the workspace (version + git SHA + build time + target).
  *
  * Usage: node scripts/write-build-meta.mjs [dist-staff|dist-storefront|dist]
  */
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,7 +29,10 @@ try {
 const buildTarget =
   distName === 'dist-storefront' ? 'storefront' : distName === 'dist-staff' ? 'staff' : 'legacy';
 
+const { version } = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
+
 const meta = {
+  version,
   builtAt: new Date().toISOString(),
   gitSha,
   buildTarget,

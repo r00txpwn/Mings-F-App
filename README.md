@@ -66,7 +66,7 @@ Serves **`dist-storefront/`** on **http://127.0.0.1:4176/** — menu at **`/orde
 
 **Dev:** `npm run dev:storefront` → **http://127.0.0.1:5174/order**
 
-Each build writes **`build-meta.json`** with `gitSha` and `buildTarget`. Confirm SHA before QA.
+Each build writes **`build-meta.json`** with `version`, `gitSha` and `buildTarget`. Confirm SHA before QA.
 
 ## Deploy
 
@@ -102,6 +102,22 @@ See **[DEPLOY.md](DEPLOY.md)** for the **two-project** Vercel split (`order.ming
 - Kitchen hours / pause / soft-close: **[docs/KITCHEN_HOURS.md](docs/KITCHEN_HOURS.md)**
 - Reliability / manual QA focus: **[docs/RELIABILITY_QA_PRIORITIES.md](docs/RELIABILITY_QA_PRIORITIES.md)**
 - Automated test plan (living spec): **[docs/TEST_PLAN.md](docs/TEST_PLAN.md)** — gaps diffed by `npm run qa:plan` and included in `npm run qa` reports
+
+## Versioning and changelog
+
+One repo-wide semver version, bumped deliberately — not on every push. Full
+details in **[docs/VERSIONING.md](docs/VERSIONING.md)**.
+
+```bash
+npm run release              # guards → gates → derive bump → edit notes → commit + tag
+npm run release -- --dry-run # preview, change nothing
+```
+
+The script never pushes; it prints `git push --follow-tags origin main` for you
+to run. Commit subjects must be conventional commits (`feat(cockpit): …`) —
+`.githooks/commit-msg` enforces it, and only `feat` / `fix` / `perf` reach
+**[CHANGELOG.md](CHANGELOG.md)**. The current version shows in the cockpit
+sidebar and in `build-meta.json`.
 
 ## Testing workflow
 

@@ -580,7 +580,7 @@ npm run deploy:local              # staff → http://127.0.0.1:4175/
 npm run deploy:local:storefront   # storefront → http://127.0.0.1:4176/
 ```
 
-Each build writes `build-meta.json` with `gitSha` for QA verification.
+Each build writes `build-meta.json` with `version` and `gitSha` for QA verification. See [VERSIONING.md](VERSIONING.md).
 
 ### 14.4 SPA Rewrites
 

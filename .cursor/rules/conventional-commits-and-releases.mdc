@@ -1,0 +1,48 @@
+---
+description: Commit subjects must be conventional commits; releases are cut only by npm run release
+alwaysApply: true
+---
+
+# Conventional commits and releases
+
+This repo derives its version number and `CHANGELOG.md` from commit subjects, so
+the format is load-bearing, not cosmetic. See
+[docs/VERSIONING.md](docs/VERSIONING.md).
+
+## Commit subjects
+
+Every commit must be a conventional commit:
+
+```
+type(scope): description
+```
+
+- `type` is one of `feat fix perf refactor docs test style build ci chore revert`.
+- Append `!` for a breaking change: `feat(api)!: drop the legacy order route`.
+- Scope is lowercase and names the surface or area: `cockpit`, `kds`, `kiosk`,
+  `order`, `payroll`, `auth`, `payments`.
+
+`.githooks/commit-msg` rejects anything else. **Never** pass `--no-verify` to get
+around it unless the user explicitly asks.
+
+Only `feat`, `fix` and `perf` reach the changelog. Use them when the change is
+user-visible, and `chore` / `docs` / `refactor` when it is not — picking the
+wrong type either hides a real change from the owner or pads the changelog with
+noise.
+
+## Releases
+
+- The **only** way to bump the version or write a changelog entry is
+  **`npm run release`**. Do not hand-edit `package.json` `version`, do not
+  hand-write `CHANGELOG.md` sections, and do not create `vX.Y.Z` tags manually.
+- **Do not run `npm run release` unless the user explicitly asks for a release**
+  in the current task.
+- The script never pushes. Do not push the release commit or tag on the user's
+  behalf; leave `git push --follow-tags origin main` to them.
+- Never pass `--skip-checks` or `--force-branch` unless the user asks for it.
+
+## When adding user-visible work
+
+Write the commit subject as the changelog line you would want the owner to read.
+`feat(cockpit): add Task Master board` is a good entry;
+`feat(cockpit): wire up TM component + reducer` is not.

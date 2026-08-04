@@ -531,7 +531,7 @@ export function StaffScreen() {
   };
 
   const flushDayMarkPersist = useCallback(
-    async (employeeId: string, dateKey: string, _weeklyOff: WeekdayIndex) => {
+    async (employeeId: string, dateKey: string) => {
       const key = `${employeeId}:${dateKey}`;
       const marks = dayMarksRef.current;
       const row = marks.find((m) => m.employee_id === employeeId && m.work_date === dateKey);
@@ -634,7 +634,7 @@ export function StaffScreen() {
       key,
       setTimeout(() => {
         markPersistTimersRef.current.delete(key);
-        void flushDayMarkPersist(employee.id, dateKey, weeklyOff);
+        void flushDayMarkPersist(employee.id, dateKey);
       }, 280),
     );
   };
