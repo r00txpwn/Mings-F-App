@@ -114,13 +114,12 @@ function priorityChipClass(priority: OpsTaskPriority): string {
   }
 }
 
-/** Column shell: status accent + full-height board chrome (not flat grey boxes). */
+/** Column shell: full-height board chrome with soft status tint (no accent stripe). */
 function columnChrome(status: OpsTaskStatus): {
   shell: string;
   head: string;
   title: string;
   count: string;
-  accent: string;
 } {
   switch (status) {
     case 'backlog':
@@ -130,7 +129,6 @@ function columnChrome(status: OpsTaskStatus): {
         head: 'border-violet-200/80 bg-violet-100/60 dark:border-violet-500/20 dark:bg-violet-950/40',
         title: 'text-violet-800 dark:text-violet-200',
         count: 'bg-violet-200/80 text-violet-900 dark:bg-violet-500/20 dark:text-violet-100',
-        accent: 'bg-violet-500',
       };
     case 'todo':
       return {
@@ -139,7 +137,6 @@ function columnChrome(status: OpsTaskStatus): {
         head: 'border-sky-200/80 bg-sky-100/60 dark:border-sky-500/20 dark:bg-sky-950/40',
         title: 'text-sky-800 dark:text-sky-200',
         count: 'bg-sky-200/80 text-sky-900 dark:bg-sky-500/20 dark:text-sky-100',
-        accent: 'bg-sky-500',
       };
     case 'in_progress':
       return {
@@ -148,7 +145,6 @@ function columnChrome(status: OpsTaskStatus): {
         head: 'border-amber-200/80 bg-amber-100/60 dark:border-cockpit-500/25 dark:bg-cockpit-950/40',
         title: 'text-amber-900 dark:text-cockpit-200',
         count: 'bg-amber-200/80 text-amber-950 dark:bg-cockpit-500/20 dark:text-cockpit-100',
-        accent: 'bg-cockpit-500',
       };
     case 'done':
       return {
@@ -157,7 +153,6 @@ function columnChrome(status: OpsTaskStatus): {
         head: 'border-emerald-200/80 bg-emerald-100/60 dark:border-emerald-500/20 dark:bg-emerald-950/40',
         title: 'text-emerald-900 dark:text-emerald-200',
         count: 'bg-emerald-200/80 text-emerald-950 dark:bg-emerald-500/20 dark:text-emerald-100',
-        accent: 'bg-emerald-500',
       };
   }
 }
@@ -278,13 +273,12 @@ function StatusColumn({
     <div
       ref={setNodeRef}
       data-column-status={status}
-      className={`relative flex h-full min-h-0 min-w-[260px] flex-1 flex-col overflow-hidden rounded-2xl border ${chrome.shell} ${
+      className={`flex h-full min-h-0 min-w-[260px] flex-1 flex-col overflow-hidden rounded-2xl border ${chrome.shell} ${
         isOver ? 'ring-2 ring-cockpit-500/60 ring-offset-2 ring-offset-transparent dark:ring-offset-slate-950' : ''
       }`}
     >
-      <div className={`absolute inset-y-3 left-0 w-1 rounded-full ${chrome.accent}`} aria-hidden />
       <div
-        className={`flex shrink-0 items-center justify-between border-b px-3 py-3 pl-4 ${chrome.head}`}
+        className={`flex shrink-0 items-center justify-between border-b px-3 py-3 ${chrome.head}`}
       >
         <h2 className={`text-xs font-semibold uppercase tracking-wide ${chrome.title}`}>{title}</h2>
         <span
@@ -294,7 +288,7 @@ function StatusColumn({
         </span>
       </div>
       <div
-        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-2.5 pl-3.5"
+        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-2.5"
         data-column-dropzone={status}
       >
         {tasks.map((task) => (
