@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Truck,
   Plus,
@@ -15,6 +15,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
 import { supabase, Supplier } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
+import { createIdempotencySession } from '../lib/mutationIdempotency';
 import { PageHeader } from '../components/cockpit';
 import { SingleDatePicker } from '../components/SingleDatePicker';
 import {
@@ -102,6 +103,9 @@ export function SuppliersScreen() {
   });
   const [paySaving, setPaySaving] = useState(false);
   const [debtSaving, setDebtSaving] = useState(false);
+  /** Immediate lock — state alone can miss a second click before re-render. */
+  const paySavingLockRef = useRef(false);
+  const payIdempotencyRef = useRef(createIdempotencySession());
 
   const accountBySupplierId = useMemo(
     () => new Map(accounts.map((a) => [a.supplierId, a])),
@@ -242,29 +246,37 @@ export function SuppliersScreen() {
 
   const handlePaySupplier = async (supplierId: string) => {
     const amount = Number(payForm.amount);
-    if (amount <= 0 || paySaving) return;
+    if (amount <= 0 || paySaving || paySavingLockRef.current) return;
+    paySavingLockRef.current = true;
     setPaySaving(true);
-    const result = await adminInsert('supplier_account_payments', {
+    const payload = {
       supplier_id: supplierId,
       amount,
       paid_date: payForm.paid_date,
       payment_method: payForm.payment_method,
       notes: payForm.notes,
-    });
-    setPaySaving(false);
-    if (!result.ok) {
-      toast.error(result.error ?? t.errorOccurred);
-      return;
+    };
+    const idempotencyKey = payIdempotencyRef.current.keyFor(payload);
+    try {
+      const result = await adminInsert('supplier_account_payments', payload, { idempotencyKey });
+      if (!result.ok) {
+        toast.error(result.error ?? t.errorOccurred);
+        return;
+      }
+      payIdempotencyRef.current.clear();
+      toast.success(t.savedSuccessfully);
+      setPayingSupplierId(null);
+      setPayForm({
+        amount: '',
+        paid_date: new Date().toISOString().split('T')[0],
+        payment_method: '',
+        notes: '',
+      });
+      void loadAccounts();
+    } finally {
+      paySavingLockRef.current = false;
+      setPaySaving(false);
     }
-    toast.success(t.savedSuccessfully);
-    setPayingSupplierId(null);
-    setPayForm({
-      amount: '',
-      paid_date: new Date().toISOString().split('T')[0],
-      payment_method: '',
-      notes: '',
-    });
-    void loadAccounts();
   };
 
   const handleDeletePayment = async (paymentId: string) => {

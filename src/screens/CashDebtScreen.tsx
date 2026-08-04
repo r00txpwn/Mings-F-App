@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Banknote, ArrowRight, CreditCard, Landmark, Loader2, Plus, SlidersHorizontal, Trash2, Wallet, Edit2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
 import { supabase, type BankWithdrawal, type CashMovement, type FinanceAccount, type Liability, type LiabilityPayment } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate, adminUpsert } from '../lib/adminApi';
+import { createIdempotencySession } from '../lib/mutationIdempotency';
 import { PageHeader } from '../components/cockpit';
 import { SingleDatePicker } from '../components/SingleDatePicker';
 import { IconActionButton } from '../components/ui/IconActionButton';
@@ -63,6 +64,10 @@ export function CashDebtScreen() {
   const [payLiabilityId, setPayLiabilityId] = useState<string | null>(null);
   const [payForm, setPayForm] = useState({ amount: '', paid_date: new Date().toISOString().split('T')[0], payment_method: '', notes: '' });
   const [saving, setSaving] = useState(false);
+  const liabilityPayIdemRef = useRef(createIdempotencySession());
+  const transferIdemRef = useRef(createIdempotencySession());
+  const withdrawIdemRef = useRef(createIdempotencySession());
+  const cashIdemRef = useRef(createIdempotencySession());
 
   const [withdrawForm, setWithdrawForm] = useState({
     amount: '',
@@ -348,14 +353,18 @@ export function CashDebtScreen() {
     const amount = roundFinanceMoney(Number(payForm.amount));
     if (amount <= 0 || saving) return;
     setSaving(true);
-    const result = await adminInsert('liability_payments', {
+    const payload = {
       liability_id: payLiabilityId,
       amount,
       paid_date: payForm.paid_date,
       payment_method: payForm.payment_method,
       notes: payForm.notes,
+    };
+    const result = await adminInsert('liability_payments', payload, {
+      idempotencyKey: liabilityPayIdemRef.current.keyFor(payload),
     });
     if (result.ok) {
+      liabilityPayIdemRef.current.clear();
       const row = liabilities.find((l) => l.id === payLiabilityId);
       if (row) {
         const newPaid = row.paidAmount + amount;
@@ -401,19 +410,23 @@ export function CashDebtScreen() {
     const amount = Number(transferForm.amount);
     if (amount <= 0 || saving) return;
     setSaving(true);
-    const result = await adminInsert('account_transfers', {
+    const payload = {
       from_account: 'bank',
       to_account: 'card',
       amount,
       fee_amount: 0,
       transfer_date: transferForm.transfer_date,
       notes: transferForm.notes,
+    };
+    const result = await adminInsert('account_transfers', payload, {
+      idempotencyKey: transferIdemRef.current.keyFor(payload),
     });
     setSaving(false);
     if (!result.ok) {
       toast.error(result.error ?? t.errorOccurred);
       return;
     }
+    transferIdemRef.current.clear();
     toast.success(t.accountTransferSaved);
     setTransferForm({
       amount: '',
@@ -460,13 +473,16 @@ export function CashDebtScreen() {
       configForMethod(feeSettings, withdrawForm.method),
     );
     setSaving(true);
-    const result = await adminInsert('bank_withdrawals', {
+    const payload = {
       amount,
       method: withdrawForm.method,
       fee_rate: fee.rate,
       fee_amount: fee.fee,
       withdrawal_date: withdrawForm.withdrawal_date,
       notes: withdrawForm.notes,
+    };
+    const result = await adminInsert('bank_withdrawals', payload, {
+      idempotencyKey: withdrawIdemRef.current.keyFor(payload),
     });
     setSaving(false);
     if (!result.ok) {
@@ -474,6 +490,7 @@ export function CashDebtScreen() {
       toast.error(result.error ?? t.errorOccurred);
       return;
     }
+    withdrawIdemRef.current.clear();
     toast.success(t.savedSuccessfully);
     setWithdrawForm({
       amount: '',
@@ -528,18 +545,22 @@ export function CashDebtScreen() {
     const amount = Number(cashForm.amount);
     if (amount <= 0 || saving) return;
     setSaving(true);
-    const result = await adminInsert('cash_movements', {
+    const payload = {
       direction: effectiveCashDirection,
       category: cashForm.category,
       amount,
       movement_date: cashForm.movement_date,
       notes: cashForm.notes,
+    };
+    const result = await adminInsert('cash_movements', payload, {
+      idempotencyKey: cashIdemRef.current.keyFor(payload),
     });
     setSaving(false);
     if (!result.ok) {
       toast.error(result.error ?? t.errorOccurred);
       return;
     }
+    cashIdemRef.current.clear();
     toast.success(t.cashMovementAdded);
     setCashForm({
       category: 'opening_float',
