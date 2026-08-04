@@ -104,13 +104,61 @@ function priorityLabel(t: Translations, priority: OpsTaskPriority): string {
 function priorityChipClass(priority: OpsTaskPriority): string {
   switch (priority) {
     case 'high':
-      return 'bg-red-500/15 text-red-300 ring-1 ring-red-500/30';
+      return 'bg-red-500/15 text-red-700 ring-1 ring-red-500/30 dark:text-red-300';
     case 'medium':
-      return 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/30';
+      return 'bg-amber-500/15 text-amber-800 ring-1 ring-amber-500/30 dark:text-amber-200';
     case 'low':
-      return 'bg-sky-500/15 text-sky-200 ring-1 ring-sky-500/30';
+      return 'bg-sky-500/15 text-sky-800 ring-1 ring-sky-500/30 dark:text-sky-200';
     default:
       return '';
+  }
+}
+
+/** Column shell: status accent + full-height board chrome (not flat grey boxes). */
+function columnChrome(status: OpsTaskStatus): {
+  shell: string;
+  head: string;
+  title: string;
+  count: string;
+  accent: string;
+} {
+  switch (status) {
+    case 'backlog':
+      return {
+        shell:
+          'border-violet-300/50 bg-gradient-to-b from-violet-50 to-white shadow-sm dark:border-violet-500/30 dark:from-violet-950/40 dark:to-slate-950/90 dark:shadow-[inset_0_1px_0_0_rgba(167,139,250,0.12)]',
+        head: 'border-violet-200/80 bg-violet-100/60 dark:border-violet-500/20 dark:bg-violet-950/40',
+        title: 'text-violet-800 dark:text-violet-200',
+        count: 'bg-violet-200/80 text-violet-900 dark:bg-violet-500/20 dark:text-violet-100',
+        accent: 'bg-violet-500',
+      };
+    case 'todo':
+      return {
+        shell:
+          'border-sky-300/50 bg-gradient-to-b from-sky-50 to-white shadow-sm dark:border-sky-500/30 dark:from-sky-950/40 dark:to-slate-950/90 dark:shadow-[inset_0_1px_0_0_rgba(56,189,248,0.12)]',
+        head: 'border-sky-200/80 bg-sky-100/60 dark:border-sky-500/20 dark:bg-sky-950/40',
+        title: 'text-sky-800 dark:text-sky-200',
+        count: 'bg-sky-200/80 text-sky-900 dark:bg-sky-500/20 dark:text-sky-100',
+        accent: 'bg-sky-500',
+      };
+    case 'in_progress':
+      return {
+        shell:
+          'border-amber-300/50 bg-gradient-to-b from-amber-50 to-white shadow-sm dark:border-cockpit-500/35 dark:from-amber-950/35 dark:to-slate-950/90 dark:shadow-[inset_0_1px_0_0_rgba(245,158,11,0.12)]',
+        head: 'border-amber-200/80 bg-amber-100/60 dark:border-cockpit-500/25 dark:bg-cockpit-950/40',
+        title: 'text-amber-900 dark:text-cockpit-200',
+        count: 'bg-amber-200/80 text-amber-950 dark:bg-cockpit-500/20 dark:text-cockpit-100',
+        accent: 'bg-cockpit-500',
+      };
+    case 'done':
+      return {
+        shell:
+          'border-emerald-300/50 bg-gradient-to-b from-emerald-50 to-white shadow-sm dark:border-emerald-500/30 dark:from-emerald-950/40 dark:to-slate-950/90 dark:shadow-[inset_0_1px_0_0_rgba(52,211,153,0.12)]',
+        head: 'border-emerald-200/80 bg-emerald-100/60 dark:border-emerald-500/20 dark:bg-emerald-950/40',
+        title: 'text-emerald-900 dark:text-emerald-200',
+        count: 'bg-emerald-200/80 text-emerald-950 dark:bg-emerald-500/20 dark:text-emerald-100',
+        accent: 'bg-emerald-500',
+      };
   }
 }
 
@@ -137,7 +185,7 @@ function TaskCardBody({
   return (
     <div className={compact ? 'space-y-1.5' : 'space-y-2'}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium leading-snug text-slate-100">{task.title}</p>
+        <p className="text-sm font-medium leading-snug text-slate-900 dark:text-slate-100">{task.title}</p>
         {task.priority !== 'none' ? (
           <span
             className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${priorityChipClass(task.priority)}`}
@@ -146,14 +194,16 @@ function TaskCardBody({
           </span>
         ) : null}
       </div>
-      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
         <span className="inline-flex items-center gap-1">
           <User className="h-3 w-3" aria-hidden />
           {assigneeName ?? t.taskMasterUnassigned}
         </span>
         {task.due_date ? (
           <span
-            className={`inline-flex items-center gap-1 ${overdue ? 'font-semibold text-red-300' : ''}`}
+            className={`inline-flex items-center gap-1 ${
+              overdue ? 'font-semibold text-red-600 dark:text-red-300' : ''
+            }`}
           >
             <Calendar className="h-3 w-3" aria-hidden />
             {task.due_date}
@@ -196,7 +246,7 @@ function DraggableTaskCard({
       {...listeners}
       {...attributes}
       onClick={() => onOpen(task)}
-      className={`w-full rounded-xl border border-white/10 bg-slate-900/80 p-3 text-left shadow-sm transition hover:border-cockpit-500/40 hover:bg-slate-900 ${
+      className={`w-full rounded-xl border border-slate-200/90 bg-white p-3 text-left shadow-sm transition hover:border-cockpit-400 hover:shadow-md dark:border-white/10 dark:bg-slate-900/90 dark:hover:border-cockpit-500/50 dark:hover:bg-slate-900 ${
         isDragging ? 'opacity-40' : ''
       }`}
     >
@@ -223,21 +273,30 @@ function StatusColumn({
   onOpen: (task: OpsTaskRow) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const chrome = columnChrome(status);
   return (
     <div
       ref={setNodeRef}
       data-column-status={status}
-      className={`flex min-h-[280px] min-w-[240px] flex-1 flex-col rounded-2xl border border-white/10 bg-slate-950/40 ${
-        isOver ? 'ring-2 ring-cockpit-500/50' : ''
+      className={`relative flex h-full min-h-0 min-w-[260px] flex-1 flex-col overflow-hidden rounded-2xl border ${chrome.shell} ${
+        isOver ? 'ring-2 ring-cockpit-500/60 ring-offset-2 ring-offset-transparent dark:ring-offset-slate-950' : ''
       }`}
     >
-      <div className="flex items-center justify-between border-b border-white/5 px-3 py-2.5">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</h2>
-        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] tabular-nums text-slate-500">
+      <div className={`absolute inset-y-3 left-0 w-1 rounded-full ${chrome.accent}`} aria-hidden />
+      <div
+        className={`flex shrink-0 items-center justify-between border-b px-3 py-3 pl-4 ${chrome.head}`}
+      >
+        <h2 className={`text-xs font-semibold uppercase tracking-wide ${chrome.title}`}>{title}</h2>
+        <span
+          className={`rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${chrome.count}`}
+        >
           {tasks.length}
         </span>
       </div>
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-2" data-column-dropzone={status}>
+      <div
+        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-2.5 pl-3.5"
+        data-column-dropzone={status}
+      >
         {tasks.map((task) => (
           <DraggableTaskCard
             key={task.id}
@@ -255,7 +314,9 @@ function StatusColumn({
           />
         ))}
         {tasks.length === 0 ? (
-          <p className="px-2 py-6 text-center text-xs text-slate-600">{t.taskMasterColumnEmpty}</p>
+          <p className="px-2 py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+            {t.taskMasterColumnEmpty}
+          </p>
         ) : null}
       </div>
     </div>
@@ -538,41 +599,46 @@ export function TaskMasterScreen() {
   }
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title={t.taskMaster}
-        description={t.taskMasterSubtitle}
-        icon={KanbanSquare}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setShowArchived((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 hover:border-white/20"
-            >
-              <Archive className="h-4 w-4" aria-hidden />
-              {showArchived ? t.taskMasterHideArchived : t.taskMasterShowArchived}
-              {archivedTasks.length > 0 ? (
-                <span className="rounded-full bg-white/10 px-1.5 text-xs tabular-nums">
-                  {archivedTasks.length}
-                </span>
-              ) : null}
-            </button>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-cockpit-500 px-3 py-2 text-sm font-medium text-white hover:bg-cockpit-400"
-            >
-              <Plus className="h-4 w-4" aria-hidden />
-              {t.taskMasterNewTask}
-            </button>
-          </div>
-        }
-      />
+    /* Board fills remaining viewport; each column scrolls cards independently. */
+    <div className="flex h-[calc(100dvh-6.5rem)] flex-col gap-3 lg:h-[calc(100dvh-4.5rem)]">
+      <div className="shrink-0 [&_header]:mb-0">
+        <PageHeader
+          title={t.taskMaster}
+          description={t.taskMasterSubtitle}
+          icon={KanbanSquare}
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setShowArchived((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-white/20"
+              >
+                <Archive className="h-4 w-4" aria-hidden />
+                {showArchived ? t.taskMasterHideArchived : t.taskMasterShowArchived}
+                {archivedTasks.length > 0 ? (
+                  <span className="rounded-full bg-slate-100 px-1.5 text-xs tabular-nums dark:bg-white/10">
+                    {archivedTasks.length}
+                  </span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                onClick={openCreate}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-cockpit-500 px-3 py-2 text-sm font-medium text-white hover:bg-cockpit-400"
+              >
+                <Plus className="h-4 w-4" aria-hidden />
+                {t.taskMasterNewTask}
+              </button>
+            </div>
+          }
+        />
+      </div>
 
       {showArchived ? (
-        <section className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-          <h2 className="mb-3 text-sm font-semibold text-slate-300">{t.taskMasterArchivedList}</h2>
+        <section className="max-h-[28vh] shrink-0 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950/60">
+          <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
+            {t.taskMasterArchivedList}
+          </h2>
           {archivedTasks.length === 0 ? (
             <p className="text-sm text-slate-500">{t.taskMasterNoArchived}</p>
           ) : (
@@ -580,10 +646,12 @@ export function TaskMasterScreen() {
               {archivedTasks.map((task) => (
                 <li
                   key={task.id}
-                  className="flex flex-col gap-2 rounded-xl border border-white/10 bg-slate-900/50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between dark:border-white/10 dark:bg-slate-900/50"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-100">{task.title}</p>
+                    <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {task.title}
+                    </p>
                     <p className="text-xs text-slate-500">
                       {statusLabel(t, task.status)}
                       {task.archived_at
@@ -594,7 +662,7 @@ export function TaskMasterScreen() {
                   <button
                     type="button"
                     onClick={() => void unarchiveTask(task)}
-                    className="inline-flex items-center gap-1.5 self-start rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-slate-200 hover:border-cockpit-500/40"
+                    className="inline-flex items-center gap-1.5 self-start rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 hover:border-cockpit-500/40 dark:border-white/10 dark:text-slate-200"
                   >
                     <ArchiveRestore className="h-3.5 w-3.5" aria-hidden />
                     {t.taskMasterUnarchive}
@@ -612,7 +680,7 @@ export function TaskMasterScreen() {
         onDragStart={onDragStart}
         onDragEnd={(ev) => void onDragEnd(ev)}
       >
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-1">
           {OPS_TASK_STATUSES.map((status) => (
             <StatusColumn
               key={status}
@@ -628,7 +696,7 @@ export function TaskMasterScreen() {
         </div>
         <DragOverlay>
           {activeDragTask ? (
-            <div className="w-[240px] rounded-xl border border-cockpit-500/40 bg-slate-900 p-3 shadow-xl">
+            <div className="w-[260px] rounded-xl border border-cockpit-500/50 bg-white p-3 shadow-xl dark:bg-slate-900">
               <TaskCardBody
                 task={activeDragTask}
                 assigneeName={
