@@ -19,7 +19,12 @@ import path from 'node:path';
 import readline from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 
-import { bumpVersion, renderNotes, summarizeCommits } from './lib/release-notes.mjs';
+import {
+  bumpVersion,
+  localDateStamp,
+  renderNotes,
+  summarizeCommits,
+} from './lib/release-notes.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CHANGELOG = path.join(root, 'CHANGELOG.md');
@@ -141,7 +146,7 @@ const { entries, bump } = summarizeCommits(commits);
 const level = forcedBump ?? bump;
 const currentVersion = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 const nextVersion = bumpVersion(currentVersion, level);
-const date = new Date().toISOString().slice(0, 10);
+const date = localDateStamp();
 
 console.log(
   `\n[release] ${commits.length} commit(s) since ${lastTag}; ` +

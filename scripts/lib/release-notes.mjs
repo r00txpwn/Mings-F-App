@@ -60,6 +60,15 @@ export function summarizeCommits(commits) {
 }
 
 /**
+ * `YYYY-MM-DD` in local time. `toISOString()` would stamp any release cut after
+ * 20:00 in Baku (UTC+4) with the previous day.
+ */
+export function localDateStamp(now = new Date()) {
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
  * @param {string} version plain `major.minor.patch`
  * @param {'major'|'minor'|'patch'} level
  */

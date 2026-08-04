@@ -9,7 +9,7 @@ the last tag, then edited by hand before they are committed. See
 
 <!-- releases -->
 
-## 1.0.1 — 2026-08-04
+## 1.0.1 — 2026-08-05
 
 - _No user-facing changes._
 

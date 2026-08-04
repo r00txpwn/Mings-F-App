@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 // @ts-expect-error — plain .mjs helper shared with scripts/release.mjs
-import { bumpVersion, parseCommit, renderNotes, summarizeCommits } from '../../scripts/lib/release-notes.mjs';
+import {
+  bumpVersion,
+  localDateStamp,
+  parseCommit,
+  renderNotes,
+  summarizeCommits,
+} from '../../scripts/lib/release-notes.mjs';
 
 describe('parseCommit', () => {
   it('reads type, scope and description', () => {
@@ -77,6 +83,18 @@ describe('bumpVersion', () => {
 
   it('refuses versions it cannot safely bump', () => {
     expect(() => bumpVersion('1.4.2-beta.1', 'patch')).toThrow();
+  });
+});
+
+describe('localDateStamp', () => {
+  // Dates are built from local components so the assertions hold in any timezone.
+  it('uses the local calendar day, not the UTC one', () => {
+    expect(localDateStamp(new Date(2026, 7, 5, 23, 30))).toBe('2026-08-05');
+    expect(localDateStamp(new Date(2026, 7, 5, 0, 30))).toBe('2026-08-05');
+  });
+
+  it('zero-pads single-digit months and days', () => {
+    expect(localDateStamp(new Date(2026, 0, 9, 12, 0))).toBe('2026-01-09');
   });
 });
 
