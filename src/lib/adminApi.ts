@@ -1,4 +1,5 @@
 import { getAuthStorageKey } from './buildTarget';
+import { ADMIN_MONEY_INSERT_TABLES } from './mutationIdempotency';
 import { resilientFetch } from './resilientFetch';
 import { supabase } from './supabase';
 
@@ -10,6 +11,12 @@ export interface AdminMutateRequest {
   payload?: Record<string, unknown>;
   match?: Record<string, unknown>;
   id?: string;
+  /** UUID held by the client for this mutation intent (required for money inserts). */
+  idempotencyKey?: string;
+}
+
+export interface AdminMutateOptions {
+  idempotencyKey?: string;
 }
 
 export interface AdminMutateResult<T = unknown> {
@@ -96,36 +103,84 @@ export async function adminMutate<T = unknown>(req: AdminMutateRequest): Promise
     return { ok: false, error: 'Not signed in', code: 'UNAUTHORIZED' };
   }
 
-  return invokeStaffEdgeFunction<T>('admin-api', req, token);
+  if (
+    req.operation === 'insert' &&
+    ADMIN_MONEY_INSERT_TABLES.has(req.table) &&
+    !req.idempotencyKey
+  ) {
+    return {
+      ok: false,
+      error: 'Money insert requires an idempotency key',
+      code: 'IDEMPOTENCY_REQUIRED',
+    };
+  }
+
+  const body: Record<string, unknown> = {
+    table: req.table,
+    operation: req.operation,
+    payload: req.payload,
+    match: req.match,
+    id: req.id,
+  };
+  if (req.idempotencyKey) {
+    body.idempotency_key = req.idempotencyKey;
+  }
+
+  return invokeStaffEdgeFunction<T>('admin-api', body, token);
 }
 
 export async function adminInsert<T = unknown>(
   table: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  options?: AdminMutateOptions
 ): Promise<AdminMutateResult<T>> {
-  return adminMutate<T>({ table, operation: 'insert', payload });
+  return adminMutate<T>({
+    table,
+    operation: 'insert',
+    payload,
+    idempotencyKey: options?.idempotencyKey,
+  });
 }
 
 export async function adminUpdate<T = unknown>(
   table: string,
   id: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  options?: AdminMutateOptions
 ): Promise<AdminMutateResult<T>> {
-  return adminMutate<T>({ table, operation: 'update', id, payload });
+  return adminMutate<T>({
+    table,
+    operation: 'update',
+    id,
+    payload,
+    idempotencyKey: options?.idempotencyKey,
+  });
 }
 
 export async function adminDelete<T = unknown>(
   table: string,
-  id: string
+  id: string,
+  options?: AdminMutateOptions
 ): Promise<AdminMutateResult<T>> {
-  return adminMutate<T>({ table, operation: 'delete', id });
+  return adminMutate<T>({
+    table,
+    operation: 'delete',
+    id,
+    idempotencyKey: options?.idempotencyKey,
+  });
 }
 
 export async function adminUpsert<T = unknown>(
   table: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  options?: AdminMutateOptions
 ): Promise<AdminMutateResult<T>> {
-  return adminMutate<T>({ table, operation: 'upsert', payload });
+  return adminMutate<T>({
+    table,
+    operation: 'upsert',
+    payload,
+    idempotencyKey: options?.idempotencyKey,
+  });
 }
 
 export type PaymentRecheckResult = {

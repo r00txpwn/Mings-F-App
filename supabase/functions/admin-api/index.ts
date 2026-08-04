@@ -17,6 +17,11 @@ interface MutateBody {
   match?: Record<string, unknown>;
   /** Required for update/delete */
   id?: string;
+  /**
+   * Client-held UUID for this mutation intent. Required for money inserts.
+   * Replay returns the first successful response without a second write.
+   */
+  idempotency_key?: string;
 }
 
 // Cockpit is administration-only: `staff`-role users are blocked from the
@@ -58,6 +63,41 @@ const TABLE_MIN_ROLE: Record<string, StaffRole[]> = {
 
 const ALLOWED_TABLES = new Set(Object.keys(TABLE_MIN_ROLE));
 
+/** Inserts that must not double-apply under network retries. */
+const MONEY_INSERT_TABLES = new Set([
+  'supplier_account_payments',
+  'liability_payments',
+  'bank_withdrawals',
+  'cash_movements',
+  'account_transfers',
+  'salary_payments',
+]);
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string): boolean {
+  return UUID_RE.test(value);
+}
+
+function isUniqueViolation(err: { code?: string; message?: string } | null | undefined): boolean {
+  if (!err) return false;
+  if (err.code === '23505') return true;
+  const msg = (err.message ?? '').toLowerCase();
+  return msg.includes('duplicate key') || msg.includes('unique constraint');
+}
+
+function buildRequestHash(
+  table: string,
+  operation: MutationOp,
+  payload: unknown,
+  match: unknown,
+  id: string | undefined
+): string {
+  // Key order follows JSON as received; client stable-stringifies fingerprints separately.
+  return JSON.stringify({ table, operation, payload: payload ?? null, match: match ?? null, id: id ?? null });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -82,9 +122,22 @@ Deno.serve(async (req: Request) => {
   }
 
   const { table, operation, payload, match, id } = body;
+  const rawKey = typeof body.idempotency_key === 'string' ? body.idempotency_key.trim() : '';
+  const idempotencyKey = rawKey.length > 0 ? rawKey : null;
+
   if (!table || !operation || !ALLOWED_TABLES.has(table)) {
     return jsonResponse({ ok: false, error: { code: 'FORBIDDEN', message: 'Table not allowed' } }, 403);
   }
+
+  if (idempotencyKey && !isUuid(idempotencyKey)) {
+    return jsonResponse(
+      { ok: false, error: { code: 'BAD_REQUEST', message: 'idempotency_key must be a UUID' } },
+      400
+    );
+  }
+  // Money inserts: when a key is present, inject unique client_request_id + replay.
+  // Client SPA always sends keys after the staff deploy; bare inserts still work for
+  // older tabs until then (ponytail: remove bare path once old clients are gone).
 
   const minRole = TABLE_MIN_ROLE[table] ?? ['admin'];
   const auth = await requireStaffAuth(req, { minRole });
@@ -92,6 +145,35 @@ Deno.serve(async (req: Request) => {
 
   const { user, role, supabaseAdmin } = auth;
   const q = supabaseAdmin.from(table);
+  const requestHash = buildRequestHash(table, operation, payload, match, id);
+
+  if (idempotencyKey) {
+    const { data: prior, error: priorErr } = await supabaseAdmin
+      .from('admin_mutation_idempotency')
+      .select('request_hash, response_body')
+      .eq('actor_id', user.id)
+      .eq('idempotency_key', idempotencyKey)
+      .maybeSingle();
+
+    if (priorErr) {
+      return jsonResponse({ ok: false, error: { code: 'DB_ERROR', message: priorErr.message } }, 400);
+    }
+    if (prior) {
+      if (prior.request_hash !== requestHash) {
+        return jsonResponse(
+          {
+            ok: false,
+            error: {
+              code: 'IDEMPOTENCY_KEY_REUSE',
+              message: 'idempotency_key was already used for a different request',
+            },
+          },
+          409
+        );
+      }
+      return jsonResponse({ ok: true, data: prior.response_body, replayed: true });
+    }
+  }
 
   async function loadSalesChannel(channelId: string): Promise<{ id: string; name: string } | null> {
     const { data } = await supabaseAdmin
@@ -103,9 +185,10 @@ Deno.serve(async (req: Request) => {
     return { id: data.id, name: data.name };
   }
 
-  let result;
+  let result: { data: unknown; error: { code?: string; message?: string } | null };
   let resourceId: string | null = id ?? null;
   let effectivePayload = payload;
+  let replayed = false;
 
   if (table === 'sales') {
     if (operation === 'upsert') {
@@ -214,6 +297,19 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  if (
+    MONEY_INSERT_TABLES.has(table) &&
+    operation === 'insert' &&
+    idempotencyKey &&
+    effectivePayload &&
+    !Array.isArray(effectivePayload)
+  ) {
+    effectivePayload = {
+      ...effectivePayload,
+      client_request_id: idempotencyKey,
+    };
+  }
+
   switch (operation) {
     case 'insert': {
       if (!effectivePayload || Array.isArray(effectivePayload)) {
@@ -221,6 +317,23 @@ Deno.serve(async (req: Request) => {
       }
       result = await q.insert(effectivePayload).select().maybeSingle();
       resourceId = (result.data as { id?: string } | null)?.id ?? null;
+
+      // Concurrent or offline-retry: first write won the unique client_request_id.
+      if (result.error && isUniqueViolation(result.error) && MONEY_INSERT_TABLES.has(table) && idempotencyKey) {
+        const { data: existingRow, error: existingErr } = await supabaseAdmin
+          .from(table)
+          .select('*')
+          .eq('client_request_id', idempotencyKey)
+          .maybeSingle();
+        if (existingErr) {
+          return jsonResponse({ ok: false, error: { code: 'DB_ERROR', message: existingErr.message } }, 400);
+        }
+        if (existingRow) {
+          result = { data: existingRow, error: null };
+          resourceId = (existingRow as { id?: string }).id ?? null;
+          replayed = true;
+        }
+      }
       break;
     }
     case 'upsert': {
@@ -269,14 +382,34 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  await writeAdminAudit(supabaseAdmin, {
-    actorId: user.id,
-    actorRole: role,
-    action: operation,
-    resourceTable: table,
-    resourceId,
-    payload: effectivePayload ?? match ?? null,
-  });
+  if (!replayed) {
+    await writeAdminAudit(supabaseAdmin, {
+      actorId: user.id,
+      actorRole: role,
+      action: operation,
+      resourceTable: table,
+      resourceId,
+      payload: effectivePayload ?? match ?? null,
+    });
+  }
 
-  return jsonResponse({ ok: true, data: result.data });
+  if (idempotencyKey) {
+    const { error: storeErr } = await supabaseAdmin.from('admin_mutation_idempotency').upsert(
+      {
+        actor_id: user.id,
+        idempotency_key: idempotencyKey,
+        request_hash: requestHash,
+        resource_table: table,
+        resource_id: resourceId,
+        response_body: result.data,
+      },
+      { onConflict: 'actor_id,idempotency_key' }
+    );
+    if (storeErr) {
+      // Write succeeded; still return ok so the client doesn't retry with a new key blindly.
+      console.error('admin_mutation_idempotency store failed', storeErr.message);
+    }
+  }
+
+  return jsonResponse({ ok: true, data: result.data, replayed });
 });

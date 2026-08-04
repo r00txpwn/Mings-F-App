@@ -26,6 +26,7 @@ import {
   type WeekdayIndex,
 } from '../lib/supabase';
 import { adminDelete, adminInsert, adminUpdate } from '../lib/adminApi';
+import { createIdempotencySession } from '../lib/mutationIdempotency';
 import { withOptimisticState } from '../lib/optimisticUpdate';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
@@ -104,6 +105,7 @@ export function StaffScreen() {
   const markPersistTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const salaryPayIdemRef = useRef(createIdempotencySession());
   const [markSavingKey, setMarkSavingKey] = useState<string | null>(null);
   const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(null);
 
@@ -471,10 +473,15 @@ export function StaffScreen() {
         }
         return [pending, ...prev];
       },
-      persist: () =>
-        editingId
-          ? adminUpdate('salary_payments', editingId, payload)
-          : adminInsert('salary_payments', { ...payload, created_by: user?.id ?? null }),
+      persist: () => {
+        if (editingId) {
+          return adminUpdate('salary_payments', editingId, payload);
+        }
+        const insertPayload = { ...payload, created_by: user?.id ?? null };
+        return adminInsert('salary_payments', insertPayload, {
+          idempotencyKey: salaryPayIdemRef.current.keyFor(insertPayload),
+        });
+      },
       commit: (serverData, applied) => {
         if (editingId || !serverData || typeof serverData !== 'object' || !('id' in serverData)) {
           return undefined;
@@ -499,6 +506,9 @@ export function StaffScreen() {
       return;
     }
 
+    if (!editingId) {
+      salaryPayIdemRef.current.clear();
+    }
     toast.success(editingId ? t.staffPaymentUpdated : t.staffPaymentAdded);
     resetPaymentForm();
   };
