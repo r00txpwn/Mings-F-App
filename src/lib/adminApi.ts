@@ -1,4 +1,5 @@
 import { getAuthStorageKey } from './buildTarget';
+import { resilientFetch } from './resilientFetch';
 import { supabase } from './supabase';
 
 export type AdminMutationOp = 'insert' | 'update' | 'delete' | 'upsert';
@@ -51,7 +52,7 @@ async function invokeStaffEdgeFunction<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/functions/v1/${functionName}`, {
+    response = await resilientFetch(`${baseUrl}/functions/v1/${functionName}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
