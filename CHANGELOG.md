@@ -9,6 +9,10 @@ the last tag, then edited by hand before they are committed. See
 
 <!-- releases -->
 
+## 1.0.1 — 2026-08-04
+
+- _No user-facing changes._
+
 ## 1.0.0 — 2026-08-04
 
 Initial versioned release. Everything shipped before this point is in the git
