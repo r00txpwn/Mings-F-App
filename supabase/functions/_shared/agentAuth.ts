@@ -3,21 +3,32 @@
  * Bearer AGENT_API_KEY; capabilities from AGENT_CAPABILITIES (comma-separated).
  *
  * Server-to-server only: requests with a browser `Origin` header are rejected.
+ *
+ * Mutations (create/update/delete) also require AGENT_MUTATIONS_ENABLED=true.
  */
 import { corsHeaders, jsonResponse } from './cors.ts';
 
 export type AgentCapability =
   | 'sales_read'
   | 'analytics_read'
-  | 'expenses_rw';
+  | 'expenses_read'
+  | 'expenses_write'
+  | 'expenses_delete';
 
 export const ALL_AGENT_CAPABILITIES: AgentCapability[] = [
   'sales_read',
   'analytics_read',
-  'expenses_rw',
+  'expenses_read',
+  'expenses_write',
+  'expenses_delete',
 ];
 
 const CAPABILITY_SET = new Set<string>(ALL_AGENT_CAPABILITIES);
+
+/** Legacy alias from the first draft — maps to read+write, never delete. */
+const LEGACY_ALIASES: Record<string, AgentCapability[]> = {
+  expenses_rw: ['expenses_read', 'expenses_write'],
+};
 
 export { corsHeaders, jsonResponse };
 
@@ -49,15 +60,19 @@ export function parseAgentCapabilities(raw: string | undefined | null): Set<Agen
   if (!raw?.trim()) return out;
   for (const part of raw.split(',')) {
     const token = part.trim().toLowerCase();
-    if (CAPABILITY_SET.has(token)) out.add(token as AgentCapability);
+    if (CAPABILITY_SET.has(token)) {
+      out.add(token as AgentCapability);
+      continue;
+    }
+    const aliased = LEGACY_ALIASES[token];
+    if (aliased) {
+      for (const cap of aliased) out.add(cap);
+    }
   }
   return out;
 }
 
-/**
- * Reject browser calls. Hermes/MCP/curl do not send Origin.
- * OPTIONS is handled by the caller before this runs.
- */
+/** Reject browser calls. Hermes/MCP/curl do not send Origin. */
 export function rejectBrowserOrigin(req: Request): Response | null {
   const origin = req.headers.get('Origin') ?? req.headers.get('origin');
   if (origin != null && origin !== '') {
@@ -75,6 +90,26 @@ export function rejectBrowserOrigin(req: Request): Response | null {
   return null;
 }
 
+export function mutationsEnabled(): boolean {
+  const raw = (Deno.env.get('AGENT_MUTATIONS_ENABLED') ?? '').trim().toLowerCase();
+  return raw === 'true' || raw === '1' || raw === 'yes';
+}
+
+export function requireMutationsEnabled(): Response | null {
+  if (mutationsEnabled()) return null;
+  return jsonResponse(
+    {
+      ok: false,
+      error: {
+        code: 'MUTATIONS_DISABLED',
+        message:
+          'Writes are disabled. Set Edge secret AGENT_MUTATIONS_ENABLED=true to allow create/update/delete.',
+      },
+    },
+    403
+  );
+}
+
 export async function requireAgentAuth(
   req: Request
 ): Promise<{ ok: true; capabilities: Set<AgentCapability> } | Response> {
@@ -90,7 +125,6 @@ export async function requireAgentAuth(
   }
 
   const got = readBearerSecret(req);
-  // Always hash-compare against expected so missing Bearer still does similar work.
   const matches = await timingSafeEqualString(got ?? '', expected);
   if (!matches) {
     return jsonResponse(
@@ -118,5 +152,20 @@ export function requireCapability(
       },
     },
     403
+  );
+}
+
+/** Mutations must pass confirm: true so accidental tool calls cannot write. */
+export function requireConfirmWrite(body: Record<string, unknown>): Response | null {
+  if (body.confirm === true) return null;
+  return jsonResponse(
+    {
+      ok: false,
+      error: {
+        code: 'CONFIRM_REQUIRED',
+        message: 'Pass confirm: true to perform this write. Refusing without explicit confirmation.',
+      },
+    },
+    400
   );
 }

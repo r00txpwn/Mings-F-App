@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import { computeRevenueRunRate, parseAgentCapabilities } from './runRate.mjs';
 
-const caps = parseAgentCapabilities(' sales_read,EXPENSES_RW ,bogus ');
-assert.deepEqual([...caps].sort(), ['expenses_rw', 'sales_read']);
+const caps = parseAgentCapabilities(' sales_read,EXPENSES_WRITE ,bogus ');
+assert.deepEqual([...caps].sort(), ['expenses_write', 'sales_read']);
 assert.equal(parseAgentCapabilities('').size, 0);
+
+const legacy = parseAgentCapabilities('expenses_rw');
+assert.deepEqual([...legacy].sort(), ['expenses_read', 'expenses_write']);
+assert.equal(legacy.has('expenses_delete'), false);
 
 const jan = computeRevenueRunRate(3100, '2026-01-10');
 assert.equal(jan.days_elapsed, 10);

@@ -1,6 +1,6 @@
 # Hermes ops MCP (Ming's)
 
-Connect [Hermes Agent](https://hermes-agent.nousresearch.com/) to Ming's so it can **read sales / analytics** and **manage operational expenses** — only for capabilities you enable.
+Connect [Hermes Agent](https://hermes-agent.nousresearch.com/) to Ming's so it can **read sales / analytics** and **optionally add/update expenses** — only for capabilities you enable, with writes **fail-closed**.
 
 ```text
 You → Hermes
@@ -11,29 +11,54 @@ You → Hermes
 
 Hermes never receives the Supabase service role. It only holds `AGENT_API_KEY`. The Edge Function enforces the allowlist.
 
-## Capabilities (you choose)
+## Safety model (DB protection)
 
-Set Edge secret **`AGENT_CAPABILITIES`** to a comma-separated list:
+Writes cannot happen unless **all** of these are true:
+
+1. `AGENT_API_KEY` is valid  
+2. Capability includes `expenses_write` (or `expenses_delete` for deletes)  
+3. Edge secret **`AGENT_MUTATIONS_ENABLED=true`**  
+4. Request body includes **`confirm: true`**  
+5. Create includes **`idempotency_key`** (UUID) — retries replay the first row, no double insert  
+6. Expense date is not in the future (Asia/Baku) and not older than **45 days** for mutate/delete  
+
+**Delete is off by default** in three places:
+
+- Not in the recommended `AGENT_CAPABILITIES`  
+- Requires separate capability `expenses_delete`  
+- MCP hides `delete_expense` unless `MINGS_ENABLE_EXPENSE_DELETE=true`  
+
+Hermes **cannot** touch sales, payroll, menu, purchases, users, or payments through this API — only the actions below.
+
+## Capabilities (you choose)
 
 | Capability | What Hermes can do |
 |---|---|
-| `sales_read` | `get_sales_summary`, `list_sales` |
-| `analytics_read` | `get_revenue_run_rate`, `get_period_snapshot` (includes opex/purchase totals for analysis) |
-| `expenses_rw` | `list_expense_categories`, `list_expenses`, `create_expense`, `update_expense`, `delete_expense` |
+| `sales_read` | `get_sales_summary`, `list_sales` (no customer PII) |
+| `analytics_read` | `get_revenue_run_rate`, `get_period_snapshot` |
+| `expenses_read` | `list_expense_categories`, `list_expenses` |
+| `expenses_write` | `create_expense`, `update_expense` (with confirm + mutations flag) |
+| `expenses_delete` | `delete_expense` hard-delete (keep **off**) |
 
-**Starter (recommended):**
+Legacy alias: `expenses_rw` → `expenses_read` + `expenses_write` (**not** delete).
+
+**Recommended starter (analysis + safe expense add/edit, no delete):**
 
 ```text
-AGENT_CAPABILITIES=sales_read,analytics_read,expenses_rw
+AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,expenses_write
+AGENT_MUTATIONS_ENABLED=true
 ```
 
-Turn a capability off by removing it from the secret and redeploying / refreshing secrets. Disabled tools still appear in MCP tool lists but the Edge Function returns `CAPABILITY_DENIED`.
+**Read-only first (safest while testing Hermes):**
 
-`list_capabilities` always works (with a valid key) so Hermes can see what is enabled.
+```text
+AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read
+# omit AGENT_MUTATIONS_ENABLED or set false
+```
 
-### Example question: “What does our MRR look like from sales till today?”
+### Example: “What does our MRR look like from sales till today?”
 
-With `analytics_read` enabled, Hermes should call **`get_revenue_run_rate`**. That returns MTD revenue and a **linear full-month pacing estimate** (restaurant run-rate). It is **not** SaaS subscription MRR — the API response includes that disclaimer.
+With `analytics_read`, Hermes calls **`get_revenue_run_rate`**. That is read-only and cannot change the DB.
 
 ## 1. Deploy Edge Function `agent-ops`
 
@@ -41,33 +66,22 @@ With `analytics_read` enabled, Hermes should call **`get_revenue_run_rate`**. Th
 npm run supabase:deploy:agent-ops
 ```
 
-Or:
-
-```bash
-npx supabase functions deploy agent-ops --no-verify-jwt --use-api
-```
-
-`verify_jwt = false` in [`supabase/config.toml`](../supabase/config.toml) — auth is **`AGENT_API_KEY`** inside the function (same pattern as `payment-reconcile`).
+`verify_jwt = false` in [`supabase/config.toml`](../supabase/config.toml) — auth is **`AGENT_API_KEY`** inside the function.
 
 ## 2. Set Edge secrets
 
-In **Supabase Dashboard → Edge Functions → Secrets** (or CLI):
-
 | Secret | Required | Notes |
 |---|---|---|
-| `AGENT_API_KEY` | Yes | Long random secret; Hermes uses it as Bearer token |
-| `AGENT_CAPABILITIES` | Yes | e.g. `sales_read,analytics_read,expenses_rw` |
-| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Usually auto | Used for DB reads/writes |
-
-Generate a key:
+| `AGENT_API_KEY` | Yes | Long random Bearer secret |
+| `AGENT_CAPABILITIES` | Yes | See recommended starter above |
+| `AGENT_MUTATIONS_ENABLED` | For writes | Must be `true` to create/update/delete; omit/`false` = read-only |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Usually auto | |
 
 ```bash
 openssl rand -hex 32
 ```
 
 ## 3. Point Hermes at the MCP server
-
-On the machine that runs Hermes, add to `~/.hermes/config.yaml` (paths absolute):
 
 ```yaml
 mcp_servers:
@@ -78,48 +92,39 @@ mcp_servers:
     env:
       MINGS_SUPABASE_URL: "https://YOUR_PROJECT.supabase.co"
       MINGS_AGENT_API_KEY: "same-as-AGENT_API_KEY-secret"
-      # Optional if your gateway requires it:
-      # MINGS_SUPABASE_ANON_KEY: "eyJ..."
+      # Do NOT set MINGS_ENABLE_EXPENSE_DELETE unless you really want hard deletes
 ```
 
-Example file in-repo: [`mcp/mings-ops/hermes-config.example.yaml`](../mcp/mings-ops/hermes-config.example.yaml).
-
-Reload MCP in Hermes (`/reload-mcp` if available) or restart Hermes.
+Example: [`mcp/mings-ops/hermes-config.example.yaml`](../mcp/mings-ops/hermes-config.example.yaml).
 
 ## 4. Smoke test
 
 ```bash
-# Pure math / capability parse
 npm run mcp:mings-ops:selfcheck
 
-# Live call (after deploy + secrets)
-export MINGS_SUPABASE_URL="https://YOUR_PROJECT.supabase.co"
-export MINGS_AGENT_API_KEY="…"
 curl -sS "$MINGS_SUPABASE_URL/functions/v1/agent-ops" \
   -H "Authorization: Bearer $MINGS_AGENT_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"action":"list_capabilities"}'
 ```
 
-Then in Hermes: *“What capabilities do you have for Ming’s?”* and *“Based on sales MTD, what does monthly revenue pacing look like?”*
+Confirm `mutations_enabled` and `warnings` look right before enabling writes.
 
 ## Security notes
 
-- Use a dedicated `AGENT_API_KEY`; rotate if the Hermes host is compromised.
-- Do **not** put `SUPABASE_SERVICE_ROLE_KEY` in Hermes env.
-- Expense writes are audited in `admin_audit_log` with `actor_role = agent`.
-- Prefer confirming money writes with Hermes before `create_expense` / `delete_expense`.
-- Expand capabilities only when you need them (purchases/payroll/etc. are not exposed yet).
-- `agent-ops` rejects browser `Origin` / CORS preflight — Hermes MCP and curl only.
-- Sales list responses omit customer PII (name/phone/address).
-- Aggregations paginate past Supabase’s 1000-row default so MTD totals stay correct.
-- “Today” / run-rate defaults use **Asia/Baku**, not UTC.
+- Start **read-only**; turn on `AGENT_MUTATIONS_ENABLED` only after Hermes answers analysis questions correctly.
+- Never put `SUPABASE_SERVICE_ROLE_KEY` in Hermes env.
+- Expense writes audit as `actor_role = agent`.
+- Prefer asking Hermes to confirm with you before any write.
+- `agent-ops` rejects browser `Origin` / CORS preflight.
+- Aggregations paginate past the 1000-row Supabase cap.
+- “Today” uses **Asia/Baku**.
 
 ## Local Edge serve
 
 ```bash
-# .env.local must include AGENT_API_KEY + AGENT_CAPABILITIES
+# .env.local: AGENT_API_KEY, AGENT_CAPABILITIES, optional AGENT_MUTATIONS_ENABLED
 npm run supabase:functions:serve
 ```
 
-Then set `MINGS_AGENT_OPS_URL=http://127.0.0.1:54321/functions/v1/agent-ops` for the MCP process.
+Set `MINGS_AGENT_OPS_URL=http://127.0.0.1:54321/functions/v1/agent-ops` for the MCP process.

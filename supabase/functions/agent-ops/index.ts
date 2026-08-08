@@ -2,7 +2,9 @@
  * Hermes / external-agent ops API.
  *
  * Auth: Authorization: Bearer <AGENT_API_KEY>
- * Capabilities: AGENT_CAPABILITIES=sales_read,analytics_read,expenses_rw
+ * Capabilities: AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,expenses_write
+ * Writes also need AGENT_MUTATIONS_ENABLED=true and body.confirm=true.
+ * Deletes need a separate expenses_delete capability (off by default).
  *
  * Body: { "action": "<name>", ...params }
  * Server-to-server only (browser Origin rejected).
@@ -11,8 +13,11 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import {
   ALL_AGENT_CAPABILITIES,
   jsonResponse,
+  mutationsEnabled,
   requireAgentAuth,
   requireCapability,
+  requireConfirmWrite,
+  requireMutationsEnabled,
 } from '../_shared/agentAuth.ts';
 import { writeAdminAudit } from '../_shared/staffAuth.ts';
 
@@ -28,6 +33,8 @@ const MAX_DESCRIPTION_LEN = 2000;
 const MAX_AMOUNT = 1_000_000;
 const PAGE_SIZE = 1000;
 const BAKU_TZ = 'Asia/Baku';
+/** Refuse editing/deleting expenses older than this many days (expense_date). */
+const MAX_MUTATE_AGE_DAYS = 45;
 
 function isUuid(value: string): boolean {
   return UUID_RE.test(value);
@@ -86,6 +93,71 @@ function daysInMonth(year: number, monthIndex0: number): number {
 
 function todayInBaku(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: BAKU_TZ }).format(new Date());
+}
+
+function assertNotFutureDate(ymd: string, field: string): Response | null {
+  if (ymd > todayInBaku()) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: { code: 'BAD_REQUEST', message: `${field} cannot be in the future (${BAKU_TZ})` },
+      },
+      400
+    );
+  }
+  return null;
+}
+
+function assertExpenseDateMutable(expenseDate: string): Response | null {
+  const today = todayInBaku();
+  const t = Date.parse(`${today}T00:00:00Z`);
+  const e = Date.parse(`${expenseDate}T00:00:00Z`);
+  if (!Number.isFinite(t) || !Number.isFinite(e)) {
+    return jsonResponse(
+      { ok: false, error: { code: 'BAD_REQUEST', message: 'Invalid expense_date' } },
+      400
+    );
+  }
+  const ageDays = Math.round((t - e) / 86_400_000);
+  if (ageDays > MAX_MUTATE_AGE_DAYS) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'TOO_OLD',
+          message: `Agent cannot mutate expenses older than ${MAX_MUTATE_AGE_DAYS} days. Edit in the cockpit instead.`,
+        },
+      },
+      403
+    );
+  }
+  return null;
+}
+
+async function findIdempotentCreate(
+  supabase: SupabaseClient,
+  idempotencyKey: string
+): Promise<Json | null> {
+  const { data, error } = await supabase
+    .from('admin_audit_log')
+    .select('resource_id, payload, created_at')
+    .eq('actor_role', 'agent')
+    .eq('action', 'insert')
+    .eq('resource_table', 'operational_expenses')
+    .contains('payload', { idempotency_key: idempotencyKey })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.resource_id) return null;
+
+  const existing = await supabase
+    .from('operational_expenses')
+    .select('id, amount, expense_date, payment_method, description, master_category_id, expense_item_id')
+    .eq('id', data.resource_id)
+    .maybeSingle();
+  if (existing.error) throw new Error(existing.error.message);
+  return (existing.data as Json | null) ?? { id: data.resource_id, replayed: true };
 }
 
 /** Month-to-date run-rate from calendar MTD revenue (date parts of asOf). */
@@ -292,22 +364,37 @@ Deno.serve(async (req: Request) => {
   try {
     switch (action) {
       case 'list_capabilities': {
+        const warnings: string[] = [];
+        if (capabilities.size === 0) {
+          warnings.push('AGENT_CAPABILITIES is empty — all data tools are denied until you set it');
+        }
+        if (!mutationsEnabled()) {
+          warnings.push('AGENT_MUTATIONS_ENABLED is not true — create/update/delete are blocked');
+        }
+        if (!capabilities.has('expenses_delete')) {
+          warnings.push('expenses_delete is off — Hermes cannot delete expense rows');
+        }
         return jsonResponse({
           ok: true,
           data: {
             enabled: [...capabilities].sort(),
             available: ALL_AGENT_CAPABILITIES,
+            mutations_enabled: mutationsEnabled(),
             timezone: BAKU_TZ,
-            warnings:
-              capabilities.size === 0
-                ? ['AGENT_CAPABILITIES is empty — all data tools are denied until you set it']
-                : [],
+            max_mutate_age_days: MAX_MUTATE_AGE_DAYS,
+            warnings,
             notes: {
               sales_read: 'Read sales rows and revenue totals for a date range',
               analytics_read:
                 'Period snapshot + monthly revenue run-rate (restaurant pacing estimate, not SaaS MRR)',
-              expenses_rw: 'List/create/update/delete operational expenses and list categories/items',
+              expenses_read: 'List expense categories/items and expense rows',
+              expenses_write:
+                'Create/update expenses (needs AGENT_MUTATIONS_ENABLED=true + confirm:true + idempotency_key on create)',
+              expenses_delete:
+                'Hard-delete expenses (off unless explicitly enabled; still needs mutations + confirm)',
             },
+            recommended:
+              'sales_read,analytics_read,expenses_read,expenses_write — leave expenses_delete off',
           },
         });
       }
@@ -430,7 +517,7 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'list_expense_categories': {
-        const denied = requireCapability(capabilities, 'expenses_rw');
+        const denied = requireCapability(capabilities, 'expenses_read');
         if (denied) return denied;
         const [cats, items] = await Promise.all([
           supabase
@@ -455,7 +542,7 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'list_expenses': {
-        const denied = requireCapability(capabilities, 'expenses_rw');
+        const denied = requireCapability(capabilities, 'expenses_read');
         if (denied) return denied;
         const start = asDate(bodyObj.start_date, 'start_date');
         if (start instanceof Response) return start;
@@ -481,8 +568,32 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'create_expense': {
-        const denied = requireCapability(capabilities, 'expenses_rw');
+        const denied = requireCapability(capabilities, 'expenses_write');
         if (denied) return denied;
+        const mutOff = requireMutationsEnabled();
+        if (mutOff) return mutOff;
+        const confirmErr = requireConfirmWrite(bodyObj);
+        if (confirmErr) return confirmErr;
+
+        const idempotencyKey =
+          typeof bodyObj.idempotency_key === 'string' ? bodyObj.idempotency_key.trim() : '';
+        if (!isUuid(idempotencyKey)) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: {
+                code: 'BAD_REQUEST',
+                message: 'idempotency_key (UUID) is required on create to prevent double inserts',
+              },
+            },
+            400
+          );
+        }
+
+        const replay = await findIdempotentCreate(supabase, idempotencyKey);
+        if (replay) {
+          return jsonResponse({ ok: true, data: { ...replay, idempotent_replay: true } });
+        }
 
         const masterCategoryId =
           typeof bodyObj.master_category_id === 'string' ? bodyObj.master_category_id : '';
@@ -490,6 +601,10 @@ Deno.serve(async (req: Request) => {
         const amount = num(bodyObj.amount);
         const expenseDate = asDate(bodyObj.expense_date, 'expense_date');
         if (expenseDate instanceof Response) return expenseDate;
+        const futureErr = assertNotFutureDate(expenseDate, 'expense_date');
+        if (futureErr) return futureErr;
+        const ageErr = assertExpenseDateMutable(expenseDate);
+        if (ageErr) return ageErr;
         const paymentMethod =
           typeof bodyObj.payment_method === 'string' ? bodyObj.payment_method.trim().toLowerCase() : '';
         const description =
@@ -544,7 +659,7 @@ Deno.serve(async (req: Request) => {
         const refErr = await assertExpenseRefs(supabase, masterCategoryId, expenseItemId);
         if (refErr) return refErr;
 
-        const payload = {
+        const rowPayload = {
           master_category_id: masterCategoryId,
           expense_item_id: expenseItemId,
           amount,
@@ -555,7 +670,7 @@ Deno.serve(async (req: Request) => {
 
         const { data, error } = await supabase
           .from('operational_expenses')
-          .insert(payload)
+          .insert(rowPayload)
           .select('id, amount, expense_date, payment_method, description, master_category_id, expense_item_id')
           .single();
         if (error) throw new Error(error.message);
@@ -566,19 +681,36 @@ Deno.serve(async (req: Request) => {
           action: 'insert',
           resourceTable: 'operational_expenses',
           resourceId: data.id,
-          payload,
+          payload: { ...rowPayload, idempotency_key: idempotencyKey },
         });
 
         return jsonResponse({ ok: true, data });
       }
 
       case 'update_expense': {
-        const denied = requireCapability(capabilities, 'expenses_rw');
+        const denied = requireCapability(capabilities, 'expenses_write');
         if (denied) return denied;
+        const mutOff = requireMutationsEnabled();
+        if (mutOff) return mutOff;
+        const confirmErr = requireConfirmWrite(bodyObj);
+        if (confirmErr) return confirmErr;
+
         const id = typeof bodyObj.id === 'string' ? bodyObj.id : '';
         if (!isUuid(id)) {
           return jsonResponse({ ok: false, error: { code: 'BAD_REQUEST', message: 'id must be a UUID' } }, 400);
         }
+
+        const { data: existing, error: existingErr } = await supabase
+          .from('operational_expenses')
+          .select('id, expense_date, master_category_id, expense_item_id')
+          .eq('id', id)
+          .maybeSingle();
+        if (existingErr) throw new Error(existingErr.message);
+        if (!existing) {
+          return jsonResponse({ ok: false, error: { code: 'NOT_FOUND', message: 'Expense not found' } }, 404);
+        }
+        const existingAgeErr = assertExpenseDateMutable(String(existing.expense_date).slice(0, 10));
+        if (existingAgeErr) return existingAgeErr;
 
         const patch: Json = {};
         if (bodyObj.amount !== undefined) {
@@ -597,6 +729,10 @@ Deno.serve(async (req: Request) => {
         if (bodyObj.expense_date !== undefined) {
           const expenseDate = asDate(bodyObj.expense_date, 'expense_date');
           if (expenseDate instanceof Response) return expenseDate;
+          const futureErr = assertNotFutureDate(expenseDate, 'expense_date');
+          if (futureErr) return futureErr;
+          const ageErr = assertExpenseDateMutable(expenseDate);
+          if (ageErr) return ageErr;
           patch.expense_date = expenseDate;
         }
         if (bodyObj.payment_method !== undefined) {
@@ -655,15 +791,6 @@ Deno.serve(async (req: Request) => {
         }
 
         if (patch.master_category_id !== undefined || patch.expense_item_id !== undefined) {
-          const { data: existing, error: existingErr } = await supabase
-            .from('operational_expenses')
-            .select('master_category_id, expense_item_id')
-            .eq('id', id)
-            .maybeSingle();
-          if (existingErr) throw new Error(existingErr.message);
-          if (!existing) {
-            return jsonResponse({ ok: false, error: { code: 'NOT_FOUND', message: 'Expense not found' } }, 404);
-          }
           const nextCat = String(patch.master_category_id ?? existing.master_category_id);
           const nextItem = String(patch.expense_item_id ?? existing.expense_item_id);
           const refErr = await assertExpenseRefs(supabase, nextCat, nextItem);
@@ -694,12 +821,30 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'delete_expense': {
-        const denied = requireCapability(capabilities, 'expenses_rw');
+        // Hard delete is opt-in only — never part of the recommended allowlist.
+        const denied = requireCapability(capabilities, 'expenses_delete');
         if (denied) return denied;
+        const mutOff = requireMutationsEnabled();
+        if (mutOff) return mutOff;
+        const confirmErr = requireConfirmWrite(bodyObj);
+        if (confirmErr) return confirmErr;
+
         const id = typeof bodyObj.id === 'string' ? bodyObj.id : '';
         if (!isUuid(id)) {
           return jsonResponse({ ok: false, error: { code: 'BAD_REQUEST', message: 'id must be a UUID' } }, 400);
         }
+
+        const { data: existing, error: existingErr } = await supabase
+          .from('operational_expenses')
+          .select('id, expense_date')
+          .eq('id', id)
+          .maybeSingle();
+        if (existingErr) throw new Error(existingErr.message);
+        if (!existing) {
+          return jsonResponse({ ok: false, error: { code: 'NOT_FOUND', message: 'Expense not found' } }, 404);
+        }
+        const ageErr = assertExpenseDateMutable(String(existing.expense_date).slice(0, 10));
+        if (ageErr) return ageErr;
 
         const { data, error } = await supabase
           .from('operational_expenses')
