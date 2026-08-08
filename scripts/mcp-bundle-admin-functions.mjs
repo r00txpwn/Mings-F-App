@@ -13,9 +13,9 @@ import { fileURLToPath } from 'node:url';
 const fnName = process.argv[2];
 const out = process.argv[3];
 
-const allowed = new Set(['admin-api', 'kds-order-status-update', 'user-management']);
+const allowed = new Set(['admin-api', 'kds-order-status-update', 'user-management', 'agent-ops']);
 if (!fnName || !allowed.has(fnName)) {
-  console.error('Usage: node scripts/mcp-bundle-admin-functions.mjs <admin-api|kds-order-status-update|user-management> [out.json]');
+  console.error('Usage: node scripts/mcp-bundle-admin-functions.mjs <admin-api|kds-order-status-update|user-management|agent-ops> [out.json]');
   process.exit(1);
 }
 
@@ -26,6 +26,7 @@ const sharedByFunction = {
   'admin-api': ['_shared/staffAuth.ts'],
   'kds-order-status-update': ['_shared/staffAuth.ts'],
   'user-management': [],
+  'agent-ops': ['_shared/agentAuth.ts', '_shared/cors.ts', '_shared/staffAuth.ts'],
 };
 
 const shared = sharedByFunction[fnName] ?? [];

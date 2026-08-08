@@ -55,3 +55,7 @@ verify_jwt = false
 # Admin-only user CRUD — JWT validated inside function (admin role).
 [functions."user-management"]
 verify_jwt = false
+
+# Hermes / external agent ops — Bearer AGENT_API_KEY + AGENT_CAPABILITIES allowlist.
+[functions."agent-ops"]
+verify_jwt = false

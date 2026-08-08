@@ -1,0 +1,15 @@
+# Snippet for ~/.hermes/config.yaml — paste under mcp_servers.
+# Replace ABS paths and secrets. Never commit real keys.
+
+mcp_servers:
+  mings-ops:
+    command: "node"
+    args:
+      - "/ABS/PATH/TO/Mings-F-App/mcp/mings-ops/index.mjs"
+    env:
+      MINGS_SUPABASE_URL: "https://YOUR_PROJECT.supabase.co"
+      MINGS_AGENT_API_KEY: "replace-with-AGENT_API_KEY"
+      # MINGS_SUPABASE_ANON_KEY: "eyJ..."
+      # MINGS_AGENT_OPS_URL: "http://127.0.0.1:54321/functions/v1/agent-ops"
+      # Keep delete hidden (default). Only enable with server expenses_delete too:
+      # MINGS_ENABLE_EXPENSE_DELETE: "true"

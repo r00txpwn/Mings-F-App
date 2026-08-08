@@ -1,0 +1,17 @@
+{
+  "name": "mings-ops-mcp",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Stdio MCP server for Ming's ops (Hermes → agent-ops Edge Function)",
+  "bin": {
+    "mings-ops-mcp": "./index.mjs"
+  },
+  "scripts": {
+    "start": "node index.mjs",
+    "selfcheck": "node selfcheck.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

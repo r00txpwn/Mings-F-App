@@ -100,6 +100,7 @@ See **[DEPLOY.md](DEPLOY.md)** for the **two-project** Vercel split (`order.ming
 - Payroll (Staff & Salaries): **[docs/TAXES_PAYROLL.md](docs/TAXES_PAYROLL.md)** — Taxes screen removed 2026-06-29; log tax as operational expenses
 - United Payment (card checkout): **[docs/UNITED_PAYMENT_INTEGRATION.md](docs/UNITED_PAYMENT_INTEGRATION.md)**
 - Kitchen hours / pause / soft-close: **[docs/KITCHEN_HOURS.md](docs/KITCHEN_HOURS.md)**
+- Hermes ops MCP (sales/analytics read + expenses): **[docs/HERMES_OPS_MCP.md](docs/HERMES_OPS_MCP.md)**
 - Reliability / manual QA focus: **[docs/RELIABILITY_QA_PRIORITIES.md](docs/RELIABILITY_QA_PRIORITIES.md)**
 - Automated test plan (living spec): **[docs/TEST_PLAN.md](docs/TEST_PLAN.md)** — gaps diffed by `npm run qa:plan` and included in `npm run qa` reports
 
