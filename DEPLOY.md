@@ -201,6 +201,7 @@ supabase functions deploy wolt-dispatch-book-lock
 supabase functions deploy user-management
 supabase functions deploy admin-api
 supabase functions deploy admin-payment-recheck
+supabase functions deploy agent-ops
 supabase functions deploy kds-order-status-update
 supabase functions deploy pos-order-create
 supabase functions deploy kiosk-order-create
@@ -276,6 +277,8 @@ npm run supabase:sync
 ### Secrets (Dashboard → Edge Functions → Secrets)
 
 Set at least: `APP_BASE_URL` (your live site URL). Add United Payment / E-point / Wolt secrets when you enable them — see `.env.example` and **[docs/UNITED_PAYMENT_INTEGRATION.md](docs/UNITED_PAYMENT_INTEGRATION.md)**.
+
+**Hermes / agent ops (`agent-ops`):** set `AGENT_API_KEY` (Bearer secret) and `AGENT_CAPABILITIES` (comma-separated: `sales_read`, `analytics_read`, `expenses_rw`). Deploy with `npm run supabase:deploy:agent-ops`. Hermes connects via the stdio MCP in [`mcp/mings-ops`](mcp/mings-ops) — see **[docs/HERMES_OPS_MCP.md](docs/HERMES_OPS_MCP.md)**. Do not put the service role key in Hermes.
 
 **KDS auth:** `/kds` uses staff Supabase login. Deploy **`admin-api`**, **`kds-order-status-update`**, and **`kds-item-prep-toggle`** after migrations `20260610120000_harden_staff_only_rls.sql`, `20260619120000_kds_item_prep_and_anon_update.sql`, and `20260621120000_kds_staff_auth_drop_anon_policies.sql`.
 

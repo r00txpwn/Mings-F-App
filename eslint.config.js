@@ -18,6 +18,7 @@ export default tseslint.config(
       'testsprite_tests',
       'test-results',
       'playwright-report',
+      'mcp',
     ],
   },
   {

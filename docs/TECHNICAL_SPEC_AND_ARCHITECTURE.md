@@ -402,6 +402,7 @@ All functions deploy to Supabase and are invoked via `{SUPABASE_URL}/functions/v
 |----------|---------|
 | `user-management` | CRUD staff users (admin-only) |
 | `admin-api` | Bundled admin operations |
+| `agent-ops` | Hermes / external agent: Bearer `AGENT_API_KEY` + `AGENT_CAPABILITIES` allowlist (sales/analytics read, expense CRUD). Stdio MCP: `mcp/mings-ops`. See [HERMES_OPS_MCP.md](HERMES_OPS_MCP.md). |
 
 ### 8.5 Invocation Pattern (Client)
 
@@ -646,7 +647,7 @@ E2E smoke tests run against local preview on port 4175 (staff bundle).
 
 ### Edge Function secrets (Supabase Dashboard)
 
-`KDS_SECRET`, `UNITED_PAYMENT_*`, `EPOINT_*`, `WOLT_*`, `APP_BASE_URL`, etc.
+`KDS_SECRET`, `UNITED_PAYMENT_*`, `EPOINT_*`, `WOLT_*`, `APP_BASE_URL`, `AGENT_API_KEY`, `AGENT_CAPABILITIES`, etc.
 
 Full list: [.env.example](../.env.example)
 
@@ -688,7 +689,9 @@ mings-os/
 │   └── translations.ts         # i18n (en, az, ru)
 ├── supabase/
 │   ├── migrations/             # 86+ SQL migrations
-│   └── functions/              # 19 Edge Functions
+│   └── functions/              # Edge Functions (incl. agent-ops)
+├── mcp/
+│   └── mings-ops/              # Hermes stdio MCP → agent-ops
 ├── apps/
 │   ├── pos-print-agent/        # Local label printer service
 │   └── pos-desktop/            # Optional Electron wrapper
@@ -711,6 +714,7 @@ mings-os/
 | [COMBO_DEALS.md](COMBO_DEALS.md) | Combo meal configuration |
 | [KITCHEN_HOURS.md](KITCHEN_HOURS.md) | Pause, soft-close, Baku timezone |
 | [UNITED_PAYMENT_INTEGRATION.md](UNITED_PAYMENT_INTEGRATION.md) | Card payment setup |
+| [HERMES_OPS_MCP.md](HERMES_OPS_MCP.md) | Hermes agent MCP + capability allowlist |
 | [RELIABILITY_QA_PRIORITIES.md](RELIABILITY_QA_PRIORITIES.md) | Manual QA focus areas |
 
 ---

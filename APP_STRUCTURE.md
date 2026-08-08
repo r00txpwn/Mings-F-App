@@ -302,6 +302,9 @@ Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
 | **wolt-drive-create** | Creates `delivery_orders` stub or real API integration |
 | **wolt-drive-cancel** | Cancels delivery row |
 | **wolt-drive-webhook** | Updates `delivery_orders` when `WOLT_WEBHOOK_SECRET` header matches |
+| **agent-ops** | Hermes / external agent: Bearer `AGENT_API_KEY` + `AGENT_CAPABILITIES` allowlist — sales/analytics read + expense CRUD; see [docs/HERMES_OPS_MCP.md](docs/HERMES_OPS_MCP.md) |
+
+Stdio MCP wrapper for Hermes: [`mcp/mings-ops`](mcp/mings-ops).
 
 ---
 
