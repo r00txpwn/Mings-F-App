@@ -402,7 +402,7 @@ All functions deploy to Supabase and are invoked via `{SUPABASE_URL}/functions/v
 |----------|---------|
 | `user-management` | CRUD staff users (admin-only) |
 | `admin-api` | Bundled admin operations |
-| `agent-ops` | Hermes / external agent: Bearer `AGENT_API_KEY` + `AGENT_CAPABILITIES` allowlist (sales/analytics read, expense CRUD). Stdio MCP: `mcp/mings-ops`. See [HERMES_OPS_MCP.md](HERMES_OPS_MCP.md). |
+| `agent-ops` | Hermes / external agent: Bearer `AGENT_API_KEY` + capability allowlist; mutations require `AGENT_MUTATIONS_ENABLED` + `confirm:true`; delete is a separate opt-in capability. Stdio MCP: `mcp/mings-ops`. See [HERMES_OPS_MCP.md](HERMES_OPS_MCP.md). |
 
 ### 8.5 Invocation Pattern (Client)
 
