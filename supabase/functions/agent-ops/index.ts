@@ -271,15 +271,16 @@ async function assertExpenseRefs(
   masterCategoryId: string,
   expenseItemId: string
 ): Promise<Response | null> {
+  // Schema has no is_active on master_categories / expense_items — do not select it.
   const [catRes, itemRes] = await Promise.all([
     supabase
       .from('master_categories')
-      .select('id, type, is_active')
+      .select('id, type')
       .eq('id', masterCategoryId)
       .maybeSingle(),
     supabase
       .from('expense_items')
-      .select('id, master_category_id, is_active')
+      .select('id, master_category_id')
       .eq('id', expenseItemId)
       .maybeSingle(),
   ]);
@@ -287,25 +288,13 @@ async function assertExpenseRefs(
   if (itemRes.error) throw new Error(itemRes.error.message);
   if (!catRes.data || catRes.data.type !== 'expense') {
     return jsonResponse(
-      { ok: false, error: { code: 'BAD_REQUEST', message: 'master_category_id must be an active expense category' } },
-      400
-    );
-  }
-  if (catRes.data.is_active === false) {
-    return jsonResponse(
-      { ok: false, error: { code: 'BAD_REQUEST', message: 'master_category_id is inactive' } },
+      { ok: false, error: { code: 'BAD_REQUEST', message: 'master_category_id must be an expense category' } },
       400
     );
   }
   if (!itemRes.data) {
     return jsonResponse(
       { ok: false, error: { code: 'BAD_REQUEST', message: 'expense_item_id not found' } },
-      400
-    );
-  }
-  if (itemRes.data.is_active === false) {
-    return jsonResponse(
-      { ok: false, error: { code: 'BAD_REQUEST', message: 'expense_item_id is inactive' } },
       400
     );
   }
@@ -392,9 +381,11 @@ Deno.serve(async (req: Request) => {
                 'Create/update expenses (needs AGENT_MUTATIONS_ENABLED=true + confirm:true + idempotency_key on create)',
               expenses_delete:
                 'Hard-delete expenses (off unless explicitly enabled; still needs mutations + confirm)',
+              purchases_read:
+                'List purchase/COGS rows and category totals (inventory cost, not opex)',
             },
             recommended:
-              'sales_read,analytics_read,expenses_read,expenses_write — leave expenses_delete off',
+              'sales_read,analytics_read,expenses_read,purchases_read,expenses_write — leave expenses_delete off',
           },
         });
       }
@@ -519,15 +510,16 @@ Deno.serve(async (req: Request) => {
       case 'list_expense_categories': {
         const denied = requireCapability(capabilities, 'expenses_read');
         if (denied) return denied;
+        // No is_active column on these tables in production schema.
         const [cats, items] = await Promise.all([
           supabase
             .from('master_categories')
-            .select('id, name, color, type, is_active')
+            .select('id, name, color, type')
             .eq('type', 'expense')
             .order('name'),
           supabase
             .from('expense_items')
-            .select('id, name, master_category_id, is_active')
+            .select('id, name, master_category_id')
             .order('name'),
         ]);
         if (cats.error) throw new Error(cats.error.message);
@@ -565,6 +557,123 @@ Deno.serve(async (req: Request) => {
           .limit(limit);
         if (error) throw new Error(error.message);
         return jsonResponse({ ok: true, data: { start_date: start, end_date: end, rows: data ?? [] } });
+      }
+
+      case 'list_purchases': {
+        const denied = requireCapability(capabilities, 'purchases_read');
+        if (denied) return denied;
+        const start = asDate(bodyObj.start_date, 'start_date');
+        if (start instanceof Response) return start;
+        const end = asDate(bodyObj.end_date ?? bodyObj.start_date, 'end_date');
+        if (end instanceof Response) return end;
+        const rangeErr = assertRange(start, end);
+        if (rangeErr) return rangeErr;
+        const limit = Math.min(
+          MAX_LIST,
+          Math.max(1, typeof bodyObj.limit === 'number' ? Math.floor(bodyObj.limit) : 50)
+        );
+        // Match cockpit COGS date bound (purchase_date may be timestamptz).
+        const { data, error } = await supabase
+          .from('purchases')
+          .select(
+            'id, total_cost, quantity, unit_cost, purchase_date, payment_method, payment_status, is_on_credit, notes, master_category_id, expense_item_id, products(name), suppliers(name), master_categories(name, color), expense_items(name)'
+          )
+          .gte('purchase_date', start)
+          .lte('purchase_date', `${end}T23:59:59`)
+          .order('purchase_date', { ascending: false })
+          .limit(limit);
+        if (error) throw new Error(error.message);
+        return jsonResponse({ ok: true, data: { start_date: start, end_date: end, rows: data ?? [] } });
+      }
+
+      case 'get_purchases_summary': {
+        const denied = requireCapability(capabilities, 'purchases_read');
+        if (denied) return denied;
+        const start = asDate(bodyObj.start_date, 'start_date');
+        if (start instanceof Response) return start;
+        const end = asDate(bodyObj.end_date ?? bodyObj.start_date, 'end_date');
+        if (end instanceof Response) return end;
+        const rangeErr = assertRange(start, end);
+        if (rangeErr) return rangeErr;
+
+        type PurchaseSumRow = {
+          total_cost: number | string | null;
+          master_category_id: string | null;
+          // Postgrest typings may treat embed as array; runtime is usually a single object.
+          master_categories: unknown;
+        };
+
+        const rows = await fetchAllPages<PurchaseSumRow>((from, to) =>
+          supabase
+            .from('purchases')
+            .select('total_cost, master_category_id, master_categories(name, color)')
+            .gte('purchase_date', start)
+            .lte('purchase_date', `${end}T23:59:59`)
+            .range(from, to) as PromiseLike<{
+            data: PurchaseSumRow[] | null;
+            error: { message: string } | null;
+          }>
+        );
+
+        function catMeta(embed: unknown): { name: string | null; color: string | null } {
+          if (!embed) return { name: null, color: null };
+          const obj = Array.isArray(embed) ? embed[0] : embed;
+          if (!obj || typeof obj !== 'object') return { name: null, color: null };
+          const rec = obj as { name?: string | null; color?: string | null };
+          return { name: rec.name ?? null, color: rec.color ?? null };
+        }
+
+        const byCat = new Map<
+          string,
+          { master_category_id: string | null; name: string; color: string | null; total: number; count: number }
+        >();
+        let grand = 0;
+        for (const row of rows) {
+          const cost = num(row.total_cost);
+          grand += cost;
+          const catId = row.master_category_id ?? '';
+          const key = catId || '__uncategorized__';
+          const prev = byCat.get(key);
+          const meta = catMeta(row.master_categories);
+          const catName = meta.name ?? (catId ? 'Unknown' : 'Uncategorized');
+          const catColor = meta.color;
+          if (prev) {
+            prev.total += cost;
+            prev.count += 1;
+          } else {
+            byCat.set(key, {
+              master_category_id: catId || null,
+              name: String(catName),
+              color: catColor,
+              total: cost,
+              count: 1,
+            });
+          }
+        }
+
+        const round2 = (n: number) => Math.round(n * 100) / 100;
+        const categories = [...byCat.values()]
+          .map((c) => ({
+            master_category_id: c.master_category_id,
+            name: c.name,
+            color: c.color,
+            total: round2(c.total),
+            count: c.count,
+            percent_of_total: grand > 0 ? Math.round((c.total / grand) * 1000) / 10 : 0,
+          }))
+          .sort((a, b) => b.total - a.total);
+
+        return jsonResponse({
+          ok: true,
+          data: {
+            start_date: start,
+            end_date: end,
+            currency: 'AZN',
+            total: round2(grand),
+            row_count: rows.length,
+            by_category: categories,
+          },
+        });
       }
 
       case 'create_expense': {

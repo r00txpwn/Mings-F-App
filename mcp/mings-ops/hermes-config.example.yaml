@@ -1,11 +1,17 @@
 # Snippet for ~/.hermes/config.yaml — paste under mcp_servers.
 # Replace ABS paths and secrets. Never commit real keys.
+#
+# Paths are HOST-local (Hermes spawns `node` next to itself):
+#   Windows desktop: C:/Users/.../Mings-f-app/mcp/mings-ops/index.mjs
+#   Linux cloud Hermes: clone repo or scp mcp/mings-ops onto the container,
+#   then use e.g. /home/you/mings-mcp/Mings-F-App/mcp/mings-ops/index.mjs
+# Zero npm deps — Node 18+ only. Edge agent-ops remains remote over HTTPS.
 
 mcp_servers:
   mings-ops:
     command: "node"
     args:
-      - "/ABS/PATH/TO/Mings-F-App/mcp/mings-ops/index.mjs"
+      - "/ABS/PATH/ON_THE_HERMES_HOST/mcp/mings-ops/index.mjs"
     env:
       MINGS_SUPABASE_URL: "https://YOUR_PROJECT.supabase.co"
       MINGS_AGENT_API_KEY: "replace-with-AGENT_API_KEY"
