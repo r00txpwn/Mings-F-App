@@ -110,6 +110,10 @@ Then in Hermes: *“What capabilities do you have for Ming’s?”* and *“Base
 - Expense writes are audited in `admin_audit_log` with `actor_role = agent`.
 - Prefer confirming money writes with Hermes before `create_expense` / `delete_expense`.
 - Expand capabilities only when you need them (purchases/payroll/etc. are not exposed yet).
+- `agent-ops` rejects browser `Origin` / CORS preflight — Hermes MCP and curl only.
+- Sales list responses omit customer PII (name/phone/address).
+- Aggregations paginate past Supabase’s 1000-row default so MTD totals stay correct.
+- “Today” / run-rate defaults use **Asia/Baku**, not UTC.
 
 ## Local Edge serve
 

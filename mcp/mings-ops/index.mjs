@@ -37,10 +37,12 @@ async function callAgentOps(action, params = {}) {
   const anon = process.env.MINGS_SUPABASE_ANON_KEY?.trim();
   if (anon) headers.apikey = anon;
 
+  // `action` last so tool args cannot override the intended operation.
+  const { action: _ignoredAction, ...rest } = params && typeof params === 'object' ? params : {};
   const res = await fetch(opsUrl(), {
     method: 'POST',
     headers,
-    body: JSON.stringify({ action, ...params }),
+    body: JSON.stringify({ ...rest, action }),
   });
 
   let body;
