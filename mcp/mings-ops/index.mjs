@@ -154,6 +154,35 @@ function buildTools() {
       },
     },
     {
+      name: 'list_purchases',
+      description:
+        'List inventory purchase/COGS rows (products, suppliers, categories) for a date range. Requires purchases_read. Read-only.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          start_date: { type: 'string', description: 'YYYY-MM-DD' },
+          end_date: { type: 'string', description: 'YYYY-MM-DD (defaults to start_date)' },
+          limit: { type: 'number', description: 'Max rows (1-100, default 50)' },
+        },
+        required: ['start_date'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'get_purchases_summary',
+      description:
+        'Purchase/COGS totals by master category for a date range (matches cockpit COGS). Requires purchases_read. Read-only.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          start_date: { type: 'string', description: 'YYYY-MM-DD' },
+          end_date: { type: 'string', description: 'YYYY-MM-DD (defaults to start_date)' },
+        },
+        required: ['start_date'],
+        additionalProperties: false,
+      },
+    },
+    {
       name: 'create_expense',
       description:
         'Create an operational expense. MUST pass confirm=true. Provide idempotency_key (UUID) or one is generated. payment_method: cash|card|bank_transfer. Requires expenses_write + AGENT_MUTATIONS_ENABLED. Do not invent category IDs — call list_expense_categories first. Prefer asking the owner before writing.',
@@ -246,6 +275,10 @@ async function callTool(name, args = {}) {
       return textResult(await callAgentOps('list_expense_categories'));
     case 'list_expenses':
       return textResult(await callAgentOps('list_expenses', a));
+    case 'list_purchases':
+      return textResult(await callAgentOps('list_purchases', a));
+    case 'get_purchases_summary':
+      return textResult(await callAgentOps('get_purchases_summary', a));
     case 'create_expense': {
       if (!a.idempotency_key) a.idempotency_key = crypto.randomUUID();
       return textResult(await callAgentOps('create_expense', a));

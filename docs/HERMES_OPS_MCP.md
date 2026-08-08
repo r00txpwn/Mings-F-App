@@ -37,23 +37,24 @@ Hermes **cannot** touch sales, payroll, menu, purchases, users, or payments thro
 | `sales_read` | `get_sales_summary`, `list_sales` (no customer PII) |
 | `analytics_read` | `get_revenue_run_rate`, `get_period_snapshot` |
 | `expenses_read` | `list_expense_categories`, `list_expenses` |
+| `purchases_read` | `list_purchases`, `get_purchases_summary` (COGS / inventory cost) |
 | `expenses_write` | `create_expense`, `update_expense` (with confirm + mutations flag) |
 | `expenses_delete` | `delete_expense` hard-delete (keep **off**) |
 
 Legacy alias: `expenses_rw` → `expenses_read` + `expenses_write` (**not** delete).
 
-**Recommended starter (analysis + safe expense add/edit, no delete):**
-
-```text
-AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,expenses_write
-AGENT_MUTATIONS_ENABLED=true
-```
-
 **Read-only first (safest while testing Hermes):**
 
 ```text
-AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read
+AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read
 # omit AGENT_MUTATIONS_ENABLED or set false
+```
+
+**Recommended starter (analysis + COGS + safe expense add/edit, no delete):**
+
+```text
+AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,expenses_write
+AGENT_MUTATIONS_ENABLED=true
 ```
 
 ### Example: “What does our MRR look like from sales till today?”
@@ -83,17 +84,53 @@ openssl rand -hex 32
 
 ## 3. Point Hermes at the MCP server
 
+`mcp/mings-ops` is a **stdio** process Hermes spawns on the **same host** as Hermes. It only needs Node 18+ (no `npm install`). It does **not** live inside Supabase — Edge Function `agent-ops` stays remote; the MCP is a thin local client.
+
+### Windows / local Hermes
+
 ```yaml
 mcp_servers:
   mings-ops:
     command: "node"
     args:
-      - "/ABS/PATH/TO/Mings-F-App/mcp/mings-ops/index.mjs"
+      - "C:/Users/YOU/Mings/Mings-f-app/mcp/mings-ops/index.mjs"
     env:
       MINGS_SUPABASE_URL: "https://YOUR_PROJECT.supabase.co"
       MINGS_AGENT_API_KEY: "same-as-AGENT_API_KEY-secret"
       # Do NOT set MINGS_ENABLE_EXPENSE_DELETE unless you really want hard deletes
 ```
+
+### Linux cloud Hermes (container has no Windows path)
+
+Put the MCP **on the cloud host**, then point config at **that** absolute path.
+
+```bash
+# On the Hermes Linux host (Node 18+ already required)
+mkdir -p ~/mings-mcp && cd ~/mings-mcp
+
+# Option A — private repo (use a PAT or SSH key):
+git clone --depth 1 --filter=blob:none --sparse \
+  https://github.com/r00txpwn/Mings-F-App.git
+cd Mings-F-App
+git sparse-checkout set mcp/mings-ops
+# MCP entry: $(pwd)/mcp/mings-ops/index.mjs
+
+# Option B — single file if you already have index.mjs on another machine:
+# scp / path from Windows; no extra packages needed
+```
+
+```yaml
+mcp_servers:
+  mings-ops:
+    command: "node"
+    args:
+      - "/home/YOU/mings-mcp/Mings-F-App/mcp/mings-ops/index.mjs"
+    env:
+      MINGS_SUPABASE_URL: "https://YOUR_PROJECT.supabase.co"
+      MINGS_AGENT_API_KEY: "same-as-AGENT_API_KEY-secret"
+```
+
+Secrets can stay in Hermes `.env` (mode 600); the `env:` block is optional if Hermes already injects `MINGS_*`. Never put the Supabase **service role** on the Hermes host.
 
 Example: [`mcp/mings-ops/hermes-config.example.yaml`](../mcp/mings-ops/hermes-config.example.yaml).
 
