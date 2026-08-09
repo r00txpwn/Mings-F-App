@@ -6,6 +6,8 @@
  * Writes also need AGENT_MUTATIONS_ENABLED=true and body.confirm=true.
  * Deletes need a separate expenses_delete capability (off by default).
  * Manual sales (Wolt/Bolt/ChoiceQR) need sales_write (off until explicitly enabled).
+ * Platform commissions: payouts_read (list/summary with derived commission).
+ * Purchase create: purchases_write (off until explicitly enabled).
  *
  * Body: { "action": "<name>", ...params }
  * Server-to-server only (browser Origin rejected).
@@ -21,6 +23,11 @@ import {
   requireMutationsEnabled,
 } from '../_shared/agentAuth.ts';
 import { isPartnerManualSaleChannelName } from '../_shared/partnerSalesChannels.ts';
+import {
+  computePurchaseTotalCost,
+  purchaseCreditFields,
+  roundFinanceMoney,
+} from '../_shared/cogsMath.ts';
 import { assertSalesMutationAllowed } from '../_shared/salesMutationPolicy.ts';
 import { writeAdminAudit } from '../_shared/staffAuth.ts';
 
@@ -39,6 +46,10 @@ const BAKU_TZ = 'Asia/Baku';
 /** Refuse mutating expenses/sales older than this many days (date field). */
 const MAX_MUTATE_AGE_DAYS = 45;
 const MAX_SALE_QTY = 10_000;
+const DEFAULT_PAYOUT_LOOKBACK_DAYS = 90;
+const INVOICE_TOTAL_TOLERANCE = 0.02;
+const PURCHASE_SELECT =
+  'id, total_cost, quantity, unit_cost, discount_percent, purchase_date, payment_method, payment_status, is_on_credit, notes, master_category_id, expense_item_id, supplier_id';
 const SALE_SELECT =
   'id, total_price, quantity, unit_price, sales_channel_id, notes, sale_date, source';
 
@@ -408,6 +419,360 @@ async function sumPurchases(supabase: SupabaseClient, start: string, end: string
   return rows.reduce((sum, row) => sum + num(row.total_cost), 0);
 }
 
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function addDaysYmd(ymd: string, deltaDays: number): string {
+  const [y, m, d] = ymd.split('-').map((x) => Number(x));
+  const dt = new Date(Date.UTC(y, m - 1, d + deltaDays));
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
+/** Optional start/end on payout_date; default last 90 days (Asia/Baku). */
+function resolveOptionalPayoutDateWindow(body: Json): { start: string; end: string } | Response {
+  const hasStart = body.start_date !== undefined && body.start_date !== null && body.start_date !== '';
+  const hasEnd = body.end_date !== undefined && body.end_date !== null && body.end_date !== '';
+  if (hasStart !== hasEnd) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: 'Provide both start_date and end_date for payout_date filter, or omit both (default last 90 days)',
+        },
+      },
+      400
+    );
+  }
+  if (!hasStart) {
+    const end = todayInBaku();
+    const start = addDaysYmd(end, -(DEFAULT_PAYOUT_LOOKBACK_DAYS - 1));
+    return { start, end };
+  }
+  const start = asDate(body.start_date, 'start_date');
+  if (start instanceof Response) return start;
+  const end = asDate(body.end_date, 'end_date');
+  if (end instanceof Response) return end;
+  const rangeErr = assertRange(start, end);
+  if (rangeErr) return rangeErr;
+  return { start, end };
+}
+
+async function sumGrossForChannelPeriod(
+  supabase: SupabaseClient,
+  channelId: string,
+  periodStart: string,
+  periodEnd: string
+): Promise<number> {
+  const rows = await fetchAllPages<{
+    total_price: number | string | null;
+    order_status: string | null;
+  }>((from, to) =>
+    supabase
+      .from('sales')
+      .select('total_price, order_status')
+      .eq('sales_channel_id', channelId)
+      .gte('sale_date', periodStart)
+      .lte('sale_date', `${periodEnd}T23:59:59`)
+      .range(from, to)
+  );
+  let revenue = 0;
+  for (const row of rows) {
+    const status = String(row.order_status ?? '').toLowerCase();
+    if (status === 'cancelled' || status === 'canceled') continue;
+    revenue += num(row.total_price);
+  }
+  return revenue;
+}
+
+type PayoutListRow = {
+  id: string;
+  sales_channel_id: string;
+  period_start: string;
+  period_end: string;
+  payout_amount: number;
+  payout_date: string;
+  notes: string | null;
+  received_account: string | null;
+  channel_name: string;
+  gross_sales: number;
+  commission_amount: number;
+  commission_percent: number;
+};
+
+async function loadPayoutsWithCommission(
+  supabase: SupabaseClient,
+  payoutDateStart: string,
+  payoutDateEnd: string,
+  limit: number
+): Promise<PayoutListRow[]> {
+  const { data, error } = await supabase
+    .from('platform_payouts')
+    .select(
+      'id, sales_channel_id, period_start, period_end, payout_amount, payout_date, notes, received_account, sales_channels(name)'
+    )
+    .gte('payout_date', payoutDateStart)
+    .lte('payout_date', payoutDateEnd)
+    .order('payout_date', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+
+  const out: PayoutListRow[] = [];
+  for (const raw of data ?? []) {
+    const row = raw as {
+      id: string;
+      sales_channel_id: string;
+      period_start: string;
+      period_end: string;
+      payout_amount: number | string | null;
+      payout_date: string;
+      notes: string | null;
+      received_account: string | null;
+      sales_channels: unknown;
+    };
+    const channelEmbed = Array.isArray(row.sales_channels)
+      ? row.sales_channels[0]
+      : row.sales_channels;
+    const channelName =
+      channelEmbed && typeof channelEmbed === 'object' && 'name' in channelEmbed
+        ? String((channelEmbed as { name?: string }).name ?? 'Unknown')
+        : 'Unknown';
+    const payoutAmount = num(row.payout_amount);
+    const gross = await sumGrossForChannelPeriod(
+      supabase,
+      row.sales_channel_id,
+      String(row.period_start).slice(0, 10),
+      String(row.period_end).slice(0, 10)
+    );
+    const commission = gross - payoutAmount;
+    out.push({
+      id: row.id,
+      sales_channel_id: row.sales_channel_id,
+      period_start: String(row.period_start).slice(0, 10),
+      period_end: String(row.period_end).slice(0, 10),
+      payout_amount: round2(payoutAmount),
+      payout_date: String(row.payout_date).slice(0, 10),
+      notes: row.notes,
+      received_account: row.received_account,
+      channel_name: channelName,
+      gross_sales: round2(gross),
+      commission_amount: round2(commission),
+      commission_percent: gross > 0 ? Math.round((commission / gross) * 1000) / 10 : 0,
+    });
+  }
+  return out;
+}
+
+async function findIdempotentPurchaseCreate(
+  supabase: SupabaseClient,
+  idempotencyKey: string
+): Promise<Json | null> {
+  const { data, error } = await supabase
+    .from('admin_audit_log')
+    .select('resource_id, payload, created_at')
+    .eq('actor_role', 'agent')
+    .eq('action', 'insert')
+    .eq('resource_table', 'purchases')
+    .contains('payload', { idempotency_key: idempotencyKey })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.resource_id) return null;
+
+  const existing = await supabase
+    .from('purchases')
+    .select(PURCHASE_SELECT)
+    .eq('id', data.resource_id)
+    .maybeSingle();
+  if (existing.error) throw new Error(existing.error.message);
+  return (existing.data as Json | null) ?? { id: data.resource_id, replayed: true };
+}
+
+async function resolveExpenseItemForPurchase(
+  supabase: SupabaseClient,
+  body: Json
+): Promise<{ id: string; name: string; master_category_id: string } | Response> {
+  const itemId = typeof body.expense_item_id === 'string' ? body.expense_item_id.trim() : '';
+  const itemName =
+    typeof body.expense_item_name === 'string' ? body.expense_item_name.trim() : '';
+
+  if (itemId) {
+    if (!isUuid(itemId)) {
+      return jsonResponse(
+        { ok: false, error: { code: 'BAD_REQUEST', message: 'expense_item_id must be a UUID' } },
+        400
+      );
+    }
+    const { data, error } = await supabase
+      .from('expense_items')
+      .select('id, name, master_category_id')
+      .eq('id', itemId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data?.id || !data.master_category_id) {
+      return jsonResponse(
+        { ok: false, error: { code: 'BAD_REQUEST', message: 'expense_item_id not found' } },
+        400
+      );
+    }
+    return {
+      id: data.id,
+      name: String(data.name ?? ''),
+      master_category_id: data.master_category_id,
+    };
+  }
+
+  if (!itemName) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: 'expense_item_id or expense_item_name is required',
+        },
+      },
+      400
+    );
+  }
+
+  const { data: matches, error } = await supabase
+    .from('expense_items')
+    .select('id, name, master_category_id')
+    .ilike('name', itemName)
+    .limit(5);
+  if (error) throw new Error(error.message);
+  const rows = matches ?? [];
+  if (rows.length === 0) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: `expense item "${itemName}" not found — use list_expense_categories`,
+        },
+      },
+      400
+    );
+  }
+  if (rows.length > 1) {
+    const exact = rows.filter((r) => String(r.name).toLowerCase() === itemName.toLowerCase());
+    if (exact.length === 1 && exact[0].master_category_id) {
+      return {
+        id: exact[0].id,
+        name: String(exact[0].name ?? ''),
+        master_category_id: exact[0].master_category_id,
+      };
+    }
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: `expense item name "${itemName}" is ambiguous — pass expense_item_id`,
+          matches: rows.map((r) => ({ id: r.id, name: r.name })),
+        },
+      },
+      400
+    );
+  }
+  const only = rows[0];
+  if (!only.master_category_id) {
+    return jsonResponse(
+      { ok: false, error: { code: 'BAD_REQUEST', message: 'expense item missing master_category_id' } },
+      400
+    );
+  }
+  return { id: only.id, name: String(only.name ?? ''), master_category_id: only.master_category_id };
+}
+
+/** Find supplier by id or name; create by name if missing. Never duplicates by case-insensitive name. */
+async function resolveOrCreateSupplier(
+  supabase: SupabaseClient,
+  body: Json
+): Promise<{ id: string; name: string; created: boolean } | Response> {
+  const supplierId = typeof body.supplier_id === 'string' ? body.supplier_id.trim() : '';
+  const supplierName = typeof body.supplier_name === 'string' ? body.supplier_name.trim() : '';
+
+  if (supplierId) {
+    if (!isUuid(supplierId)) {
+      return jsonResponse(
+        { ok: false, error: { code: 'BAD_REQUEST', message: 'supplier_id must be a UUID' } },
+        400
+      );
+    }
+    const { data, error } = await supabase
+      .from('suppliers')
+      .select('id, name')
+      .eq('id', supplierId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data?.id) {
+      return jsonResponse(
+        { ok: false, error: { code: 'BAD_REQUEST', message: 'supplier_id not found' } },
+        400
+      );
+    }
+    return { id: data.id, name: String(data.name ?? ''), created: false };
+  }
+
+  if (!supplierName) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: { code: 'BAD_REQUEST', message: 'supplier_id or supplier_name is required' },
+      },
+      400
+    );
+  }
+  if (supplierName.length > 200) {
+    return jsonResponse(
+      { ok: false, error: { code: 'BAD_REQUEST', message: 'supplier_name too long' } },
+      400
+    );
+  }
+
+  const { data: matches, error: findErr } = await supabase
+    .from('suppliers')
+    .select('id, name')
+    .ilike('name', supplierName)
+    .limit(10);
+  if (findErr) throw new Error(findErr.message);
+  const rows = matches ?? [];
+  const exact = rows.filter((r) => String(r.name).toLowerCase() === supplierName.toLowerCase());
+  if (exact.length === 1) {
+    return { id: exact[0].id, name: String(exact[0].name ?? ''), created: false };
+  }
+  if (exact.length > 1 || rows.length > 1) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: `supplier name "${supplierName}" is ambiguous — pass supplier_id`,
+          matches: rows.map((r) => ({ id: r.id, name: r.name })),
+        },
+      },
+      400
+    );
+  }
+  if (rows.length === 1) {
+    return { id: rows[0].id, name: String(rows[0].name ?? ''), created: false };
+  }
+
+  const { data: created, error: insertErr } = await supabase
+    .from('suppliers')
+    .insert({ name: supplierName, is_active: true })
+    .select('id, name')
+    .single();
+  if (insertErr) throw new Error(insertErr.message);
+  return { id: created.id, name: String(created.name ?? supplierName), created: true };
+}
+
 async function assertExpenseRefs(
   supabase: SupabaseClient,
   masterCategoryId: string,
@@ -527,9 +892,13 @@ Deno.serve(async (req: Request) => {
                 'Hard-delete expenses (off unless explicitly enabled; still needs mutations + confirm)',
               purchases_read:
                 'List purchase/COGS rows and category totals (inventory cost, not opex)',
+              purchases_write:
+                'Create purchases from invoices (needs AGENT_MUTATIONS_ENABLED=true + confirm:true + idempotency_key). Supplier find-or-create; never invent amounts. Off by default — ask owner before enabling.',
+              payouts_read:
+                'List platform_payouts with derived commission (gross_sales − payout_amount for each period/channel). Overlapping payout periods can double-count sales in summaries.',
             },
             recommended:
-              'sales_read,analytics_read,expenses_read,purchases_read,expenses_write — leave expenses_delete off; add sales_write only when owner wants Hermes to enter partner sales',
+              'sales_read,analytics_read,expenses_read,purchases_read,payouts_read — leave write caps and expenses_delete off unless owner asks; add purchases_write/sales_write only with mutations + owner confirm',
           },
         });
       }
@@ -816,6 +1185,297 @@ Deno.serve(async (req: Request) => {
             total: round2(grand),
             row_count: rows.length,
             by_category: categories,
+          },
+        });
+      }
+
+      case 'list_payouts': {
+        const denied = requireCapability(capabilities, 'payouts_read');
+        if (denied) return denied;
+        const window = resolveOptionalPayoutDateWindow(bodyObj);
+        if (window instanceof Response) return window;
+        const limit = Math.min(
+          MAX_LIST,
+          Math.max(1, typeof bodyObj.limit === 'number' ? Math.floor(bodyObj.limit) : 50)
+        );
+        const rows = await loadPayoutsWithCommission(supabase, window.start, window.end, limit);
+        return jsonResponse({
+          ok: true,
+          data: {
+            payout_date_start: window.start,
+            payout_date_end: window.end,
+            currency: 'AZN',
+            commission_formula: 'gross_sales - payout_amount (sales for channel over period_start..period_end, excluding cancelled)',
+            rows,
+          },
+        });
+      }
+
+      case 'get_payouts_summary': {
+        const denied = requireCapability(capabilities, 'payouts_read');
+        if (denied) return denied;
+        const window = resolveOptionalPayoutDateWindow(bodyObj);
+        if (window instanceof Response) return window;
+        // Same cap as list — summary uses all rows in window up to MAX_LIST for performance.
+        const rows = await loadPayoutsWithCommission(supabase, window.start, window.end, MAX_LIST);
+
+        type ChAgg = {
+          sales_channel_id: string;
+          channel_name: string;
+          payout_total: number;
+          gross_sales: number;
+          commission: number;
+          row_count: number;
+        };
+        const byChannel = new Map<string, ChAgg>();
+        let totalPayouts = 0;
+        let totalGross = 0;
+        let totalCommission = 0;
+        for (const row of rows) {
+          totalPayouts += row.payout_amount;
+          totalGross += row.gross_sales;
+          totalCommission += row.commission_amount;
+          const prev = byChannel.get(row.sales_channel_id);
+          if (prev) {
+            prev.payout_total += row.payout_amount;
+            prev.gross_sales += row.gross_sales;
+            prev.commission += row.commission_amount;
+            prev.row_count += 1;
+          } else {
+            byChannel.set(row.sales_channel_id, {
+              sales_channel_id: row.sales_channel_id,
+              channel_name: row.channel_name,
+              payout_total: row.payout_amount,
+              gross_sales: row.gross_sales,
+              commission: row.commission_amount,
+              row_count: 1,
+            });
+          }
+        }
+
+        const channels = [...byChannel.values()]
+          .map((c) => ({
+            sales_channel_id: c.sales_channel_id,
+            channel_name: c.channel_name,
+            payout_total: round2(c.payout_total),
+            gross_sales: round2(c.gross_sales),
+            commission: round2(c.commission),
+            commission_percent: c.gross_sales > 0 ? Math.round((c.commission / c.gross_sales) * 1000) / 10 : 0,
+            row_count: c.row_count,
+          }))
+          .sort((a, b) => b.commission - a.commission);
+
+        return jsonResponse({
+          ok: true,
+          data: {
+            payout_date_start: window.start,
+            payout_date_end: window.end,
+            currency: 'AZN',
+            note:
+              'Per-payout commission matches cockpit (gross sales in period − payout). Channel/totals sum those rows; overlapping periods can double-count sales.',
+            total_payouts: round2(totalPayouts),
+            total_gross_sales: round2(totalGross),
+            total_commission: round2(totalCommission),
+            row_count: rows.length,
+            by_channel: channels,
+          },
+        });
+      }
+
+      case 'create_purchase': {
+        const denied = requireCapability(capabilities, 'purchases_write');
+        if (denied) return denied;
+        const mutOff = requireMutationsEnabled();
+        if (mutOff) return mutOff;
+        const confirmErr = requireConfirmWrite(bodyObj);
+        if (confirmErr) return confirmErr;
+
+        const idempotencyKey =
+          typeof bodyObj.idempotency_key === 'string' ? bodyObj.idempotency_key.trim() : '';
+        if (!isUuid(idempotencyKey)) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: {
+                code: 'BAD_REQUEST',
+                message: 'idempotency_key (UUID) is required on create to prevent double inserts',
+              },
+            },
+            400
+          );
+        }
+
+        const replay = await findIdempotentPurchaseCreate(supabase, idempotencyKey);
+        if (replay) {
+          return jsonResponse({ ok: true, data: { ...replay, idempotent_replay: true } });
+        }
+
+        const item = await resolveExpenseItemForPurchase(supabase, bodyObj);
+        if (item instanceof Response) return item;
+        const supplier = await resolveOrCreateSupplier(supabase, bodyObj);
+        if (supplier instanceof Response) return supplier;
+
+        const quantityRaw = num(bodyObj.quantity);
+        const unitCostRaw = num(bodyObj.unit_cost);
+        let discountPercent =
+          bodyObj.discount_percent === undefined || bodyObj.discount_percent === null
+            ? 0
+            : num(bodyObj.discount_percent);
+
+        if (!(quantityRaw > 0) || quantityRaw > MAX_AMOUNT) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: { code: 'BAD_REQUEST', message: 'quantity must be > 0' },
+            },
+            400
+          );
+        }
+        if (!(unitCostRaw >= 0) || unitCostRaw > MAX_AMOUNT) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: { code: 'BAD_REQUEST', message: 'unit_cost must be >= 0' },
+            },
+            400
+          );
+        }
+        if (!(discountPercent >= 0) || discountPercent > 100) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: { code: 'BAD_REQUEST', message: 'discount_percent must be 0–100' },
+            },
+            400
+          );
+        }
+
+        const quantity = roundFinanceMoney(quantityRaw);
+        const unitCost = roundFinanceMoney(unitCostRaw);
+        discountPercent = roundFinanceMoney(discountPercent);
+        const totalCost = computePurchaseTotalCost(quantity, unitCost, discountPercent);
+
+        if (bodyObj.invoice_total !== undefined && bodyObj.invoice_total !== null) {
+          const invoiceTotal = num(bodyObj.invoice_total);
+          if (Math.abs(invoiceTotal - totalCost) > INVOICE_TOTAL_TOLERANCE) {
+            return jsonResponse(
+              {
+                ok: false,
+                error: {
+                  code: 'BAD_REQUEST',
+                  message: `invoice_total ${invoiceTotal} does not match computed total_cost ${totalCost} (tolerance ${INVOICE_TOTAL_TOLERANCE} AZN)`,
+                  computed_total_cost: totalCost,
+                },
+              },
+              400
+            );
+          }
+        }
+
+        const purchaseDate = asDate(bodyObj.purchase_date, 'purchase_date');
+        if (purchaseDate instanceof Response) return purchaseDate;
+        const futureErr = assertNotFutureDate(purchaseDate, 'purchase_date');
+        if (futureErr) return futureErr;
+        const ageErr = assertExpenseDateMutable(purchaseDate);
+        if (ageErr) return ageErr;
+
+        const payment =
+          typeof bodyObj.payment === 'string' ? bodyObj.payment.trim().toLowerCase() : '';
+        if (payment !== 'on_account' && payment !== 'paid') {
+          return jsonResponse(
+            {
+              ok: false,
+              error: {
+                code: 'BAD_REQUEST',
+                message: 'payment must be on_account | paid',
+              },
+            },
+            400
+          );
+        }
+
+        const isOnCredit = payment === 'on_account';
+        const credit = purchaseCreditFields(isOnCredit);
+        let paymentMethod: string | null = null;
+        if (!isOnCredit) {
+          const pm =
+            typeof bodyObj.payment_method === 'string'
+              ? bodyObj.payment_method.trim().toLowerCase()
+              : 'cash';
+          if (!PAYMENT_METHODS.has(pm)) {
+            return jsonResponse(
+              {
+                ok: false,
+                error: {
+                  code: 'BAD_REQUEST',
+                  message: 'payment_method must be cash | card | bank_transfer when payment=paid',
+                },
+              },
+              400
+            );
+          }
+          paymentMethod = pm;
+        }
+
+        const notesRaw = typeof bodyObj.notes === 'string' ? bodyObj.notes.trim() : '';
+        if (notesRaw.length > MAX_DESCRIPTION_LEN) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: {
+                code: 'BAD_REQUEST',
+                message: `notes must be <= ${MAX_DESCRIPTION_LEN} characters`,
+              },
+            },
+            400
+          );
+        }
+
+        const rowPayload = {
+          expense_item_id: item.id,
+          master_category_id: item.master_category_id,
+          supplier_id: supplier.id,
+          quantity,
+          unit_cost: unitCost,
+          discount_percent: discountPercent,
+          total_cost: totalCost,
+          purchase_date: purchaseDate,
+          notes: notesRaw,
+          payment_method: paymentMethod,
+          ...credit,
+        };
+
+        const { data, error } = await supabase
+          .from('purchases')
+          .insert(rowPayload)
+          .select(PURCHASE_SELECT)
+          .single();
+        if (error) throw new Error(error.message);
+
+        await writeAdminAudit(supabase, {
+          actorId: null,
+          actorRole: 'agent',
+          action: 'insert',
+          resourceTable: 'purchases',
+          resourceId: data.id,
+          payload: {
+            ...rowPayload,
+            idempotency_key: idempotencyKey,
+            expense_item_name: item.name,
+            supplier_name: supplier.name,
+            supplier_created: supplier.created,
+            payment,
+          },
+        });
+
+        return jsonResponse({
+          ok: true,
+          data: {
+            ...data,
+            expense_item_name: item.name,
+            supplier_name: supplier.name,
+            supplier_created: supplier.created,
+            payment,
           },
         });
       }

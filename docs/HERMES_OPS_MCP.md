@@ -16,11 +16,11 @@ Hermes never receives the Supabase service role. It only holds `AGENT_API_KEY`. 
 Writes cannot happen unless **all** of these are true:
 
 1. `AGENT_API_KEY` is valid  
-2. Capability includes the needed write flag (`expenses_write`, `sales_write`, or `expenses_delete` for deletes)  
+2. Capability includes the needed write flag (`expenses_write`, `sales_write`, `purchases_write`, or `expenses_delete` for deletes)  
 3. Edge secret **`AGENT_MUTATIONS_ENABLED=true`**  
 4. Request body includes **`confirm: true`**  
 5. Create includes **`idempotency_key`** (UUID) — retries replay the first row, no double insert  
-6. Expense/sale dates are not in the future (Asia/Baku) and not older than **45 days** for mutate  
+6. Expense/sale/**purchase** dates are not in the future (Asia/Baku) and not older than **45 days** for mutate  
 
 **Delete is off by default** in three places:
 
@@ -28,7 +28,7 @@ Writes cannot happen unless **all** of these are true:
 - Requires separate capability `expenses_delete`  
 - MCP hides `delete_expense` unless `MINGS_ENABLE_EXPENSE_DELETE=true`  
 
-Hermes **cannot** touch payroll, menu, purchases/writes, users, cards/payments, or kitchen/online order rows through this API. Manual **partner sales** (Wolt/Bolt/ChoiceQR) are writeable only with **`sales_write`** + mutations on.
+Hermes **cannot** touch payroll, menu, users, cards/payments, kitchen/online order rows, or product stock through this API. Manual **partner sales** need **`sales_write`** + mutations. **Purchase create** needs **`purchases_write`** + mutations (both off by default). **Platform commission** is readable with **`payouts_read`**.
 
 ## Capabilities (you choose)
 
@@ -39,33 +39,46 @@ Hermes **cannot** touch payroll, menu, purchases/writes, users, cards/payments, 
 | `analytics_read` | `get_revenue_run_rate`, `get_period_snapshot` |
 | `expenses_read` | `list_expense_categories`, `list_expenses` |
 | `purchases_read` | `list_purchases`, `get_purchases_summary` (COGS / inventory cost) |
+| `purchases_write` | `create_purchase` (invoice → COGS; confirm + mutations). **Off by default.** |
+| `payouts_read` | `list_payouts`, `get_payouts_summary` — commission = `gross_sales − payout_amount` per `platform_payouts` row (channel sales over period, exclude cancelled) |
 | `expenses_write` | `create_expense`, `update_expense` (with confirm + mutations flag) |
 | `expenses_delete` | `delete_expense` hard-delete (keep **off**) |
 
 Legacy alias: `expenses_rw` → `expenses_read` + `expenses_write` (**not** delete).
 
+**Commission note:** matching the cockpit, each payout’s commission is derived from sales linked to that channel between `period_start` and `period_end`. Summaries **sum per-row** figures; if payout periods overlap, sales can be double-counted in the rollup (documented on the API response).
+
+**Invoice → purchase workflow:** before `create_purchase`, Hermes must show Max a **mapping table** (invoice line → expense item, supplier existing vs create, qty, unit, discount %, net, payment mode), get approval in chat, then call with `confirm:true`. Prefer `list_expense_categories` / `list_purchases` for lookups. Supplier is **find-or-create by name** (no duplicate names).
+
 **Read-only first (safest while testing Hermes):**
 
 ```text
-AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read
+AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,payouts_read
 # omit AGENT_MUTATIONS_ENABLED or set false
 ```
 
-**Recommended starter (analysis + COGS + safe expense add/edit, no sales write, no delete):**
+**Recommended starter (analysis + COGS read + payouts + safe expense add/edit, no purchase/sales write, no delete):**
 
 ```text
-AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,expenses_write
+AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,payouts_read,expenses_write
 AGENT_MUTATIONS_ENABLED=true
 ```
 
 **Partner sales entry (only after owner Max approves):**
 
 ```text
-AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,expenses_write,sales_write
+AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,payouts_read,expenses_write,sales_write
 AGENT_MUTATIONS_ENABLED=true
 ```
 
-Ask Max before any write. No `sales_delete`.
+**Purchase write (invoice entry — only when Max asks):**
+
+```text
+AGENT_CAPABILITIES=…,purchases_write
+AGENT_MUTATIONS_ENABLED=true
+```
+
+Ask Max before any write. No `sales_delete` / no purchase update-delete yet.
 
 ### Example: “What does our MRR look like from sales till today?”
 
