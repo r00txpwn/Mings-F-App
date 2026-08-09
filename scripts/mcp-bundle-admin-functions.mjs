@@ -26,7 +26,14 @@ const sharedByFunction = {
   'admin-api': ['_shared/staffAuth.ts'],
   'kds-order-status-update': ['_shared/staffAuth.ts'],
   'user-management': [],
-  'agent-ops': ['_shared/agentAuth.ts', '_shared/cors.ts', '_shared/staffAuth.ts'],
+  'agent-ops': [
+    '_shared/agentAuth.ts',
+    '_shared/cors.ts',
+    '_shared/staffAuth.ts',
+    '_shared/partnerSalesChannels.ts',
+    '_shared/salesMutationPolicy.ts',
+    '_shared/salesChannelPolicy.ts',
+  ],
 };
 
 const shared = sharedByFunction[fnName] ?? [];

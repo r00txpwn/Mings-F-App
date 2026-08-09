@@ -183,6 +183,55 @@ function buildTools() {
       },
     },
     {
+      name: 'create_sale',
+      description:
+        'Create a manual partner sale (Wolt / Bolt / ChoiceQR only — not kiosk/online/POS). MUST pass confirm=true. Ask Max (owner) before writing. Provide sales_channel_id or channel name. Idempotency UUID auto-generated if omitted. Requires sales_write + AGENT_MUTATIONS_ENABLED.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          total_price: { type: 'number', description: 'Total AZN for the sale (or batch total)' },
+          quantity: { type: 'number', description: 'Order count (integer ≥ 1, default 1)' },
+          sale_date: { type: 'string', description: 'YYYY-MM-DD (not future, Asia/Baku, ≤45 days old)' },
+          sales_channel_id: { type: 'string', description: 'UUID of partner channel' },
+          channel: {
+            type: 'string',
+            description: 'Partner channel name if id unknown: Wolt | Bolt | ChoiceQR',
+          },
+          notes: { type: 'string' },
+          confirm: {
+            type: 'boolean',
+            description: 'Must be true. Refuses write otherwise.',
+          },
+          idempotency_key: {
+            type: 'string',
+            description: 'UUID; retries with the same key return the first row (no double insert).',
+          },
+        },
+        required: ['total_price', 'sale_date', 'confirm'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'update_sale',
+      description:
+        'Update a manual partner sale by id (source=manual only). MUST pass confirm=true. Ask Max before writing. Requires sales_write + AGENT_MUTATIONS_ENABLED. Cannot edit kitchen/online sales or rows older than 45 days.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          total_price: { type: 'number' },
+          quantity: { type: 'number' },
+          sale_date: { type: 'string' },
+          sales_channel_id: { type: 'string' },
+          channel: { type: 'string', description: 'Wolt | Bolt | ChoiceQR' },
+          notes: { type: 'string' },
+          confirm: { type: 'boolean', description: 'Must be true' },
+        },
+        required: ['id', 'confirm'],
+        additionalProperties: false,
+      },
+    },
+    {
       name: 'create_expense',
       description:
         'Create an operational expense. MUST pass confirm=true. Provide idempotency_key (UUID) or one is generated. payment_method: cash|card|bank_transfer. Requires expenses_write + AGENT_MUTATIONS_ENABLED. Do not invent category IDs — call list_expense_categories first. Prefer asking the owner before writing.',
@@ -279,6 +328,12 @@ async function callTool(name, args = {}) {
       return textResult(await callAgentOps('list_purchases', a));
     case 'get_purchases_summary':
       return textResult(await callAgentOps('get_purchases_summary', a));
+    case 'create_sale': {
+      if (!a.idempotency_key) a.idempotency_key = crypto.randomUUID();
+      return textResult(await callAgentOps('create_sale', a));
+    }
+    case 'update_sale':
+      return textResult(await callAgentOps('update_sale', a));
     case 'create_expense': {
       if (!a.idempotency_key) a.idempotency_key = crypto.randomUUID();
       return textResult(await callAgentOps('create_expense', a));

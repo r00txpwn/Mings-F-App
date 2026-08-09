@@ -10,6 +10,7 @@ import { corsHeaders, jsonResponse } from './cors.ts';
 
 export type AgentCapability =
   | 'sales_read'
+  | 'sales_write'
   | 'analytics_read'
   | 'expenses_read'
   | 'expenses_write'
@@ -18,6 +19,7 @@ export type AgentCapability =
 
 export const ALL_AGENT_CAPABILITIES: AgentCapability[] = [
   'sales_read',
+  'sales_write',
   'analytics_read',
   'expenses_read',
   'expenses_write',

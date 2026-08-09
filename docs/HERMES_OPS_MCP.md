@@ -16,11 +16,11 @@ Hermes never receives the Supabase service role. It only holds `AGENT_API_KEY`. 
 Writes cannot happen unless **all** of these are true:
 
 1. `AGENT_API_KEY` is valid  
-2. Capability includes `expenses_write` (or `expenses_delete` for deletes)  
+2. Capability includes the needed write flag (`expenses_write`, `sales_write`, or `expenses_delete` for deletes)  
 3. Edge secret **`AGENT_MUTATIONS_ENABLED=true`**  
 4. Request body includes **`confirm: true`**  
 5. Create includes **`idempotency_key`** (UUID) — retries replay the first row, no double insert  
-6. Expense date is not in the future (Asia/Baku) and not older than **45 days** for mutate/delete  
+6. Expense/sale dates are not in the future (Asia/Baku) and not older than **45 days** for mutate  
 
 **Delete is off by default** in three places:
 
@@ -28,13 +28,14 @@ Writes cannot happen unless **all** of these are true:
 - Requires separate capability `expenses_delete`  
 - MCP hides `delete_expense` unless `MINGS_ENABLE_EXPENSE_DELETE=true`  
 
-Hermes **cannot** touch sales, payroll, menu, purchases, users, or payments through this API — only the actions below.
+Hermes **cannot** touch payroll, menu, purchases/writes, users, cards/payments, or kitchen/online order rows through this API. Manual **partner sales** (Wolt/Bolt/ChoiceQR) are writeable only with **`sales_write`** + mutations on.
 
 ## Capabilities (you choose)
 
 | Capability | What Hermes can do |
 |---|---|
 | `sales_read` | `get_sales_summary`, `list_sales` (no customer PII) |
+| `sales_write` | `create_sale`, `update_sale` for **manual partner** channels only (Wolt / Bolt / ChoiceQR; confirm + mutations flag). **Off by default.** |
 | `analytics_read` | `get_revenue_run_rate`, `get_period_snapshot` |
 | `expenses_read` | `list_expense_categories`, `list_expenses` |
 | `purchases_read` | `list_purchases`, `get_purchases_summary` (COGS / inventory cost) |
@@ -50,12 +51,21 @@ AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read
 # omit AGENT_MUTATIONS_ENABLED or set false
 ```
 
-**Recommended starter (analysis + COGS + safe expense add/edit, no delete):**
+**Recommended starter (analysis + COGS + safe expense add/edit, no sales write, no delete):**
 
 ```text
 AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,expenses_write
 AGENT_MUTATIONS_ENABLED=true
 ```
+
+**Partner sales entry (only after owner Max approves):**
+
+```text
+AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,expenses_write,sales_write
+AGENT_MUTATIONS_ENABLED=true
+```
+
+Ask Max before any write. No `sales_delete`.
 
 ### Example: “What does our MRR look like from sales till today?”
 
