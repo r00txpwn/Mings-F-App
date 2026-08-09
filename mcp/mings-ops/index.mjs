@@ -183,6 +183,69 @@ function buildTools() {
       },
     },
     {
+      name: 'list_payouts',
+      description:
+        'List platform payouts with derived commission (gross_sales − payout_amount per payout period/channel). Optional start_date/end_date filter on payout_date; omit both for last 90 days (Asia/Baku). Requires payouts_read. Read-only.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          start_date: { type: 'string', description: 'YYYY-MM-DD payout_date filter (use with end_date)' },
+          end_date: { type: 'string', description: 'YYYY-MM-DD payout_date filter (use with start_date)' },
+          limit: { type: 'number', description: 'Max rows (1-100, default 50)' },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'get_payouts_summary',
+      description:
+        'Platform commission rollup by channel (sum of per-payout gross−payout; overlapping periods can double-count sales). Same date window as list_payouts. Requires payouts_read. Read-only.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          start_date: { type: 'string', description: 'YYYY-MM-DD payout_date filter' },
+          end_date: { type: 'string', description: 'YYYY-MM-DD payout_date filter' },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'create_purchase',
+      description:
+        'Create an inventory purchase (COGS) from a supplier invoice. BEFORE calling: present a full line-item mapping table in chat (invoice line → expense item name/id, supplier name existing vs create, qty, unit cost, discount %, net total, payment on_account|paid) and get Max’s explicit approval; only then call with confirm=true. Requires purchases_write + AGENT_MUTATIONS_ENABLED (both off by default). Auto UUID idempotency_key if omitted. Uses list_expense_categories for item names. Does not update product stock.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          expense_item_id: { type: 'string', description: 'UUID preferred' },
+          expense_item_name: { type: 'string', description: 'If id unknown; must match one item' },
+          supplier_id: { type: 'string', description: 'UUID if known' },
+          supplier_name: {
+            type: 'string',
+            description: 'Find case-insensitive or create once if missing (never duplicate)',
+          },
+          quantity: { type: 'number' },
+          unit_cost: { type: 'number', description: 'AZN per unit before discount' },
+          discount_percent: { type: 'number', description: '0–100, default 0' },
+          invoice_total: {
+            type: 'number',
+            description: 'Optional post-discount total; must match computed total within 0.02 AZN',
+          },
+          purchase_date: { type: 'string', description: 'YYYY-MM-DD (not future, ≤45 days, Asia/Baku)' },
+          payment: { type: 'string', enum: ['on_account', 'paid'] },
+          payment_method: {
+            type: 'string',
+            enum: ['cash', 'card', 'bank_transfer'],
+            description: 'When payment=paid; default cash. Ignored for on_account.',
+          },
+          notes: { type: 'string' },
+          confirm: { type: 'boolean', description: 'Must be true after Max approves the mapping table' },
+          idempotency_key: { type: 'string', description: 'UUID; retries replay first row' },
+        },
+        required: ['quantity', 'unit_cost', 'purchase_date', 'payment', 'confirm'],
+        additionalProperties: false,
+      },
+    },
+    {
       name: 'create_sale',
       description:
         'Create a manual partner sale (Wolt / Bolt / ChoiceQR only — not kiosk/online/POS). MUST pass confirm=true. Ask Max (owner) before writing. Provide sales_channel_id or channel name. Idempotency UUID auto-generated if omitted. Requires sales_write + AGENT_MUTATIONS_ENABLED.',
@@ -328,6 +391,14 @@ async function callTool(name, args = {}) {
       return textResult(await callAgentOps('list_purchases', a));
     case 'get_purchases_summary':
       return textResult(await callAgentOps('get_purchases_summary', a));
+    case 'list_payouts':
+      return textResult(await callAgentOps('list_payouts', a));
+    case 'get_payouts_summary':
+      return textResult(await callAgentOps('get_payouts_summary', a));
+    case 'create_purchase': {
+      if (!a.idempotency_key) a.idempotency_key = crypto.randomUUID();
+      return textResult(await callAgentOps('create_purchase', a));
+    }
     case 'create_sale': {
       if (!a.idempotency_key) a.idempotency_key = crypto.randomUUID();
       return textResult(await callAgentOps('create_sale', a));
