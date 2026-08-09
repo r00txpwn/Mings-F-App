@@ -2,9 +2,10 @@
  * Hermes / external-agent ops API.
  *
  * Auth: Authorization: Bearer <AGENT_API_KEY>
- * Capabilities: AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,expenses_write
+ * Capabilities: comma-separated AGENT_CAPABILITIES
  * Writes also need AGENT_MUTATIONS_ENABLED=true and body.confirm=true.
  * Deletes need a separate expenses_delete capability (off by default).
+ * Manual sales (Wolt/Bolt/ChoiceQR) need sales_write (off until explicitly enabled).
  *
  * Body: { "action": "<name>", ...params }
  * Server-to-server only (browser Origin rejected).
@@ -19,6 +20,8 @@ import {
   requireConfirmWrite,
   requireMutationsEnabled,
 } from '../_shared/agentAuth.ts';
+import { isPartnerManualSaleChannelName } from '../_shared/partnerSalesChannels.ts';
+import { assertSalesMutationAllowed } from '../_shared/salesMutationPolicy.ts';
 import { writeAdminAudit } from '../_shared/staffAuth.ts';
 
 type Json = Record<string, unknown>;
@@ -33,8 +36,11 @@ const MAX_DESCRIPTION_LEN = 2000;
 const MAX_AMOUNT = 1_000_000;
 const PAGE_SIZE = 1000;
 const BAKU_TZ = 'Asia/Baku';
-/** Refuse editing/deleting expenses older than this many days (expense_date). */
+/** Refuse mutating expenses/sales older than this many days (date field). */
 const MAX_MUTATE_AGE_DAYS = 45;
+const MAX_SALE_QTY = 10_000;
+const SALE_SELECT =
+  'id, total_price, quantity, unit_price, sales_channel_id, notes, sale_date, source';
 
 function isUuid(value: string): boolean {
   return UUID_RE.test(value);
@@ -158,6 +164,142 @@ async function findIdempotentCreate(
     .maybeSingle();
   if (existing.error) throw new Error(existing.error.message);
   return (existing.data as Json | null) ?? { id: data.resource_id, replayed: true };
+}
+
+async function findIdempotentSaleCreate(
+  supabase: SupabaseClient,
+  idempotencyKey: string
+): Promise<Json | null> {
+  const { data, error } = await supabase
+    .from('admin_audit_log')
+    .select('resource_id, payload, created_at')
+    .eq('actor_role', 'agent')
+    .eq('action', 'insert')
+    .eq('resource_table', 'sales')
+    .contains('payload', { idempotency_key: idempotencyKey })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.resource_id) return null;
+
+  const existing = await supabase
+    .from('sales')
+    .select(SALE_SELECT)
+    .eq('id', data.resource_id)
+    .maybeSingle();
+  if (existing.error) throw new Error(existing.error.message);
+  return (existing.data as Json | null) ?? { id: data.resource_id, replayed: true };
+}
+
+type PartnerChannel = { id: string; name: string };
+
+/** Resolve Wolt/Bolt/ChoiceQR channel by UUID or name; only active, non-deleted partner rows. */
+async function resolvePartnerChannel(
+  supabase: SupabaseClient,
+  body: Json
+): Promise<PartnerChannel | Response> {
+  const channelId = typeof body.sales_channel_id === 'string' ? body.sales_channel_id.trim() : '';
+  const channelName =
+    typeof body.channel === 'string'
+      ? body.channel.trim()
+      : typeof body.channel_name === 'string'
+        ? body.channel_name.trim()
+        : '';
+
+  if (channelId && !isUuid(channelId)) {
+    return jsonResponse(
+      { ok: false, error: { code: 'BAD_REQUEST', message: 'sales_channel_id must be a UUID' } },
+      400
+    );
+  }
+  if (!channelId && !channelName) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: 'sales_channel_id (UUID) or channel (Wolt|Bolt|ChoiceQR name) is required',
+        },
+      },
+      400
+    );
+  }
+
+  let query = supabase
+    .from('sales_channels')
+    .select('id, name, is_active, is_deleted')
+    .eq('is_deleted', false)
+    .eq('is_active', true);
+
+  if (channelId) {
+    query = query.eq('id', channelId);
+  } else {
+    // Case-insensitive exact name first (canonical DB names: Wolt, Bolt, ChoiceQR).
+    query = query.ilike('name', channelName);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.id || typeof data.name !== 'string') {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: channelId
+            ? 'sales_channel_id not found or inactive (partner channels only: Wolt, Bolt, ChoiceQR)'
+            : `channel "${channelName}" not found or inactive (use Wolt, Bolt, or ChoiceQR)`,
+        },
+      },
+      400
+    );
+  }
+  if (!isPartnerManualSaleChannelName(data.name)) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'FORBIDDEN',
+          message:
+            'Only partner manual channels may be used (Wolt, Bolt, ChoiceQR). Kiosk/online/POS sales are app-generated.',
+        },
+      },
+      403
+    );
+  }
+  return { id: data.id, name: data.name };
+}
+
+function parseSaleQuantity(value: unknown): number | Response {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1 || n > MAX_SALE_QTY) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: `quantity must be an integer between 1 and ${MAX_SALE_QTY}`,
+        },
+      },
+      400
+    );
+  }
+  return n;
+}
+
+function parseSaleTotal(value: unknown): number | Response {
+  const amount = num(value);
+  if (!(amount > 0) || amount > MAX_AMOUNT) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: { code: 'BAD_REQUEST', message: `total_price must be > 0 and <= ${MAX_AMOUNT}` },
+      },
+      400
+    );
+  }
+  return amount;
 }
 
 /** Month-to-date run-rate from calendar MTD revenue (date parts of asOf). */
@@ -374,6 +516,8 @@ Deno.serve(async (req: Request) => {
             warnings,
             notes: {
               sales_read: 'Read sales rows and revenue totals for a date range',
+              sales_write:
+                'Create/update manual partner sales (Wolt/Bolt/ChoiceQR only; needs AGENT_MUTATIONS_ENABLED=true + confirm:true + idempotency_key on create). Ask owner before writing.',
               analytics_read:
                 'Period snapshot + monthly revenue run-rate (restaurant pacing estimate, not SaaS MRR)',
               expenses_read: 'List expense categories/items and expense rows',
@@ -385,7 +529,7 @@ Deno.serve(async (req: Request) => {
                 'List purchase/COGS rows and category totals (inventory cost, not opex)',
             },
             recommended:
-              'sales_read,analytics_read,expenses_read,purchases_read,expenses_write — leave expenses_delete off',
+              'sales_read,analytics_read,expenses_read,purchases_read,expenses_write — leave expenses_delete off; add sales_write only when owner wants Hermes to enter partner sales',
           },
         });
       }
@@ -674,6 +818,238 @@ Deno.serve(async (req: Request) => {
             by_category: categories,
           },
         });
+      }
+
+      case 'create_sale': {
+        const denied = requireCapability(capabilities, 'sales_write');
+        if (denied) return denied;
+        const mutOff = requireMutationsEnabled();
+        if (mutOff) return mutOff;
+        const confirmErr = requireConfirmWrite(bodyObj);
+        if (confirmErr) return confirmErr;
+
+        const idempotencyKey =
+          typeof bodyObj.idempotency_key === 'string' ? bodyObj.idempotency_key.trim() : '';
+        if (!isUuid(idempotencyKey)) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: {
+                code: 'BAD_REQUEST',
+                message: 'idempotency_key (UUID) is required on create to prevent double inserts',
+              },
+            },
+            400
+          );
+        }
+
+        const replay = await findIdempotentSaleCreate(supabase, idempotencyKey);
+        if (replay) {
+          return jsonResponse({ ok: true, data: { ...replay, idempotent_replay: true } });
+        }
+
+        const channel = await resolvePartnerChannel(supabase, bodyObj);
+        if (channel instanceof Response) return channel;
+
+        const totalPrice = parseSaleTotal(bodyObj.total_price);
+        if (totalPrice instanceof Response) return totalPrice;
+        const quantity = parseSaleQuantity(bodyObj.quantity ?? 1);
+        if (quantity instanceof Response) return quantity;
+        const saleDate = asDate(bodyObj.sale_date, 'sale_date');
+        if (saleDate instanceof Response) return saleDate;
+        const futureErr = assertNotFutureDate(saleDate, 'sale_date');
+        if (futureErr) return futureErr;
+        const ageErr = assertExpenseDateMutable(saleDate);
+        if (ageErr) return ageErr;
+
+        const notesRaw = typeof bodyObj.notes === 'string' ? bodyObj.notes : '';
+        if (notesRaw.length > MAX_DESCRIPTION_LEN) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: {
+                code: 'BAD_REQUEST',
+                message: `notes must be <= ${MAX_DESCRIPTION_LEN} characters`,
+              },
+            },
+            400
+          );
+        }
+
+        const unitPrice = totalPrice / quantity;
+        const candidatePayload: Json = {
+          total_price: totalPrice,
+          quantity,
+          unit_price: unitPrice,
+          sales_channel_id: channel.id,
+          notes: notesRaw,
+          sale_date: saleDate,
+          source: 'manual',
+        };
+
+        const guard = assertSalesMutationAllowed('manager', 'insert', null, candidatePayload);
+        if (!guard.ok) {
+          return jsonResponse(
+            { ok: false, error: { code: 'FORBIDDEN', message: guard.message } },
+            403
+          );
+        }
+        const rowPayload = {
+          ...(guard.sanitizedPayload ?? {}),
+          created_by: null,
+        };
+
+        const { data, error } = await supabase
+          .from('sales')
+          .insert(rowPayload)
+          .select(SALE_SELECT)
+          .single();
+        if (error) throw new Error(error.message);
+
+        await writeAdminAudit(supabase, {
+          actorId: null,
+          actorRole: 'agent',
+          action: 'insert',
+          resourceTable: 'sales',
+          resourceId: data.id,
+          payload: {
+            ...rowPayload,
+            channel_name: channel.name,
+            idempotency_key: idempotencyKey,
+          },
+        });
+
+        return jsonResponse({ ok: true, data });
+      }
+
+      case 'update_sale': {
+        const denied = requireCapability(capabilities, 'sales_write');
+        if (denied) return denied;
+        const mutOff = requireMutationsEnabled();
+        if (mutOff) return mutOff;
+        const confirmErr = requireConfirmWrite(bodyObj);
+        if (confirmErr) return confirmErr;
+
+        const id = typeof bodyObj.id === 'string' ? bodyObj.id : '';
+        if (!isUuid(id)) {
+          return jsonResponse({ ok: false, error: { code: 'BAD_REQUEST', message: 'id must be a UUID' } }, 400);
+        }
+
+        const { data: existing, error: existingErr } = await supabase
+          .from('sales')
+          .select('id, source, sale_date, total_price, quantity, unit_price, sales_channel_id, notes, online_payment_method, payment_method')
+          .eq('id', id)
+          .maybeSingle();
+        if (existingErr) throw new Error(existingErr.message);
+        if (!existing) {
+          return jsonResponse({ ok: false, error: { code: 'NOT_FOUND', message: 'Sale not found' } }, 404);
+        }
+
+        const existingAgeErr = assertExpenseDateMutable(String(existing.sale_date).slice(0, 10));
+        if (existingAgeErr) return existingAgeErr;
+
+        const patch: Json = {};
+        let nextTotal = num(existing.total_price);
+        let nextQty = Math.max(1, Math.floor(num(existing.quantity)) || 1);
+
+        if (bodyObj.total_price !== undefined) {
+          const totalPrice = parseSaleTotal(bodyObj.total_price);
+          if (totalPrice instanceof Response) return totalPrice;
+          nextTotal = totalPrice;
+          patch.total_price = totalPrice;
+        }
+        if (bodyObj.quantity !== undefined) {
+          const quantity = parseSaleQuantity(bodyObj.quantity);
+          if (quantity instanceof Response) return quantity;
+          nextQty = quantity;
+          patch.quantity = quantity;
+        }
+        if (bodyObj.total_price !== undefined || bodyObj.quantity !== undefined) {
+          patch.unit_price = nextTotal / nextQty;
+        }
+        if (bodyObj.sale_date !== undefined) {
+          const saleDate = asDate(bodyObj.sale_date, 'sale_date');
+          if (saleDate instanceof Response) return saleDate;
+          const futureErr = assertNotFutureDate(saleDate, 'sale_date');
+          if (futureErr) return futureErr;
+          const ageErr = assertExpenseDateMutable(saleDate);
+          if (ageErr) return ageErr;
+          patch.sale_date = saleDate;
+        }
+        if (bodyObj.notes !== undefined) {
+          const notes = String(bodyObj.notes);
+          if (notes.length > MAX_DESCRIPTION_LEN) {
+            return jsonResponse(
+              {
+                ok: false,
+                error: {
+                  code: 'BAD_REQUEST',
+                  message: `notes must be <= ${MAX_DESCRIPTION_LEN} characters`,
+                },
+              },
+              400
+            );
+          }
+          patch.notes = notes;
+        }
+
+        if (
+          bodyObj.sales_channel_id !== undefined ||
+          bodyObj.channel !== undefined ||
+          bodyObj.channel_name !== undefined
+        ) {
+          const channel = await resolvePartnerChannel(supabase, bodyObj);
+          if (channel instanceof Response) return channel;
+          patch.sales_channel_id = channel.id;
+        }
+
+        if (Object.keys(patch).length === 0) {
+          return jsonResponse(
+            { ok: false, error: { code: 'BAD_REQUEST', message: 'No fields to update' } },
+            400
+          );
+        }
+
+        const guard = assertSalesMutationAllowed(
+          'manager',
+          'update',
+          {
+            id: existing.id,
+            source: existing.source,
+            online_payment_method: existing.online_payment_method,
+            payment_method: existing.payment_method,
+          },
+          patch
+        );
+        if (!guard.ok) {
+          return jsonResponse(
+            { ok: false, error: { code: 'FORBIDDEN', message: guard.message } },
+            403
+          );
+        }
+        const sanitized = guard.sanitizedPayload ?? {};
+
+        const { data, error } = await supabase
+          .from('sales')
+          .update(sanitized)
+          .eq('id', id)
+          .select(SALE_SELECT)
+          .maybeSingle();
+        if (error) throw new Error(error.message);
+        if (!data) {
+          return jsonResponse({ ok: false, error: { code: 'NOT_FOUND', message: 'Sale not found' } }, 404);
+        }
+
+        await writeAdminAudit(supabase, {
+          actorId: null,
+          actorRole: 'agent',
+          action: 'update',
+          resourceTable: 'sales',
+          resourceId: id,
+          payload: sanitized,
+        });
+
+        return jsonResponse({ ok: true, data });
       }
 
       case 'create_expense': {
