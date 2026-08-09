@@ -210,6 +210,40 @@ function buildTools() {
       },
     },
     {
+      name: 'list_salary_payments',
+      description:
+        'List salary_payments ledger rows (payment_date, employee name, payment_type salary|advance|bonus|partial, amount). Optional employee_id / payment_type filters. Requires salaries_read. Read-only. Pair with get_sales_summary for salary % of revenue.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          start_date: { type: 'string', description: 'YYYY-MM-DD' },
+          end_date: { type: 'string', description: 'YYYY-MM-DD (defaults to start_date)' },
+          employee_id: { type: 'string', description: 'Optional UUID filter' },
+          payment_type: {
+            type: 'string',
+            enum: ['salary', 'advance', 'bonus', 'partial'],
+          },
+          limit: { type: 'number', description: 'Max rows (1-100, default 50)' },
+        },
+        required: ['start_date'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'get_salaries_summary',
+      description:
+        'Salary cash paid totals for a date range: overall, by payment_type, by calendar month, by employee, plus employees roster (total_salary / official_salary rates). Requires salaries_read. Read-only. Use with get_sales_summary for % of revenue.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          start_date: { type: 'string', description: 'YYYY-MM-DD' },
+          end_date: { type: 'string', description: 'YYYY-MM-DD (defaults to start_date)' },
+        },
+        required: ['start_date'],
+        additionalProperties: false,
+      },
+    },
+    {
       name: 'create_purchase',
       description:
         'Create an inventory purchase (COGS) from a supplier invoice. BEFORE calling: present a full line-item mapping table in chat (invoice line → expense item name/id, supplier name existing vs create, qty, unit cost, discount %, net total, payment on_account|paid) and get Max’s explicit approval; only then call with confirm=true. Requires purchases_write + AGENT_MUTATIONS_ENABLED (both off by default). Auto UUID idempotency_key if omitted. Uses list_expense_categories for item names. Does not update product stock.',
@@ -395,6 +429,10 @@ async function callTool(name, args = {}) {
       return textResult(await callAgentOps('list_payouts', a));
     case 'get_payouts_summary':
       return textResult(await callAgentOps('get_payouts_summary', a));
+    case 'list_salary_payments':
+      return textResult(await callAgentOps('list_salary_payments', a));
+    case 'get_salaries_summary':
+      return textResult(await callAgentOps('get_salaries_summary', a));
     case 'create_purchase': {
       if (!a.idempotency_key) a.idempotency_key = crypto.randomUUID();
       return textResult(await callAgentOps('create_purchase', a));

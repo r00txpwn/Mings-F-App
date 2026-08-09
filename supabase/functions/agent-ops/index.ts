@@ -34,6 +34,7 @@ import { writeAdminAudit } from '../_shared/staffAuth.ts';
 type Json = Record<string, unknown>;
 
 const PAYMENT_METHODS = new Set(['cash', 'card', 'bank_transfer']);
+const SALARY_PAYMENT_TYPES = new Set(['salary', 'advance', 'bonus', 'partial']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -896,9 +897,11 @@ Deno.serve(async (req: Request) => {
                 'Create purchases from invoices (needs AGENT_MUTATIONS_ENABLED=true + confirm:true + idempotency_key). Supplier find-or-create; never invent amounts. Off by default — ask owner before enabling.',
               payouts_read:
                 'List platform_payouts with derived commission (gross_sales − payout_amount for each period/channel). Overlapping payout periods can double-count sales in summaries.',
+              salaries_read:
+                'List salary_payments ledger + summary by type/month (employees roster rates for context). Pair with get_sales_summary for % of revenue. Read-only — no salary writes.',
             },
             recommended:
-              'sales_read,analytics_read,expenses_read,purchases_read,payouts_read — leave write caps and expenses_delete off unless owner asks; add purchases_write/sales_write only with mutations + owner confirm',
+              'sales_read,analytics_read,expenses_read,purchases_read,payouts_read,salaries_read — leave write caps and expenses_delete off unless owner asks; add purchases_write/sales_write only with mutations + owner confirm',
           },
         });
       }
@@ -1278,6 +1281,262 @@ Deno.serve(async (req: Request) => {
             total_commission: round2(totalCommission),
             row_count: rows.length,
             by_channel: channels,
+          },
+        });
+      }
+
+      case 'list_salary_payments': {
+        const denied = requireCapability(capabilities, 'salaries_read');
+        if (denied) return denied;
+        const start = asDate(bodyObj.start_date, 'start_date');
+        if (start instanceof Response) return start;
+        const end = asDate(bodyObj.end_date ?? bodyObj.start_date, 'end_date');
+        if (end instanceof Response) return end;
+        const rangeErr = assertRange(start, end);
+        if (rangeErr) return rangeErr;
+        const limit = Math.min(
+          MAX_LIST,
+          Math.max(1, typeof bodyObj.limit === 'number' ? Math.floor(bodyObj.limit) : 50)
+        );
+
+        const employeeId =
+          typeof bodyObj.employee_id === 'string' ? bodyObj.employee_id.trim() : '';
+        if (employeeId && !isUuid(employeeId)) {
+          return jsonResponse(
+            { ok: false, error: { code: 'BAD_REQUEST', message: 'employee_id must be a UUID' } },
+            400
+          );
+        }
+
+        const paymentTypeRaw =
+          typeof bodyObj.payment_type === 'string' ? bodyObj.payment_type.trim().toLowerCase() : '';
+        if (paymentTypeRaw && !SALARY_PAYMENT_TYPES.has(paymentTypeRaw)) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: {
+                code: 'BAD_REQUEST',
+                message: 'payment_type must be salary | advance | bonus | partial',
+              },
+            },
+            400
+          );
+        }
+
+        let q = supabase
+          .from('salary_payments')
+          .select(
+            'id, amount, payment_date, payment_type, note, employee_id, employees(full_name, designation, total_salary, official_salary, is_active)'
+          )
+          .gte('payment_date', start)
+          .lte('payment_date', end)
+          .order('payment_date', { ascending: false })
+          .limit(limit);
+        if (employeeId) q = q.eq('employee_id', employeeId);
+        if (paymentTypeRaw) q = q.eq('payment_type', paymentTypeRaw);
+
+        const { data, error } = await q;
+        if (error) throw new Error(error.message);
+
+        const rows = (data ?? []).map((raw) => {
+          const row = raw as {
+            id: string;
+            amount: number | string | null;
+            payment_date: string;
+            payment_type: string;
+            note: string | null;
+            employee_id: string;
+            employees: unknown;
+          };
+          const emb = Array.isArray(row.employees) ? row.employees[0] : row.employees;
+          const emp =
+            emb && typeof emb === 'object'
+              ? (emb as {
+                  full_name?: string;
+                  designation?: string;
+                  total_salary?: number | string | null;
+                  official_salary?: number | string | null;
+                  is_active?: boolean;
+                })
+              : null;
+          return {
+            id: row.id,
+            employee_id: row.employee_id,
+            employee_name: emp?.full_name ?? null,
+            designation: emp?.designation ?? null,
+            employee_total_salary: emp != null ? num(emp.total_salary) : null,
+            employee_official_salary: emp != null ? num(emp.official_salary) : null,
+            amount: round2(num(row.amount)),
+            payment_date: String(row.payment_date).slice(0, 10),
+            payment_type: row.payment_type,
+            note: row.note ?? '',
+          };
+        });
+
+        return jsonResponse({
+          ok: true,
+          data: {
+            start_date: start,
+            end_date: end,
+            currency: 'AZN',
+            rows,
+          },
+        });
+      }
+
+      case 'get_salaries_summary': {
+        const denied = requireCapability(capabilities, 'salaries_read');
+        if (denied) return denied;
+        const start = asDate(bodyObj.start_date, 'start_date');
+        if (start instanceof Response) return start;
+        const end = asDate(bodyObj.end_date ?? bodyObj.start_date, 'end_date');
+        if (end instanceof Response) return end;
+        const rangeErr = assertRange(start, end);
+        if (rangeErr) return rangeErr;
+
+        type PayRow = {
+          amount: number | string | null;
+          payment_date: string;
+          payment_type: string;
+          employee_id: string;
+          employees: unknown;
+        };
+
+        const payments = await fetchAllPages<PayRow>((from, to) =>
+          supabase
+            .from('salary_payments')
+            .select('amount, payment_date, payment_type, employee_id, employees(full_name)')
+            .gte('payment_date', start)
+            .lte('payment_date', end)
+            .range(from, to) as PromiseLike<{
+            data: PayRow[] | null;
+            error: { message: string } | null;
+          }>
+        );
+
+        const byType = new Map<string, { payment_type: string; total: number; count: number }>();
+        const byMonth = new Map<
+          string,
+          { year_month: string; total: number; count: number; by_type: Map<string, number> }
+        >();
+        const byEmployee = new Map<
+          string,
+          { employee_id: string; employee_name: string; total: number; count: number }
+        >();
+        let grand = 0;
+
+        for (const row of payments) {
+          const amount = num(row.amount);
+          grand += amount;
+          const ptype = String(row.payment_type || 'salary').toLowerCase();
+          const ymd = String(row.payment_date).slice(0, 10);
+          const ym = ymd.slice(0, 7);
+          const emb = Array.isArray(row.employees) ? row.employees[0] : row.employees;
+          const empName =
+            emb && typeof emb === 'object' && 'full_name' in emb
+              ? String((emb as { full_name?: string }).full_name ?? 'Unknown')
+              : 'Unknown';
+
+          const typePrev = byType.get(ptype);
+          if (typePrev) {
+            typePrev.total += amount;
+            typePrev.count += 1;
+          } else {
+            byType.set(ptype, { payment_type: ptype, total: amount, count: 1 });
+          }
+
+          let month = byMonth.get(ym);
+          if (!month) {
+            month = { year_month: ym, total: 0, count: 0, by_type: new Map() };
+            byMonth.set(ym, month);
+          }
+          month.total += amount;
+          month.count += 1;
+          month.by_type.set(ptype, (month.by_type.get(ptype) ?? 0) + amount);
+
+          const empPrev = byEmployee.get(row.employee_id);
+          if (empPrev) {
+            empPrev.total += amount;
+            empPrev.count += 1;
+          } else {
+            byEmployee.set(row.employee_id, {
+              employee_id: row.employee_id,
+              employee_name: empName,
+              total: amount,
+              count: 1,
+            });
+          }
+        }
+
+        const { data: rosterRows, error: rosterErr } = await supabase
+          .from('employees')
+          .select('id, full_name, designation, total_salary, official_salary, is_active, left_at')
+          .order('full_name');
+        if (rosterErr) throw new Error(rosterErr.message);
+
+        const roster = (rosterRows ?? []).map((e) => ({
+          id: e.id as string,
+          full_name: String((e as { full_name?: string }).full_name ?? ''),
+          designation: String((e as { designation?: string }).designation ?? ''),
+          total_salary: round2(num((e as { total_salary?: number | string | null }).total_salary)),
+          official_salary: round2(
+            num((e as { official_salary?: number | string | null }).official_salary)
+          ),
+          is_active: Boolean((e as { is_active?: boolean }).is_active),
+          left_at: (e as { left_at?: string | null }).left_at
+            ? String((e as { left_at?: string | null }).left_at).slice(0, 10)
+            : null,
+        }));
+        const activeRoster = roster.filter((e) => e.is_active);
+        const committedTotal = activeRoster.reduce((s, e) => s + e.total_salary, 0);
+        const committedOfficial = activeRoster.reduce((s, e) => s + e.official_salary, 0);
+
+        return jsonResponse({
+          ok: true,
+          data: {
+            start_date: start,
+            end_date: end,
+            currency: 'AZN',
+            note:
+              'Totals are cash paid from salary_payments (not accrued duty). Pair with get_sales_summary for salary % of revenue. roster.committed_* are active employees’ monthly rates, not period cash out.',
+            total: round2(grand),
+            row_count: payments.length,
+            by_payment_type: [...byType.values()]
+              .map((t) => ({
+                payment_type: t.payment_type,
+                total: round2(t.total),
+                count: t.count,
+                percent_of_total: grand > 0 ? Math.round((t.total / grand) * 1000) / 10 : 0,
+              }))
+              .sort((a, b) => b.total - a.total),
+            by_month: [...byMonth.values()]
+              .map((m) => ({
+                year_month: m.year_month,
+                total: round2(m.total),
+                count: m.count,
+                by_payment_type: [...m.by_type.entries()]
+                  .map(([payment_type, total]) => ({
+                    payment_type,
+                    total: round2(total),
+                  }))
+                  .sort((a, b) => b.total - a.total),
+              }))
+              .sort((a, b) => a.year_month.localeCompare(b.year_month)),
+            by_employee: [...byEmployee.values()]
+              .map((e) => ({
+                employee_id: e.employee_id,
+                employee_name: e.employee_name,
+                total: round2(e.total),
+                count: e.count,
+              }))
+              .sort((a, b) => b.total - a.total),
+            roster: {
+              active_count: activeRoster.length,
+              total_count: roster.length,
+              committed_monthly_total_salary: round2(committedTotal),
+              committed_monthly_official_salary: round2(committedOfficial),
+              employees: roster,
+            },
           },
         });
       }

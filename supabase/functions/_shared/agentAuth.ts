@@ -17,7 +17,8 @@ export type AgentCapability =
   | 'expenses_delete'
   | 'purchases_read'
   | 'purchases_write'
-  | 'payouts_read';
+  | 'payouts_read'
+  | 'salaries_read';
 
 export const ALL_AGENT_CAPABILITIES: AgentCapability[] = [
   'sales_read',
@@ -29,6 +30,7 @@ export const ALL_AGENT_CAPABILITIES: AgentCapability[] = [
   'purchases_read',
   'purchases_write',
   'payouts_read',
+  'salaries_read',
 ];
 
 const CAPABILITY_SET = new Set<string>(ALL_AGENT_CAPABILITIES);
