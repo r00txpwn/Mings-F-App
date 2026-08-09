@@ -160,6 +160,34 @@ Secrets can stay in Hermes `.env` (mode 600); the `env:` block is optional if He
 
 Example: [`mcp/mings-ops/hermes-config.example.yaml`](../mcp/mings-ops/hermes-config.example.yaml).
 
+### Sandbox QA / group-bot testing
+
+Point Hermes at **sandbox only** so prod stays untouched:
+
+| | Sandbox | Production |
+|---|---|---|
+| Project ref | `glpdpkozvmfzgoewquxi` | `dmrvycswdteuhfydchdr` |
+| URL | `https://glpdpkozvmfzgoewquxi.supabase.co` | `https://dmrvycswdteuhfydchdr.supabase.co` |
+
+1. Set Edge secrets on sandbox (not prod):
+
+```bash
+# Needs SUPABASE_ACCESS_TOKEN (Dashboard → Account → Access Tokens)
+SANDBOX_AGENT_API_KEY=$(openssl rand -hex 32) \
+  node scripts/set-sandbox-agent-ops-secrets.mjs
+```
+
+That sets `AGENT_API_KEY` (rotated) + `AGENT_MUTATIONS_ENABLED=true` on sandbox and writes gitignored `.env.sandbox.agent`.
+
+2. Hermes MCP env (see [`mcp/mings-ops/hermes-config.sandbox.example.yaml`](../mcp/mings-ops/hermes-config.sandbox.example.yaml)):
+
+```yaml
+MINGS_SUPABASE_URL: "https://glpdpkozvmfzgoewquxi.supabase.co"
+MINGS_AGENT_API_KEY: "<same as sandbox AGENT_API_KEY>"
+```
+
+3. Smoke-test `list_capabilities` and confirm `mutations_enabled: true` before any write drills.
+
 ## 4. Smoke test
 
 ```bash

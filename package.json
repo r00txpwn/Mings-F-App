@@ -58,7 +58,8 @@
     "supabase:mark:history-gaps:ps": "powershell -ExecutionPolicy Bypass -File scripts/supabase-mark-history-gaps-applied.ps1",
     "fix:supabase-ref": "node scripts/fix-supabase-project-ref.mjs",
     "mcp:bundle:admin-api": "node scripts/mcp-bundle-admin-functions.mjs admin-api test-results/mcp-deploy-admin-api.json",
-    "staging:rls-check": "node scripts/staging-rls-check.mjs"
+    "staging:rls-check": "node scripts/staging-rls-check.mjs",
+    "sandbox:agent-ops:secrets": "node scripts/set-sandbox-agent-ops-secrets.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
