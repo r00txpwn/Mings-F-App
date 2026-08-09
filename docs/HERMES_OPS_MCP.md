@@ -28,7 +28,7 @@ Writes cannot happen unless **all** of these are true:
 - Requires separate capability `expenses_delete`  
 - MCP hides `delete_expense` unless `MINGS_ENABLE_EXPENSE_DELETE=true`  
 
-Hermes **cannot** touch payroll, menu, users, cards/payments, kitchen/online order rows, or product stock through this API. Manual **partner sales** need **`sales_write`** + mutations. **Purchase create** needs **`purchases_write`** + mutations (both off by default). **Platform commission** is readable with **`payouts_read`**.
+Hermes **cannot** touch payroll **writes**, menu, users, cards/payments, kitchen/online order rows, or product stock through this API. **Salary cash ledger** is readable with **`salaries_read`** (no salary write). Manual **partner sales** need **`sales_write`** + mutations. **Purchase create** needs **`purchases_write`** + mutations (both off by default). **Platform commission** is readable with **`payouts_read`**.
 
 ## Capabilities (you choose)
 
@@ -41,6 +41,7 @@ Hermes **cannot** touch payroll, menu, users, cards/payments, kitchen/online ord
 | `purchases_read` | `list_purchases`, `get_purchases_summary` (COGS / inventory cost) |
 | `purchases_write` | `create_purchase` (invoice → COGS; confirm + mutations). **Off by default.** |
 | `payouts_read` | `list_payouts`, `get_payouts_summary` — commission = `gross_sales − payout_amount` per `platform_payouts` row (channel sales over period, exclude cancelled) |
+| `salaries_read` | `list_salary_payments`, `get_salaries_summary` — cash paid (`salary`/`advance`/`bonus`/`partial`) + employee roster rates. **Read-only.** Pair with sales for % of revenue. |
 | `expenses_write` | `create_expense`, `update_expense` (with confirm + mutations flag) |
 | `expenses_delete` | `delete_expense` hard-delete (keep **off**) |
 
@@ -48,26 +49,28 @@ Legacy alias: `expenses_rw` → `expenses_read` + `expenses_write` (**not** dele
 
 **Commission note:** matching the cockpit, each payout’s commission is derived from sales linked to that channel between `period_start` and `period_end`. Summaries **sum per-row** figures; if payout periods overlap, sales can be double-counted in the rollup (documented on the API response).
 
+**Salary % of revenue:** `get_salaries_summary` total ÷ `get_sales_summary` revenue for the same date window (both Asia/Baku day bounds). Ledger is **cash paid**, not accrued duty hours.
+
 **Invoice → purchase workflow:** before `create_purchase`, Hermes must show Max a **mapping table** (invoice line → expense item, supplier existing vs create, qty, unit, discount %, net, payment mode), get approval in chat, then call with `confirm:true`. Prefer `list_expense_categories` / `list_purchases` for lookups. Supplier is **find-or-create by name** (no duplicate names).
 
 **Read-only first (safest while testing Hermes):**
 
 ```text
-AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,payouts_read
+AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,payouts_read,salaries_read
 # omit AGENT_MUTATIONS_ENABLED or set false
 ```
 
-**Recommended starter (analysis + COGS read + payouts + safe expense add/edit, no purchase/sales write, no delete):**
+**Recommended starter (analysis + COGS read + payouts + salaries + safe expense add/edit, no purchase/sales write, no delete):**
 
 ```text
-AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,payouts_read,expenses_write
+AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,payouts_read,salaries_read,expenses_write
 AGENT_MUTATIONS_ENABLED=true
 ```
 
 **Partner sales entry (only after owner Max approves):**
 
 ```text
-AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,payouts_read,expenses_write,sales_write
+AGENT_CAPABILITIES=sales_read,analytics_read,expenses_read,purchases_read,payouts_read,salaries_read,expenses_write,sales_write
 AGENT_MUTATIONS_ENABLED=true
 ```
 
@@ -78,7 +81,7 @@ AGENT_CAPABILITIES=…,purchases_write
 AGENT_MUTATIONS_ENABLED=true
 ```
 
-Ask Max before any write. No `sales_delete` / no purchase update-delete yet.
+Ask Max before any write. No `sales_delete` / no purchase update-delete yet. No salary writes.
 
 ### Example: “What does our MRR look like from sales till today?”
 
