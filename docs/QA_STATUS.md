@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-08-20T16:20:38.950Z
+## Last Run: 2026-08-21T04:36:07.851Z
 
 | Check | Status |
 |-------|--------|
@@ -58,7 +58,7 @@
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22muses calendar days in month for daily rate (option C)[32m 2[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mMashallah 1200: Sunday offs included; one Monday absent deducts one day[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mweekly off alone does not reduce payable[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mleaves mid-month: payable covers days through left_at inclusive[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mleaves mid-month: payable covers days through left_at inclusive[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mleave + absence only counts absences during employment[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mwork mark overrides default Sunday off[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mtap cycle stores overrides and clears back to defaults[32m 0[2mms[22m[39m
