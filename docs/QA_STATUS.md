@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-08-21T16:18:56.170Z
+## Last Run: 2026-08-22T04:31:39.300Z
 
 | Check | Status |
 |-------|--------|
@@ -55,23 +55,23 @@
 
 [1m[46m RUN [49m[22m [36mv3.2.4 [39m[90m/home/runner/work/Mings-F-App/Mings-F-App[39m
 
- [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22muses calendar days in month for daily rate (option C)[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22muses calendar days in month for daily rate (option C)[32m 2[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mMashallah 1200: Sunday offs included; one Monday absent deducts one day[32m 1[2mms[22m[39m
- [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mweekly off alone does not reduce payable[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mleaves mid-month: payable covers days through left_at inclusive[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mweekly off alone does not reduce payable[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mleaves mid-month: payable covers days through left_at inclusive[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mleave + absence only counts absences during employment[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mwork mark overrides default Sunday off[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mtap cycle stores overrides and clears back to defaults[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mtap cycle stores overrides and clears back to defaults[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mhides employees outside the selected month employment window[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mroster: left in July is hidden in August by default, visible with showLeft[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mroster: left in July is hidden in August by default, visible with showLeft[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mroster: still-active employee without left_at stays visible[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mroundMoney3 keeps three decimals[32m 1[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns correct percentage[32m 1[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 when denominator is zero[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 for non-finite inputs[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mcomputes all KPIs correctly[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdefaults discounts and refunds to 0 when omitted[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mreturns avgOrderValue of 0 when orderCount is 0[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdeducts bank fees for net profit only[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdeducts payroll fo
+ [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mroundMoney3 keeps three decimals[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mall-time: closing = ins - outs with zero opening[32m 2[2mms[22m[39m
+ [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mfolds pre-period activity into openingBalance[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mexcludes entries after endDate[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22madds net bank withdrawals (amount − fee) as cash in[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mbreaks down cash-out by source[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22madds cash payouts received as cash in[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mdeducts paid-now cash purchases from the drawer[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mtreat
 ```
