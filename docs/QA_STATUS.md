@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-08-26T16:41:57.324Z
+## Last Run: 2026-08-27T15:00:47.838Z
 
 | Check | Status |
 |-------|--------|
@@ -66,12 +66,12 @@
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mroster: left in July is hidden in August by default, visible with showLeft[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mroster: still-active employee without left_at stays visible[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mroundMoney3 keeps three decimals[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mall-time: closing = ins - outs with zero opening[32m 3[2mms[22m[39m
- [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mfolds pre-period activity into openingBalance[32m 1[2mms[22m[39m
- [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mexcludes entries after endDate[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22madds net bank withdrawals (amount − fee) as cash in[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mbreaks down cash-out by source[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22madds cash payouts received as cash in[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mdeducts paid-now cash purchases from the drawer[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/cashDrawer.test.ts[2m > [22mcomputeCashDrawer[2m > [22mtreat
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns correct percentage[32m 3[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 when denominator is zero[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22msafePct[2m > [22mreturns 0 for non-finite inputs[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mcomputes all KPIs correctly[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdefaults discounts and refunds to 0 when omitted[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mreturns avgOrderValue of 0 when orderCount is 0[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdeducts bank fees for net profit only[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/kpiCalculations.test.ts[2m > [22mcomputeExecutiveKpis[2m > [22mdeducts payroll fo
 ```
