@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-09-02T08:24:25.806Z
+## Last Run: 2026-09-02T19:02:16.328Z
 
 | Check | Status |
 |-------|--------|
@@ -62,7 +62,7 @@
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mleave + absence only counts absences during employment[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mwork mark overrides default Sunday off[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mtap cycle stores overrides and clears back to defaults[32m 1[2mms[22m[39m
- [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mhides employees outside the selected month employment window[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mhides employees outside the selected month employment window[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mroster: left in July is hidden in August by default, visible with showLeft[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mroster: still-active employee without left_at stays visible[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mroundMoney3 keeps three decimals[32m 0[2mms[22m[39m
