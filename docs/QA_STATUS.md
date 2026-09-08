@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-09-07T19:28:58.214Z
+## Last Run: 2026-09-08T08:36:06.409Z
 
 | Check | Status |
 |-------|--------|
@@ -55,7 +55,7 @@
 
 [1m[46m RUN [49m[22m [36mv3.2.4 [39m[90m/home/runner/work/Mings-F-App/Mings-F-App[39m
 
- [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22muses calendar days in month for daily rate (option C)[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22muses calendar days in month for daily rate (option C)[32m 2[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mMashallah 1200: Sunday offs included; one Monday absent deducts one day[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mweekly off alone does not reduce payable[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/payrollMonth.test.ts[2m > [22mpayrollMonth[2m > [22mleaves mid-month: payable covers days through left_at inclusive[32m 0[2mms[22m[39m
