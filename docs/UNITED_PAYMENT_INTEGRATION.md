@@ -101,6 +101,8 @@ Browser return query is the current contract (not independent proof of payment).
 
 If `united-payment-create-payment` / `epoint-create-payment` fails or returns HTTP success without `checkoutUrl`, the storefront **fail-closes**: no redirect, cart stays, no placed confirmation. Backend already cancels that sale — the next Place Order mints a **new** `clientRequestId` and must not retry create-payment on the cancelled sale.
 
+**Session after hosted redirect (soft risk):** browser return params still drive the paid/pending/error banner. Hydrating `track_token` / confirmation uses the existing customer `sales` select (JWT + RLS). If the session is gone after United Payment, that select can miss — we do **not** invent track tokens. Tracking is available from account / order history when the session returns. No extra payment API.
+
 ## Refunds
 
 No refund/reverse API is documented in the United Payment checkout collections. Treat refunds as **dashboard-only** until United Payment confirms an API.
