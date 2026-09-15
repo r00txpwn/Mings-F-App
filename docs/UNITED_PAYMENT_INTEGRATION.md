@@ -46,7 +46,7 @@ sequenceDiagram
 
 **Staff cockpit:** `PaymentsScreen` at `/spec-ops?screen=payments` calls **`admin-payment-recheck`** (staff JWT, admin/manager) which bridges to `united-payment-status-check` for United Payment rows (provider `united_payment` / `upay`).
 
-Shared logic: [`supabase/functions/_shared/unitedPayment.ts`](../supabase/functions/_shared/unitedPayment.ts), parser: [`unitedPaymentReturnParse.ts`](../supabase/functions/_shared/unitedPaymentReturnParse.ts).
+Shared logic: [`supabase/functions/_shared/unitedPayment.ts`](../supabase/functions/_shared/unitedPayment.ts), parser: [`unitedPaymentReturnParse.ts`](../supabase/functions/_shared/unitedPaymentReturnParse.ts), apply/idempotency: [`unitedPaymentApply.ts`](../supabase/functions/_shared/unitedPaymentApply.ts), create-payment guards: [`unitedPaymentCreateGuards.ts`](../supabase/functions/_shared/unitedPaymentCreateGuards.ts). Unit tests (no live United Payment): `npx vitest run tests/unit/unitedPaymentApply.test.ts tests/unit/unitedPaymentCreateGuards.test.ts tests/unit/unitedPaymentReturnParse.test.ts`.
 
 ## Redirect / webhook payload
 

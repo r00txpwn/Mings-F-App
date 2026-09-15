@@ -1,14 +1,13 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 import * as UnitedPayment from '../_shared/unitedPayment.ts';
+import {
+  applyUnitedPaymentNotify,
+  unitedPaymentApplyDbFromSupabase,
+  type UnitedPaymentApplyRow,
+} from '../_shared/unitedPaymentApply.ts';
 
-type PaymentRow = {
-  id: string;
-  sale_id: string;
-  status: string | null;
-  external_id: string | null;
-  epoint_transaction: string | null;
-};
+type PaymentRow = UnitedPaymentApplyRow;
 
 async function loadPayment(
   supabase: SupabaseClient,
@@ -37,46 +36,6 @@ async function loadPayment(
     .maybeSingle();
   if (byOrder.error || !byOrder.data) return null;
   return byOrder.data as PaymentRow;
-}
-
-async function applyPaymentStatus(
-  supabase: SupabaseClient,
-  payment: PaymentRow,
-  providerStatus: string,
-  payload: Record<string, unknown>,
-  transactionId: string | null
-): Promise<'success' | 'failed' | 'pending'> {
-  const mapped = UnitedPayment.mapProviderStatus(providerStatus);
-  const now = new Date().toISOString();
-  const patch: Record<string, unknown> = {
-    epoint_transaction: transactionId ?? payment.epoint_transaction,
-    epoint_status: providerStatus,
-    raw_payload: payload,
-    updated_at: now,
-  };
-  if (mapped === 'success') {
-    patch.status = 'success';
-    patch.paid_at = now;
-    patch.error_message = null;
-  } else if (mapped === 'failed') {
-    patch.status = 'failed';
-    patch.error_message = `United Payment status: ${providerStatus}`;
-  } else {
-    patch.status = 'pending';
-  }
-
-  await supabase.from('online_payments').update(patch).eq('id', payment.id);
-  if (mapped === 'success') {
-    await supabase.from('sales').update({ payment_status: 'paid' }).eq('id', payment.sale_id);
-    await supabase
-      .from('sales')
-      .update({ order_status: 'pending' })
-      .eq('id', payment.sale_id)
-      .in('order_status', ['awaiting_payment', 'pending']);
-  } else if (mapped === 'failed') {
-    await supabase.from('sales').update({ payment_status: 'failed' }).eq('id', payment.sale_id);
-  }
-  return mapped;
 }
 
 Deno.serve(async (req: Request) => {
@@ -137,16 +96,15 @@ Deno.serve(async (req: Request) => {
     status_check_message: confirmed.message ?? null,
   };
 
-  if (payment.status === 'success' && UnitedPayment.mapProviderStatus(providerStatus) === 'success') {
-    return jsonResponse({ received: true, ok: true, status: 'already_success' }, 200);
-  }
-
-  const mapped = await applyPaymentStatus(
-    supabase,
+  const applied = await applyUnitedPaymentNotify(
+    unitedPaymentApplyDbFromSupabase(supabase),
     payment,
     providerStatus,
     providerRaw,
     transactionId ?? payment.epoint_transaction
   );
-  return jsonResponse({ received: true, ok: true, mapped, confirmed: confirmed.ok }, 200);
+  if (applied.skippedDuplicate) {
+    return jsonResponse({ received: true, ok: true, status: 'already_success' }, 200);
+  }
+  return jsonResponse({ received: true, ok: true, mapped: applied.mapped, confirmed: confirmed.ok }, 200);
 });

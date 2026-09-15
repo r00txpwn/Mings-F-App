@@ -57,3 +57,25 @@ export function paymentConfirmedForKdsPrep(params: {
 
   return pay === 'paid' || pay === 'completed';
 }
+
+export type OnlineOrderNextStep = 'united-payment-create-payment' | 'track';
+
+/** Card vs COD persist + nextStep + payment_status for online-order-create. */
+export function onlineOrderCreatePaymentContract(
+  rawPaymentMethod: string | undefined | null,
+  fulfillmentType: 'takeaway' | 'delivery'
+): {
+  paymentMethod: PersistedOnlinePaymentMethod;
+  cardPayment: boolean;
+  paymentStatus: 'pending' | 'unpaid';
+  nextStep: OnlineOrderNextStep;
+} {
+  const paymentMethod = normalizePaymentMethodForPersist(rawPaymentMethod, fulfillmentType);
+  const cardPayment = isCardOnlinePaymentMethod(paymentMethod);
+  return {
+    paymentMethod,
+    cardPayment,
+    paymentStatus: cardPayment ? 'pending' : 'unpaid',
+    nextStep: cardPayment ? 'united-payment-create-payment' : 'track',
+  };
+}

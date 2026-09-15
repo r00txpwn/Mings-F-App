@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsPreflightResponse, jsonResponse } from '../_shared/cors.ts';
 import * as UnitedPayment from '../_shared/unitedPayment.ts';
+import { evaluateUnitedPaymentCreateGuards } from '../_shared/unitedPaymentCreateGuards.ts';
 
 type Body = {
   saleId?: string;
@@ -121,31 +122,9 @@ Deno.serve(async (req: Request) => {
 
   const sale = saleRaw as SaleRow | null;
   if (sErr || !sale) return jsonResponse({ error: 'Sale not found' }, 404);
-  if (!['online_delivery', 'online_takeaway'].includes(String(sale.source))) {
-    return jsonResponse({ error: 'Not an online sale' }, 400);
-  }
-  if (sale.payment_status !== 'pending') {
-    return jsonResponse({ error: 'Payment already processed or not pending card payment' }, 400);
-  }
-  if ((sale.payment_init_token ?? null) !== paymentInitToken) {
-    return jsonResponse({ error: 'Invalid payment init token' }, 403);
-  }
-  const createdAt = new Date(String(sale.created_at ?? ''));
-  if (Number.isNaN(createdAt.getTime()) || Date.now() - createdAt.getTime() > 20 * 60_000) {
-    return jsonResponse({ error: 'paymentInitToken expired' }, 410);
-  }
-  if (sale.online_payment_id) {
-    return jsonResponse({ error: 'Payment already initialized for this sale' }, 409);
-  }
-  if (sale.customer_user_id && !callerUserId) {
-    return jsonResponse({ error: 'Authentication required for this sale' }, 401);
-  }
-  if (sale.customer_user_id && callerUserId && sale.customer_user_id !== callerUserId) {
-    return jsonResponse({ error: 'Not allowed for this sale' }, 403);
-  }
-
-  const amount = Number(sale.total_price);
-  if (!Number.isFinite(amount) || amount <= 0) return jsonResponse({ error: 'Invalid sale amount' }, 400);
+  const guard = evaluateUnitedPaymentCreateGuards(sale, { paymentInitToken, callerUserId });
+  if (!guard.ok) return jsonResponse({ error: guard.error }, guard.status);
+  const amount = guard.amount;
 
   const functionBase = paymentReturnFunctionBase();
   if (!functionBase) {

@@ -1,14 +1,13 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 import * as UnitedPayment from '../_shared/unitedPayment.ts';
+import {
+  applyUnitedPaymentNotify,
+  unitedPaymentApplyDbFromSupabase,
+  type UnitedPaymentApplyRow,
+} from '../_shared/unitedPaymentApply.ts';
 
-type PaymentRow = {
-  id: string;
-  sale_id: string;
-  status: string | null;
-  external_id: string | null;
-  epoint_transaction: string | null;
-};
+type PaymentRow = UnitedPaymentApplyRow;
 
 function storefrontUrl(query: URLSearchParams): string {
   const appBase = (Deno.env.get('APP_BASE_URL') ?? '').trim().replace(/\/$/, '');
@@ -72,46 +71,6 @@ async function loadPayment(
   return bySale.data as PaymentRow;
 }
 
-async function applyPaymentStatus(
-  supabase: SupabaseClient,
-  payment: PaymentRow,
-  providerStatus: string,
-  rawPayload: Record<string, unknown>,
-  transactionId: string | null
-): Promise<'success' | 'failed' | 'pending'> {
-  const mapped = UnitedPayment.mapProviderStatus(providerStatus);
-  const now = new Date().toISOString();
-  const patch: Record<string, unknown> = {
-    epoint_transaction: transactionId ?? payment.epoint_transaction,
-    epoint_status: providerStatus,
-    raw_payload: rawPayload,
-    updated_at: now,
-  };
-  if (mapped === 'success') {
-    patch.status = 'success';
-    patch.paid_at = now;
-    patch.error_message = null;
-  } else if (mapped === 'failed') {
-    patch.status = 'failed';
-    patch.error_message = `United Payment status: ${providerStatus}`;
-  } else {
-    patch.status = 'pending';
-  }
-
-  await supabase.from('online_payments').update(patch).eq('id', payment.id);
-  if (mapped === 'success') {
-    await supabase.from('sales').update({ payment_status: 'paid' }).eq('id', payment.sale_id);
-    await supabase
-      .from('sales')
-      .update({ order_status: 'pending' })
-      .eq('id', payment.sale_id)
-      .in('order_status', ['awaiting_payment', 'pending']);
-  } else if (mapped === 'failed') {
-    await supabase.from('sales').update({ payment_status: 'failed' }).eq('id', payment.sale_id);
-  }
-  return mapped;
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: corsHeaders });
   if (req.method !== 'GET') return jsonResponse({ error: 'Method not allowed' }, 405);
@@ -173,13 +132,14 @@ Deno.serve(async (req: Request) => {
     };
   }
 
-  const mapped = await applyPaymentStatus(
-    supabase,
+  const applied = await applyUnitedPaymentNotify(
+    unitedPaymentApplyDbFromSupabase(supabase),
     payment,
     providerStatus,
     providerRaw,
     transactionId ?? payment.epoint_transaction
   );
+  const mapped = applied.mapped;
   const params = new URLSearchParams();
   params.set('sale', payment.sale_id);
   if (mapped === 'success') {
