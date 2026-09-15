@@ -462,8 +462,10 @@ Key migrations: `20260614170000_harden_staff_only_rls`, `20260621120000_kds_staf
 ### 9.4 Secret gates
 
 `SecretGate.tsx` wraps `/kiosk` only:
-- If `VITE_KIOSK_SECRET` is **empty** → kiosk is open (dev default)
+- If `VITE_KIOSK_SECRET` is **empty** → kiosk **UI** is open (dev default)
 - If set → `?key=` query param must match exactly
+
+Edge `kiosk-order-create` is **fail-closed**: `KIOSK_SECRET` must be set; header `x-kiosk-secret` compared timing-safe.
 
 **KDS** uses staff login instead of URL secrets.
 
@@ -647,7 +649,7 @@ E2E smoke tests run against local preview on port 4175 (staff bundle).
 
 ### Edge Function secrets (Supabase Dashboard)
 
-`KDS_SECRET`, `UNITED_PAYMENT_*`, `EPOINT_*`, `WOLT_*`, `APP_BASE_URL`, `AGENT_API_KEY`, `AGENT_CAPABILITIES`, etc.
+`KIOSK_SECRET`, `UNITED_PAYMENT_*`, `EPOINT_*`, `WOLT_API_TOKEN`, `WOLT_WEBHOOK_SECRET`, `WOLT_ALLOW_STUB`, `APP_BASE_URL`, `AGENT_API_KEY`, `AGENT_CAPABILITIES`, etc.
 
 Full list: [.env.example](../.env.example)
 

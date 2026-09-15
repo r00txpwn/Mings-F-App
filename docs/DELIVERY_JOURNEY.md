@@ -73,7 +73,7 @@ Staff completes → Customer sees status on /track
 
 ### Stage 7 — Manual Wolt dispatch
 
-- **Today:** Auto `wolt-drive-create` runs only if `WOLT_API_TOKEN` is set (optional API path). Default: staff use **Copy all for Wolt**, open portal, paste **tracking URL**, save → `dispatched`.
+- **Today:** Staff book Wolt from the cockpit (`wolt-drive-create` / **Copy all for Wolt** + paste tracking URL). `wolt-drive-create` is **staff JWT** (admin\|staff; manager excluded). Live API when `WOLT_API_TOKEN` is set; otherwise `503 WOLT_NOT_CONFIGURED` unless non-prod `WOLT_ALLOW_STUB`. `online-order-create` does **not** auto-create a Drive job.
 - **Fail:** Forgot to dispatch → orders in **Ready** show dispatch actions.
 - **Fail:** Wrong address in portal → copy buttons for address, phone, name, notes.
 - **Fail:** Double booking → 60s lock after “Open Wolt” via Realtime broadcast.
@@ -129,10 +129,10 @@ Staff completes → Customer sees status on /track
 Enable when:
 
 - Order volume justifies automation and staff time saved.
-- `WOLT_API_TOKEN` and merchant credentials are configured in Supabase.
-- `online-order-create` can call `wolt-drive-create` after sale insert (already gated on token).
+- `WOLT_API_TOKEN` and merchant pickup env (`WOLT_PICKUP_*`) are configured in Supabase.
+- Staff (admin\|staff) call `wolt-drive-create` from the dispatch UI. Automatic invoke from `online-order-create` was removed so create stays staff-authenticated.
 
-Until then, **manual portal + tracking URL paste** is the supported path; the stub/API function can create or update `delivery_orders` as integration matures.
+Until then, **manual portal + tracking URL paste** is the supported path. Production never mints `wolt_stub_*` ids.
 
 ---
 

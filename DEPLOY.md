@@ -278,6 +278,19 @@ npm run supabase:sync
 
 Set at least: `APP_BASE_URL` (your live site URL). Add United Payment / E-point / Wolt secrets when you enable them — see `.env.example` and **[docs/UNITED_PAYMENT_INTEGRATION.md](docs/UNITED_PAYMENT_INTEGRATION.md)**.
 
+**Kiosk (`kiosk-order-create`):** set **`KIOSK_SECRET`** (same value as staff `VITE_KIOSK_SECRET`). Empty/unset is **fail-closed** (`403 KIOSK_MISCONFIGURED`). Clients send header `x-kiosk-secret`. Wrong/missing header → `403 KIOSK_FORBIDDEN`.
+
+**Wolt Drive:**
+
+| Secret | Function | Behavior |
+|--------|----------|----------|
+| `WOLT_WEBHOOK_SECRET` | `wolt-drive-webhook` | **Required.** Empty → `403`. Header `X-Wolt-Signature` / `x-wolt-signature` compared timing-safe; mismatch → `401`. |
+| `WOLT_API_TOKEN` | `wolt-drive-create` | When set, live Drive API (`WOLT_API_BASE`, default `https://daas-api.wolt.com`). Persists **real** delivery ids only — never `wolt_stub_*`. |
+| `WOLT_ALLOW_STUB` | `wolt-drive-create` | Stub ids only when `true`/`1` **and** runtime is **not** production. Production = `DENO_ENV` / `NODE_ENV` / `ENVIRONMENT` / `WOLT_ENV` is `production` or `prod`, **or those vars unset** (fail-closed). Explicit non-prod: `development` / `dev` / `test` / `local` / `staging` / `sandbox`. Default: **no** stub minting (`503 WOLT_NOT_CONFIGURED`). |
+| Pickup (`WOLT_PICKUP_*`) | `wolt-drive-create` | Optional merchant pickup name/phone/address/lat/lng for the live API body. |
+
+`wolt-drive-create` and `wolt-drive-cancel` require a **staff JWT** (`requireStaffAuth`, **admin\|staff only** — **manager excluded**, matching `wolt-drive-manual-dispatch`). Missing/invalid/anon Bearer → `401`. `online-order-create` does **not** auto-invoke create (service-role path removed). Staff dispatch from the cockpit or manual portal.
+
 **Hermes / agent ops (`agent-ops`):** set `AGENT_API_KEY`, `AGENT_CAPABILITIES` (recommended: `sales_read,analytics_read,expenses_read,expenses_write` — leave `expenses_delete` off), and only set `AGENT_MUTATIONS_ENABLED=true` when you want writes. Deploy with `npm run supabase:deploy:agent-ops`. Hermes connects via [`mcp/mings-ops`](mcp/mings-ops) — see **[docs/HERMES_OPS_MCP.md](docs/HERMES_OPS_MCP.md)**. Do not put the service role key in Hermes.
 
 **KDS auth:** `/kds` uses staff Supabase login. Deploy **`admin-api`**, **`kds-order-status-update`**, and **`kds-item-prep-toggle`** after migrations `20260610120000_harden_staff_only_rls.sql`, `20260619120000_kds_item_prep_and_anon_update.sql`, and `20260621120000_kds_staff_auth_drop_anon_policies.sql`.

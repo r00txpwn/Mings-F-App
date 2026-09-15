@@ -52,6 +52,18 @@ verify_jwt = false
 [functions."kiosk-order-create"]
 verify_jwt = false
 
+# Wolt Drive — JWT/signature validated inside each function (not the gateway).
+# create/cancel: staff session via requireStaffAuth (admin|staff; manager excluded).
+# webhook: shared secret header WOLT_WEBHOOK_SECRET (fail-closed).
+[functions."wolt-drive-create"]
+verify_jwt = false
+
+[functions."wolt-drive-cancel"]
+verify_jwt = false
+
+[functions."wolt-drive-webhook"]
+verify_jwt = false
+
 # Admin-only user CRUD — JWT validated inside function (admin role).
 [functions."user-management"]
 verify_jwt = false

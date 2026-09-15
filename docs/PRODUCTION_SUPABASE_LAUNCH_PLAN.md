@@ -33,7 +33,7 @@ The current linked Supabase project should be treated as staging/testing because
 7. Connect production frontend/deployment environment variables to the new project:
    - **Two Vercel projects** (see [DEPLOY.md](../DEPLOY.md)): `order.mings.az` → `npm run build:storefront` → `dist-storefront/`; `sp.mings.az` → `npm run build:staff` → `dist-staff/`.
    - Both need `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-   - **`VITE_KDS_SECRET` / `VITE_KIOSK_SECRET` only on the staff project**; set matching Edge secret **`KDS_SECRET`** for `kds-order-status-update`.
+   - **`VITE_KDS_SECRET` / `VITE_KIOSK_SECRET` only on the staff project**; set matching Edge secret **`KIOSK_SECRET`** (`kiosk-order-create`, fail-closed). `/kds` uses staff login.
    - Deploy **`admin-api`** + **`kds-order-status-update`** after migration `20260610120000_harden_staff_only_rls.sql`.
 8. Run smoke tests before launch.
 9. After launch, treat the production database as production-sensitive:

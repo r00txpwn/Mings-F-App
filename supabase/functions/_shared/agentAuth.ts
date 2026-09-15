@@ -7,6 +7,7 @@
  * Mutations (create/update/delete) also require AGENT_MUTATIONS_ENABLED=true.
  */
 import { corsHeaders, jsonResponse } from './cors.ts';
+import { timingSafeEqualString } from './timingSafeEqual.ts';
 
 export type AgentCapability =
   | 'sales_read'
@@ -41,21 +42,6 @@ const LEGACY_ALIASES: Record<string, AgentCapability[]> = {
 };
 
 export { corsHeaders, jsonResponse };
-
-/** Compare secrets via SHA-256 digests so unequal lengths don't short-circuit. */
-async function timingSafeEqualString(a: string, b: string): Promise<boolean> {
-  const enc = new TextEncoder();
-  const [ha, hb] = await Promise.all([
-    crypto.subtle.digest('SHA-256', enc.encode(a)),
-    crypto.subtle.digest('SHA-256', enc.encode(b)),
-  ]);
-  const ua = new Uint8Array(ha);
-  const ub = new Uint8Array(hb);
-  if (ua.length !== ub.length) return false;
-  let out = 0;
-  for (let i = 0; i < ua.length; i++) out |= ua[i] ^ ub[i];
-  return out === 0;
-}
 
 function readBearerSecret(req: Request): string | null {
   const h = req.headers.get('Authorization') ?? req.headers.get('authorization');

@@ -9,6 +9,7 @@ import {
   isValidUuid,
 } from '../_shared/directOrderValidation.ts';
 import { invokePersistDirectOrder } from '../_shared/persistDirectOrder.ts';
+import { assertKioskSecret } from '../_shared/kioskSecret.ts';
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
@@ -51,16 +52,6 @@ function errorResponse(code: string, error: string, status = 400): Response {
   return jsonResponse({ code, error }, status);
 }
 
-function assertKioskSecret(req: Request): Response | null {
-  const expected = (Deno.env.get('KIOSK_SECRET') ?? '').trim();
-  if (!expected) return null;
-  const provided = (req.headers.get('x-kiosk-secret') ?? '').trim();
-  if (provided !== expected) {
-    return errorResponse('KIOSK_FORBIDDEN', 'Invalid kiosk access', 403);
-  }
-  return null;
-}
-
 Deno.serve(async (req: Request) => {
   try {
     if (req.method === 'OPTIONS') return corsPreflightResponse();
@@ -68,8 +59,13 @@ Deno.serve(async (req: Request) => {
       return errorResponse('METHOD_NOT_ALLOWED', 'Method not allowed', 405);
     }
 
-    const secretGate = assertKioskSecret(req);
-    if (secretGate) return secretGate;
+    const secretGate = await assertKioskSecret({
+      expected: Deno.env.get('KIOSK_SECRET'),
+      provided: req.headers.get('x-kiosk-secret'),
+    });
+    if (!secretGate.ok) {
+      return errorResponse(secretGate.code, secretGate.error, secretGate.status);
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';

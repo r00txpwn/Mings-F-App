@@ -300,9 +300,9 @@ Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
 | **epoint-create-payment** | Prepares `online_payments` row + placeholder checkout URL (configure real E-point per docs) |
 | **epoint-webhook** | Updates `online_payments` + `sales.payment_status`; verifies Epoint `data`+`signature` (SHA1) with `EPOINT_PRIVATE_KEY`, or optional legacy HMAC JSON with `EPOINT_WEBHOOK_SECRET` |
 | **wolt-drive-check** | Zone / coordinate helper (optional Wolt ping when token set) |
-| **wolt-drive-create** | Creates `delivery_orders` stub or real API integration |
-| **wolt-drive-cancel** | Cancels delivery row |
-| **wolt-drive-webhook** | Updates `delivery_orders` when `WOLT_WEBHOOK_SECRET` header matches |
+| **wolt-drive-create** | Staff JWT (admin\|staff). Live Wolt Drive API when `WOLT_API_TOKEN` set (real ids only); stub only with `WOLT_ALLOW_STUB` + non-prod |
+| **wolt-drive-cancel** | Staff JWT (admin\|staff); cancels `delivery_orders` row |
+| **wolt-drive-webhook** | Fail-closed `WOLT_WEBHOOK_SECRET`; timing-safe `X-Wolt-Signature` |
 | **agent-ops** | Hermes / external agent: Bearer `AGENT_API_KEY` + capability allowlist; writes need `AGENT_MUTATIONS_ENABLED` + `confirm`; delete opt-in only — [docs/HERMES_OPS_MCP.md](docs/HERMES_OPS_MCP.md) |
 
 Stdio MCP wrapper for Hermes: [`mcp/mings-ops`](mcp/mings-ops).

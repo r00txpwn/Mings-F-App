@@ -3,7 +3,7 @@ export const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
   /** Match Supabase client + browser preflight (Access-Control-Request-Headers). */
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, accept, accept-profile, content-profile, prefer, x-requested-with, baggage, sentry-trace, x-wolt-signature',
+    'authorization, x-client-info, apikey, content-type, accept, accept-profile, content-profile, prefer, x-requested-with, baggage, sentry-trace, x-wolt-signature, x-kiosk-secret',
   'Access-Control-Max-Age': '86400',
 };
 
