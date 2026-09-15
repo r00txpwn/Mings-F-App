@@ -1,23 +1,22 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { CheckCircle2, Loader2, ShoppingBag, XCircle, X } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle, X } from 'lucide-react';
 import { Analytics, track } from '@vercel/analytics/react';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { supabase, CartItem, Product, SelectedModifiers } from '../lib/supabase';
-import { ProductDetailModal } from '../kiosk/ProductDetailModal';
 import { useOnlineMenu } from './hooks/useOnlineMenu';
 import { useCustomerData } from './hooks/useCustomerData';
 import { useOrderHistory } from './hooks/useOrderHistory';
 import { invokeEdgeFunction } from './invokeEdge';
 import { OrderBottomNav, type OrderNavTab } from './OrderBottomNav';
-import { OrderBrandHeader } from './OrderBrandHeader';
 import { OrderAccountPanel } from './OrderAccountPanel';
 import { OrderMenuBrowseView, ORDER_MENU_ALL_CATEGORY_ID } from './OrderMenuBrowseView';
 import { OrderOnlineTopBar } from './OrderOnlineTopBar';
 import { OrderCartView } from './OrderCartView';
 import { OrderCheckoutView } from './OrderCheckoutView';
 import { OrderConfirmationView } from './OrderConfirmationView';
+import { OrderItemCustomizeView } from './OrderItemCustomizeView';
 import { OrderCheckbox } from './OrderCheckbox';
 import { ORDER_ADDRESS_TYPE_CONFIG } from './addressTypeConfig';
 import {
@@ -25,6 +24,8 @@ import {
   getOnlineFulfillmentVisibility,
   isDeliveryEnabledInSettings,
 } from './orderOnlineSettings';
+import { storefrontHoursStrip } from './storefrontHours';
+import { formatStorefrontAzn } from './storefrontMoney';
 import type {
   CustomerAddressAccessMethod,
   CustomerAddressLeaveAt,
@@ -47,7 +48,6 @@ import {
 } from './storefrontPaymentHandoff';
 import { normalizePhoneE164 } from '../lib/phoneE164';
 import { findZoneForPoint } from '../services/deliveryZones';
-import { Price } from '../components/Price';
 import {
   getSpecialDayCustomerNote,
   getSpecialDayForBakuDate,
@@ -368,6 +368,10 @@ function OrderContent() {
   const venuePhone = (import.meta.env.VITE_ORDER_VENUE_PHONE as string | undefined)?.trim() ?? '';
   const hoursLine = useMemo(
     () => formatVenueHoursLine(settings?.hours_json as Record<string, unknown> | undefined),
+    [settings]
+  );
+  const hoursStrip = useMemo(
+    () => storefrontHoursStrip(settings as KitchenSettings | null),
     [settings]
   );
 
@@ -1250,6 +1254,11 @@ function OrderContent() {
       itemCountSingle: t.orderDishSingle,
       itemCountPlural: t.orderDishPlural,
       orderProductNoPhotoCaption: t.orderProductNoPhotoCaption,
+      orderPhotoPlaceholder: t.orderPhotoPlaceholder,
+      orderKitchenOpen: t.orderKitchenOpen,
+      orderKitchenClosed: t.orderKitchenClosed,
+      orderKitchenPaused: t.orderKitchenPaused,
+      orderHoursUntil: t.orderHoursUntil,
     }),
     [t]
   );
@@ -1437,17 +1446,17 @@ function OrderContent() {
 
   if (authLoading || loading) {
     return (
-      <div className="ming-shell min-h-screen p-4 sm:p-6">
+      <div className="sf-shell min-h-screen p-4 sm:p-6">
         <div className="mx-auto max-w-5xl space-y-4 animate-pulse">
-          <div className="h-10 rounded-xl bg-white/5" />
-          <div className="h-28 rounded-2xl bg-white/5" />
+          <div className="h-10 rounded-xl bg-sf-line" />
+          <div className="h-28 rounded-2xl bg-sf-line" />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="h-28 rounded-2xl bg-white/5" />
-            <div className="h-28 rounded-2xl bg-white/5" />
-            <div className="h-28 rounded-2xl bg-white/5" />
-            <div className="h-28 rounded-2xl bg-white/5" />
+            <div className="h-28 rounded-2xl bg-sf-line" />
+            <div className="h-28 rounded-2xl bg-sf-line" />
+            <div className="h-28 rounded-2xl bg-sf-line" />
+            <div className="h-28 rounded-2xl bg-sf-line" />
           </div>
-          <p className="text-sm text-ming-ash">{t.orderLoadingMenu}</p>
+          <p className="text-sm text-sf-muted">{t.orderLoadingMenu}</p>
         </div>
       </div>
     );
@@ -1455,9 +1464,9 @@ function OrderContent() {
 
   if (error) {
     return (
-      <div className="ming-shell flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
-        <XCircle className="h-10 w-10 text-ming-red" />
-        <p className="text-sm text-ming-ash">{error}</p>
+      <div className="sf-shell flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+        <XCircle className="h-10 w-10 text-sf-accent" />
+        <p className="text-sm text-sf-muted">{error}</p>
       </div>
     );
   }
@@ -1491,18 +1500,25 @@ function OrderContent() {
     );
   }
 
-  const showBottomNav = flow === 'browse';
-  const showMobileStickyCart = flow === 'browse' && navTab === 'menu' && cartCount > 0;
+  const storefrontLight = flow === 'browse' && navTab === 'menu';
+  const showBottomNav = flow === 'browse' && navTab !== 'menu';
+  const showStorefrontCartBar = storefrontLight && !detailProduct;
 
   const paymentBanner = paymentReturn ? (
     <div
       role="status"
       className={`mx-auto mt-3 flex w-full max-w-3xl items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm sm:mx-4 ${
         paymentReturn === 'success'
-          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
+          ? storefrontLight
+            ? 'border-[#cfe0d4] bg-[#eef5f0] text-sf-ok'
+            : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
           : paymentReturn === 'pending'
-            ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
-            : 'border-ming-red/40 bg-ming-red/10 text-ming-red'
+            ? storefrontLight
+              ? 'border-[#e4d5c0] bg-[#f7f1e8] text-[#6b4a1e]'
+              : 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+            : storefrontLight
+              ? 'border-[#e0c8c8] bg-sf-accent-soft text-sf-accent'
+              : 'border-ming-red/40 bg-ming-red/10 text-ming-red'
       }`}
     >
       <div className="flex items-start gap-2">
@@ -1551,35 +1567,27 @@ function OrderContent() {
     </div>
   ) : null;
 
-  const cartPanel = (
-    <OrderCartView
-      cart={cart}
-      cartTotal={cartTotal}
-      deliveryFee={deliveryFee}
-      grandTotal={grandTotal}
-      showDeliveryFee={fulfillment === 'delivery'}
-      onUpdateQty={updateQty}
-      onUpdateNotes={updateNotes}
-      onRemoveLine={removeLine}
-      onCheckout={openCheckout}
-      userLoggedIn={!!user}
-      onBackToMenu={() => setNavTab('menu')}
-      labels={cartLabels}
-      variant="panel"
-    />
-  );
-
   const takeawayOnlyNotice = showTakeaway && !showDelivery;
 
   return (
-    <div className="ming-shell ming-noise flex min-h-screen flex-col pb-[env(safe-area-inset-bottom)]">
+    <div
+      className={
+        storefrontLight
+          ? 'sf-shell flex min-h-screen flex-col pb-[env(safe-area-inset-bottom)]'
+          : 'ming-shell ming-noise flex min-h-screen flex-col pb-[env(safe-area-inset-bottom)]'
+      }
+    >
       {!cookieConsent ? (
         <>
           {/* Mobile: in-flow at top so bottom nav, sticky cart, and checkout CTAs stay tappable */}
           <div
             role="region"
             aria-label={t.cookieConsentCopy}
-            className="shrink-0 border-b border-white/10 bg-ming-charcoal/95 px-3 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] text-xs text-ming-ash shadow-sm lg:hidden"
+            className={
+              storefrontLight
+                ? 'shrink-0 border-b border-sf-line bg-sf-surface px-3 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] text-xs text-sf-muted shadow-sm lg:hidden'
+                : 'shrink-0 border-b border-white/10 bg-ming-charcoal/95 px-3 pb-3 pt-[max(0.5rem,env(safe-area-inset-top))] text-xs text-ming-ash shadow-sm lg:hidden'
+            }
           >
             <p>
               {t.cookieConsentCopy}{' '}
@@ -1593,7 +1601,13 @@ function OrderContent() {
             </button>
           </div>
           {/* Desktop: compact corner card */}
-          <div className="pointer-events-auto fixed bottom-4 right-4 z-[60] hidden max-w-sm rounded-xl border border-white/10 bg-ming-charcoal/95 p-3 text-xs text-ming-ash shadow-ming lg:block">
+          <div
+            className={
+              storefrontLight
+                ? 'pointer-events-auto fixed bottom-4 right-4 z-[60] hidden max-w-sm rounded-xl border border-sf-line bg-sf-surface p-3 text-xs text-sf-muted shadow-sm lg:block'
+                : 'pointer-events-auto fixed bottom-4 right-4 z-[60] hidden max-w-sm rounded-xl border border-white/10 bg-ming-charcoal/95 p-3 text-xs text-ming-ash shadow-ming lg:block'
+            }
+          >
             <p>
               {t.cookieConsentCopy}{' '}
               <a href="/privacy" className="ming-btn-link inline px-0 py-0 text-xs">
@@ -1610,28 +1624,34 @@ function OrderContent() {
 
       {flow === 'browse' && (
         <>
-          <OrderOnlineTopBar
-            language={language}
-            onLanguageChange={setLanguage}
-            languageLabel={t.orderLanguage}
-            cartCount={cartCount}
-            onOpenCart={() => setNavTab('cart')}
-            onOpenAccount={() => setNavTab('account')}
-            cartAriaLabel={t.orderNavCart}
-            accountAriaLabel={t.orderNavAccount}
-            fulfillment={fulfillment}
-            onFulfillmentChange={setFulfillment}
-            showTakeaway={showTakeaway}
-            showDelivery={showDelivery}
-            fulfillmentLabel={t.orderChooseFulfillmentTitle}
-            takeawayLabel={t.orderFulfillmentTakeaway}
-            deliveryLabel={t.orderFulfillmentDelivery}
-          />
+          {navTab === 'menu' ? (
+            <OrderOnlineTopBar
+              language={language}
+              onLanguageChange={setLanguage}
+              languageLabel={t.orderLanguage}
+              cartCount={cartCount}
+              onOpenCart={() => setNavTab('cart')}
+              onOpenAccount={() => setNavTab('account')}
+              cartAriaLabel={t.orderNavCart}
+              accountAriaLabel={t.orderNavAccount}
+              fulfillment={fulfillment}
+              onFulfillmentChange={setFulfillment}
+              showTakeaway={showTakeaway}
+              showDelivery={showDelivery}
+              fulfillmentLabel={t.orderChooseFulfillmentTitle}
+              takeawayLabel={t.orderFulfillmentTakeaway}
+              deliveryLabel={t.orderFulfillmentDelivery}
+            />
+          ) : null}
 
           {takeawayOnlyNotice ? (
             <div
               role="status"
-              className="border-b border-ming-gold/20 bg-ming-gold/10 px-3 py-2.5 text-center text-[13px] font-medium leading-snug text-ming-bone sm:text-sm"
+              className={
+                storefrontLight
+                  ? 'border-b border-sf-line bg-sf-accent-soft px-3 py-2.5 text-center text-[13px] font-medium leading-snug text-sf-accent sm:text-sm'
+                  : 'border-b border-ming-gold/20 bg-ming-gold/10 px-3 py-2.5 text-center text-[13px] font-medium leading-snug text-ming-bone sm:text-sm'
+              }
             >
               {t.orderTakeawayOnlyNotice}
             </div>
@@ -1641,10 +1661,20 @@ function OrderContent() {
 
           {showSignInPrompt ? (
             <div className="mx-auto w-full max-w-5xl px-3 sm:px-6">
-              <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div
+                className={
+                  storefrontLight
+                    ? 'mt-3 flex items-start justify-between gap-3 rounded-xl border border-sf-line bg-sf-surface p-3'
+                    : 'mt-3 flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3'
+                }
+              >
                 <div>
-                  <p className="text-sm font-semibold text-ming-bone">{t.orderSignInPromptTitle}</p>
-                  <p className="mt-1 text-xs text-ming-ash">{t.orderSignInPromptSubtitle}</p>
+                  <p className={`text-sm font-semibold ${storefrontLight ? 'text-sf-ink' : 'text-ming-bone'}`}>
+                    {t.orderSignInPromptTitle}
+                  </p>
+                  <p className={`mt-1 text-xs ${storefrontLight ? 'text-sf-muted' : 'text-ming-ash'}`}>
+                    {t.orderSignInPromptSubtitle}
+                  </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -1679,12 +1709,6 @@ function OrderContent() {
 
           {navTab === 'menu' && (
             <>
-              <OrderBrandHeader
-                title={t.orderOnlineTitle}
-                tagline={settings?.tagline}
-                heroImageUrl={settings?.hero_image_url}
-              />
-
               <OrderMenuBrowseView
                 categories={categories}
                 products={products}
@@ -1695,6 +1719,7 @@ function OrderContent() {
                 showTakeaway={showTakeaway}
                 showDelivery={showDelivery}
                 hoursLine={hoursLine}
+                hoursStrip={hoursStrip}
                 venueAddress={venueAddress}
                 venuePhone={venuePhone}
                 labels={menuBrowseLabels}
@@ -1703,7 +1728,6 @@ function OrderContent() {
                 onToggleFavorite={(productId) => void toggleFavorite(productId)}
                 serverAllowsDelivery={serverAllowsDelivery}
                 deliveryDisabledHint={t.orderDeliveryDisabledInSettings}
-                sideSlot={cartPanel}
               />
             </>
           )}
@@ -1868,22 +1892,26 @@ function OrderContent() {
         </>
       )}
 
-      {showMobileStickyCart && (
-        <button
-          type="button"
-          onClick={() => setNavTab('cart')}
-          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-3 right-3 z-[25] flex items-center justify-between rounded-2xl border border-ming-red/60 bg-ming-red px-4 py-3.5 text-left shadow-ming-glow transition-all hover:bg-ming-red-700 active:scale-[0.99] lg:hidden"
-        >
-          <span className="flex items-center gap-2.5 text-sm font-bold text-white">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/30">
-              <ShoppingBag className="h-4 w-4" />
-            </span>
-            {t.orderViewCart}
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-bold">{cartCount}</span>
-          </span>
-          <Price amount={grandTotal} className="ming-mono text-base font-bold text-white" />
-        </button>
-      )}
+      {showStorefrontCartBar ? (
+        <div className="fixed bottom-0 left-0 right-0 z-[50] border-t border-sf-line bg-sf-surface pb-[env(safe-area-inset-bottom)]">
+          <div className="mx-auto flex min-h-16 w-full max-w-[390px] items-center justify-between gap-3 px-4 py-2.5 md:max-w-[1080px] md:px-6">
+            <div className="flex flex-col gap-px">
+              <span className="text-xs text-sf-muted">
+                {(cartCount === 1 ? t.orderCartBarItemSingle : t.orderCartBarItemPlural).replace(
+                  '{n}',
+                  String(cartCount)
+                )}
+              </span>
+              <span className="text-base font-semibold tabular-nums text-sf-ink">
+                {formatStorefrontAzn(grandTotal)}
+              </span>
+            </div>
+            <button type="button" className="sf-btn" onClick={() => setNavTab('cart')}>
+              {t.orderViewCart}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {showBottomNav && (
         <OrderBottomNav
@@ -1903,11 +1931,34 @@ function OrderContent() {
       </div>
 
       {detailProduct && (
-        <ProductDetailModal
+        <OrderItemCustomizeView
           product={detailProduct}
           onAddToCart={addToCartWithModifiers}
           onClose={() => setDetailProduct(null)}
-          theme="order"
+          language={language}
+          onLanguageChange={setLanguage}
+          cartCount={cartCount}
+          onOpenCart={() => {
+            setDetailProduct(null);
+            setNavTab('cart');
+          }}
+          labels={{
+            backToMenu: t.backToMenu,
+            languageLabel: t.orderLanguage,
+            cartAriaLabel: t.orderNavCart,
+            photoPlaceholder: t.orderPhotoPlaceholder,
+            required: t.required,
+            optional: t.optional,
+            chooseOne: t.chooseOne,
+            chooseUpTo: t.chooseUpTo,
+            included: t.orderIncluded,
+            addToCart: t.addToCart,
+            selectRequired: t.selectRequired,
+            decreaseQty: t.orderDecreaseQty,
+            increaseQty: t.orderIncreaseQty,
+            quantity: t.quantity,
+            halal: t.halal,
+          }}
         />
       )}
       {specialDayNote && !specialDayDismissed ? (

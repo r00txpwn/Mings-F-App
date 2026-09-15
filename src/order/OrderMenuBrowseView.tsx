@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CakeSlice, Coffee, Heart, Package, Plus, Search, Utensils, type LucideIcon, X } from 'lucide-react';
+import { Heart, Search, X } from 'lucide-react';
 import type { Category, Product } from '../lib/supabase';
 import type { OnlineFulfillmentType } from '../types/online';
 import { OrderVenueInfo } from './OrderVenueInfo';
-import { formatMoneyWithSymbol } from '../lib/money';
+import { OrderPhotoPlaceholder } from './OrderPhotoPlaceholder';
+import { formatStorefrontAzn } from './storefrontMoney';
 
 const ALL = '__all__';
 
@@ -14,31 +15,6 @@ function normalizeCategoryLabel(input: string): string {
     .split(/\s+/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
-}
-
-/** First display character for branded no-photo tiles (handles emoji / multi-codepoint). */
-function dishInitial(name: string): string {
-  const trimmed = name.trim();
-  if (!trimmed) return 'M';
-  const first = [...trimmed][0];
-  return first ? first.toLocaleUpperCase() : 'M';
-}
-
-function shortCategoryLine(label: string, maxLen = 14): string {
-  const n = normalizeCategoryLabel(label);
-  if (!n) return '';
-  if (n.length <= maxLen) return n;
-  return `${n.slice(0, Math.max(1, maxLen - 1))}…`;
-}
-
-function categoryIllustration(categoryLabel: string): { Icon: LucideIcon; iconClassName: string } {
-  const value = categoryLabel.toLowerCase();
-  if (value.includes('drink') || value.includes('beverage')) return { Icon: Coffee, iconClassName: 'text-ming-ash' };
-  if (value.includes('dessert') || value.includes('sweet')) return { Icon: CakeSlice, iconClassName: 'text-ming-ash' };
-  if (value.includes('noodle') || value.includes('rice') || value.includes('soup')) {
-    return { Icon: Utensils, iconClassName: 'text-ming-ash' };
-  }
-  return { Icon: Package, iconClassName: 'text-ming-mute' };
 }
 
 export interface OrderMenuBrowseLabels {
@@ -65,7 +41,18 @@ export interface OrderMenuBrowseLabels {
   itemCountSingle: string;
   itemCountPlural: string;
   orderProductNoPhotoCaption: string;
+  orderPhotoPlaceholder: string;
+  orderKitchenOpen: string;
+  orderKitchenClosed: string;
+  orderKitchenPaused: string;
+  orderHoursUntil: string;
 }
+
+export type OrderMenuHoursStrip = {
+  open: boolean;
+  status: string;
+  untilHm: string | null;
+};
 
 interface OrderMenuBrowseViewProps {
   categories: Category[];
@@ -77,16 +64,15 @@ interface OrderMenuBrowseViewProps {
   showTakeaway: boolean;
   showDelivery: boolean;
   hoursLine: string | null;
+  hoursStrip?: OrderMenuHoursStrip | null;
   venueAddress: string;
   venuePhone: string;
   labels: OrderMenuBrowseLabels;
   onAddProduct: (p: Product) => void;
   favoriteProductIds?: string[];
   onToggleFavorite?: (productId: string) => void;
-  /** When false but user chose delivery, show admin hint (DB must enable delivery). */
   serverAllowsDelivery: boolean;
   deliveryDisabledHint: string;
-  /** Right-side slot reserved for persistent cart panel (desktop only). */
   sideSlot?: React.ReactNode;
 }
 
@@ -100,8 +86,7 @@ function ProductCard({
   isFavorite,
   onToggleFavorite,
   onAdd,
-  categoryLabel,
-  noPhotoCaption,
+  photoLabel,
 }: {
   product: Product;
   addLabel: string;
@@ -112,16 +97,12 @@ function ProductCard({
   isFavorite: boolean;
   onToggleFavorite?: () => void;
   onAdd: () => void;
-  categoryLabel: string;
-  noPhotoCaption: string;
+  photoLabel: string;
 }) {
   const hasMods = (product.modifier_groups?.length ?? 0) > 0;
-  const illustration = categoryIllustration(categoryLabel);
-  const FallbackIcon = illustration.Icon;
-  const catLine = shortCategoryLine(categoryLabel);
   return (
     <article
-      className={`ming-product group cursor-pointer ${hasMods ? 'border-ming-gold/35 bg-ming-gold/[0.03]' : ''}`}
+      className="ming-product group cursor-pointer"
       onClick={onAdd}
       role="button"
       tabIndex={0}
@@ -133,97 +114,50 @@ function ProductCard({
       }}
     >
       <div className="ming-product-image">
-        {product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
-          />
-        ) : (
-          <div
-            className="relative flex h-full w-full flex-col overflow-hidden rounded-[inherit] bg-gradient-to-br from-ming-ink via-[#1a1418] to-ming-graphite"
-            aria-hidden
-          >
-            <div
-              className="pointer-events-none absolute -right-6 -top-10 h-28 w-28 rounded-full bg-ming-red/30 blur-2xl"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-ming-gold/40 to-transparent"
-              aria-hidden
-            />
-            <div className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-ming-red/50 via-transparent to-ming-gold/25 opacity-80" />
-            <div className="absolute right-2 top-2 opacity-[0.55]">
-              <FallbackIcon className="h-4 w-4 text-ming-gold/90" strokeWidth={2} aria-hidden />
-            </div>
-            <div className="relative z-[1] flex flex-1 flex-col items-center justify-center px-2 pt-4">
-              <span className="ming-display text-[28px] leading-none tracking-tight text-ming-bone/95 drop-shadow-[0_1px_10px_rgba(0,0,0,0.45)]">
-                {dishInitial(product.name)}
-              </span>
-            </div>
-            <div className="relative z-[1] px-1.5 pb-2 text-center">
-              <p className="text-[9px] font-bold uppercase leading-tight tracking-[0.12em] text-ming-ash/90">
-                {noPhotoCaption}
-              </p>
-              {catLine ? (
-                <p className="mt-0.5 truncate text-[9px] font-semibold text-ming-gold/75">{catLine}</p>
-              ) : null}
-            </div>
-          </div>
-        )}
+        <OrderPhotoPlaceholder src={product.image_url} alt={product.name} label={photoLabel} />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-2">
-          <h3 className="ming-display text-[17px] leading-[1.15] text-ming-bone">{product.name}</h3>
-          {product.is_halal ? (
-            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
-              {halalLabel}
-            </span>
-          ) : null}
-        </div>
+      <div className="card-body min-w-0 md:px-3 md:pt-2.5">
+        <h3 className="m-0 text-[14px] font-semibold tracking-[-0.01em] text-sf-ink">
+          {product.name}
+          {product.is_halal ? <span className="sf-badge">{halalLabel}</span> : null}
+        </h3>
         {product.description ? (
-          <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-ming-ash">
-            {product.description}
-          </p>
+          <p className="mt-0.5 line-clamp-2 text-[12.5px] leading-[1.35] text-sf-muted">{product.description}</p>
         ) : null}
-        <div className="mt-auto flex items-end justify-between gap-2 pt-3">
-          <div className="flex min-w-0 flex-col">
-            <span className="ming-price text-ming-red">{formatMoneyWithSymbol(product.selling_price)}</span>
-          </div>
-          <button
-            type="button"
-            aria-label={addLabel}
-            className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider shadow-ming transition-all active:scale-95 ${
-              hasMods
-                ? 'bg-ming-gold text-ming-ink hover:bg-ming-gold/90'
-                : 'bg-ming-red text-white hover:bg-ming-red-700 hover:shadow-ming-glow'
-            }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdd();
-            }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {hasMods ? customizeLabel : addLabel}
-          </button>
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2 md:px-3">
+        <span className="text-[14px] font-semibold tabular-nums text-sf-ink">
+          {formatStorefrontAzn(product.selling_price)}
+        </span>
+        <div className="flex items-center gap-1.5">
           {onToggleFavorite ? (
             <button
               type="button"
               aria-label={isFavorite ? favoriteRemoveLabel : favoriteAddLabel}
-              className={`inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
                 isFavorite
-                  ? 'border-ming-red/35 bg-ming-red/10 text-ming-red'
-                  : 'border-white/[0.08] bg-transparent text-ming-mute hover:border-white/[0.16] hover:bg-white/[0.02] hover:text-ming-ash'
+                  ? 'border-sf-accent bg-sf-accent-soft text-sf-accent'
+                  : 'border-sf-line bg-sf-surface text-sf-muted hover:border-sf-line-strong'
               }`}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleFavorite();
               }}
             >
-              <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+              <Heart className={`h-3.5 w-3.5 ${isFavorite ? 'fill-current' : ''}`} />
             </button>
           ) : null}
+          <button
+            type="button"
+            aria-label={hasMods ? customizeLabel : addLabel}
+            className="sf-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
+          >
+            {addLabel}
+          </button>
         </div>
       </div>
     </article>
@@ -243,15 +177,11 @@ export function OrderMenuBrowseView({
   deliveryDisabledHint,
   fulfillment,
   hoursLine,
+  hoursStrip,
   venueAddress,
   venuePhone,
   sideSlot,
 }: OrderMenuBrowseViewProps) {
-  const getCategoryLabelForProduct = (product: Product): string => {
-    const key = product.master_category_id ?? '';
-    return categoryNameById.get(key) ?? '';
-  };
-
   const [searchQuery, setSearchQuery] = useState('');
   const chipsRef = useRef<HTMLDivElement | null>(null);
 
@@ -269,18 +199,11 @@ export function OrderMenuBrowseView({
     return qi === q.length;
   };
 
-  /** Tiny menus: search feels like noise when the list is already short. */
-  const showSearch = products.length >= 8;
-
   const searchFiltered = useMemo(() => {
-    const q = showSearch ? searchQuery.trim().toLowerCase() : '';
+    const q = searchQuery.trim().toLowerCase();
     if (!q) return products;
-    return products.filter(
-      (p) =>
-        fuzzyMatch(p.name, q) ||
-        fuzzyMatch(p.description ?? '', q)
-    );
-  }, [products, searchQuery, showSearch]);
+    return products.filter((p) => fuzzyMatch(p.name, q) || fuzzyMatch(p.description ?? '', q));
+  }, [products, searchQuery]);
 
   const categoryNameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -293,7 +216,6 @@ export function OrderMenuBrowseView({
     return categories.filter((c) => productCategoryIds.has(c.id));
   }, [categories, products]);
 
-  /** Single-category menus: chips / rail add no navigation value. */
   const showCategoryNav = visibleCategories.length > 1;
 
   useEffect(() => {
@@ -327,84 +249,66 @@ export function OrderMenuBrowseView({
         key={id}
         data-cat-id={id}
         type="button"
+        aria-pressed={active}
         onClick={() => handlePickCategory(id)}
-        className={`ming-chip snap-start ${active ? 'ming-chip-active' : ''}`}
+        className={`ming-chip sf-chip snap-start ${active ? 'ming-chip-active' : ''}`}
       >
         {label}
       </button>
     );
   };
 
+  const renderCard = (p: Product) => (
+    <ProductCard
+      key={p.id}
+      product={p}
+      addLabel={labels.orderAddToCart}
+      customizeLabel={labels.orderCustomizeItem}
+      halalLabel={labels.halalBadge}
+      favoriteAddLabel={labels.favoriteAdd}
+      favoriteRemoveLabel={labels.favoriteRemove}
+      isFavorite={favoriteProductIds.includes(p.id)}
+      onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
+      onAdd={() => onAddProduct(p)}
+      photoLabel={labels.orderPhotoPlaceholder}
+    />
+  );
+
+  const hoursStatusLabel = (() => {
+    if (!hoursStrip) return hoursLine;
+    if (hoursStrip.status === 'PAUSED') return labels.orderKitchenPaused;
+    if (!hoursStrip.open) return labels.orderKitchenClosed;
+    if (hoursStrip.untilHm) {
+      return `${labels.orderKitchenOpen} · ${labels.orderHoursUntil.replace('{time}', hoursStrip.untilHm)}`;
+    }
+    return labels.orderKitchenOpen;
+  })();
+
   const renderProducts = () => {
     const searching = searchQuery.trim().length > 0;
 
     if (searching) {
       if (searchFiltered.length === 0) {
-        return (
-          <div className="ming-card flex flex-col items-center gap-2 p-10 text-center">
-            <Search className="h-6 w-6 text-ming-mute" />
-            <p className="text-sm text-ming-ash">{labels.orderSearchNoResults}</p>
-          </div>
-        );
+        return <p className="px-2 py-8 text-center text-sm text-sf-muted">{labels.orderSearchNoResults}</p>;
       }
-      return (
-        <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
-          {searchFiltered.map((p) => (
-            <ProductCard
-              key={p.id}
-              product={p}
-              addLabel={labels.orderAddToCart}
-              customizeLabel={labels.orderCustomizeItem}
-              halalLabel={labels.halalBadge}
-              favoriteAddLabel={labels.favoriteAdd}
-              favoriteRemoveLabel={labels.favoriteRemove}
-              isFavorite={favoriteProductIds.includes(p.id)}
-              onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
-              onAdd={() => onAddProduct(p)}
-              categoryLabel={getCategoryLabelForProduct(p)}
-              noPhotoCaption={labels.orderProductNoPhotoCaption}
-            />
-          ))}
-        </div>
-      );
+      return <div className="flex flex-col gap-2 md:grid md:grid-cols-2 md:gap-3">{searchFiltered.map(renderCard)}</div>;
     }
 
     if (selectedCategoryId === ALL) {
       return (
-        <div className="space-y-10">
+        <div className="space-y-[22px]">
           {visibleCategories.map((cat) => {
             const list = searchFiltered.filter((p) => p.master_category_id === cat.id);
             if (list.length === 0) return null;
             return (
-              <section
-                key={cat.id}
-                id={`ming-cat-${cat.id}`}
-                className="scroll-mt-[168px] lg:scroll-mt-24"
-              >
-                <div className="mb-4 flex items-end justify-between gap-3">
-                  <h2 className="ming-section-title">{normalizeCategoryLabel(cat.name)}</h2>
-                  <span className="hidden text-[11px] font-bold uppercase tracking-[0.14em] text-ming-mute sm:block">
-                    {list.length} {list.length === 1 ? labels.itemCountSingle : labels.itemCountPlural}
-                  </span>
+              <section key={cat.id} id={`ming-cat-${cat.id}`} className="scroll-mt-[168px]">
+                <div className="mb-2.5 mt-2 flex items-baseline justify-between">
+                  <h2 className="m-0 text-base font-semibold tracking-[-0.01em] text-sf-ink">
+                    {normalizeCategoryLabel(cat.name)}
+                  </h2>
+                  <span className="text-xs font-medium text-sf-muted">{list.length}</span>
                 </div>
-                <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
-                  {list.map((p) => (
-                    <ProductCard
-                      key={p.id}
-                      product={p}
-                      addLabel={labels.orderAddToCart}
-                      customizeLabel={labels.orderCustomizeItem}
-                      halalLabel={labels.halalBadge}
-                      favoriteAddLabel={labels.favoriteAdd}
-                      favoriteRemoveLabel={labels.favoriteRemove}
-                      isFavorite={favoriteProductIds.includes(p.id)}
-                      onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
-                      onAdd={() => onAddProduct(p)}
-                      categoryLabel={getCategoryLabelForProduct(p)}
-                      noPhotoCaption={labels.orderProductNoPhotoCaption}
-                    />
-                  ))}
-                </div>
+                <div className="flex flex-col gap-2 md:grid md:grid-cols-2 md:gap-3">{list.map(renderCard)}</div>
               </section>
             );
           })}
@@ -416,157 +320,108 @@ export function OrderMenuBrowseView({
     const title = categoryNameById.get(selectedCategoryId) ?? labels.allCategories;
     return (
       <section>
-        <h2 className="ming-section-title mb-4">{title}</h2>
+        <div className="mb-2.5 mt-2 flex items-baseline justify-between">
+          <h2 className="m-0 text-base font-semibold tracking-[-0.01em] text-sf-ink">{title}</h2>
+          <span className="text-xs font-medium text-sf-muted">{list.length}</span>
+        </div>
         {list.length === 0 ? (
-          <p className="rounded-2xl border border-white/[0.06] bg-ming-charcoal p-8 text-center text-sm text-ming-ash">
+          <p className="rounded-lg border border-sf-line bg-sf-surface p-8 text-center text-sm text-sf-muted">
             {labels.orderCategoryEmpty}
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
-            {list.map((p) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                addLabel={labels.orderAddToCart}
-                customizeLabel={labels.orderCustomizeItem}
-                halalLabel={labels.halalBadge}
-                favoriteAddLabel={labels.favoriteAdd}
-                favoriteRemoveLabel={labels.favoriteRemove}
-                isFavorite={favoriteProductIds.includes(p.id)}
-                onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(p.id) : undefined}
-                onAdd={() => onAddProduct(p)}
-                categoryLabel={getCategoryLabelForProduct(p)}
-                noPhotoCaption={labels.orderProductNoPhotoCaption}
-              />
-            ))}
-          </div>
+          <div className="flex flex-col gap-2 md:grid md:grid-cols-2 md:gap-3">{list.map(renderCard)}</div>
         )}
       </section>
     );
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-0 lg:flex-row lg:gap-8 lg:px-10">
-      {/* Sticky category chip rail — mobile / tablet only; hidden for single-category menus */}
-      {showCategoryNav ? (
-        <div className="sticky top-[48px] z-20 -mx-0 border-b border-white/[0.04] bg-ming-ink/85 backdrop-blur-xl lg:static lg:top-0 lg:order-1 lg:hidden">
-          <div className="relative">
-            <div
+    <div className="mx-auto flex w-full max-w-[390px] flex-col md:max-w-[1080px] md:flex-row md:gap-8 md:px-6">
+      <div className="min-w-0 flex-1 pb-[calc(var(--sf-cartbar-h)+16px)] pt-1">
+        {hoursStatusLabel ? (
+          <div className="flex items-center gap-2 px-4 py-2.5 text-[13px] text-sf-muted md:px-0 md:pb-1 md:pt-3">
+            <span
+              className={`h-[7px] w-[7px] shrink-0 rounded-full ${hoursStrip?.open ? 'bg-sf-ok' : 'bg-sf-muted'}`}
+              aria-hidden
+            />
+            <span>
+              {hoursStrip?.open ? (
+                <>
+                  <strong className="font-semibold text-sf-ink">{labels.orderKitchenOpen}</strong>
+                  {hoursStrip.untilHm
+                    ? ` · ${labels.orderHoursUntil.replace('{time}', hoursStrip.untilHm)}`
+                    : null}
+                </>
+              ) : (
+                hoursStatusLabel
+              )}
+            </span>
+          </div>
+        ) : null}
+
+        <div className="pb-3 md:flex md:items-center md:gap-4 md:px-0 md:py-2">
+          {showCategoryNav ? (
+            <nav
               ref={chipsRef}
-              className="no-scrollbar flex snap-x gap-2 overflow-x-auto px-4 py-3 sm:px-5"
+              className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-1 md:flex-1 md:px-0"
               aria-label={labels.categoriesLabel}
               role="tablist"
             >
               {chip(ALL, labels.allCategories)}
               {visibleCategories.map((c) => chip(c.id, normalizeCategoryLabel(c.name)))}
-            </div>
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-ming-ink/90 to-transparent"
+            </nav>
+          ) : (
+            <div className="flex-1" />
+          )}
+          <label className="sf-search mx-4 mt-1 md:mx-0 md:mt-0 md:w-[280px] md:shrink-0">
+            <Search className="h-4 w-4 shrink-0 text-sf-muted" aria-hidden />
+            <span className="sr-only">{labels.orderSearchMenu}</span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={labels.orderSearchMenu}
+              autoComplete="off"
+            />
+            {searchQuery ? (
+              <button type="button" onClick={() => setSearchQuery('')} aria-label={labels.clearSearch}>
+                <X className="h-4 w-4 text-sf-muted" />
+              </button>
+            ) : null}
+          </label>
+        </div>
+
+        <main className="px-4 pb-6 md:px-0">
+          {!serverAllowsDelivery && fulfillment === 'delivery' ? (
+            <p
+              role="status"
+              className="mb-4 rounded-lg border border-sf-line bg-sf-surface px-4 py-3 text-[13px] leading-relaxed text-sf-ink"
+            >
+              {deliveryDisabledHint}
+            </p>
+          ) : null}
+
+          {renderProducts()}
+
+          <div className="mt-10">
+            <OrderVenueInfo
+              hoursLine={hoursLine}
+              address={venueAddress}
+              phone={venuePhone}
+              labels={{
+                hours: labels.orderVenueHours,
+                address: labels.orderVenueAddress,
+                phone: labels.orderVenuePhone,
+                infoTitle: labels.orderVenueInfoTitle,
+              }}
+              compact
             />
           </div>
-        </div>
-      ) : null}
+        </main>
+      </div>
 
-      {/* Desktop left rail — hidden for single-category menus */}
-      {showCategoryNav ? (
-        <aside className="hidden shrink-0 pt-6 lg:block lg:w-60 lg:pt-8">
-          <div className="sticky top-20 space-y-2">
-            <p className="ming-eyebrow mb-3 px-2">{labels.menuLabel}</p>
-            <nav aria-label={labels.categoriesLabel} className="flex flex-col gap-1">
-              <button
-                type="button"
-                onClick={() => handlePickCategory(ALL)}
-                className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
-                  selectedCategoryId === ALL
-                    ? 'bg-white/[0.08] text-ming-bone'
-                    : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
-                }`}
-              >
-                {labels.allCategories}
-              </button>
-              {visibleCategories.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => handlePickCategory(c.id)}
-                  className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
-                    selectedCategoryId === c.id
-                      ? 'bg-white/[0.08] text-ming-bone'
-                      : 'text-ming-ash hover:bg-white/[0.04] hover:text-ming-bone'
-                  }`}
-                >
-                  {normalizeCategoryLabel(c.name)}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </aside>
-      ) : null}
-
-      {/* Main column */}
-      <main className="min-w-0 flex-1 px-4 pb-40 pt-5 sm:px-5 lg:order-2 lg:px-0 lg:pb-24 lg:pt-8">
-        {/* Search — hidden for tiny menus (< 8 products) */}
-        {showSearch ? (
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search
-                aria-hidden
-                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ming-mute"
-              />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={labels.orderSearchMenu}
-                className="ming-input pl-10"
-                autoComplete="off"
-              />
-              {searchQuery ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-ming-ash hover:text-ming-bone"
-                  aria-label={labels.clearSearch}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        {!serverAllowsDelivery && fulfillment === 'delivery' ? (
-          <p
-            role="status"
-            className="mb-5 rounded-xl border border-ming-gold/40 bg-ming-gold/10 px-4 py-3 text-[13px] leading-relaxed text-ming-gold"
-          >
-            {deliveryDisabledHint}
-          </p>
-        ) : null}
-
-        {renderProducts()}
-
-        {/* Venue info block (compact, bottom of page) */}
-        <div className="mt-12">
-          <OrderVenueInfo
-            hoursLine={hoursLine}
-            address={venueAddress}
-            phone={venuePhone}
-            labels={{
-              hours: labels.orderVenueHours,
-              address: labels.orderVenueAddress,
-              phone: labels.orderVenuePhone,
-              infoTitle: labels.orderVenueInfoTitle,
-            }}
-            compact
-          />
-        </div>
-      </main>
-
-      {/* Desktop right side slot (persistent cart panel) */}
       {sideSlot ? (
-        <aside className="hidden shrink-0 pt-8 lg:order-3 lg:block lg:w-[360px]">
+        <aside className="hidden shrink-0 pt-8 lg:block lg:w-[360px]">
           <div className="sticky top-20">{sideSlot}</div>
         </aside>
       ) : null}

@@ -1051,6 +1051,16 @@ export interface Translations {
   orderAddToCart: string;
   /** Shown on menu cards and order modal when a product has no photo (trust / freshness). */
   orderProductNoPhotoCaption: string;
+  /** Gray photo tile label (never letter tiles). */
+  orderPhotoPlaceholder: string;
+  orderKitchenOpen: string;
+  orderKitchenClosed: string;
+  orderKitchenPaused: string;
+  /** `{time}` is HH:MM close time. */
+  orderHoursUntil: string;
+  orderIncluded: string;
+  orderCartBarItemSingle: string;
+  orderCartBarItemPlural: string;
   orderFavoriteAdd: string;
   orderFavoriteRemove: string;
   orderSearchNoResults: string;
@@ -2669,6 +2679,14 @@ export const translations: Record<Language, Translations> = {
     orderVenuePhone: 'Phone',
     orderAddToCart: 'Add',
     orderProductNoPhotoCaption: 'Made fresh to order',
+    orderPhotoPlaceholder: 'Photo',
+    orderKitchenOpen: 'Open',
+    orderKitchenClosed: 'Closed',
+    orderKitchenPaused: 'Paused',
+    orderHoursUntil: 'until {time}',
+    orderIncluded: 'Included',
+    orderCartBarItemSingle: '{n} item',
+    orderCartBarItemPlural: '{n} items',
     orderFavoriteAdd: 'Add to favorites',
     orderFavoriteRemove: 'Remove from favorites',
     orderSearchNoResults: 'No dishes match your search.',
@@ -4294,6 +4312,14 @@ export const translations: Record<Language, Translations> = {
     orderVenuePhone: 'Telefon',
     orderAddToCart: 'Əlavə et',
     orderProductNoPhotoCaption: 'Sifarişlə təzə hazırlanır',
+    orderPhotoPlaceholder: 'Foto',
+    orderKitchenOpen: 'Açıq',
+    orderKitchenClosed: 'Bağlı',
+    orderKitchenPaused: 'Fasilə',
+    orderHoursUntil: '{time}-dək',
+    orderIncluded: 'Daxildir',
+    orderCartBarItemSingle: '{n} məhsul',
+    orderCartBarItemPlural: '{n} məhsul',
     orderFavoriteAdd: 'Sevimlilərə əlavə et',
     orderFavoriteRemove: 'Sevimlilərdən sil',
     orderSearchNoResults: 'Axtarışınıza uyğun yemək yoxdur.',
@@ -5920,6 +5946,14 @@ export const translations: Record<Language, Translations> = {
     orderVenuePhone: 'Телефон',
     orderAddToCart: 'В корзину',
     orderProductNoPhotoCaption: 'Готовим свежим на заказ',
+    orderPhotoPlaceholder: 'Фото',
+    orderKitchenOpen: 'Открыто',
+    orderKitchenClosed: 'Закрыто',
+    orderKitchenPaused: 'Пауза',
+    orderHoursUntil: 'до {time}',
+    orderIncluded: 'Включено',
+    orderCartBarItemSingle: '{n} позиция',
+    orderCartBarItemPlural: '{n} позиций',
     orderFavoriteAdd: 'Добавить в избранное',
     orderFavoriteRemove: 'Убрать из избранного',
     orderSearchNoResults: 'Ничего не найдено.',
