@@ -93,7 +93,7 @@ Browser return query is the current contract (not independent proof of payment).
 
 | Query | Frontend |
 |-------|----------|
-| `paid=1` (+ `sale`) | Clear cart and show confirmation only with `sale` **and** refetched `payment_status=paid`. |
+| `paid=1` (+ `sale`) | Keep cart until sales refetch. Clear cart + confirmation **only** after `payment_status=paid` (`saleRowIsPaid`). Query flags alone must not wipe the cart. |
 | `paid=1` without `sale` | Fail-closed: keep cart, recoverable / ambiguous error, never invent success. |
 | `payment_error=1` (+ `message`, `sale`) | Keep cart, reopen checkout, new `clientRequestId` on retry. |
 | `payment_pending=1` (+ `sale`) | Pending/loading UI (never treat as paid). Existing `/track?token=` when `track_token` is available. |

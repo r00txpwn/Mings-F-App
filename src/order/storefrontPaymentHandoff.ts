@@ -87,6 +87,11 @@ export function stripStorefrontPaymentReturnParams(params: URLSearchParams): URL
   return next;
 }
 
+/**
+ * Query-flag eligibility only (paid=1 + saleId).
+ * OrderApp must not clear the cart from this in hydrate — clear only after
+ * `saleRowIsPaid` on the sales refetch path.
+ */
 export function shouldClearCartOnPaymentReturn(
   status: StorefrontPaymentReturnStatus,
   saleId?: string | null

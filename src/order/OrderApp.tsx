@@ -42,7 +42,6 @@ import {
   paymentReturnBannerKind,
   placedOrderFromSaleRow,
   saleRowIsPaid,
-  shouldClearCartOnPaymentReturn,
   stripStorefrontPaymentReturnParams,
   type PlacedOrderResult,
 } from './storefrontPaymentHandoff';
@@ -278,6 +277,7 @@ function OrderContent() {
         return;
       }
       setResult(placed);
+      window.localStorage.removeItem(ORDER_CART_STORAGE_KEY);
       setCart([]);
       setFlow('done');
     })();
@@ -315,11 +315,6 @@ function OrderContent() {
 
   useEffect(() => {
     try {
-      if (shouldClearCartOnPaymentReturn(inboundPaymentReturn.status, inboundPaymentReturn.saleId)) {
-        window.localStorage.removeItem(ORDER_CART_STORAGE_KEY);
-        setCart([]);
-        return;
-      }
       const raw = window.localStorage.getItem(ORDER_CART_STORAGE_KEY);
       if (!raw) {
         return;
@@ -337,7 +332,7 @@ function OrderContent() {
     } finally {
       setCartStorageReady(true);
     }
-  }, [inboundPaymentReturn]);
+  }, []);
 
   useEffect(() => {
     if (inboundPaymentReturn.status !== 'error') return;
