@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  cardPaymentInitHandoff,
   hostedCheckoutUrlFromInit,
   parseStorefrontPaymentReturn,
   placedOrderFromSaleRow,
@@ -22,14 +23,36 @@ describe('hostedCheckoutUrlFromInit', () => {
   });
 });
 
+describe('cardPaymentInitHandoff', () => {
+  it('fail-closes on create-payment HTTP failure (sale already cancelled server-side)', () => {
+    expect(cardPaymentInitHandoff({ ok: false, data: { checkoutUrl: 'https://pay.example/x' } })).toEqual({
+      action: 'fail_closed',
+    });
+  });
+
+  it('fail-closes when HTTP ok but checkoutUrl is missing — do not navigate', () => {
+    expect(cardPaymentInitHandoff({ ok: true, data: {} })).toEqual({ action: 'fail_closed' });
+    expect(cardPaymentInitHandoff({ ok: true, data: { checkoutUrl: '' } })).toEqual({
+      action: 'fail_closed',
+    });
+  });
+
+  it('redirects only when ok and checkoutUrl is present', () => {
+    expect(cardPaymentInitHandoff({ ok: true, data: { checkoutUrl: 'https://pay.example/session' } })).toEqual({
+      action: 'redirect',
+      checkoutUrl: 'https://pay.example/session',
+    });
+  });
+});
+
 describe('parseStorefrontPaymentReturn', () => {
-  it('reads paid=1 with sale id and never treats it as pending', () => {
-    const parsed = parseStorefrontPaymentReturn('paid=1&sale=sale-1&payment_pending=1');
+  it('reads exact paid=1 (+ sale) as success', () => {
+    const parsed = parseStorefrontPaymentReturn('paid=1&sale=sale-1');
     expect(parsed).toEqual({ status: 'paid', saleId: 'sale-1', message: null });
     expect(shouldClearCartOnPaymentReturn(parsed.status)).toBe(true);
   });
 
-  it('reads payment_error=1 and keeps cart', () => {
+  it('reads exact payment_error=1 (+ message, sale) and keeps cart', () => {
     const parsed = parseStorefrontPaymentReturn(
       'payment_error=1&sale=sale-2&message=Payment+cancelled'
     );
@@ -41,19 +64,26 @@ describe('parseStorefrontPaymentReturn', () => {
     expect(shouldClearCartOnPaymentReturn(parsed.status)).toBe(false);
   });
 
-  it('reads payment_pending=1 instead of ignoring it, and never treats it as paid', () => {
+  it('reads exact payment_pending=1 (+ sale) and never treats it as paid', () => {
     const parsed = parseStorefrontPaymentReturn('payment_pending=1&sale=sale-3');
     expect(parsed.status).toBe('pending');
     expect(parsed.saleId).toBe('sale-3');
     expect(shouldClearCartOnPaymentReturn(parsed.status)).toBe(false);
   });
 
-  it('returns none when no payment return flags are present', () => {
-    expect(parseStorefrontPaymentReturn('table=12')).toEqual({
-      status: 'none',
-      saleId: null,
-      message: null,
-    });
+  it('fail-closes on unknown or missing flags — never invents success', () => {
+    const cases = ['', 'table=12', 'sale=sale-9', 'paid=true', 'paid=yes', 'status=success', 'status=APPROVED'];
+    for (const search of cases) {
+      const parsed = parseStorefrontPaymentReturn(search);
+      expect(parsed.status, search).not.toBe('paid');
+      expect(shouldClearCartOnPaymentReturn(parsed.status), search).toBe(false);
+    }
+  });
+
+  it('fail-closes when return flags conflict — never invents success', () => {
+    const parsed = parseStorefrontPaymentReturn('paid=1&payment_pending=1&sale=sale-1');
+    expect(parsed.status).not.toBe('paid');
+    expect(shouldClearCartOnPaymentReturn(parsed.status)).toBe(false);
   });
 });
 

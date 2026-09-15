@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { CheckCircle2, Clock, Loader2, ShoppingBag, XCircle, X } from 'lucide-react';
+import { CheckCircle2, Loader2, ShoppingBag, XCircle, X } from 'lucide-react';
 import { Analytics, track } from '@vercel/analytics/react';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
@@ -37,7 +37,7 @@ import type {
 } from '../types/online';
 import { isCardOnlinePaymentMethod } from '../lib/onlinePaymentMethod';
 import {
-  hostedCheckoutUrlFromInit,
+  cardPaymentInitHandoff,
   parseStorefrontPaymentReturn,
   paymentReturnBannerKind,
   placedOrderFromSaleRow,
@@ -973,20 +973,14 @@ function OrderContent() {
           },
           accessToken
         );
-        if (!pay.ok) {
-          checkoutRequestIdRef.current = null;
-          setSubmitError(pay.error ?? t.orderErrPaymentInitFailed);
-          setSubmitting(false);
-          return;
-        }
-        const checkoutUrl = hostedCheckoutUrlFromInit(pay.data);
-        if (!checkoutUrl) {
+        const handoff = cardPaymentInitHandoff(pay);
+        if (handoff.action === 'fail_closed') {
           checkoutRequestIdRef.current = null;
           setSubmitError(t.orderErrPaymentRedirectMissing);
           setSubmitting(false);
           return;
         }
-        window.location.href = checkoutUrl;
+        window.location.href = handoff.checkoutUrl;
         return;
       }
 
@@ -1514,7 +1508,7 @@ function OrderContent() {
         {paymentReturn === 'success' ? (
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
         ) : paymentReturn === 'pending' ? (
-          <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+          <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
         ) : (
           <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
         )}

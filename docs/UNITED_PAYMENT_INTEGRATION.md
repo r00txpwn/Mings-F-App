@@ -89,15 +89,16 @@ See [`.env.example`](../.env.example) `UNITED_PAYMENT_*` block. Minimum for chec
 
 ## Storefront handoff (`OrderApp`)
 
-Browser return query is the current contract (not independent proof of payment):
+Browser return query is the current contract (not independent proof of payment). Exact flags from `united-payment-return` 302:
 
 | Query | Frontend |
 |-------|----------|
 | `paid=1` (+ `sale`) | Clear cart, refetch sale `track_token` / `display_number`, land on confirmation + tracking. |
-| `payment_error=1` | Keep cart, reopen checkout, new `clientRequestId` on retry. |
-| `payment_pending=1` | Explicit pending banner (never treat as paid); tracking link when `track_token` is available. |
+| `payment_error=1` (+ `message`, `sale`) | Keep cart, reopen checkout, new `clientRequestId` on retry. |
+| `payment_pending=1` (+ `sale`) | Pending/loading UI (never treat as paid). Existing `/track?token=` when `track_token` is available. |
+| Unknown / missing / conflicting flags | Fail-closed: **never invent success**. |
 
-If `united-payment-create-payment` / `epoint-create-payment` returns HTTP success without `checkoutUrl`, the storefront **fail-closes**: cart stays, no confirmation screen, recoverable error. Backend cancels the sale on init failure, so the next Place Order mints a new `clientRequestId`.
+If `united-payment-create-payment` / `epoint-create-payment` fails or returns HTTP success without `checkoutUrl`, the storefront **fail-closes**: no redirect, cart stays, no placed confirmation. Backend already cancels that sale — the next Place Order mints a **new** `clientRequestId` and must not retry create-payment on the cancelled sale.
 
 ## Refunds
 

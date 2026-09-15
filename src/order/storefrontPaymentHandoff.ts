@@ -35,20 +35,42 @@ export function hostedCheckoutUrlFromInit(
   return url || null;
 }
 
+export type CardPaymentInitHandoff =
+  | { action: 'redirect'; checkoutUrl: string }
+  | { action: 'fail_closed' };
+
+/**
+ * Terminal for this sale. Fail-closed: do not navigate, do not clear cart,
+ * do not show placed confirmation, and do not retry create-payment on the
+ * cancelled sale — next Place Order must mint a new clientRequestId.
+ */
+export function cardPaymentInitHandoff(pay: {
+  ok: boolean;
+  data?: { checkoutUrl?: unknown } | null;
+}): CardPaymentInitHandoff {
+  if (!pay.ok) return { action: 'fail_closed' };
+  const checkoutUrl = hostedCheckoutUrlFromInit(pay.data);
+  if (!checkoutUrl) return { action: 'fail_closed' };
+  return { action: 'redirect', checkoutUrl };
+}
+
 export function parseStorefrontPaymentReturn(
   search: string | URLSearchParams
 ): StorefrontPaymentReturn {
   const params = asSearchParams(search);
   const saleId = params.get('sale')?.trim() || null;
-  if (params.get('paid') === '1') {
-    return { status: 'paid', saleId, message: null };
+  const paid = params.get('paid') === '1';
+  const error = params.get('payment_error') === '1';
+  const pending = params.get('payment_pending') === '1';
+  const flagCount = Number(paid) + Number(error) + Number(pending);
+  if (flagCount > 1) {
+    return { status: 'error', saleId, message: null };
   }
-  if (params.get('payment_error') === '1') {
+  if (paid) return { status: 'paid', saleId, message: null };
+  if (error) {
     return { status: 'error', saleId, message: params.get('message')?.trim() || null };
   }
-  if (params.get('payment_pending') === '1') {
-    return { status: 'pending', saleId, message: null };
-  }
+  if (pending) return { status: 'pending', saleId, message: null };
   return { status: 'none', saleId: null, message: null };
 }
 
