@@ -280,6 +280,8 @@ Set at least: `APP_BASE_URL` (your live site URL). Add United Payment / E-point 
 
 **Hermes / agent ops (`agent-ops`):** set `AGENT_API_KEY`, `AGENT_CAPABILITIES` (recommended: `sales_read,analytics_read,expenses_read,expenses_write` — leave `expenses_delete` off), and only set `AGENT_MUTATIONS_ENABLED=true` when you want writes. Deploy with `npm run supabase:deploy:agent-ops`. Hermes connects via [`mcp/mings-ops`](mcp/mings-ops) — see **[docs/HERMES_OPS_MCP.md](docs/HERMES_OPS_MCP.md)**. Do not put the service role key in Hermes.
 
+**Sandbox agent-ops writes (group-bot QA):** on project `glpdpkozvmfzgoewquxi` only, use `node scripts/set-sandbox-agent-ops-secrets.mjs` (rotates `AGENT_API_KEY` + sets `AGENT_MUTATIONS_ENABLED=true`) and point Hermes at [`mcp/mings-ops/hermes-config.sandbox.example.yaml`](mcp/mings-ops/hermes-config.sandbox.example.yaml). Never point the test bot at production `dmrvycswdteuhfydchdr`.
+
 **KDS auth:** `/kds` uses staff Supabase login. Deploy **`admin-api`**, **`kds-order-status-update`**, and **`kds-item-prep-toggle`** after migrations `20260610120000_harden_staff_only_rls.sql`, `20260619120000_kds_item_prep_and_anon_update.sql`, and `20260621120000_kds_staff_auth_drop_anon_policies.sql`.
 
 ### Storefront ↔ KDS (split deploy smoke test)

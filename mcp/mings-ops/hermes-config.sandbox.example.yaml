@@ -1,0 +1,21 @@
+# Hermes MCP → sandbox agent-ops (QA / group-bot testing).
+# Copy into the Hermes host config. Never commit real keys.
+#
+# Sandbox project ref: glpdpkozvmfzgoewquxi
+# Production (do NOT use for bot testing): dmrvycswdteuhfydchdr
+#
+# Requires Edge secrets on sandbox:
+#   AGENT_API_KEY              = same value as MINGS_AGENT_API_KEY below
+#   AGENT_CAPABILITIES         = (already set; include *_write caps you want to test)
+#   AGENT_MUTATIONS_ENABLED    = true   # writes; leave unset/false for read-only
+
+mcp_servers:
+  mings-ops:
+    command: "node"
+    args:
+      - "/ABS/PATH/ON_THE_HERMES_HOST/mcp/mings-ops/index.mjs"
+    env:
+      MINGS_SUPABASE_URL: "https://glpdpkozvmfzgoewquxi.supabase.co"
+      MINGS_AGENT_API_KEY: "replace-with-SANDBOX-AGENT_API_KEY"
+      # Keep delete hidden (default):
+      # MINGS_ENABLE_EXPENSE_DELETE: "true"
