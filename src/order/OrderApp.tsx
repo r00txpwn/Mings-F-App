@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { CheckCircle2, Loader2, ShoppingBag, XCircle, X } from 'lucide-react';
+import { CheckCircle2, Clock, Loader2, ShoppingBag, XCircle, X } from 'lucide-react';
 import { Analytics, track } from '@vercel/analytics/react';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
@@ -36,6 +36,15 @@ import type {
   OnlineSettingsRow,
 } from '../types/online';
 import { isCardOnlinePaymentMethod } from '../lib/onlinePaymentMethod';
+import {
+  hostedCheckoutUrlFromInit,
+  parseStorefrontPaymentReturn,
+  paymentReturnBannerKind,
+  placedOrderFromSaleRow,
+  shouldClearCartOnPaymentReturn,
+  stripStorefrontPaymentReturnParams,
+  type PlacedOrderResult,
+} from './storefrontPaymentHandoff';
 import { normalizePhoneE164 } from '../lib/phoneE164';
 import { findZoneForPoint } from '../services/deliveryZones';
 import { Price } from '../components/Price';
@@ -170,10 +179,25 @@ function OrderContent() {
   const [payWithWallet, setPayWithWallet] = useState(false);
   const [savedCards, setSavedCards] = useState<SavedCardRow[]>([]);
 
-  const [result, setResult] = useState<OnlineOrderCreateResponse | null>(null);
+  const [result, setResult] = useState<PlacedOrderResult | null>(null);
   const [confirmationSnapshot, setConfirmationSnapshot] = useState<ConfirmationSnapshot | null>(null);
-  const [paymentReturn, setPaymentReturn] = useState<'success' | 'error' | null>(null);
-  const [paymentReturnDetail, setPaymentReturnDetail] = useState<string | null>(null);
+  const [inboundPaymentReturn] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const parsed = parseStorefrontPaymentReturn(params);
+    if (parsed.status === 'none') return parsed;
+    const stripped = stripStorefrontPaymentReturnParams(params);
+    const qs = stripped.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+    return parsed;
+  });
+  const [paymentReturn, setPaymentReturn] = useState<'success' | 'error' | 'pending' | null>(
+    () => paymentReturnBannerKind(inboundPaymentReturn.status)
+  );
+  const [paymentReturnDetail, setPaymentReturnDetail] = useState<string | null>(
+    () => (inboundPaymentReturn.status === 'error' ? inboundPaymentReturn.message : null)
+  );
+  const [paymentReturnTrackUrl, setPaymentReturnTrackUrl] = useState<string | null>(null);
+  const reopenedCheckoutForPaymentErrorRef = useRef(false);
   const [favoriteProductIds, setFavoriteProductIds] = useState<string[]>([]);
   const [specialDayDismissed, setSpecialDayDismissed] = useState(false);
   const [upsellPromptProduct, setUpsellPromptProduct] = useState<Product | null>(null);
@@ -221,29 +245,37 @@ function OrderContent() {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const paid = params.get('paid');
-    const paymentErr = params.get('payment_error');
-    if (paid === '1') {
-      setPaymentReturn('success');
-      setPaymentReturnDetail(null);
-      params.delete('paid');
-      params.delete('sale');
-      const qs = params.toString();
-      window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
-      void reloadOrders();
+    if (inboundPaymentReturn.status === 'error') {
+      checkoutRequestIdRef.current = null;
+    }
+    const saleId = inboundPaymentReturn.saleId;
+    if (inboundPaymentReturn.status !== 'paid' && inboundPaymentReturn.status !== 'pending') {
       return;
     }
-    if (paymentErr === '1') {
-      setPaymentReturn('error');
-      setPaymentReturnDetail(params.get('message')?.trim() || null);
-      params.delete('payment_error');
-      params.delete('sale');
-      params.delete('message');
-      const qs = params.toString();
-      window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+    if (inboundPaymentReturn.status === 'paid') {
+      void reloadOrders();
     }
-  }, [reloadOrders]);
+    if (!saleId) return;
+    if (authLoading) return;
+    void (async () => {
+      const { data } = await supabase
+        .from('sales')
+        .select('id, display_number, track_token')
+        .eq('id', saleId)
+        .maybeSingle();
+      const placed = placedOrderFromSaleRow(data);
+      if (!placed) return;
+      if (placed.trackToken) {
+        setPaymentReturnTrackUrl(
+          `${window.location.origin}/track?token=${encodeURIComponent(placed.trackToken)}`
+        );
+      }
+      if (inboundPaymentReturn.status !== 'paid') return;
+      setResult(placed);
+      setCart([]);
+      setFlow('done');
+    })();
+  }, [inboundPaymentReturn, reloadOrders, authLoading]);
 
   useEffect(() => {
     if (!user) {
@@ -277,9 +309,13 @@ function OrderContent() {
 
   useEffect(() => {
     try {
+      if (shouldClearCartOnPaymentReturn(inboundPaymentReturn.status)) {
+        window.localStorage.removeItem(ORDER_CART_STORAGE_KEY);
+        setCart([]);
+        return;
+      }
       const raw = window.localStorage.getItem(ORDER_CART_STORAGE_KEY);
       if (!raw) {
-        setCartStorageReady(true);
         return;
       }
       const parsed = JSON.parse(raw) as Partial<StoredOrderCartState>;
@@ -295,7 +331,16 @@ function OrderContent() {
     } finally {
       setCartStorageReady(true);
     }
-  }, []);
+  }, [inboundPaymentReturn.status]);
+
+  useEffect(() => {
+    if (inboundPaymentReturn.status !== 'error') return;
+    if (!cartStorageReady || reopenedCheckoutForPaymentErrorRef.current) return;
+    checkoutRequestIdRef.current = null;
+    if (cart.length === 0) return;
+    reopenedCheckoutForPaymentErrorRef.current = true;
+    setFlow('checkout');
+  }, [inboundPaymentReturn.status, cartStorageReady, cart.length]);
 
   useEffect(() => {
     if (!cartStorageReady) return;
@@ -909,7 +954,8 @@ function OrderContent() {
         isCardOnlinePaymentMethod(paymentMethod)
       ) {
         if (!data.paymentInitToken) {
-          setSubmitError(t.orderPaymentReturnFailed);
+          checkoutRequestIdRef.current = null;
+          setSubmitError(t.orderErrPaymentInitFailed);
           setSubmitting(false);
           return;
         }
@@ -928,14 +974,20 @@ function OrderContent() {
           accessToken
         );
         if (!pay.ok) {
+          checkoutRequestIdRef.current = null;
           setSubmitError(pay.error ?? t.orderErrPaymentInitFailed);
           setSubmitting(false);
           return;
         }
-        if (pay.data?.checkoutUrl) {
-          window.location.href = pay.data.checkoutUrl;
+        const checkoutUrl = hostedCheckoutUrlFromInit(pay.data);
+        if (!checkoutUrl) {
+          checkoutRequestIdRef.current = null;
+          setSubmitError(t.orderErrPaymentRedirectMissing);
+          setSubmitting(false);
           return;
         }
+        window.location.href = checkoutUrl;
+        return;
       }
 
       const confirmationLines: ConfirmationLine[] = cart.map((item) => {
@@ -1013,7 +1065,11 @@ function OrderContent() {
         }
       }
 
-      setResult(data);
+      setResult({
+        saleId: data.saleId,
+        trackToken: data.trackToken,
+        displayNumber: data.displayNumber,
+      });
       setCart([]);
       track('purchase', {
         sale_id: data.saleId,
@@ -1449,21 +1505,38 @@ function OrderContent() {
       className={`mx-auto mt-3 flex w-full max-w-3xl items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm sm:mx-4 ${
         paymentReturn === 'success'
           ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
-          : 'border-ming-red/40 bg-ming-red/10 text-ming-red'
+          : paymentReturn === 'pending'
+            ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+            : 'border-ming-red/40 bg-ming-red/10 text-ming-red'
       }`}
     >
       <div className="flex items-start gap-2">
         {paymentReturn === 'success' ? (
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+        ) : paymentReturn === 'pending' ? (
+          <Clock className="mt-0.5 h-4 w-4 shrink-0" />
         ) : (
           <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
         )}
         <div>
           <p className="font-semibold">
-            {paymentReturn === 'success' ? t.orderPaymentReturnSuccess : t.orderPaymentReturnFailed}
+            {paymentReturn === 'success'
+              ? t.orderPaymentReturnSuccess
+              : paymentReturn === 'pending'
+                ? t.orderPaymentReturnPending
+                : t.orderPaymentReturnFailed}
           </p>
           {paymentReturn === 'error' && paymentReturnDetail ? (
             <p className="mt-1 text-xs opacity-90">{paymentReturnDetail}</p>
+          ) : null}
+          {paymentReturn === 'pending' && paymentReturnTrackUrl ? (
+            <button
+              type="button"
+              className="mt-2 text-xs font-semibold underline underline-offset-2"
+              onClick={() => window.location.assign(paymentReturnTrackUrl)}
+            >
+              {t.orderPaymentReturnPendingTrack}
+            </button>
           ) : null}
         </div>
       </div>

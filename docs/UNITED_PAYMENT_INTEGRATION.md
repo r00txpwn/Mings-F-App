@@ -24,14 +24,15 @@ sequenceDiagram
   UP-->>UPCreate: transactionId + url
   UPCreate->>DB: online_payments pending
   UPCreate-->>OrderApp: checkoutUrl
+  Note over OrderApp: Fail-closed if checkoutUrl missing — keep cart, no fake confirmation
   Customer->>UP: Pay on hosted page
   UP-->>UPReturn: GET redirect ?up=base64
   UP-->>UPWebhook: POST webhook (optional)
   UPReturn->>UP: CheckStatus server-side
   UPWebhook->>UP: CheckStatus server-side
-  UPReturn->>DB: mark paid/failed
+  UPReturn->>DB: mark paid/failed/pending
   UPWebhook->>DB: mark paid/failed
-  UPReturn-->>Customer: 302 storefront ?paid=1
+  UPReturn-->>Customer: 302 storefront ?paid=1 or payment_error=1 or payment_pending=1
 ```
 
 ## Edge functions
@@ -86,6 +87,18 @@ See [`.env.example`](../.env.example) `UNITED_PAYMENT_*` block. Minimum for chec
 
 **CheckStatus URLs** default to `/transactions/status/order/{clientOrderId}` and `/transactions/status/{transactionId}` — **confirm exact paths with United Payment** before production.
 
+## Storefront handoff (`OrderApp`)
+
+Browser return query is the current contract (not independent proof of payment):
+
+| Query | Frontend |
+|-------|----------|
+| `paid=1` (+ `sale`) | Clear cart, refetch sale `track_token` / `display_number`, land on confirmation + tracking. |
+| `payment_error=1` | Keep cart, reopen checkout, new `clientRequestId` on retry. |
+| `payment_pending=1` | Explicit pending banner (never treat as paid); tracking link when `track_token` is available. |
+
+If `united-payment-create-payment` / `epoint-create-payment` returns HTTP success without `checkoutUrl`, the storefront **fail-closes**: cart stays, no confirmation screen, recoverable error. Backend cancels the sale on init failure, so the next Place Order mints a new `clientRequestId`.
+
 ## Refunds
 
 No refund/reverse API is documented in the United Payment checkout collections. Treat refunds as **dashboard-only** until United Payment confirms an API.
@@ -94,9 +107,11 @@ No refund/reverse API is documented in the United Payment checkout collections. 
 
 1. Place **takeaway + card_online** order on local/staging storefront.
 2. Confirm redirect to United Payment hosted page.
-3. Pay with test card → return URL shows `?paid=1`, sale `payment_status=paid`, KDS can accept order.
-4. Decline/cancel path → `?payment_error=1`, sale stays unpaid, KDS blocks prep.
-5. If webhook configured, confirm `online_payments.raw_payload` shows `status_check_ok: true`.
+3. Pay with test card → return URL shows `?paid=1`, sale `payment_status=paid`, storefront confirmation/tracking, KDS can accept order.
+4. Decline/cancel path → `?payment_error=1`, cart still present, customer can retry, KDS blocks prep.
+5. Pending return → `?payment_pending=1` shows pending UI (not paid confirmation).
+6. Create-payment without `checkoutUrl` → error, cart preserved, no fake confirmation.
+7. If webhook configured, confirm `online_payments.raw_payload` shows `status_check_ok: true`.
 
 ## Open questions for United Payment (Ilqar)
 
