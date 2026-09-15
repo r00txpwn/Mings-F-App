@@ -49,6 +49,7 @@ describe('cardPaymentInitHandoff', () => {
 describe('parseStorefrontPaymentReturn', () => {
   it('query paid+saleId is eligible to clear, but OrderApp waits for saleRowIsPaid', () => {
     const parsed = parseStorefrontPaymentReturn('paid=1&sale=sale-1');
+    expect(parsed).toEqual({ status: 'paid', saleId: 'sale-1', message: null });
     expect(shouldClearCartOnPaymentReturn(parsed.status, parsed.saleId)).toBe(true);
     expect(saleRowIsPaid({ payment_status: 'pending' })).toBe(false);
     expect(saleRowIsPaid({ payment_status: 'paid' })).toBe(true);
