@@ -92,8 +92,13 @@ These run in PR CI (`.github/workflows/ci.yml`) and locally via `npm run qa`.
 ### Payments (partial — edge logic mostly untested)
 
 - [x] **unit-united-return** United Payment return URL parse + status map | `tests/unit/unitedPaymentReturnParse.test.ts` | priority:critical
+- [x] **unit-up-mark-paid-enables-kds-prep** Successful UP apply marks sale paid so KDS may-cook | `tests/unit/unitedPaymentApply.test.ts` | priority:critical
+- [x] **unit-payment-idempotency** Duplicate success webhook/return does not double-apply | `tests/unit/unitedPaymentApply.test.ts` | priority:critical
+- [x] **unit-up-create-payment-rejects-second-init** Create-payment guards reject second init (409) | `tests/unit/unitedPaymentCreateGuards.test.ts` | priority:critical
+- [x] **unit-cod-may-cook-without-paid** COD → cash_* unpaid may-cook | `tests/unit/kdsPaymentPrep.test.ts` `tests/unit/kdsPreparingPolicy.test.ts` | priority:critical
+- [x] **unit-kds-status-preparing-requires-paid-card** Preparing-branch: unpaid card 409, paid card allow | `tests/unit/kdsPreparingPolicy.test.ts` | priority:critical
+- [x] **unit-order-create-nextstep-card-vs-cod** Card vs COD nextStep + fail-closed missing checkoutUrl | `tests/unit/onlineOrderCreateContract.test.ts` `tests/unit/storefrontPaymentHandoff.test.ts` | priority:critical
 - [ ] **unit-epoint-signature** Epoint webhook signature verification | GAP | priority:critical
-- [ ] **unit-payment-idempotency** Duplicate webhook does not double-charge | GAP | priority:critical
 - [ ] **unit-order-totals** Order total recomputation matches cart | GAP | priority:critical
 
 ### i18n & security expectations
@@ -112,11 +117,11 @@ Extract pure logic to `_shared/` and unit-test with Vitest; add contract tests f
 |----------|------|---------|
 | `epoint-webhook` | critical | GAP |
 | `epoint-create-payment` | critical | GAP |
-| `united-payment-webhook` | critical | GAP |
-| `united-payment-create-payment` | critical | GAP |
-| `online-order-create` | critical | GAP |
+| `united-payment-webhook` | critical | apply/idempotency in `tests/unit/unitedPaymentApply.test.ts` |
+| `united-payment-create-payment` | critical | guards in `tests/unit/unitedPaymentCreateGuards.test.ts` |
+| `online-order-create` | critical | nextStep contract in `tests/unit/onlineOrderCreateContract.test.ts` |
 | `pos-order-create` | major | GAP |
-| `kds-order-status-update` | critical | GAP |
+| `kds-order-status-update` | critical | preparing gate in `tests/unit/kdsPreparingPolicy.test.ts` |
 | `payment-reconcile` | major | GAP |
 | `wolt-drive-*` | major | GAP |
 | `admin-api` | major | GAP |

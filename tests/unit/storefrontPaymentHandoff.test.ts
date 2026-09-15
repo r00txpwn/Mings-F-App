@@ -38,6 +38,13 @@ describe('cardPaymentInitHandoff', () => {
     });
   });
 
+  it('unit-order-create-nextStep-card-vs-cod: ok-without-checkoutUrl must not be treated as placed', () => {
+    const handoff = cardPaymentInitHandoff({ ok: true, data: { checkoutUrl: undefined } });
+    expect(handoff.action).toBe('fail_closed');
+    expect(shouldClearCartOnPaymentReturn('none', null)).toBe(false);
+    expect(saleRowIsPaid({ payment_status: 'pending' })).toBe(false);
+  });
+
   it('redirects only when ok and checkoutUrl is present', () => {
     expect(cardPaymentInitHandoff({ ok: true, data: { checkoutUrl: 'https://pay.example/session' } })).toEqual({
       action: 'redirect',

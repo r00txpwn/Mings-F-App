@@ -2,9 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsPreflightResponse, jsonResponse } from '../_shared/cors.ts';
 import { pointInGeoJsonPolygon } from '../_shared/geo.ts';
 import {
-  isCardOnlinePaymentMethod,
-  normalizePaymentMethodForPersist,
-  type PersistedOnlinePaymentMethod,
+  onlineOrderCreatePaymentContract,
 } from '../_shared/onlinePaymentMethod.ts';
 import { acceptingKitchen, type KitchenSettings } from '../_shared/kitchenAcceptance.ts';
 import {
@@ -255,11 +253,8 @@ async function handleRequest(req: Request): Promise<Response> {
     scheduledAtIso = parsed.toISOString();
   }
 
-  const persistedPaymentMethod: PersistedOnlinePaymentMethod = normalizePaymentMethodForPersist(
-    rawPaymentMethod,
-    fulfillmentType
-  );
-  const cardPayment = isCardOnlinePaymentMethod(persistedPaymentMethod);
+  const { paymentMethod: persistedPaymentMethod, paymentStatus, nextStep } =
+    onlineOrderCreatePaymentContract(rawPaymentMethod, fulfillmentType);
 
   const source = fulfillmentType === 'delivery' ? 'online_delivery' : 'online_takeaway';
 
@@ -603,8 +598,6 @@ async function handleRequest(req: Request): Promise<Response> {
     }
   }
 
-  const paymentStatus: string = cardPayment ? 'pending' : 'unpaid';
-
   const itemCount = resolvedLines.reduce((s, l) => s + l.quantity, 0);
 
   const tableNote = tableLabel?.trim() ? `Table/ref: ${tableLabel.trim()}` : '';
@@ -722,7 +715,7 @@ async function handleRequest(req: Request): Promise<Response> {
     deliveryFee,
     paymentMethod: persistedPaymentMethod,
     paymentInitToken: persisted.data.payment_init_token ?? paymentInitToken,
-    nextStep: cardPayment ? 'united-payment-create-payment' : 'track',
+    nextStep,
     idempotent: persisted.data.idempotent,
   });
 }

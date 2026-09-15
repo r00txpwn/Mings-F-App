@@ -1,4 +1,4 @@
-import { paymentConfirmedForKdsPrep } from '../_shared/onlinePaymentMethod.ts';
+import { evaluateKdsPreparingTransition } from '../_shared/kdsPreparingPolicy.ts';
 import { corsHeaders, jsonResponse, requireStaffAuth, writeAdminAudit } from '../_shared/staffAuth.ts';
 
 interface StatusBody {
@@ -49,29 +49,9 @@ Deno.serve(async (req: Request) => {
       payment_status: string | null;
       order_status: string | null;
     };
-    if (row.order_status !== 'pending') {
-      return jsonResponse(
-        { ok: false, error: { code: 'INVALID_STATE', message: 'Only pending orders can start preparing' } },
-        400
-      );
-    }
-    if (
-      !paymentConfirmedForKdsPrep({
-        source: row.source,
-        onlinePaymentMethod: row.online_payment_method,
-        paymentStatus: row.payment_status,
-      })
-    ) {
-      return jsonResponse(
-        {
-          ok: false,
-          error: {
-            code: 'PAYMENT_NOT_CONFIRMED',
-            message: 'Card payment must be confirmed before preparing',
-          },
-        },
-        409
-      );
+    const gate = evaluateKdsPreparingTransition(row);
+    if (!gate.ok) {
+      return jsonResponse({ ok: false, error: { code: gate.code, message: gate.message } }, gate.status);
     }
   }
 
