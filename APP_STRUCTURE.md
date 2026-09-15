@@ -179,6 +179,8 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 │   └── /order                    # Public web ordering + tracking
 │       ├── OrderApp.tsx
 │       ├── storefrontPaymentHandoff.ts  # Card init fail-closed + paid/error/pending return query
+│       ├── OrderMenuBrowseView.tsx      # Light QSR menu (wireframe)
+│       ├── OrderItemCustomizeView.tsx   # Light QSR item / modifiers
 │       ├── TrackingApp.tsx
 │       ├── invokeEdge.ts         # Calls Supabase Edge Functions with anon key
 │       └── /hooks/useOnlineMenu.ts
@@ -233,7 +235,7 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 | **KDS** (`/kds`) | Read/update **kiosk + online** orders (`order_status` pipeline) for kitchen |
 | **Kiosk orders (admin)** | Monitor same-day orders (kiosk + online) in Kanban; realtime on `sales` |
 | **Order manager** (`/order-manager`, `/order-management`) | Staff-authenticated mobile-first operations view: active flow, past orders, menu toggles |
-| **Online** (`/order` / `/track`) | Public menu (`products.online_visible`, optional `products.is_halal` badge), checkout via Edge `online-order-create` (ASAP + scheduled slots); tracking via RPC `get_sale_tracking_public` |
+| **Online** (`/order` / `/track`) | Public menu (`products.online_visible`, optional `products.is_halal` badge), checkout via Edge `online-order-create` (ASAP + scheduled slots); tracking via RPC `get_sale_tracking_public`. Menu + item customize: light QSR tokens in [docs/STOREFRONT_VISUAL.md](docs/STOREFRONT_VISUAL.md). |
 
 Combo docs: [docs/COMBO_DEALS.md](docs/COMBO_DEALS.md)
 

@@ -81,6 +81,7 @@ See **[DEPLOY.md](DEPLOY.md)** for the **two-project** Vercel split (`order.ming
 
 ## Storefront checkout highlights
 
+- Menu browse + item customize use the light QSR visual system (lacquer red `#7a1f1f`). See **[docs/STOREFRONT_VISUAL.md](docs/STOREFRONT_VISUAL.md)**. Cart / checkout / tracking chrome is still the previous dark theme (later PRs).
 - Cart state persists across refresh (`cart`, fulfillment mode, selected saved address).
 - Cart lines support per-item notes and those notes are passed to `online-order-create`.
 - Account order history includes a one-tap reorder action that rebuilds the cart from prior sale items.

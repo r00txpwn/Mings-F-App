@@ -2,12 +2,7 @@ import { ShoppingBag, User } from 'lucide-react';
 import type { Language } from '../translations';
 import type { OnlineFulfillmentType } from '../types/online';
 import { OrderFulfillmentPicker } from './OrderFulfillmentPicker';
-
-const LANGUAGES: { code: Language; srLabel: string; flag: string }[] = [
-  { code: 'en', srLabel: 'English', flag: '🇬🇧' },
-  { code: 'az', srLabel: 'Azerbaijani', flag: '🇦🇿' },
-  { code: 'ru', srLabel: 'Russian', flag: '🇷🇺' },
-];
+import { OrderLangChips } from './OrderLangChips';
 
 interface OrderOnlineTopBarProps {
   language: Language;
@@ -51,82 +46,61 @@ export function OrderOnlineTopBar({
   hideAccountButton,
   hideCartButton,
 }: OrderOnlineTopBarProps) {
+  const fulfillmentPicker = (
+    <OrderFulfillmentPicker
+      fulfillment={fulfillment}
+      onChange={onFulfillmentChange}
+      showTakeaway={showTakeaway}
+      showDelivery={showDelivery}
+      label={fulfillmentLabel}
+      takeawayLabel={takeawayLabel}
+      deliveryLabel={deliveryLabel}
+    />
+  );
+
+  const langs = (
+    <OrderLangChips language={language} onChange={onLanguageChange} label={languageLabel} />
+  );
+
+  const actions = (
+    <div className="flex shrink-0 items-center gap-1.5">
+      {hideAccountButton ? null : (
+        <button type="button" onClick={onOpenAccount} className="sf-icon-btn" aria-label={accountAriaLabel}>
+          <User className="h-[18px] w-[18px]" strokeWidth={1.75} />
+        </button>
+      )}
+      {hideCartButton ? null : (
+        <button type="button" onClick={onOpenCart} className="sf-icon-btn" aria-label={cartAriaLabel}>
+          <ShoppingBag className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          {cartCount > 0 ? <span className="sf-cart-count">{cartCount > 99 ? '99+' : cartCount}</span> : null}
+        </button>
+      )}
+    </div>
+  );
+
   return (
-    <div className="sticky top-0 z-30 border-b border-white/[0.06] bg-ming-ink/85 backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-5 lg:px-10">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ming-red text-white shadow-ming">
-            <span className="ming-display text-[15px] leading-none">M</span>
-          </span>
-          <div className="min-w-0 flex-1">
-            <OrderFulfillmentPicker
-              fulfillment={fulfillment}
-              onChange={onFulfillmentChange}
-              showTakeaway={showTakeaway}
-              showDelivery={showDelivery}
-              label={fulfillmentLabel}
-              takeawayLabel={takeawayLabel}
-              deliveryLabel={deliveryLabel}
-              variant="pill"
-            />
-          </div>
+    <header className="sticky top-0 z-40 border-b border-sf-line bg-sf-surface">
+      <div className="mx-auto w-full max-w-[390px] md:hidden">
+        <div className="flex min-h-14 items-center gap-2.5 px-4 py-2">
+          <p className="sf-logo">
+            Ming&apos;<span>s</span>
+          </p>
+          <div className="ml-auto">{actions}</div>
         </div>
-
-        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-          <div
-            className="inline-flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/[0.04] p-0.5"
-            role="group"
-            aria-label={languageLabel}
-          >
-            {LANGUAGES.map((lang) => {
-              const active = language === lang.code;
-              return (
-                <button
-                  key={lang.code}
-                  type="button"
-                  onClick={() => onLanguageChange(lang.code)}
-                  aria-label={lang.srLabel}
-                  aria-pressed={active}
-                  className={`rounded-lg px-2 py-1.5 text-base leading-none transition-colors sm:px-2.5 ${
-                    active
-                      ? 'bg-ming-red/25 text-ming-bone ring-1 ring-ming-red/60'
-                      : 'text-ming-ash hover:bg-white/[0.08] hover:text-ming-bone'
-                  }`}
-                >
-                  <span aria-hidden>{lang.flag}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {hideAccountButton ? null : (
-            <button
-              type="button"
-              onClick={onOpenAccount}
-              className="ming-iconbtn"
-              aria-label={accountAriaLabel}
-            >
-              <User className="h-4.5 w-4.5" />
-            </button>
-          )}
-
-          {hideCartButton ? null : (
-            <button
-              type="button"
-              onClick={onOpenCart}
-              className="ming-iconbtn"
-              aria-label={cartAriaLabel}
-            >
-              <ShoppingBag className="h-4.5 w-4.5" />
-              {cartCount > 0 ? (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-ming-red px-1 text-[10px] font-bold text-white shadow-ming">
-                  {cartCount > 99 ? '99+' : cartCount}
-                </span>
-              ) : null}
-            </button>
-          )}
+        <div className="flex items-center gap-2.5 px-4 pb-2.5">
+          {fulfillmentPicker}
+          {langs}
         </div>
       </div>
-    </div>
+      <div className="mx-auto hidden w-full max-w-[1080px] grid-cols-[auto_auto_1fr_auto_auto] items-center gap-x-4 px-6 py-2.5 md:grid">
+        <p className="sf-logo">
+          Ming&apos;<span>s</span>
+        </p>
+        {fulfillmentPicker}
+        <span aria-hidden />
+        {langs}
+        {actions}
+      </div>
+    </header>
   );
 }

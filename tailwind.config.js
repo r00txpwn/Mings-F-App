@@ -8,6 +8,7 @@ export default {
         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
         display: ['"Unbounded"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        sf: ['Inter', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
       colors: {
         ming: {
@@ -25,6 +26,20 @@ export default {
           bone: '#F5F5F4',
           ash: '#A8A6B0',
           mute: '#6B6870',
+        },
+        sf: {
+          bg: '#f4f1ec',
+          surface: '#ffffff',
+          ink: '#1c1917',
+          muted: '#6d675f',
+          line: '#e4dfd6',
+          'line-strong': '#cfc8bc',
+          photo: '#d9d3c9',
+          'photo-label': '#8a8378',
+          accent: '#7a1f1f',
+          'accent-hover': '#611818',
+          'accent-soft': '#f4eceb',
+          ok: '#2c6a3c',
         },
         kiosk: {
           bg: '#1f1f1f',
