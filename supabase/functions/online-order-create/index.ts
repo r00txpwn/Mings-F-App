@@ -684,35 +684,8 @@ async function handleRequest(req: Request): Promise<Response> {
   const saleId = persisted.data.sale_id;
   const displayNumber = persisted.data.display_number;
 
-  if (fulfillmentType === 'delivery' && Deno.env.get('WOLT_API_TOKEN')) {
-    EdgeRuntime.waitUntil(
-      (async () => {
-        try {
-          const resp = await fetch(`${supabaseUrl}/functions/v1/wolt-drive-create`, {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${serviceKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ saleId }),
-          });
-          if (!resp.ok) {
-            await supabase.from('dispatch_failures').insert({
-              sale_id: saleId,
-              reason: `wolt-drive-create failed: ${resp.status}`,
-              payload: { status: resp.status },
-            });
-          }
-        } catch (err) {
-          await supabase.from('dispatch_failures').insert({
-            sale_id: saleId,
-            reason: 'wolt-drive-create network failure',
-            payload: { error: err instanceof Error ? err.message : String(err) },
-          });
-        }
-      })()
-    );
-  }
+  // Wolt Drive create is staff-authenticated (admin|staff). Do not auto-invoke
+  // with the service role; staff dispatch via wolt-drive-create or manual-dispatch.
 
   return jsonResponse({
     saleId,

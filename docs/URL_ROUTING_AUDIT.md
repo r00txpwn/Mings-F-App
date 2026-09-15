@@ -125,9 +125,9 @@ Token validation uses a user-scoped Supabase client (`SUPABASE_ANON_KEY` + `Auth
 
 ## 4. Kiosk / KDS gates (`SecretGate.tsx`)
 
-- If `VITE_KIOSK_SECRET` is **empty**, kiosk gate **allows** access (documented for local dev).
+- If `VITE_KIOSK_SECRET` is **empty**, kiosk **UI** gate **allows** access (documented for local dev).
 - **`/kds`** uses **staff Supabase Auth** (login screen) — not `SecretGate` or URL secrets.
-- **Production kiosk**: set `VITE_KIOSK_SECRET` and use `?key=` (or accept open kiosk — business risk).
+- **Production kiosk**: set `VITE_KIOSK_SECRET` and matching Edge **`KIOSK_SECRET`**. Order create is fail-closed: empty Edge secret → `403 KIOSK_MISCONFIGURED`; header `x-kiosk-secret` must match.
 
 ### Kiosk UX (in-store, `/kiosk`)
 

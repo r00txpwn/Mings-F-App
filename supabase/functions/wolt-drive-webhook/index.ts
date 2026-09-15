@@ -1,17 +1,20 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
+import { assertWoltWebhookSignature, readWoltSignatureHeader } from '../_shared/woltWebhookAuth.ts';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
 
-  const secret = Deno.env.get('WOLT_WEBHOOK_SECRET') ?? '';
-  const sig = req.headers.get('X-Wolt-Signature') ?? req.headers.get('x-wolt-signature');
-  const rawBody = await req.text();
-
-  if (secret && sig !== secret) {
-    return jsonResponse({ error: 'Invalid signature' }, 401);
+  const gate = await assertWoltWebhookSignature({
+    expected: Deno.env.get('WOLT_WEBHOOK_SECRET'),
+    provided: readWoltSignatureHeader(req.headers),
+  });
+  if (!gate.ok) {
+    return jsonResponse({ error: gate.error, code: gate.code }, gate.status);
   }
+
+  const rawBody = await req.text();
 
   let payload: Record<string, unknown>;
   try {
