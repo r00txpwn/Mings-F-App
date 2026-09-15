@@ -4,6 +4,7 @@ import {
   hostedCheckoutUrlFromInit,
   parseStorefrontPaymentReturn,
   placedOrderFromSaleRow,
+  saleRowIsPaid,
   shouldClearCartOnPaymentReturn,
   stripStorefrontPaymentReturnParams,
 } from '../../src/order/storefrontPaymentHandoff';
@@ -49,7 +50,16 @@ describe('parseStorefrontPaymentReturn', () => {
   it('reads exact paid=1 (+ sale) as success', () => {
     const parsed = parseStorefrontPaymentReturn('paid=1&sale=sale-1');
     expect(parsed).toEqual({ status: 'paid', saleId: 'sale-1', message: null });
-    expect(shouldClearCartOnPaymentReturn(parsed.status)).toBe(true);
+    expect(shouldClearCartOnPaymentReturn(parsed.status, parsed.saleId)).toBe(true);
+  });
+
+  it('fail-closes paid=1 without saleId — never invents success or clears cart', () => {
+    for (const search of ['paid=1', 'paid=1&sale=', 'paid=1&sale=%20']) {
+      const parsed = parseStorefrontPaymentReturn(search);
+      expect(parsed.status, search).toBe('error');
+      expect(parsed.saleId, search).toBeNull();
+      expect(shouldClearCartOnPaymentReturn(parsed.status, parsed.saleId), search).toBe(false);
+    }
   });
 
   it('reads exact payment_error=1 (+ message, sale) and keeps cart', () => {
@@ -61,14 +71,14 @@ describe('parseStorefrontPaymentReturn', () => {
       saleId: 'sale-2',
       message: 'Payment cancelled',
     });
-    expect(shouldClearCartOnPaymentReturn(parsed.status)).toBe(false);
+    expect(shouldClearCartOnPaymentReturn(parsed.status, parsed.saleId)).toBe(false);
   });
 
   it('reads exact payment_pending=1 (+ sale) and never treats it as paid', () => {
     const parsed = parseStorefrontPaymentReturn('payment_pending=1&sale=sale-3');
     expect(parsed.status).toBe('pending');
     expect(parsed.saleId).toBe('sale-3');
-    expect(shouldClearCartOnPaymentReturn(parsed.status)).toBe(false);
+    expect(shouldClearCartOnPaymentReturn(parsed.status, parsed.saleId)).toBe(false);
   });
 
   it('fail-closes on unknown or missing flags — never invents success', () => {
@@ -76,14 +86,14 @@ describe('parseStorefrontPaymentReturn', () => {
     for (const search of cases) {
       const parsed = parseStorefrontPaymentReturn(search);
       expect(parsed.status, search).not.toBe('paid');
-      expect(shouldClearCartOnPaymentReturn(parsed.status), search).toBe(false);
+      expect(shouldClearCartOnPaymentReturn(parsed.status, parsed.saleId), search).toBe(false);
     }
   });
 
   it('fail-closes when return flags conflict — never invents success', () => {
     const parsed = parseStorefrontPaymentReturn('paid=1&payment_pending=1&sale=sale-1');
     expect(parsed.status).not.toBe('paid');
-    expect(shouldClearCartOnPaymentReturn(parsed.status)).toBe(false);
+    expect(shouldClearCartOnPaymentReturn(parsed.status, parsed.saleId)).toBe(false);
   });
 });
 
@@ -120,5 +130,16 @@ describe('placedOrderFromSaleRow', () => {
   it('returns null when there is no sale to land on', () => {
     expect(placedOrderFromSaleRow(null)).toBeNull();
     expect(placedOrderFromSaleRow({ id: '' })).toBeNull();
+  });
+});
+
+describe('saleRowIsPaid', () => {
+  it('is true only for payment_status paid', () => {
+    expect(saleRowIsPaid({ payment_status: 'paid' })).toBe(true);
+    expect(saleRowIsPaid({ payment_status: 'Paid' })).toBe(true);
+    expect(saleRowIsPaid({ payment_status: 'pending' })).toBe(false);
+    expect(saleRowIsPaid({ payment_status: 'failed' })).toBe(false);
+    expect(saleRowIsPaid({ payment_status: null })).toBe(false);
+    expect(saleRowIsPaid(null)).toBe(false);
   });
 });

@@ -41,6 +41,7 @@ import {
   parseStorefrontPaymentReturn,
   paymentReturnBannerKind,
   placedOrderFromSaleRow,
+  saleRowIsPaid,
   shouldClearCartOnPaymentReturn,
   stripStorefrontPaymentReturnParams,
   type PlacedOrderResult,
@@ -260,7 +261,7 @@ function OrderContent() {
     void (async () => {
       const { data } = await supabase
         .from('sales')
-        .select('id, display_number, track_token')
+        .select('id, display_number, track_token, payment_status')
         .eq('id', saleId)
         .maybeSingle();
       const placed = placedOrderFromSaleRow(data);
@@ -271,6 +272,11 @@ function OrderContent() {
         );
       }
       if (inboundPaymentReturn.status !== 'paid') return;
+      if (!saleRowIsPaid(data)) {
+        setPaymentReturn('pending');
+        setPaymentReturnDetail(null);
+        return;
+      }
       setResult(placed);
       setCart([]);
       setFlow('done');
@@ -309,7 +315,7 @@ function OrderContent() {
 
   useEffect(() => {
     try {
-      if (shouldClearCartOnPaymentReturn(inboundPaymentReturn.status)) {
+      if (shouldClearCartOnPaymentReturn(inboundPaymentReturn.status, inboundPaymentReturn.saleId)) {
         window.localStorage.removeItem(ORDER_CART_STORAGE_KEY);
         setCart([]);
         return;
@@ -331,7 +337,7 @@ function OrderContent() {
     } finally {
       setCartStorageReady(true);
     }
-  }, [inboundPaymentReturn.status]);
+  }, [inboundPaymentReturn]);
 
   useEffect(() => {
     if (inboundPaymentReturn.status !== 'error') return;
@@ -1518,7 +1524,9 @@ function OrderContent() {
               ? t.orderPaymentReturnSuccess
               : paymentReturn === 'pending'
                 ? t.orderPaymentReturnPending
-                : t.orderPaymentReturnFailed}
+                : paymentReturnDetail
+                  ? t.orderPaymentReturnFailed
+                  : t.orderPaymentReturnAmbiguous}
           </p>
           {paymentReturn === 'error' && paymentReturnDetail ? (
             <p className="mt-1 text-xs opacity-90">{paymentReturnDetail}</p>

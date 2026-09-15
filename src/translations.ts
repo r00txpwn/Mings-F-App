@@ -1147,6 +1147,7 @@ export interface Translations {
   orderErrPaymentRedirectMissing: string;
   orderPaymentReturnSuccess: string;
   orderPaymentReturnFailed: string;
+  orderPaymentReturnAmbiguous: string;
   orderPaymentReturnPending: string;
   orderPaymentReturnPendingTrack: string;
   orderPaymentDismiss: string;
@@ -2752,6 +2753,8 @@ export const translations: Record<Language, Translations> = {
       'Card payment could not be started. The order was cancelled and your cart is still here. Please try again.',
     orderPaymentReturnSuccess: 'Payment received. Thank you!',
     orderPaymentReturnFailed: 'Payment did not complete. Your cart is saved — you can try again.',
+    orderPaymentReturnAmbiguous:
+      'We could not confirm this payment. Your cart is still here — check order status or try again.',
     orderPaymentReturnPending: 'Payment is still processing. This is not a paid confirmation yet.',
     orderPaymentReturnPendingTrack: 'Check order status',
     orderPaymentDismiss: 'Dismiss',
@@ -4375,6 +4378,8 @@ export const translations: Record<Language, Translations> = {
       'Kart ödənişi başladıla bilmədi. Sifariş ləğv olundu, səbətiniz yerindədir. Zəhmət olmasa yenidən cəhd edin.',
     orderPaymentReturnSuccess: 'Ödəniş qəbul olundu. Təşəkkürlər!',
     orderPaymentReturnFailed: 'Ödəniş tamamlanmadı. Səbətiniz saxlanılıb — yenidən cəhd edə bilərsiniz.',
+    orderPaymentReturnAmbiguous:
+      'Ödənişi təsdiqləyə bilmədik. Səbətiniz yerindədir — statusa baxın və ya yenidən cəhd edin.',
     orderPaymentReturnPending: 'Ödəniş hələ emal olunur. Bu, hələ ödəniş təsdiqi deyil.',
     orderPaymentReturnPendingTrack: 'Sifariş statusuna bax',
     orderPaymentDismiss: 'Bağla',
@@ -6000,6 +6005,8 @@ export const translations: Record<Language, Translations> = {
       'Не удалось начать оплату картой. Заказ отменён, корзина на месте. Пожалуйста, попробуйте снова.',
     orderPaymentReturnSuccess: 'Оплата получена. Спасибо!',
     orderPaymentReturnFailed: 'Оплата не завершилась. Корзина сохранена — можно попробовать снова.',
+    orderPaymentReturnAmbiguous:
+      'Не удалось подтвердить оплату. Корзина на месте — проверьте статус или попробуйте снова.',
     orderPaymentReturnPending: 'Оплата ещё обрабатывается. Это ещё не подтверждение оплаты.',
     orderPaymentReturnPendingTrack: 'Проверить статус заказа',
     orderPaymentDismiss: 'Закрыть',

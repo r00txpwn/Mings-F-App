@@ -66,7 +66,10 @@ export function parseStorefrontPaymentReturn(
   if (flagCount > 1) {
     return { status: 'error', saleId, message: null };
   }
-  if (paid) return { status: 'paid', saleId, message: null };
+  if (paid) {
+    if (!saleId) return { status: 'error', saleId: null, message: null };
+    return { status: 'paid', saleId, message: null };
+  }
   if (error) {
     return { status: 'error', saleId, message: params.get('message')?.trim() || null };
   }
@@ -84,8 +87,11 @@ export function stripStorefrontPaymentReturnParams(params: URLSearchParams): URL
   return next;
 }
 
-export function shouldClearCartOnPaymentReturn(status: StorefrontPaymentReturnStatus): boolean {
-  return status === 'paid';
+export function shouldClearCartOnPaymentReturn(
+  status: StorefrontPaymentReturnStatus,
+  saleId?: string | null
+): boolean {
+  return status === 'paid' && Boolean(saleId?.trim());
 }
 
 export function paymentReturnBannerKind(
@@ -107,4 +113,9 @@ export function placedOrderFromSaleRow(
     displayNumber: String(sale?.display_number ?? '').trim() || saleId,
     trackToken: String(sale?.track_token ?? '').trim(),
   };
+}
+
+/** Existing sales.payment_status — readable on customer order history / tracking. */
+export function saleRowIsPaid(sale: { payment_status?: string | null } | null): boolean {
+  return String(sale?.payment_status ?? '').trim().toLowerCase() === 'paid';
 }
