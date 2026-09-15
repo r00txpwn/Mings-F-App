@@ -178,6 +178,7 @@ Entry files: [`src/main-staff.tsx`](src/main-staff.tsx), [`src/main-storefront.t
 │   │
 │   └── /order                    # Public web ordering + tracking
 │       ├── OrderApp.tsx
+│       ├── storefrontPaymentHandoff.ts  # Card init fail-closed + paid/error/pending return query
 │       ├── TrackingApp.tsx
 │       ├── invokeEdge.ts         # Calls Supabase Edge Functions with anon key
 │       └── /hooks/useOnlineMenu.ts

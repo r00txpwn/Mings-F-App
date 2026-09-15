@@ -1144,6 +1144,13 @@ export interface Translations {
   orderErrMinimumOrder: string;
   orderErrZoneMinimumOrder: string;
   orderErrPaymentInitFailed: string;
+  orderErrPaymentRedirectMissing: string;
+  orderPaymentReturnSuccess: string;
+  orderPaymentReturnFailed: string;
+  orderPaymentReturnAmbiguous: string;
+  orderPaymentReturnPending: string;
+  orderPaymentReturnPendingTrack: string;
+  orderPaymentDismiss: string;
   orderErrScheduleRequired: string;
   orderErrScheduleInvalid: string;
   orderErrScheduleTooSoon: string;
@@ -2742,6 +2749,15 @@ export const translations: Record<Language, Translations> = {
     orderErrMinimumOrder: 'Order total is below the minimum amount.',
     orderErrZoneMinimumOrder: 'Order subtotal is below this zone minimum.',
     orderErrPaymentInitFailed: 'Payment could not be initialized. Please try again.',
+    orderErrPaymentRedirectMissing:
+      'Card payment could not be started. The order was cancelled and your cart is still here. Please try again.',
+    orderPaymentReturnSuccess: 'Payment received. Thank you!',
+    orderPaymentReturnFailed: 'Payment did not complete. Your cart is saved — you can try again.',
+    orderPaymentReturnAmbiguous:
+      'We could not confirm this payment. Your cart is still here — check order status or try again.',
+    orderPaymentReturnPending: 'Payment is still processing. This is not a paid confirmation yet.',
+    orderPaymentReturnPendingTrack: 'Check order status',
+    orderPaymentDismiss: 'Dismiss',
     orderErrScheduleRequired: 'Please choose a scheduled time.',
     orderErrScheduleInvalid: 'Scheduled time is invalid.',
     orderErrScheduleTooSoon: 'Please choose a later time slot.',
@@ -4358,6 +4374,15 @@ export const translations: Record<Language, Translations> = {
     orderErrMinimumOrder: 'Sifariş məbləği minimum tələbdən azdır.',
     orderErrZoneMinimumOrder: 'Bu zona üçün minimum məbləğdən azdır.',
     orderErrPaymentInitFailed: 'Ödəniş başladılmadı. Yenidən cəhd edin.',
+    orderErrPaymentRedirectMissing:
+      'Kart ödənişi başladıla bilmədi. Sifariş ləğv olundu, səbətiniz yerindədir. Zəhmət olmasa yenidən cəhd edin.',
+    orderPaymentReturnSuccess: 'Ödəniş qəbul olundu. Təşəkkürlər!',
+    orderPaymentReturnFailed: 'Ödəniş tamamlanmadı. Səbətiniz saxlanılıb — yenidən cəhd edə bilərsiniz.',
+    orderPaymentReturnAmbiguous:
+      'Ödənişi təsdiqləyə bilmədik. Səbətiniz yerindədir — statusa baxın və ya yenidən cəhd edin.',
+    orderPaymentReturnPending: 'Ödəniş hələ emal olunur. Bu, hələ ödəniş təsdiqi deyil.',
+    orderPaymentReturnPendingTrack: 'Sifariş statusuna bax',
+    orderPaymentDismiss: 'Bağla',
     orderErrScheduleRequired: 'Planlı sifariş üçün vaxt seçin.',
     orderErrScheduleInvalid: 'Seçilən vaxt etibarsızdır.',
     orderErrScheduleTooSoon: 'Daha gec bir slot seçin.',
@@ -5976,6 +6001,15 @@ export const translations: Record<Language, Translations> = {
     orderErrMinimumOrder: 'Сумма заказа ниже минимальной.',
     orderErrZoneMinimumOrder: 'Сумма заказа ниже минимума для этой зоны.',
     orderErrPaymentInitFailed: 'Не удалось начать оплату. Попробуйте снова.',
+    orderErrPaymentRedirectMissing:
+      'Не удалось начать оплату картой. Заказ отменён, корзина на месте. Пожалуйста, попробуйте снова.',
+    orderPaymentReturnSuccess: 'Оплата получена. Спасибо!',
+    orderPaymentReturnFailed: 'Оплата не завершилась. Корзина сохранена — можно попробовать снова.',
+    orderPaymentReturnAmbiguous:
+      'Не удалось подтвердить оплату. Корзина на месте — проверьте статус или попробуйте снова.',
+    orderPaymentReturnPending: 'Оплата ещё обрабатывается. Это ещё не подтверждение оплаты.',
+    orderPaymentReturnPendingTrack: 'Проверить статус заказа',
+    orderPaymentDismiss: 'Закрыть',
     orderErrScheduleRequired: 'Выберите время для запланированного заказа.',
     orderErrScheduleInvalid: 'Выбранное время недействительно.',
     orderErrScheduleTooSoon: 'Выберите более поздний слот.',
