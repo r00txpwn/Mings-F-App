@@ -3,7 +3,7 @@
 > AI analysis unavailable (no ANTHROPIC_API_KEY and claude CLI not found).
 > Install Claude Code CLI or set ANTHROPIC_API_KEY to enable full reports.
 
-## Last Run: 2026-09-19T08:32:12.360Z
+## Last Run: 2026-09-19T18:16:58.218Z
 
 | Check | Status |
 |-------|--------|
@@ -56,7 +56,7 @@
 [1m[46m RUN [49m[22m [36mv3.2.4 [39m[90m/home/runner/work/Mings-F-App/Mings-F-App[39m
 
  [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mhostedCheckoutUrlFromInit[2m > [22mfail-closes when init is ok but checkoutUrl is missing[32m 2[2mms[22m[39m
- [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mhostedCheckoutUrlFromInit[2m > [22mreturns a usable hosted checkout URL when present[32m 0[2mms[22m[39m
+ [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mhostedCheckoutUrlFromInit[2m > [22mreturns a usable hosted checkout URL when present[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mcardPaymentInitHandoff[2m > [22mfail-closes on create-payment HTTP failure (sale already cancelled server-side)[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mcardPaymentInitHandoff[2m > [22mfail-closes when HTTP ok but checkoutUrl is missing — do not navigate[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mcardPaymentInitHandoff[2m > [22mredirects only when ok and checkoutUrl is present[32m 0[2mms[22m[39m
@@ -64,7 +64,7 @@
  [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mparseStorefrontPaymentReturn[2m > [22mfail-closes paid=1 without saleId — never invents success or clears cart[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mparseStorefrontPaymentReturn[2m > [22mreads exact payment_error=1 (+ message, sale) and keeps cart[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mparseStorefrontPaymentReturn[2m > [22mreads exact payment_pending=1 (+ sale) and never treats it as paid[32m 0[2mms[22m[39m
- [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mparseStorefrontPaymentReturn[2m > [22mfail-closes on unknown or missing flags — never invents success[32m 1[2mms[22m[39m
+ [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mparseStorefrontPaymentReturn[2m > [22mfail-closes on unknown or missing flags — never invents success[32m 2[2mms[22m[39m
  [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mparseStorefrontPaymentReturn[2m > [22mfail-closes when return flags conflict — never invents success[32m 0[2mms[22m[39m
  [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mstripStorefrontPaymentReturnParams[2m > [22mremoves payment return params and keeps unrelated query keys[32m 1[2mms[22m[39m
  [32m✓[39m tests/unit/storefrontPaymentHandoff.test.ts[2m > [22mplacedOrderFromSaleRow[2m > [22mmaps saleId and trackToken from a refetched sale row[32m 0[2mms[22m[39m
