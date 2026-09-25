@@ -2,6 +2,7 @@
 
 export type EmployeeDayMarkType = 'weekly_off' | 'absent' | 'work';
 export type ResolvedDayStatus = 'work' | 'weekly_off' | 'absent';
+export type PayrollPayStatus = 'paid' | 'partial' | 'unpaid' | 'overpaid';
 
 export type DayMarkInput = {
   work_date: string;
@@ -221,4 +222,27 @@ export function employeeOnRosterForMonth(input: {
 export function roundMoney3(n: number): number {
   if (!Number.isFinite(n)) return 0;
   return Math.round(n * 1000) / 1000;
+}
+
+export function computeSalaryPaymentBalance(input: {
+  payable: number;
+  paid: number;
+}): { remaining: number; overpaid: number; payStatus: PayrollPayStatus } {
+  const payable = Number.isFinite(input.payable) ? Math.max(0, input.payable) : 0;
+  const paid = Number.isFinite(input.paid) ? Math.max(0, input.paid) : 0;
+  const tolerance = 0.0005;
+
+  if (paid <= 0) {
+    return { remaining: payable, overpaid: 0, payStatus: 'unpaid' };
+  }
+
+  if (paid - payable > tolerance) {
+    return { remaining: 0, overpaid: paid - payable, payStatus: 'overpaid' };
+  }
+
+  if (paid + tolerance >= payable) {
+    return { remaining: 0, overpaid: 0, payStatus: 'paid' };
+  }
+
+  return { remaining: payable - paid, overpaid: 0, payStatus: 'partial' };
 }

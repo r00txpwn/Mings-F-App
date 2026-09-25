@@ -43,6 +43,7 @@ import { formatFinanceMoney } from '../lib/money';
 import {
   buildMonthDays,
   computeMonthPayable,
+  computeSalaryPaymentBalance,
   employeeOnRosterForMonth,
   isEmploymentDay,
   monthDateRange,
@@ -295,12 +296,8 @@ export function StaffScreen() {
       });
       const employeePayments = paymentsByEmployee.get(employee.id) ?? [];
       const paid = employeePayments.reduce((sum, p) => sum + Number(p.amount), 0);
-      const remaining = Math.max(0, payableInfo.payable - paid);
-      let payStatus: 'paid' | 'partial' | 'unpaid' = 'unpaid';
-      if (paid <= 0) payStatus = 'unpaid';
-      else if (paid + 0.0005 >= payableInfo.payable) payStatus = 'paid';
-      else payStatus = 'partial';
-      return { payableInfo, paid, remaining, payStatus, weeklyOff };
+      const balance = computeSalaryPaymentBalance({ payable: payableInfo.payable, paid });
+      return { payableInfo, paid, weeklyOff, ...balance };
     },
     [marksByEmployee, monthIndex0, paymentsByEmployee, year],
   );
@@ -645,8 +642,8 @@ export function StaffScreen() {
       monthPayable += employeeMonthStats(employee).payableInfo.payable;
     }
     const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-    const remaining = Math.max(0, monthPayable - totalPaid);
-    return { totalPaid, monthPayable, remaining };
+    const balance = computeSalaryPaymentBalance({ payable: monthPayable, paid: totalPaid });
+    return { totalPaid, monthPayable, ...balance };
   }, [employeeMonthStats, payments, visibleEmployees]);
 
   const suggestedForPaymentForm = useMemo(() => {
@@ -720,10 +717,16 @@ export function StaffScreen() {
             <span className="text-slate-500">{t.staffPaidInPeriod}: </span>
             ₼{formatFinanceMoney(summary.totalPaid)}
           </span>
-          <span className="tabular-nums font-medium text-slate-800 dark:text-slate-100">
-            <span className="font-normal text-slate-500">{t.staffRemaining}: </span>
-            ₼{formatFinanceMoney(summary.remaining)}
-          </span>
+          {summary.overpaid > 0 ? (
+            <span className="tabular-nums font-semibold text-red-600 dark:text-red-400">
+              ⚠️ {t.staffOverpaid}: ₼{formatFinanceMoney(summary.overpaid)} ⚠️
+            </span>
+          ) : (
+            <span className="tabular-nums font-medium text-slate-800 dark:text-slate-100">
+              <span className="font-normal text-slate-500">{t.staffRemaining}: </span>
+              ₼{formatFinanceMoney(summary.remaining)}
+            </span>
+          )}
           <label className="flex cursor-pointer items-center gap-1.5 text-slate-600 dark:text-slate-300">
             <input
               type="checkbox"
@@ -830,7 +833,7 @@ export function StaffScreen() {
       ) : (
         <div className="space-y-3">
           {visibleEmployees.map((employee) => {
-            const { payableInfo, paid, remaining, payStatus } = employeeMonthStats(employee);
+            const { payableInfo, paid, remaining, overpaid, payStatus } = employeeMonthStats(employee);
             const employeePayments = paymentsByEmployee.get(employee.id) ?? [];
             const expanded = expandedEmployeeId === employee.id;
             const unusualSalary = Number(employee.total_salary) >= UNUSUAL_AMOUNT_THRESHOLD;
@@ -840,18 +843,26 @@ export function StaffScreen() {
             );
 
             const StatusIcon =
-              payStatus === 'paid' ? CheckCircle2 : payStatus === 'partial' ? CircleDashed : AlertCircle;
+              payStatus === 'paid'
+                ? CheckCircle2
+                : payStatus === 'partial'
+                  ? CircleDashed
+                  : AlertCircle;
             const statusText =
               payStatus === 'paid'
                 ? t.staffPayStatusPaid
                 : payStatus === 'partial'
                   ? t.staffPayStatusPartial
+                  : payStatus === 'overpaid'
+                    ? t.staffPayStatusOverpaid
                   : t.staffPayStatusUnpaid;
             const statusChipClass =
               payStatus === 'paid'
                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
                 : payStatus === 'partial'
                   ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-100'
+                  : payStatus === 'overpaid'
+                    ? 'bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-200'
                   : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
 
             return (
@@ -906,9 +917,15 @@ export function StaffScreen() {
                       <p className="text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
                         ₼{formatFinanceMoney(payableInfo.payable)}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {t.staffRemaining}: ₼{formatFinanceMoney(remaining)}
-                      </p>
+                      {overpaid > 0 ? (
+                        <p className="text-xs font-semibold text-red-600 dark:text-red-400">
+                          ⚠️ {t.staffOverpaid}: ₼{formatFinanceMoney(overpaid)} ⚠️
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-500">
+                          {t.staffRemaining}: ₼{formatFinanceMoney(remaining)}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       {!employee.left_at ? (

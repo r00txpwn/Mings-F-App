@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  computeSalaryPaymentBalance,
   computeMonthPayable,
   dailyRate,
   daysInMonth,
@@ -11,6 +12,46 @@ import {
 } from '../../src/services/finance/payrollMonth';
 
 describe('payrollMonth', () => {
+  it('computes unpaid salary balance', () => {
+    expect(computeSalaryPaymentBalance({ payable: 500, paid: 0 })).toEqual({
+      remaining: 500,
+      overpaid: 0,
+      payStatus: 'unpaid',
+    });
+  });
+
+  it('computes partial salary balance', () => {
+    expect(computeSalaryPaymentBalance({ payable: 500, paid: 200 })).toEqual({
+      remaining: 300,
+      overpaid: 0,
+      payStatus: 'partial',
+    });
+  });
+
+  it('computes fully paid salary balance', () => {
+    expect(computeSalaryPaymentBalance({ payable: 500, paid: 500 })).toEqual({
+      remaining: 0,
+      overpaid: 0,
+      payStatus: 'paid',
+    });
+  });
+
+  it('computes salary overpayment balance', () => {
+    expect(computeSalaryPaymentBalance({ payable: 500, paid: 700 })).toEqual({
+      remaining: 0,
+      overpaid: 200,
+      payStatus: 'overpaid',
+    });
+  });
+
+  it('treats tiny overpayment within tolerance as paid', () => {
+    expect(computeSalaryPaymentBalance({ payable: 500, paid: 500.0004 })).toEqual({
+      remaining: 0,
+      overpaid: 0,
+      payStatus: 'paid',
+    });
+  });
+
   it('uses calendar days in month for daily rate (option C)', () => {
     expect(daysInMonth(2026, 6)).toBe(31); // July
     expect(daysInMonth(2026, 1)).toBe(28); // Feb 2026

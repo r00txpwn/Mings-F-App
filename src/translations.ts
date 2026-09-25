@@ -730,6 +730,7 @@ export interface Translations {
   staffMonthPayable: string;
   staffPaidInPeriod: string;
   staffRemaining: string;
+  staffOverpaid: string;
   staffDailyRate: string;
   staffAbsentCount: string;
   staffOffCount: string;
@@ -763,6 +764,7 @@ export interface Translations {
   staffPayStatusPaid: string;
   staffPayStatusPartial: string;
   staffPayStatusUnpaid: string;
+  staffPayStatusOverpaid: string;
   staffPrevMonth: string;
   staffNextMonth: string;
   staffAttendanceTitle: string;
@@ -2354,6 +2356,7 @@ export const translations: Record<Language, Translations> = {
     staffMonthPayable: 'Payable',
     staffPaidInPeriod: 'Paid this month',
     staffRemaining: 'Remaining',
+    staffOverpaid: 'Overpaid',
     staffDailyRate: 'Day rate',
     staffAbsentCount: 'Absent',
     staffOffCount: 'Weekly off',
@@ -2387,6 +2390,7 @@ export const translations: Record<Language, Translations> = {
     staffPayStatusPaid: 'Paid',
     staffPayStatusPartial: 'Partial',
     staffPayStatusUnpaid: 'Unpaid',
+    staffPayStatusOverpaid: 'Overpaid',
     staffPrevMonth: 'Previous month',
     staffNextMonth: 'Next month',
     staffAttendanceTitle: 'Attendance',
@@ -3968,6 +3972,7 @@ export const translations: Record<Language, Translations> = {
     staffMonthPayable: 'Ödəniləcək',
     staffPaidInPeriod: 'Bu ay ödənilib',
     staffRemaining: 'Qalıq',
+    staffOverpaid: 'Artıq ödənilib',
     staffDailyRate: 'Günlük məbləğ',
     staffAbsentCount: 'Gəlməyib',
     staffOffCount: 'Həftəlik off',
@@ -4001,6 +4006,7 @@ export const translations: Record<Language, Translations> = {
     staffPayStatusPaid: 'Ödənilib',
     staffPayStatusPartial: 'Qismən',
     staffPayStatusUnpaid: 'Ödənilməyib',
+    staffPayStatusOverpaid: 'Artıq ödənilib',
     staffPrevMonth: 'Əvvəlki ay',
     staffNextMonth: 'Növbəti ay',
     staffAttendanceTitle: 'Davamiyyət',
@@ -5585,6 +5591,7 @@ export const translations: Record<Language, Translations> = {
     staffMonthPayable: 'К выплате',
     staffPaidInPeriod: 'Выплачено в этом месяце',
     staffRemaining: 'Остаток',
+    staffOverpaid: 'Переплата',
     staffDailyRate: 'Ставка за день',
     staffAbsentCount: 'Прогул',
     staffOffCount: 'Выходной',
@@ -5618,6 +5625,7 @@ export const translations: Record<Language, Translations> = {
     staffPayStatusPaid: 'Выплачено',
     staffPayStatusPartial: 'Частично',
     staffPayStatusUnpaid: 'Не выплачено',
+    staffPayStatusOverpaid: 'Переплата',
     staffPrevMonth: 'Предыдущий месяц',
     staffNextMonth: 'Следующий месяц',
     staffAttendanceTitle: 'Посещаемость',
