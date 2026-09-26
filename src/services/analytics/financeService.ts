@@ -3,7 +3,6 @@ import { fetchAllRows } from '../../lib/supabasePaginate';
 import { supabase } from '../../lib/supabase';
 import {
   ASSUMED_PLATFORM_COMMISSION_RATE,
-  computeConfiguredPayroll,
   computePlatformCommissionSummary,
 } from './kpiCalculations';
 import {
@@ -90,11 +89,6 @@ type SalesChannelRow = {
 type PlatformChannelRow = {
   sales_channel_id: string;
   sales_channels?: { name: string | null } | { name: string | null }[] | null;
-};
-
-type EmployeeSalaryRow = {
-  total_salary: number | string | null;
-  is_active: boolean;
 };
 
 const UNKNOWN_CATEGORY = 'Uncategorized';
@@ -528,7 +522,7 @@ export async function fetchPeriodSummary(
     opexRes,
     purchasesRes,
     withdrawalsRes,
-    employeesRes,
+    payrollRes,
     payoutsRes,
     platformChannelsRes,
   ] = await Promise.all([
@@ -557,8 +551,10 @@ export async function fetchPeriodSummary(
       .gte('withdrawal_date', params.startDate)
       .lte('withdrawal_date', params.endDate),
     supabase
-      .from('employees')
-      .select('total_salary, is_active'),
+      .from('salary_payments')
+      .select('amount')
+      .gte('payment_date', params.startDate)
+      .lte('payment_date', params.endDate),
     fetchPayoutReconciliation({
       startDate: params.startDate,
       endDate: params.endDate,
@@ -569,7 +565,7 @@ export async function fetchPeriodSummary(
   ]);
 
   const firstError =
-    salesRes.error ?? opexRes.error ?? purchasesRes.error ?? employeesRes.error;
+    salesRes.error ?? opexRes.error ?? purchasesRes.error ?? payrollRes.error;
   if (firstError) {
     return { data: null, error: firstError.message };
   }
@@ -607,11 +603,9 @@ export async function fetchPeriodSummary(
           0,
         );
 
-  const payroll = computeConfiguredPayroll(
-    ((employeesRes.data ?? []) as EmployeeSalaryRow[]).map((employee) => ({
-      totalSalary: employee.total_salary,
-      isActive: employee.is_active,
-    })),
+  const payroll = ((payrollRes.data ?? []) as { amount: number | string | null }[]).reduce(
+    (sum, row) => sum + safeNumber(row.amount),
+    0,
   );
 
   const platformChannelRows = (platformChannelsRes.data ?? []) as PlatformChannelRow[];

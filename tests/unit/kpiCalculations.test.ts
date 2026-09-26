@@ -5,32 +5,7 @@ import {
   computeDelta,
   aggregateByDay,
   computePlatformCommissionSummary,
-  computeConfiguredPayroll,
 } from '../../src/services/analytics/kpiCalculations';
-
-describe('computeConfiguredPayroll', () => {
-  it('uses configured salaries for every active employee instead of payment totals', () => {
-    const employees = [
-      { totalSalary: 1000, isActive: true },
-      { totalSalary: '800.50', isActive: true },
-      { totalSalary: 600, isActive: false },
-    ];
-
-    // Payment history (including advances or overpayments) is deliberately not
-    // an input: payroll expense is the configured monthly obligation.
-    expect(computeConfiguredPayroll(employees)).toBe(1800.5);
-  });
-
-  it('ignores invalid configured salary values', () => {
-    expect(
-      computeConfiguredPayroll([
-        { totalSalary: null, isActive: true },
-        { totalSalary: 'invalid', isActive: true },
-        { totalSalary: -100, isActive: true },
-      ]),
-    ).toBe(0);
-  });
-});
 
 describe('computePlatformCommissionSummary', () => {
   const wolt = 'wolt';
