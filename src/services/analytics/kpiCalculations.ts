@@ -25,7 +25,25 @@ export type PlatformCommissionSummary = {
   usesEstimate: boolean;
 };
 
+export type ConfiguredSalaryEmployee = {
+  totalSalary: number | string | null;
+  isActive: boolean;
+};
+
 const clampRate = (value: number): number => Math.min(1, Math.max(0, value));
+
+/**
+ * Monthly payroll obligation used by profitability reporting.
+ * Payment history is intentionally excluded so advances, missed payments, and
+ * overpayments cannot distort the salary expense.
+ */
+export function computeConfiguredPayroll(employees: ConfiguredSalaryEmployee[]): number {
+  return employees.reduce((total, employee) => {
+    if (!employee.isActive) return total;
+    const salary = Number(employee.totalSalary);
+    return Number.isFinite(salary) && salary > 0 ? total + salary : total;
+  }, 0);
+}
 
 export function computePlatformCommissionSummary(input: {
   sales: PlatformCommissionSale[];

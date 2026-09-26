@@ -2418,8 +2418,8 @@ export const translations: Record<Language, Translations> = {
     staffInactive: 'Inactive',
     staffNoDesignation: 'No designation',
     staffDoubleEntryWarning: 'Record salaries here instead of the Expenses “Salaries” category to avoid double-counting in reports.',
-    staffSalariesLabel: 'Salaries paid',
-    staffSalariesHint: 'Salary payments recorded in the Staff module',
+    staffSalariesLabel: 'Salary expense',
+    staffSalariesHint: 'Configured monthly salaries for all active employees; payments and overpayments do not affect this amount',
     kpiNetProfitHintExtended: 'After bank fees ₼{fees}, platform commissions ₼{commissions}, and salaries ₼{payroll}',
     kpiCommissionEstimateWarning: 'Uses an assumed {rate}% commission for platform sales without registered payouts; actual profit may differ',
 
@@ -4035,8 +4035,8 @@ export const translations: Record<Language, Translations> = {
     staffInactive: 'Qeyri-aktiv',
     staffNoDesignation: 'Vəzifə yoxdur',
     staffDoubleEntryWarning: 'Hesabatlarda təkrar sayılmasın deyə maaşları Xərclər “Maaşlar” kateqoriyası əvəzinə burada qeyd edin.',
-    staffSalariesLabel: 'Ödənilən maaşlar',
-    staffSalariesHint: 'Maaş modulunda qeyd edilən ödənişlər',
+    staffSalariesLabel: 'Maaş xərci',
+    staffSalariesHint: 'Bütün aktiv işçilər üçün təyin edilmiş aylıq maaşlar; ödənişlər və artıq ödənişlər bu məbləğə təsir etmir',
     kpiNetProfitHintExtended: 'Bank haqları ₼{fees}, platform komissiyaları ₼{commissions} və maaşlar ₼{payroll} çıxıldıqdan sonra',
     kpiCommissionEstimateWarning: 'Qeydiyyata alınmış ödənişi olmayan platform satışları üçün {rate}% təxmini komissiya istifadə olunur; faktiki mənfəət fərqli ola bilər',
 
@@ -5655,8 +5655,8 @@ export const translations: Record<Language, Translations> = {
     staffInactive: 'Неактивен',
     staffNoDesignation: 'Без должности',
     staffDoubleEntryWarning: 'Записывайте зарплаты здесь, а не в категории «Зарплаты» в расходах, чтобы избежать двойного учёта.',
-    staffSalariesLabel: 'Выплаченные зарплаты',
-    staffSalariesHint: 'Выплаты, записанные в модуле «Персонал»',
+    staffSalariesLabel: 'Расходы на зарплаты',
+    staffSalariesHint: 'Установленные месячные зарплаты всех активных сотрудников; выплаты и переплаты не влияют на сумму',
     kpiNetProfitHintExtended: 'После банковских комиссий ₼{fees}, комиссий платформ ₼{commissions} и зарплат ₼{payroll}',
     kpiCommissionEstimateWarning: 'Для продаж платформ без зарегистрированных выплат используется предполагаемая комиссия {rate}%; фактическая прибыль может отличаться',
 
