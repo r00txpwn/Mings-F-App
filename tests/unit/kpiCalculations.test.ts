@@ -4,7 +4,102 @@ import {
   computeExecutiveKpis,
   computeDelta,
   aggregateByDay,
+  computePlatformCommissionSummary,
 } from '../../src/services/analytics/kpiCalculations';
+
+describe('computePlatformCommissionSummary', () => {
+  const wolt = 'wolt';
+  const bolt = 'bolt';
+  const choiceQr = 'choiceqr';
+
+  it('assumes 35% for commission-bearing platform sales without payout coverage', () => {
+    expect(
+      computePlatformCommissionSummary({
+        sales: [{ salesChannelId: wolt, saleDate: '2026-09-10', grossSales: 1000 }],
+        payouts: [],
+        commissionChannelIds: [wolt],
+      }),
+    ).toEqual({
+      actualCommission: 0,
+      estimatedCommission: 350,
+      totalCommission: 350,
+      estimatedSales: 1000,
+      usesEstimate: true,
+    });
+  });
+
+  it('uses the recorded payout effective rate for covered sales', () => {
+    const result = computePlatformCommissionSummary({
+      sales: [{ salesChannelId: wolt, saleDate: '2026-09-05', grossSales: 400 }],
+      payouts: [
+        {
+          salesChannelId: wolt,
+          periodStart: '2026-09-01',
+          periodEnd: '2026-09-05',
+          expectedAmount: 1000,
+          actualAmount: 650,
+        },
+      ],
+      commissionChannelIds: [wolt],
+    });
+
+    expect(result.actualCommission).toBeCloseTo(140, 8);
+    expect(result.estimatedCommission).toBe(0);
+    expect(result.usesEstimate).toBe(false);
+  });
+
+  it('mixes actual commission for covered sales with the fallback for uncovered sales', () => {
+    const result = computePlatformCommissionSummary({
+      sales: [
+        { salesChannelId: wolt, saleDate: '2026-09-05', grossSales: 400 },
+        { salesChannelId: bolt, saleDate: '2026-09-10', grossSales: 200 },
+      ],
+      payouts: [
+        {
+          salesChannelId: wolt,
+          periodStart: '2026-09-01',
+          periodEnd: '2026-09-05',
+          expectedAmount: 1000,
+          actualAmount: 650,
+        },
+      ],
+      commissionChannelIds: [wolt, bolt],
+    });
+
+    expect(result.actualCommission).toBeCloseTo(140, 8);
+    expect(result.estimatedCommission).toBeCloseTo(70, 8);
+    expect(result.totalCommission).toBeCloseTo(210, 8);
+    expect(result.estimatedSales).toBe(200);
+    expect(result.usesEstimate).toBe(true);
+  });
+
+  it('never charges commission for ChoiceQR even when it has no payout coverage', () => {
+    expect(
+      computePlatformCommissionSummary({
+        sales: [{ salesChannelId: choiceQr, saleDate: '2026-09-10', grossSales: 1000 }],
+        payouts: [],
+        commissionChannelIds: [wolt, bolt, choiceQr],
+        commissionExemptChannelIds: [choiceQr],
+      }),
+    ).toEqual({
+      actualCommission: 0,
+      estimatedCommission: 0,
+      totalCommission: 0,
+      estimatedSales: 0,
+      usesEstimate: false,
+    });
+  });
+
+  it('ignores direct sales that are not commission-bearing platform channels', () => {
+    expect(
+      computePlatformCommissionSummary({
+        sales: [{ salesChannelId: 'in-store', saleDate: '2026-09-10', grossSales: 1000 }],
+        payouts: [],
+        commissionChannelIds: [wolt, bolt],
+      }).totalCommission,
+    ).toBe(0);
+  });
+});
 
 describe('safePct', () => {
   it('returns correct percentage', () => {

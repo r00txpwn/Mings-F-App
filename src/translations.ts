@@ -794,6 +794,7 @@ export interface Translations {
   staffSalariesLabel: string;
   staffSalariesHint: string;
   kpiNetProfitHintExtended: string;
+  kpiCommissionEstimateWarning: string;
 
   weatherUnavailable: string;
   cached: string;
@@ -2420,6 +2421,7 @@ export const translations: Record<Language, Translations> = {
     staffSalariesLabel: 'Salaries paid',
     staffSalariesHint: 'Salary payments recorded in the Staff module',
     kpiNetProfitHintExtended: 'After bank fees ₼{fees}, platform commissions ₼{commissions}, and salaries ₼{payroll}',
+    kpiCommissionEstimateWarning: 'Uses an assumed {rate}% commission for platform sales without registered payouts; actual profit may differ',
 
     weatherUnavailable: 'Weather unavailable',
     cached: 'cached',
@@ -4036,6 +4038,7 @@ export const translations: Record<Language, Translations> = {
     staffSalariesLabel: 'Ödənilən maaşlar',
     staffSalariesHint: 'Maaş modulunda qeyd edilən ödənişlər',
     kpiNetProfitHintExtended: 'Bank haqları ₼{fees}, platform komissiyaları ₼{commissions} və maaşlar ₼{payroll} çıxıldıqdan sonra',
+    kpiCommissionEstimateWarning: 'Qeydiyyata alınmış ödənişi olmayan platform satışları üçün {rate}% təxmini komissiya istifadə olunur; faktiki mənfəət fərqli ola bilər',
 
     weatherUnavailable: 'Hava məlumatı mövcud deyil',
     cached: 'keş',
@@ -5655,6 +5658,7 @@ export const translations: Record<Language, Translations> = {
     staffSalariesLabel: 'Выплаченные зарплаты',
     staffSalariesHint: 'Выплаты, записанные в модуле «Персонал»',
     kpiNetProfitHintExtended: 'После банковских комиссий ₼{fees}, комиссий платформ ₼{commissions} и зарплат ₼{payroll}',
+    kpiCommissionEstimateWarning: 'Для продаж платформ без зарегистрированных выплат используется предполагаемая комиссия {rate}%; фактическая прибыль может отличаться',
 
     weatherUnavailable: 'Погода недоступна',
     cached: 'кэш',

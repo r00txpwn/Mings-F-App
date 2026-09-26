@@ -1,6 +1,84 @@
 import type { ExecutiveKpis, MetricDelta, TimeseriesPoint } from '../../types/analytics';
 import type { AggregateRecord, ComputeExecutiveKpisInput } from './types';
 
+export const ASSUMED_PLATFORM_COMMISSION_RATE = 0.35;
+
+export type PlatformCommissionSale = {
+  salesChannelId: string | null;
+  saleDate: string;
+  grossSales: number;
+};
+
+export type PlatformCommissionPayout = {
+  salesChannelId: string;
+  periodStart: string;
+  periodEnd: string;
+  expectedAmount: number;
+  actualAmount: number;
+};
+
+export type PlatformCommissionSummary = {
+  actualCommission: number;
+  estimatedCommission: number;
+  totalCommission: number;
+  estimatedSales: number;
+  usesEstimate: boolean;
+};
+
+const clampRate = (value: number): number => Math.min(1, Math.max(0, value));
+
+export function computePlatformCommissionSummary(input: {
+  sales: PlatformCommissionSale[];
+  payouts: PlatformCommissionPayout[];
+  commissionChannelIds: string[];
+  commissionExemptChannelIds?: string[];
+  assumedRate?: number;
+}): PlatformCommissionSummary {
+  const commissionChannels = new Set(input.commissionChannelIds);
+  const exemptChannels = new Set(input.commissionExemptChannelIds ?? []);
+  const assumedRate = clampRate(input.assumedRate ?? ASSUMED_PLATFORM_COMMISSION_RATE);
+  let actualCommission = 0;
+  let estimatedCommission = 0;
+  let estimatedSales = 0;
+
+  for (const sale of input.sales) {
+    const channelId = sale.salesChannelId;
+    const grossSales = Number.isFinite(sale.grossSales) ? Math.max(0, sale.grossSales) : 0;
+    if (!channelId || grossSales <= 0 || !commissionChannels.has(channelId) || exemptChannels.has(channelId)) {
+      continue;
+    }
+
+    const saleDate = sale.saleDate.split('T')[0];
+    const payout = input.payouts.find(
+      (item) =>
+        item.salesChannelId === channelId &&
+        item.actualAmount > 0 &&
+        saleDate >= item.periodStart &&
+        saleDate <= item.periodEnd,
+    );
+
+    if (!payout) {
+      estimatedSales += grossSales;
+      estimatedCommission += grossSales * assumedRate;
+      continue;
+    }
+
+    const effectiveRate =
+      payout.expectedAmount > 0
+        ? clampRate((payout.expectedAmount - payout.actualAmount) / payout.expectedAmount)
+        : 0;
+    actualCommission += grossSales * effectiveRate;
+  }
+
+  return {
+    actualCommission,
+    estimatedCommission,
+    totalCommission: actualCommission + estimatedCommission,
+    estimatedSales,
+    usesEstimate: estimatedSales > 0,
+  };
+}
+
 export function safePct(numerator: number, denominator: number): number {
   if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
     return 0;

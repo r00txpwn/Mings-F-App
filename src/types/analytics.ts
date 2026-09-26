@@ -71,7 +71,10 @@ export type ReconciliationStatus = 'matched' | 'underpaid' | 'overpaid' | 'pendi
 
 export interface PayoutReconciliationItem {
   payoutId: string;
+  channelId: string;
   provider: string;
+  periodStart: string;
+  periodEnd: string;
   expectedAmount: number;
   actualAmount: number;
   difference: number;
@@ -214,8 +217,14 @@ export interface PeriodSummary {
   opex: number;
   bankFees: number;
   payroll: number;
-  /** Implied platform commissions from overlapping platform_payouts */
+  /** Actual plus estimated commissions for commission-bearing platform sales. */
   platformCommissions: number;
+  /** Portion of platformCommissions estimated because payout coverage is missing. */
+  estimatedPlatformCommissions: number;
+  /** Platform sales covered by the fallback commission assumption. */
+  estimatedPlatformSales: number;
+  platformCommissionIsEstimated: boolean;
+  platformCommissionAssumedRate: number;
 }
 
 export interface PeriodSummaryParams extends DateRangeParams {

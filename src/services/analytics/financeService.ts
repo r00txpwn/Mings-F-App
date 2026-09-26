@@ -2,6 +2,10 @@ import { applyAnalyticsSourceFilter } from '../../lib/analyticsSourceFilter';
 import { fetchAllRows } from '../../lib/supabasePaginate';
 import { supabase } from '../../lib/supabase';
 import {
+  ASSUMED_PLATFORM_COMMISSION_RATE,
+  computePlatformCommissionSummary,
+} from './kpiCalculations';
+import {
   addRowToGroupOrderCount,
   computeEffectiveOrderCount,
   getGroupOrderCount,
@@ -82,9 +86,15 @@ type SalesChannelRow = {
   is_active: boolean;
 };
 
+type PlatformChannelRow = {
+  sales_channel_id: string;
+  sales_channels?: { name: string | null } | { name: string | null }[] | null;
+};
+
 const UNKNOWN_CATEGORY = 'Uncategorized';
 const UNKNOWN_ITEM = 'Unspecified';
 const UNKNOWN_CHANNEL = 'Unknown';
+const COMMISSION_EXEMPT_CHANNEL_NAMES = new Set(['choiceqr']);
 
 const toIsoDate = (value: string): string => value.split('T')[0];
 const safeNumber = (value: number | string | null | undefined): number => {
@@ -393,7 +403,10 @@ export async function fetchPayoutReconciliation(
 
     return {
       payoutId: payout.id,
+      channelId: payout.sales_channel_id,
       provider: pickSingle(payout.sales_channels)?.name ?? UNKNOWN_CHANNEL,
+      periodStart: payout.period_start,
+      periodEnd: payout.period_end,
       expectedAmount,
       actualAmount,
       difference,
@@ -504,11 +517,19 @@ export async function fetchChannelPerformance(
 export async function fetchPeriodSummary(
   params: PeriodSummaryParams,
 ): Promise<AnalyticsServiceResponse<PeriodSummary>> {
-  const [salesRes, opexRes, purchasesRes, withdrawalsRes, payrollRes, payoutsRes] = await Promise.all([
+  const [
+    salesRes,
+    opexRes,
+    purchasesRes,
+    withdrawalsRes,
+    payrollRes,
+    payoutsRes,
+    platformChannelsRes,
+  ] = await Promise.all([
     fetchAllRows<SaleRow>(() => {
       let q = supabase
         .from('sales')
-        .select('id, total_price, discount_amount, online_payment_method, quantity, source')
+        .select('id, sale_date, sales_channel_id, total_price, discount_amount, online_payment_method, quantity, source')
         .gte('sale_date', params.startDate)
         .lte('sale_date', `${params.endDate}T23:59:59`);
       q = applyAnalyticsSourceFilter(q, params.source);
@@ -538,12 +559,21 @@ export async function fetchPeriodSummary(
       startDate: params.startDate,
       endDate: params.endDate,
     }),
+    supabase
+      .from('platform_payouts')
+      .select('sales_channel_id, sales_channels(name)'),
   ]);
 
   const firstError =
     salesRes.error ?? opexRes.error ?? purchasesRes.error ?? payrollRes.error;
   if (firstError) {
     return { data: null, error: firstError.message };
+  }
+  if (payoutsRes.error) {
+    return { data: null, error: payoutsRes.error };
+  }
+  if (platformChannelsRes.error) {
+    return { data: null, error: platformChannelsRes.error.message };
   }
 
   const sales = salesRes.data;
@@ -578,11 +608,38 @@ export async function fetchPeriodSummary(
     0,
   );
 
-  // Implied commission only for entered payouts (no invented % when missing).
-  const platformCommissions = (payoutsRes.data?.items ?? []).reduce(
-    (sum, item) => sum + Math.max(0, item.expectedAmount - item.actualAmount),
-    0,
+  const platformChannelRows = (platformChannelsRes.data ?? []) as PlatformChannelRow[];
+  const commissionChannelIds = Array.from(
+    new Set(platformChannelRows.map((row) => row.sales_channel_id)),
   );
+  const commissionExemptChannelIds = Array.from(
+    new Set(
+      platformChannelRows
+        .filter((row) =>
+          COMMISSION_EXEMPT_CHANNEL_NAMES.has(
+            (pickSingle(row.sales_channels)?.name ?? '').trim().toLowerCase(),
+          ),
+        )
+        .map((row) => row.sales_channel_id),
+    ),
+  );
+  const commissionSummary = computePlatformCommissionSummary({
+    sales: sales.map((row) => ({
+      salesChannelId: row.sales_channel_id ?? null,
+      saleDate: row.sale_date ?? '',
+      grossSales: safeNumber(row.total_price),
+    })),
+    payouts: (payoutsRes.data?.items ?? []).map((item) => ({
+      salesChannelId: item.channelId,
+      periodStart: item.periodStart,
+      periodEnd: item.periodEnd,
+      expectedAmount: item.expectedAmount,
+      actualAmount: item.actualAmount,
+    })),
+    commissionChannelIds,
+    commissionExemptChannelIds,
+    assumedRate: ASSUMED_PLATFORM_COMMISSION_RATE,
+  });
 
   return {
     data: {
@@ -595,7 +652,11 @@ export async function fetchPeriodSummary(
       opex,
       bankFees,
       payroll,
-      platformCommissions,
+      platformCommissions: commissionSummary.totalCommission,
+      estimatedPlatformCommissions: commissionSummary.estimatedCommission,
+      estimatedPlatformSales: commissionSummary.estimatedSales,
+      platformCommissionIsEstimated: commissionSummary.usesEstimate,
+      platformCommissionAssumedRate: ASSUMED_PLATFORM_COMMISSION_RATE,
     },
     error: null,
   };

@@ -260,8 +260,14 @@ export function HomeScreen() {
             .replace('{fees}', kpis.bankFees.toFixed(2))
             .replace('{commissions}', kpis.platformCommissions.toFixed(2))
             .replace('{payroll}', kpis.payroll.toFixed(2));
+          const estimateWarning = currentSummary?.platformCommissionIsEstimated
+            ? ` · ⚠ ${t.kpiCommissionEstimateWarning.replace(
+                '{rate}',
+                (currentSummary.platformCommissionAssumedRate * 100).toFixed(0),
+              )}`
+            : '';
           const compare = deltaFor(kpis.netProfit, prev?.netProfit);
-          return compare ? `${base} · ${compare.text}` : base;
+          return compare ? `${base}${estimateWarning} · ${compare.text}` : `${base}${estimateWarning}`;
         })(),
         // Top-right badge: net profit % (green profit / red loss)
         delta: { text: `${kpis.netProfitPct.toFixed(1)}%`, trend: kpis.netProfit >= 0 ? 'up' : 'down' },
@@ -296,7 +302,7 @@ export function HomeScreen() {
           ]
         : []),
     ];
-  }, [comparePrevious, kpis, previousKpis, outstandingDebt, accountBalances, t]);
+  }, [comparePrevious, currentSummary, kpis, previousKpis, outstandingDebt, accountBalances, t]);
 
   const financeTrendSeries = useMemo(
     () => [
